@@ -1,0 +1,19 @@
+**This file store prompts during conversation. You shouldn't care about this file.**
+
+如果要为该项目引入代码库索引功能，该如何完成架构设计？把架构设计及简要计划写入docs\plan\codebase-index
+
+向量数据库使用docker上的qdrant(http://127.0.0.1:6333 )，嵌入模型、重排模型使用openai接口的api
+
+先给出简要的设计计划，方便改进
+
+
+
+新增功能：根据函数/方法、变量、类等的调用关系构建树/图结构，存储在neo4j(当前部署在docker上)。
+先给出架构设计。
+设计请尽量简洁，先不需要考虑过多细节或具体安排，分析结果写入docs\plan\codebase-index\codebase-structure。
+
+
+ 把__中的代码库结构分析合并到其他文档中(该文档暂时保留，不要删除)
+
+修改代码块索引的架构设计，改为包装成单独的MCP服务，kode cli通过调用MCP来使用服务，整个代码库索引项目放在单独的文件，不要放入kode的源代码中；
+预留规则导入的接口，方便导入处理某个语言/框架的结构、依赖关系的规则
