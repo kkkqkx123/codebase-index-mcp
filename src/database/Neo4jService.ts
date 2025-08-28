@@ -1,5 +1,4 @@
 import { injectable, inject } from 'inversify';
-import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { Neo4jConnectionManager } from './neo4j/Neo4jConnectionManager';
@@ -11,7 +10,6 @@ export class Neo4jService {
   private errorHandler: ErrorHandlerService;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(Neo4jConnectionManager) neo4jConnection: Neo4jConnectionManager

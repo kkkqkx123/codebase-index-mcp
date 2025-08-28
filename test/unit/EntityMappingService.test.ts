@@ -2,7 +2,6 @@ import { EntityMappingService } from '../../src/services/sync/EntityMappingServi
 import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
 import { LoggerService } from '../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
-import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
 import { createMockEntityMapping, createMockSyncOperation } from '../setup';
 
 // Mock dependencies
@@ -280,7 +279,7 @@ describe('EntityMappingService', () => {
       mockEntityIdManager.getMapping.mockReturnValue(null);
 
       await expect(entityMappingService.updateEntity(entityId, updates))
-        .rejects.toThrow(CodebaseIndexError);
+        .rejects.toThrow(/Entity not found: nonexistent_entity/); // Match the error message
     });
 
     it('should handle update failure', async () => {
@@ -324,7 +323,7 @@ describe('EntityMappingService', () => {
       mockEntityIdManager.getMapping.mockReturnValue(null);
 
       await expect(entityMappingService.deleteEntity(entityId))
-        .rejects.toThrow(CodebaseIndexError);
+        .rejects.toThrow(/Entity not found: nonexistent_entity/); // Match the error message
     });
 
     it('should handle deletion failure', async () => {
@@ -425,7 +424,7 @@ describe('EntityMappingService', () => {
       mockEntityIdManager.getMapping.mockReturnValue(null);
 
       await expect(entityMappingService.syncEntity(entityId))
-        .rejects.toThrow(CodebaseIndexError);
+        .rejects.toThrow(/Entity not found: nonexistent_entity/); // Match the error message
     });
 
     it('should handle sync failure', async () => {
@@ -702,7 +701,7 @@ describe('EntityMappingService', () => {
       jest.spyOn(entityMappingService as any, 'getBatch').mockResolvedValue(null);
 
       await expect(entityMappingService.executeBatch(batchId))
-        .rejects.toThrow(CodebaseIndexError);
+        .rejects.toThrow(/Batch not found: nonexistent_batch/); // Match the error message
     });
   });
 

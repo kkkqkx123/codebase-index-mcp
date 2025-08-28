@@ -40,14 +40,16 @@ export class EntityMappingService {
   private logger: LoggerService;
   private entityIdManager: EntityIdManager;
   private pendingOperations: Map<string, SyncOperation> = new Map();
+  private errorHandler: ErrorHandlerService;
   private operationHistory: SyncOperation[] = [];
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
+    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(EntityIdManager) entityIdManager: EntityIdManager
   ) {
     this.logger = logger;
+    this.errorHandler = errorHandler;
     this.entityIdManager = entityIdManager;
   }
 
@@ -83,6 +85,11 @@ export class EntityMappingService {
       operation.status = 'failed';
       operation.error = error instanceof Error ? error.message : String(error);
       this.operationHistory.push(operation);
+      this.errorHandler.handleError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'EntityMappingService',
+        operation: 'createEntity',
+        metadata: { entityId, entityType },
+      });
       throw error;
     }
   }
@@ -96,7 +103,9 @@ export class EntityMappingService {
   ): Promise<SyncResult> {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
-      throw new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'update' });
+      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'update' });
+      this.errorHandler.handleError(error, error.context);
+      throw error;
     }
 
     const operationId = this.generateOperationId();
@@ -123,6 +132,11 @@ export class EntityMappingService {
       operation.status = 'failed';
       operation.error = error instanceof Error ? error.message : String(error);
       this.operationHistory.push(operation);
+      this.errorHandler.handleError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'EntityMappingService',
+        operation: 'updateEntity',
+        metadata: { entityId },
+      });
       throw error;
     }
   }
@@ -130,7 +144,9 @@ export class EntityMappingService {
   async deleteEntity(entityId: string): Promise<SyncResult> {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
-      throw new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'delete' });
+      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'delete' });
+      this.errorHandler.handleError(error, error.context);
+      throw error;
     }
 
     const operationId = this.generateOperationId();
@@ -156,6 +172,11 @@ export class EntityMappingService {
       operation.status = 'failed';
       operation.error = error instanceof Error ? error.message : String(error);
       this.operationHistory.push(operation);
+      this.errorHandler.handleError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'EntityMappingService',
+        operation: 'deleteEntity',
+        metadata: { entityId },
+      });
       throw error;
     }
   }
@@ -163,7 +184,9 @@ export class EntityMappingService {
   async syncEntity(entityId: string): Promise<SyncResult> {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
-      throw new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'sync' });
+      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'sync' });
+      this.errorHandler.handleError(error, error.context);
+      throw error;
     }
 
     // Determine what needs to be synced based on current status
@@ -211,6 +234,11 @@ export class EntityMappingService {
       operation.status = 'failed';
       operation.error = error instanceof Error ? error.message : String(error);
       this.operationHistory.push(operation);
+      this.errorHandler.handleError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'EntityMappingService',
+        operation: 'syncEntity',
+        metadata: { entityId },
+      });
       throw error;
     }
   }
@@ -233,6 +261,7 @@ export class EntityMappingService {
           timestamp: new Date()
         });
         this.logger.error('Failed to sync entity', { entityId: mapping.entityId, error });
+        // Do not rethrow the error, allow the project sync to continue for other entities.
       }
     }
 
@@ -265,7 +294,9 @@ export class EntityMappingService {
   async executeBatch(batchId: string): Promise<SyncResult[]> {
     const batch = await this.getBatch(batchId);
     if (!batch) {
-      throw new CodebaseIndexError(`Batch not found: ${batchId}`, { component: 'EntityMappingService', operation: 'executeBatch' });
+      const error = new CodebaseIndexError(`Batch not found: ${batchId}`, { component: 'EntityMappingService', operation: 'executeBatch' });
+      this.errorHandler.handleError(error, error.context);
+      throw error;
     }
 
     batch.status = 'executing';

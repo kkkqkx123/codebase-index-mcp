@@ -206,8 +206,6 @@ export class Neo4jConnectionManager {
     const session = await this.sessionPool.getSession('WRITE');
 
     try {
-      const results: GraphQueryResult[] = [];
-
       const transactionResult = await session.writeTransaction(async tx => {
         const txResults: GraphQueryResult[] = [];
 
@@ -246,7 +244,6 @@ export class Neo4jConnectionManager {
 
   async createNode(node: GraphNode): Promise<string> {
     const labels = node.labels.join(':');
-    const properties = this.formatProperties(node.properties);
 
     const query: GraphQuery = {
       cypher: `CREATE (n:${labels} $properties) RETURN n.id as id`,
@@ -365,21 +362,6 @@ export class Neo4jConnectionManager {
     }
   }
 
-  private formatProperties(properties: Record<string, any>): Record<string, any> {
-    const formatted: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(properties)) {
-      if (value instanceof Date) {
-        formatted[key] = value.toISOString();
-      } else if (typeof value === 'object' && value !== null) {
-        formatted[key] = JSON.stringify(value);
-      } else {
-        formatted[key] = value;
-      }
-    }
-
-    return formatted;
-  }
 
   private buildWhereClause(properties: Record<string, any>, variable: string = 'n'): string {
     const conditions = Object.entries(properties).map(([key, value]) => {
@@ -399,7 +381,7 @@ export class Neo4jConnectionManager {
 
   private recordToNode(record: any): GraphNode {
     return {
-      id: record.id,
+      id: record.properties?.id || record.id,
       labels: record.labels || [],
       properties: record.properties || {}
     };
