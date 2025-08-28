@@ -16,6 +16,8 @@ import { EmbedderFactory } from '../embedders/EmbedderFactory';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
 import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
+import { FileWatcherService } from '../services/filesystem/FileWatcherService';
+import { ChangeDetectionService } from '../services/filesystem/ChangeDetectionService';
 import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 import { Neo4jConnectionManager } from '../database/neo4j/Neo4jConnectionManager';
@@ -25,6 +27,7 @@ import { EntityIdManager } from '../services/sync/EntityIdManager';
 import { EntityMappingService } from '../services/sync/EntityMappingService';
 import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
 import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
+import { EventQueueService } from '../services/EventQueueService';
 
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
@@ -43,6 +46,8 @@ export const TYPES = {
   TreeSitterService: Symbol.for('TreeSitterService'),
   SmartCodeParser: Symbol.for('SmartCodeParser'),
   FileSystemTraversal: Symbol.for('FileSystemTraversal'),
+  FileWatcherService: Symbol.for('FileWatcherService'),
+  ChangeDetectionService: Symbol.for('ChangeDetectionService'),
   HashBasedDeduplicator: Symbol.for('HashBasedDeduplicator'),
   QdrantClientWrapper: Symbol.for('QdrantClientWrapper'),
   Neo4jConnectionManager: Symbol.for('Neo4jConnectionManager'),
@@ -51,7 +56,8 @@ export const TYPES = {
   EntityIdManager: Symbol.for('EntityIdManager'),
   EntityMappingService: Symbol.for('EntityMappingService'),
   TransactionCoordinator: Symbol.for('TransactionCoordinator'),
-  ConsistencyChecker: Symbol.for('ConsistencyChecker')
+  ConsistencyChecker: Symbol.for('ConsistencyChecker'),
+  EventQueueService: Symbol.for('EventQueueService')
 };
 
 const coreModule = new ContainerModule((bind: interfaces.Bind) => {
@@ -82,9 +88,15 @@ const serviceModule = new ContainerModule((bind: interfaces.Bind) => {
   bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
   bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
   bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
+  bind(TYPES.FileWatcherService).to(FileWatcherService).inSingletonScope();
+  bind(TYPES.ChangeDetectionService).to(ChangeDetectionService).inSingletonScope();
   bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
   bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
   bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
+});
+
+const queueModule = new ContainerModule((bind: interfaces.Bind) => {
+  bind(TYPES.EventQueueService).to(EventQueueService).inSingletonScope();
 });
 
 const syncModule = new ContainerModule((bind: interfaces.Bind) => {
@@ -100,7 +112,7 @@ export class DIContainer {
   static getInstance(): Container {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
-      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, syncModule);
+      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, queueModule, syncModule);
     }
     return DIContainer.instance;
   }

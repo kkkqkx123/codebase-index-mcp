@@ -56,6 +56,35 @@ const configSchema = Joi.object({
     indexBatchSize: Joi.number().positive().default(100),
     chunkSize: Joi.number().positive().default(1000),
     overlapSize: Joi.number().positive().default(200)
+  }),
+  
+  batchProcessing: Joi.object({
+    enabled: Joi.boolean().default(true),
+    maxConcurrentOperations: Joi.number().positive().default(5),
+    defaultBatchSize: Joi.number().positive().default(50),
+    maxBatchSize: Joi.number().positive().default(500),
+    memoryThreshold: Joi.number().positive().default(80), // percentage
+    processingTimeout: Joi.number().positive().default(300000), // 5 minutes
+    retryAttempts: Joi.number().positive().default(3),
+    retryDelay: Joi.number().positive().default(1000), // 1 second
+    continueOnError: Joi.boolean().default(true),
+    adaptiveBatching: Joi.object({
+      enabled: Joi.boolean().default(true),
+      minBatchSize: Joi.number().positive().default(10),
+      maxBatchSize: Joi.number().positive().default(200),
+      performanceThreshold: Joi.number().positive().default(1000), // ms
+      adjustmentFactor: Joi.number().positive().default(1.2)
+    }),
+    monitoring: Joi.object({
+      enabled: Joi.boolean().default(true),
+      metricsInterval: Joi.number().positive().default(60000), // 1 minute
+      alertThresholds: Joi.object({
+        highLatency: Joi.number().positive().default(5000), // ms
+        lowThroughput: Joi.number().positive().default(10), // operations/sec
+        highErrorRate: Joi.number().positive().default(0.1), // 10%
+        highMemoryUsage: Joi.number().positive().default(90) // percentage
+      })
+    })
   })
 });
 
@@ -106,6 +135,34 @@ export interface Config {
     indexBatchSize: number;
     chunkSize: number;
     overlapSize: number;
+  };
+  batchProcessing: {
+    enabled: boolean;
+    maxConcurrentOperations: number;
+    defaultBatchSize: number;
+    maxBatchSize: number;
+    memoryThreshold: number;
+    processingTimeout: number;
+    retryAttempts: number;
+    retryDelay: number;
+    continueOnError: boolean;
+    adaptiveBatching: {
+      enabled: boolean;
+      minBatchSize: number;
+      maxBatchSize: number;
+      performanceThreshold: number;
+      adjustmentFactor: number;
+    };
+    monitoring: {
+      enabled: boolean;
+      metricsInterval: number;
+      alertThresholds: {
+        highLatency: number;
+        lowThroughput: number;
+        highErrorRate: number;
+        highMemoryUsage: number;
+      };
+    };
   };
 }
 
@@ -161,6 +218,34 @@ export class ConfigService {
         indexBatchSize: parseInt(process.env.INDEX_BATCH_SIZE || '100'),
         chunkSize: parseInt(process.env.CHUNK_SIZE || '1000'),
         overlapSize: parseInt(process.env.OVERLAP_SIZE || '200')
+      },
+      batchProcessing: {
+        enabled: process.env.BATCH_PROCESSING_ENABLED !== 'false',
+        maxConcurrentOperations: parseInt(process.env.MAX_CONCURRENT_OPERATIONS || '5'),
+        defaultBatchSize: parseInt(process.env.DEFAULT_BATCH_SIZE || '50'),
+        maxBatchSize: parseInt(process.env.MAX_BATCH_SIZE || '500'),
+        memoryThreshold: parseInt(process.env.MEMORY_THRESHOLD || '80'),
+        processingTimeout: parseInt(process.env.PROCESSING_TIMEOUT || '300000'),
+        retryAttempts: parseInt(process.env.RETRY_ATTEMPTS || '3'),
+        retryDelay: parseInt(process.env.RETRY_DELAY || '1000'),
+        continueOnError: process.env.CONTINUE_ON_ERROR !== 'false',
+        adaptiveBatching: {
+          enabled: process.env.ADAPTIVE_BATCHING_ENABLED !== 'false',
+          minBatchSize: parseInt(process.env.MIN_BATCH_SIZE || '10'),
+          maxBatchSize: parseInt(process.env.ADAPTIVE_MAX_BATCH_SIZE || '200'),
+          performanceThreshold: parseInt(process.env.PERFORMANCE_THRESHOLD || '1000'),
+          adjustmentFactor: parseFloat(process.env.ADJUSTMENT_FACTOR || '1.2')
+        },
+        monitoring: {
+          enabled: process.env.BATCH_MONITORING_ENABLED !== 'false',
+          metricsInterval: parseInt(process.env.METRICS_INTERVAL || '60000'),
+          alertThresholds: {
+            highLatency: parseInt(process.env.HIGH_LATENCY_THRESHOLD || '5000'),
+            lowThroughput: parseInt(process.env.LOW_THROUGHPUT_THRESHOLD || '10'),
+            highErrorRate: parseFloat(process.env.HIGH_ERROR_RATE_THRESHOLD || '0.1'),
+            highMemoryUsage: parseInt(process.env.HIGH_MEMORY_USAGE_THRESHOLD || '90')
+          }
+        }
       }
     };
 

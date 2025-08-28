@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { EmbedderFactory } from '../EmbedderFactory';
+import { EmbedderFactory } from './EmbedderFactory';
 import { BaseEmbedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
 
 export interface DimensionAdapter {

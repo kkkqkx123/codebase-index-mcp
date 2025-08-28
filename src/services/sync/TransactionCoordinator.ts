@@ -39,6 +39,7 @@ export class TransactionCoordinator {
   private entityMappingService: EntityMappingService;
   private activeTransactions: Map<string, Transaction> = new Map();
   private transactionHistory: Transaction[] = [];
+  private currentTransaction: Transaction | null = null;
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
@@ -206,20 +207,80 @@ export class TransactionCoordinator {
 
   private async executeVectorOperation(operation: any): Promise<void> {
     // This would interact with the vector database service
-    // For now, we'll simulate the operation
     this.logger.debug('Executing vector operation', operation);
     
-    // Simulate some processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
+    try {
+      // In a real implementation, we would interact with the VectorStorageService here
+      // For now, we'll simulate the operation based on the operation type
+      
+      switch (operation.type) {
+        case 'storeChunks':
+          // Simulate storing chunks
+          this.logger.debug('Storing chunks in vector database', {
+            chunkCount: operation.chunks?.length || 0,
+            projectId: operation.options?.projectId
+          });
+          break;
+          
+        case 'deleteChunks':
+          // Simulate deleting chunks
+          this.logger.debug('Deleting chunks from vector database', {
+            chunkCount: operation.chunkIds?.length || 0
+          });
+          break;
+          
+        default:
+          this.logger.warn('Unknown vector operation type', { type: operation.type });
+      }
+      
+      // Simulate some processing time
+      await new Promise(resolve => setTimeout(resolve, 10));
+    } catch (error) {
+      this.logger.error('Failed to execute vector operation', {
+        operation,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   private async executeGraphOperation(operation: any): Promise<void> {
     // This would interact with the graph database service
-    // For now, we'll simulate the operation
     this.logger.debug('Executing graph operation', operation);
     
-    // Simulate some processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
+    try {
+      // In a real implementation, we would interact with the GraphPersistenceService here
+      // For now, we'll simulate the operation based on the operation type
+      
+      switch (operation.type) {
+        case 'storeChunks':
+          // Simulate storing chunks
+          this.logger.debug('Storing chunks in graph database', {
+            chunkCount: operation.chunks?.length || 0,
+            projectId: operation.options?.projectId
+          });
+          break;
+          
+        case 'deleteNodes':
+          // Simulate deleting nodes
+          this.logger.debug('Deleting nodes from graph database', {
+            nodeCount: operation.nodeIds?.length || 0
+          });
+          break;
+          
+        default:
+          this.logger.warn('Unknown graph operation type', { type: operation.type });
+      }
+      
+      // Simulate some processing time
+      await new Promise(resolve => setTimeout(resolve, 10));
+    } catch (error) {
+      this.logger.error('Failed to execute graph operation', {
+        operation,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   private async executeMappingOperation(operation: any): Promise<void> {
@@ -235,8 +296,52 @@ export class TransactionCoordinator {
     // This would execute the compensating operation
     this.logger.debug('Executing compensating operation', operation);
     
-    // Simulate some processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
+    try {
+      // In a real implementation, we would interact with the appropriate service here
+      // For now, we'll simulate the operation based on the operation type
+      
+      switch (operation.type) {
+        case 'deleteChunks':
+          // Compensating operation for storeChunks - delete the stored chunks
+          this.logger.debug('Compensating: Deleting chunks from vector database', {
+            chunkCount: operation.chunkIds?.length || 0
+          });
+          break;
+          
+        case 'restoreChunks':
+          // Compensating operation for deleteChunks - restore the deleted chunks
+          this.logger.debug('Compensating: Restoring chunks to vector database', {
+            chunkCount: operation.chunkIds?.length || 0
+          });
+          break;
+          
+        case 'deleteNodes':
+          // Compensating operation for storeChunks - delete the created nodes
+          this.logger.debug('Compensating: Deleting nodes from graph database', {
+            nodeCount: operation.nodeIds?.length || 0
+          });
+          break;
+          
+        case 'restoreNodes':
+          // Compensating operation for deleteNodes - restore the deleted nodes
+          this.logger.debug('Compensating: Restoring nodes to graph database', {
+            nodeCount: operation.nodeIds?.length || 0
+          });
+          break;
+          
+        default:
+          this.logger.warn('Unknown compensating operation type', { type: operation.type });
+      }
+      
+      // Simulate some processing time
+      await new Promise(resolve => setTimeout(resolve, 10));
+    } catch (error) {
+      this.logger.error('Failed to execute compensating operation', {
+        operation,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   async getTransaction(transactionId: string): Promise<Transaction | null> {
@@ -276,6 +381,169 @@ export class TransactionCoordinator {
     return `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  async beginTransaction(): Promise<string> {
+    if (this.currentTransaction) {
+      throw new Error('A transaction is already in progress');
+    }
+
+    const transactionId = this.generateTransactionId();
+    
+    this.currentTransaction = {
+      id: transactionId,
+      projectId: 'incremental_indexing',
+      steps: [],
+      status: 'pending',
+      createdAt: new Date()
+    };
+
+    this.logger.debug('Transaction began', { transactionId });
+    return transactionId;
+  }
+
+  async commitTransaction(): Promise<boolean> {
+    if (!this.currentTransaction) {
+      throw new Error('No active transaction to commit');
+    }
+
+    const transactionId = this.currentTransaction.id;
+    
+    try {
+      // Execute all queued operations
+      if (this.currentTransaction.steps.length > 0) {
+        const result = await this.executeTransactionSteps(this.currentTransaction);
+        
+        if (!result.success) {
+          throw new Error(`Transaction execution failed: ${result.error}`);
+        }
+      }
+
+      this.currentTransaction.status = 'completed';
+      this.currentTransaction.completedAt = new Date();
+      
+      this.transactionHistory.push(this.currentTransaction);
+      this.logger.debug('Transaction committed', { transactionId });
+      
+      this.currentTransaction = null;
+      return true;
+    } catch (error) {
+      this.logger.error('Failed to commit transaction', {
+        transactionId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Attempt to rollback on commit failure
+      await this.rollbackTransaction();
+      return false;
+    }
+  }
+
+  async rollbackTransaction(): Promise<boolean> {
+    if (!this.currentTransaction) {
+      this.logger.warn('No active transaction to rollback');
+      return false;
+    }
+
+    const transactionId = this.currentTransaction.id;
+    
+    try {
+      // Compensate for executed steps
+      await this.compensateTransaction(this.currentTransaction);
+      
+      this.currentTransaction.status = 'failed';
+      this.currentTransaction.error = 'Rolled back';
+      this.currentTransaction.completedAt = new Date();
+      
+      this.transactionHistory.push(this.currentTransaction);
+      this.logger.debug('Transaction rolled back', { transactionId });
+      
+      this.currentTransaction = null;
+      return true;
+    } catch (error) {
+      this.logger.error('Failed to rollback transaction', {
+        transactionId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Still clear the current transaction even if rollback fails
+      this.currentTransaction = null;
+      return false;
+    }
+  }
+
+  async addVectorOperation(operation: any, compensatingOperation?: any): Promise<void> {
+    if (!this.currentTransaction) {
+      throw new Error('No active transaction');
+    }
+
+    this.currentTransaction.steps.push({
+      id: `step_${this.currentTransaction.steps.length}`,
+      type: 'vector',
+      operation,
+      compensatingOperation,
+      executed: false,
+      compensated: false
+    });
+  }
+
+  async addGraphOperation(operation: any, compensatingOperation?: any): Promise<void> {
+    if (!this.currentTransaction) {
+      throw new Error('No active transaction');
+    }
+
+    this.currentTransaction.steps.push({
+      id: `step_${this.currentTransaction.steps.length}`,
+      type: 'graph',
+      operation,
+      compensatingOperation,
+      executed: false,
+      compensated: false
+    });
+  }
+
+  private async executeTransactionSteps(transaction: Transaction): Promise<TransactionResult> {
+    const startTime = Date.now();
+    
+    try {
+      transaction.status = 'executing';
+      
+      for (const step of transaction.steps) {
+        try {
+          await this.executeStep(transaction, step);
+          step.executed = true;
+        } catch (error) {
+          step.executed = false;
+          throw error;
+        }
+      }
+
+      transaction.status = 'completed';
+      transaction.completedAt = new Date();
+
+      const result: TransactionResult = {
+        transactionId: transaction.id,
+        success: true,
+        executedSteps: transaction.steps.filter(s => s.executed).length,
+        duration: Date.now() - startTime
+      };
+
+      return result;
+    } catch (error) {
+      transaction.status = 'failed';
+      transaction.error = error instanceof Error ? error.message : String(error);
+      transaction.completedAt = new Date();
+
+      const result: TransactionResult = {
+        transactionId: transaction.id,
+        success: false,
+        executedSteps: transaction.steps.filter(s => s.executed).length,
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime
+      };
+
+      return result;
+    }
+  }
+
   getStats() {
     const active = this.activeTransactions.size;
     const recent = this.transactionHistory.slice(-100);
@@ -285,8 +553,8 @@ export class TransactionCoordinator {
     return {
       activeTransactions: active,
       recentSuccessRate: recent.length > 0 ? (success / recent.length) * 100 : 0,
-      averageTransactionTime: recent.length > 0 
-        ? recent.reduce((sum, t) => sum + (t.completedAt?.getTime() || 0) - t.createdAt.getTime(), 0) / recent.length 
+      averageTransactionTime: recent.length > 0
+        ? recent.reduce((sum, t) => sum + (t.completedAt?.getTime() || 0) - t.createdAt.getTime(), 0) / recent.length
         : 0
     };
   }

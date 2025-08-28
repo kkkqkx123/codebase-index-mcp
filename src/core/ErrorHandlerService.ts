@@ -12,7 +12,7 @@ export interface ErrorReport {
   timestamp: Date;
   type: string;
   message: string;
-  stack?: string;
+  stack: string | undefined;
   context: ErrorContext;
   severity: 'low' | 'medium' | 'high' | 'critical';
   handled: boolean;
@@ -31,7 +31,10 @@ export class CodebaseIndexError extends Error {
     this.name = 'CodebaseIndexError';
     this.context = context;
     this.severity = severity;
-    Error.captureStackTrace(this, CodebaseIndexError);
+    // Capture stack trace in a cross-environment way
+    if (typeof (Error as any).captureStackTrace === 'function') {
+      (Error as any).captureStackTrace(this, CodebaseIndexError);
+    }
   }
 }
 
@@ -108,7 +111,7 @@ export class ErrorHandlerService {
       if (filter.component) {
         reports = reports.filter(r => r.context.component === filter.component);
       }
-      if (filter.since) {
+      if (filter.since !== undefined) {
         reports = reports.filter(r => r.timestamp >= filter.since);
       }
     }
