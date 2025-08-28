@@ -42,23 +42,23 @@ if (Test-Path $envFile) {
 }
 
 # Get Qdrant configuration from environment variables
-$host = [Environment]::GetEnvironmentVariable("QDRANT_HOST")
+$qdrantHost = [Environment]::GetEnvironmentVariable("QDRANT_HOST")
 $port = [Environment]::GetEnvironmentVariable("QDRANT_PORT")
 $apiKey = [Environment]::GetEnvironmentVariable("QDRANT_API_KEY")
 
-Write-Host "Qdrant Host: $host"
+Write-Host "Qdrant Host: $qdrantHost"
 Write-Host "Qdrant Port: $port"
 Write-Host "Qdrant API Key: $($apiKey -replace '.', '*')"
 
 # Validate configuration
-if (-not $host -or -not $port) {
+if (-not $qdrantHost -or -not $port) {
   Write-Host "Missing Qdrant configuration"
   Write-Host "Please ensure QDRANT_HOST and QDRANT_PORT are set in your .env file"
   exit 1
 }
 
 # Test connection to Qdrant using the Node.js script
-Write-Host "Testing connection to Qdrant at ${host}:${port}"
+Write-Host "Testing connection to Qdrant at ${qdrantHost}:${port}"
 Write-Host "Current working directory: $((Get-Location).Path)"
 
 try {
