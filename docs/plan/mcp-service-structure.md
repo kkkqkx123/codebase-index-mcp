@@ -21,6 +21,19 @@ codebase-index-mcp/
 │   │   │   ├── vector-store.ts         # 向量存储
 │   │   │   ├── search-service.ts       # 搜索服务
 │   │   │   └── incremental-indexer.ts  # 增量索引器
+│   │   ├── reranking/
+│   │   │   ├── reranking-service.ts    # 重排服务
+│   │   │   ├── semantic-reranker.ts    # 语义重排器
+│   │   │   ├── graph-enhancer.ts       # 图关系增强器
+│   │   │   ├── feature-optimizer.ts    # 特征优化器
+│   │   │   ├── fusion-engine.ts        # 结果融合引擎
+│   │   │   └── learning-optimizer.ts   # 学习优化器
+│   │   ├── similarity/
+│   │   │   ├── similarity-service.ts   # 相似度计算服务
+│   │   │   ├── vector-similarity.ts    # 向量相似度计算
+│   │   │   ├── structural-similarity.ts # 结构相似度计算
+│   │   │   ├── contextual-similarity.ts # 上下文相似度计算
+│   │   │   └── feature-similarity.ts   # 特征相似度计算
 │   │   ├── parser/
 │   │   │   ├── smart-parser.ts         # 智能代码解析器
 │   │   │   ├── tree-sitter-manager.ts   # Tree-sitter管理器
@@ -61,7 +74,11 @@ codebase-index-mcp/
 │   │   ├── graph-model.ts    # 图数据模型
 │   │   ├── embedder-model.ts # 嵌入器模型
 │   │   ├── parser-model.ts   # 解析器模型
-│   │   └── monitoring-model.ts # 监控模型
+│   │   ├── monitoring-model.ts # 监控模型
+│   │   ├── reranking-model.ts # 重排数据模型
+│   │   ├── similarity-model.ts # 相似度计算模型
+│   │   ├── fusion-model.ts   # 融合引擎模型
+│   │   └── learning-model.ts # 学习优化模型
 │   ├── 📁 utils/             # 工具函数
 │   │   ├── file-utils.ts     # 文件处理
 │   │   ├── text-utils.ts     # 文本处理
@@ -235,6 +252,94 @@ export class RuleService {
 }
 ```
 
+**reranking-service.ts** - 重排服务
+```typescript
+@injectable()
+export class RerankingService {
+  constructor(
+    @inject('SemanticReranker') private semanticReranker: SemanticReranker,
+    @inject('GraphEnhancer') private graphEnhancer: GraphEnhancer,
+    @inject('FeatureOptimizer') private featureOptimizer: FeatureOptimizer
+  ) {}
+
+  async multiStageRerank(
+    results: MultiModalResults,
+    query: string,
+    context: SearchContext
+  ): Promise<RerankedResult[]> {
+    // 第一阶段：语义重排
+    const semanticReranked = await this.semanticReranker.rerank(
+      results.semantic,
+      query,
+      context
+    );
+    
+    // 第二阶段：图关系增强
+    const graphEnhanced = await this.graphEnhancer.enhance(
+      semanticReranked,
+      results.graph,
+      context
+    );
+    
+    // 第三阶段：代码特征优化
+    const featureOptimized = await this.featureOptimizer.optimize(
+      graphEnhanced,
+      results.keyword,
+      query,
+      context
+    );
+    
+    return featureOptimized;
+  }
+}
+```
+
+**similarity-service.ts** - 相似度计算服务
+```typescript
+@injectable()
+export class SimilarityService {
+  async calculateSimilarity(
+    item1: CodeItem,
+    item2: CodeItem,
+    metrics: SimilarityMetrics[] = ['cosine', 'structural', 'contextual']
+  ): Promise<SimilarityResult> {
+    const results: SimilarityResult = {
+      overall: 0,
+      metrics: {}
+    };
+    
+    // 向量相似度
+    if (metrics.includes('cosine')) {
+      results.metrics.cosine = await this.calculateCosineSimilarity(
+        item1.vector,
+        item2.vector
+      );
+    }
+    
+    // 结构相似度
+    if (metrics.includes('structural')) {
+      results.metrics.structural = await this.calculateStructuralSimilarity(
+        item1.ast,
+        item2.ast
+      );
+    }
+    
+    // 上下文相似度
+    if (metrics.includes('contextual')) {
+      results.metrics.contextual = await this.calculateContextualSimilarity(
+        item1.context,
+        item2.context
+      );
+    }
+    
+    // 计算综合相似度
+    results.overall = this.calculateOverallSimilarity(results.metrics);
+    
+    return results;
+  }
+}
+```
+
 ### 3. MCP协议处理 (mcp/)
 
 **server.ts** - MCP服务器
@@ -273,19 +378,80 @@ export class CodebaseIndexServer {
 }
 ```
 
-**tools/search-tool.ts** - 搜索工具
+**tools/search-tool.ts** - 增强搜索工具
 ```typescript
-export class SearchTool {
+export class EnhancedSearchTool {
   static async handle(params: any): Promise<any> {
-    const { query, limit = 10 } = params;
+    const { 
+      query, 
+      limit = 10,
+      useReranking = true,
+      rerankingStrategy = 'hybrid',
+      similarityMetrics = ['cosine', 'structural', 'contextual'],
+      fusionWeights
+    } = params;
     
-    const results = await container.get<SearchService>('SearchService')
-      .search(query, limit);
+    const searchOptions: EnhancedSearchOptions = {
+      limit,
+      useReranking,
+      rerankingStrategy,
+      similarityMetrics,
+      fusionWeights
+    };
+    
+    const results = await container.get<EnhancedSearchService>('EnhancedSearchService')
+      .enhancedSearch(query, searchOptions);
     
     return {
       content: [{
         type: 'text',
-        text: JSON.stringify(results, null, 2)
+        text: JSON.stringify({
+          results,
+          metadata: {
+            query,
+            strategy: rerankingStrategy,
+            totalResults: results.length,
+            processingTime: results.reduce((sum, r) => sum + (r.processingTime || 0), 0)
+          }
+        }, null, 2)
+      }]
+    };
+  }
+}
+```
+
+**tools/reranking-tool.ts** - 重排配置工具
+```typescript
+export class RerankingTool {
+  static async handle(params: any): Promise<any> {
+    const { 
+      action,
+      strategy,
+      weights,
+      threshold 
+    } = params;
+    
+    switch (action) {
+      case 'configure':
+        await container.get<RerankingService>('RerankingService')
+          .configureStrategy(strategy, weights);
+        break;
+      case 'analyze':
+        const analysis = await container.get<RerankingService>('RerankingService')
+          .analyzePerformance(strategy);
+        return { content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }] };
+      case 'optimize':
+        const optimization = await container.get<RerankingService>('RerankingService')
+          .autoOptimize(threshold);
+        return { content: [{ type: 'text', text: JSON.stringify(optimization, null, 2) }] };
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `Reranking configuration updated: ${strategy}`
       }]
     };
   }
@@ -392,12 +558,12 @@ export class Neo4jClientWrapper {
 
 ## 📋 配置文件
 
-### package.json 配置
+### 增强package.json 配置
 ```json
 {
   "name": "codebase-index-mcp",
   "version": "1.0.0",
-  "description": "独立MCP服务，提供代码库索引和结构分析功能",
+  "description": "独立MCP服务，提供代码库索引和结构分析功能，支持多层次重排和智能相似度计算",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
@@ -407,6 +573,7 @@ export class Neo4jClientWrapper {
     "test:unit": "jest --testPathPattern=\"unit\"",
     "test:integration": "jest --testPathPattern=\"integration\"",
     "test:e2e": "jest --testPathPattern=\"e2e\"",
+    "test:performance": "jest --testPathPattern=\"performance\"",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },
@@ -418,7 +585,11 @@ export class Neo4jClientWrapper {
     "openai": "^5.15.0",
     "inversify": "^6.0.0",
     "reflect-metadata": "^0.1.13",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "lodash": "^4.17.21",
+    "natural": "^6.12.0",
+    "ml-matrix": "^6.10.4",
+    "fast-levenshtein": "^3.0.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
@@ -427,7 +598,9 @@ export class Neo4jClientWrapper {
     "jest": "^29.0.0",
     "@types/jest": "^29.0.0",
     "ts-jest": "^29.0.0",
-    "eslint": "^8.0.0"
+    "eslint": "^8.0.0",
+    "@types/lodash": "^4.14.199",
+    "@types/natural": "^5.1.4"
   }
 }
 ```

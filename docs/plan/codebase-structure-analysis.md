@@ -48,13 +48,26 @@
   - 错误恢复和重试机制
   - 性能监控和健康检查
 
-#### 5. 查询服务 (Query Service)
-- **职责**: 提供图结构查询接口
+#### 5. 智能查询服务 (Intelligent Query Service)
+- **职责**: 提供增强型图结构查询和智能搜索接口
 - **功能**: 
   - 路径查询和关系分析
-  - 语义搜索增强
+  - 多层次语义搜索增强
   - 可视化数据导出
   - 影响范围分析和依赖追踪
+  - **多层次重排模型**:
+    - 语义重排（基于嵌入相似度）
+    - 图关系增强（基于调用链和依赖关系）
+    - 代码特征优化（基于AST结构和代码特征）
+  - **智能结果融合**:
+    - 动态权重分配
+    - 多维度评分计算
+    - 上下文感知增强
+  - **代码特定相似度算法**:
+    - 结构相似度（AST匹配）
+    - 功能相似度（函数签名分析）
+    - 上下文相似度（调用链分析）
+    - 命名相似度（标识符语义匹配）
 
 #### 6. 监控和错误处理服务 (Monitoring & Error Handling Service)
 - **职责**: 全方位系统监控和智能错误处理
@@ -185,79 +198,167 @@ interface GraphRelationship {
 文件变更 → 监视器检测 → 哈希比对 → 增量解析 → 差异更新 → 实时同步
 ```
 
-### 5. 智能查询服务阶段
+### 5. 增强智能查询服务阶段
 ```
-用户查询 → 查询分析 → 并行执行(语义搜索+图关系查询) → 智能结果融合 → 相关性重排 → 可视化输出
+用户查询 → 查询意图解析 → 多模态搜索策略准备 → 并行执行(语义搜索+图关系查询+关键词搜索) → 多层次重排处理 → 智能结果融合 → 实时学习优化 → 可视化输出
 ```
 
-#### 查询协调策略
+#### 多层次重排处理流程
+```
+第一阶段：语义重排
+- 基于嵌入相似度优化
+- 向量空间距离计算
+- 语义相关性评分
+
+第二阶段：图关系增强
+- 调用链和依赖关系分析
+- 图结构相似度计算
+- 上下文感知增强
+
+第三阶段：代码特征优化
+- AST结构匹配
+- 函数签名和参数分析
+- 代码复杂度和特征评估
+```
+
+#### 智能结果融合算法
+```
+动态权重分配 → 多维度评分计算 → 上下文感知增强 → 相关性优化 → 排序输出
+```
+
+#### 增强查询协调策略
 ```typescript
-class QueryCoordinationService {
+class EnhancedQueryCoordinationService {
   async executeEnhancedSearch(query: string): Promise<EnhancedSearchResult[]> {
-    // 并行执行查询以提高性能
-    const [semanticResults, graphResults] = await Promise.all([
-      this.qdrantService.semanticSearch(query),
-      this.neo4jService.graphQuery(query)
+    // 查询意图解析和策略准备
+    const queryIntent = await this.queryIntentAnalyzer.analyze(query);
+    const searchStrategy = await this.prepareSearchStrategy(queryIntent);
+    
+    // 并行执行多模态查询
+    const [semanticResults, graphResults, keywordResults] = await Promise.all([
+      this.qdrantService.semanticSearch(query, searchStrategy.semantic),
+      this.neo4jService.graphQuery(query, searchStrategy.graph),
+      this.keywordService.keywordSearch(query, searchStrategy.keyword)
     ]);
+    
+    // 多层次重排处理
+    const rerankedResults = await this.rerankingPipeline.multiStageRerank(
+      { semantic: semanticResults, graph: graphResults, keyword: keywordResults },
+      query,
+      searchStrategy
+    );
     
     // 智能结果融合
     const fusedResults = await this.fusionEngine.combineResults(
-      semanticResults, 
-      graphResults,
+      rerankedResults,
       {
-        semanticWeight: 0.6,    // 语义搜索权重
-        graphWeight: 0.4,        // 图关系权重
-        contextBoost: 1.2       // 上下文增强因子
+        semanticWeight: searchStrategy.weights.semantic,
+        graphWeight: searchStrategy.weights.graph,
+        structuralWeight: searchStrategy.weights.structural,
+        contextualWeight: searchStrategy.weights.contextual,
+        contextBoost: searchStrategy.contextBoost
       }
     );
     
-    return fusedResults;
+    // 实时学习优化
+    const optimizedResults = await this.learningOptimizer.optimize(
+      fusedResults,
+      query,
+      searchStrategy
+    );
+    
+    return optimizedResults;
   }
 }
 ```
 
-#### 结果融合算法
+#### 增强结果融合算法
 ```typescript
-class FusionEngine {
-  combineResults(
-    semanticResults: SearchResult[],
-    graphResults: GraphResult[],
-    weights: FusionWeights
-  ): EnhancedSearchResult[] {
+class EnhancedFusionEngine {
+  async combineResults(
+    rerankedResults: RerankedResult[],
+    weights: EnhancedFusionWeights
+  ): Promise<EnhancedSearchResult[]> {
     // 基于实体ID进行结果匹配
     const entityMap = new Map<string, EnhancedResult>();
     
-    // 处理语义搜索结果
-    semanticResults.forEach(result => {
-      entityMap.set(result.entityId, {
-        ...result,
-        semanticScore: result.score,
-        graphScore: 0,
-        finalScore: result.score * weights.semanticWeight
-      });
-    });
-    
-    // 融合图关系结果
-    graphResults.forEach(result => {
+    // 处理多层次重排结果
+    rerankedResults.forEach(result => {
       const existing = entityMap.get(result.entityId);
       if (existing) {
-        // 已存在实体，增强评分
-        existing.graphScore = result.score;
-        existing.finalScore += result.score * weights.graphWeight;
-        existing.relatedEntities = result.relatedEntities;
+        // 合并多维度评分
+        existing.scores.semantic = Math.max(existing.scores.semantic, result.scores.semantic);
+        existing.scores.graph = Math.max(existing.scores.graph, result.scores.graph);
+        existing.scores.structural = Math.max(existing.scores.structural, result.scores.structural);
+        existing.scores.contextual = Math.max(existing.scores.contextual, result.scores.contextual);
       } else {
-        // 新实体，添加到结果集
+        // 新实体，初始化多维度评分
         entityMap.set(result.entityId, {
           ...result,
-          semanticScore: 0,
-          graphScore: result.score,
-          finalScore: result.score * weights.graphWeight
+          scores: {
+            semantic: result.scores.semantic,
+            graph: result.scores.graph,
+            structural: result.scores.structural,
+            contextual: result.scores.contextual
+          },
+          finalScore: this.calculateFinalScore(result.scores, weights)
         });
       }
     });
     
-    // 应用上下文增强
-    return this.applyContextBoost(Array.from(entityMap.values()), weights);
+    // 应用上下文增强和相关性优化
+    const contextEnhanced = await this.applyContextBoost(
+      Array.from(entityMap.values()),
+      weights
+    );
+    
+    // 应用实时学习优化
+    return await this.applyLearningOptimization(contextEnhanced);
+  }
+  
+  private calculateFinalScore(scores: MultiDimensionalScores, weights: EnhancedFusionWeights): number {
+    return (
+      scores.semantic * weights.semanticWeight +
+      scores.graph * weights.graphWeight +
+      scores.structural * weights.structuralWeight +
+      scores.contextual * weights.contextualWeight
+    );
+  }
+}
+```
+
+#### 多层次重排管道
+```typescript
+class MultiStageRerankingPipeline {
+  async multiStageRerank(
+    results: MultiModalResults,
+    query: string,
+    strategy: SearchStrategy
+  ): Promise<RerankedResult[]> {
+    
+    // 第一阶段：语义重排
+    const semanticReranked = await this.semanticReranker.rerank(
+      results.semantic,
+      query,
+      strategy.semantic
+    );
+    
+    // 第二阶段：图关系增强
+    const graphEnhanced = await this.graphEnhancer.enhance(
+      semanticReranked,
+      results.graph,
+      strategy.graph
+    );
+    
+    // 第三阶段：代码特征优化
+    const featureOptimized = await this.featureOptimizer.optimize(
+      graphEnhanced,
+      results.keyword,
+      query,
+      strategy.structural
+    );
+    
+    return featureOptimized;
   }
 }
 ```
@@ -455,8 +556,10 @@ services:
 - **语义向量关联**: 图节点与语义向量的双向关联
 - **混合搜索模式**: 结合图关系和语义搜索的智能查询
 - **上下文感知搜索**: 基于调用关系的语义搜索增强
-- **智能结果重排**: 多维度评分和相关性优化
+- **多层次智能结果重排**: 语义→图关系→代码特征的渐进式优化
 - **查询扩展和同义词**: 基于语义的查询扩展和优化
+- **动态权重调整**: 基于查询类型和上下文特征的智能权重分配
+- **实时学习优化**: 用户反馈收集和权重自适应调整
 
 ### 智能查询功能
 - **最短调用路径查找**: 基于图算法的最优路径分析

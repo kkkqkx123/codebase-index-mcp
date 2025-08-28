@@ -40,8 +40,10 @@
 
 ##### 1.2.4 SearchService (搜索服务)
 - 语义搜索和关键词搜索
-- 结果重排和过滤
-- 相关性评分
+- 多层次重排模型（语义→图关系→代码特征）
+- 智能结果融合和过滤
+- 多维度相关性评分
+- 动态权重调整机制
 
 ##### 1.2.5 GraphAnalysisService (图分析服务)
 - 静态代码分析提取调用关系
@@ -273,6 +275,25 @@ interface EntityManager {
 interface QueryFusionService {
   enhancedSearch(query: string): Promise<FusedSearchResult[]>
   fuseResults(semanticResults: SearchResult[], graphResults: GraphResult[]): Promise<FusedSearchResult[]>
+  calculateDynamicWeights(query: string, context: SearchContext): Promise<FusionWeights>
+  applyMultiDimensionalScoring(results: SearchResult[], weights: FusionWeights): Promise<FusedSearchResult[]>
+}
+
+// 重排服务接口
+interface RerankingService {
+  semanticRerank(results: SearchResult[], query: string): Promise<RerankedResult[]>
+  graphEnhanceRerank(results: SearchResult[], graphContext: GraphContext): Promise<RerankedResult[]>
+  featureOptimizeRerank(results: SearchResult[], query: string): Promise<RerankedResult[]>
+  multiStageRerank(results: SearchResult[], query: string, context: SearchContext): Promise<RerankedResult[]>
+}
+
+// 相似度计算服务接口
+interface SimilarityService {
+  calculateCosineSimilarity(vector1: number[], vector2: number[]): number
+  calculateJaccardSimilarity(text1: string, text2: string): number
+  calculateStructuralSimilarity(ast1: ASTNode, ast2: ASTNode): number
+  calculateContextualSimilarity(context1: CodeContext, context2: CodeContext): number
+  calculateFeatureBasedSimilarity(features1: CodeFeatures, features2: CodeFeatures): number
 }
 
 ### 5. 数据模型
@@ -352,6 +373,15 @@ interface SearchOptions {
   fileFilter?: string[]
   languageFilter?: string[]
   useReranking?: boolean
+  rerankingStrategy?: 'semantic' | 'graph' | 'hybrid' | 'ml-enhanced'
+  similarityMetrics?: 'cosine' | 'euclidean' | 'dot' | 'jaccard' | 'feature-based'
+  fusionWeights?: {
+    semantic: number
+    graph: number
+    structural: number
+    contextual: number
+  }
+  enableContextBoost?: boolean
 }
 ```
 
@@ -383,13 +413,25 @@ interface SearchOptions {
 7. 创建图索引优化查询性能
 8. 返回分析结果统计
 
-#### 6.4 搜索流程
-1. 接收MCP搜索请求
-2. 生成查询向量
-3. Qdrant向量相似性搜索
-4. 可选：使用图关系进行结果增强
-5. OpenAI结果重排（可选）
-6. 返回排序后的搜索结果
+#### 6.4 增强搜索流程
+1. 接收MCP搜索请求并解析查询意图
+2. 生成查询向量并准备多模态搜索策略
+3. 并行执行：
+   - Qdrant向量相似性搜索
+   - Neo4j图关系查询
+   - 关键词和结构化搜索
+4. 多层次重排处理：
+   - 第一阶段：语义重排（基于嵌入相似度）
+   - 第二阶段：图关系增强（基于调用链和依赖关系）
+   - 第三阶段：代码特征优化（基于AST结构和代码特征）
+5. 智能结果融合：
+   - 动态权重分配
+   - 多维度评分计算
+   - 上下文感知增强
+6. 实时学习优化（可选）：
+   - 用户反馈收集
+   - 权重自适应调整
+7. 返回优化后的搜索结果
 
 #### 极6.5 规则导入流程
 1. 接收MCP规则导入请求
@@ -411,6 +453,17 @@ interface SearchOptions {
 - 自动维度适配，根据模型自动调整向量存储
 - 批处理和速率限制控制，优化API调用成本
 - 查询前缀处理，提升特定模型（如nomic-embed-code）的准确性
+
+#### 重排模型优化
+- **多层次重排架构**：语义→图关系→代码特征的渐进式重排
+- **动态权重调整**：基于查询类型和上下文特征的智能权重分配
+- **代码特定相似度算法**：
+  - 结构相似度：基于AST的代码结构匹配
+  - 功能相似度：基于函数签名和参数分析
+  - 上下文相似度：考虑调用链和依赖关系
+  - 命名相似度：标识符和注释的语义匹配
+- **实时学习机制**：用户反馈收集和权重自适应调整
+- **多维度评分系统**：综合语义、结构、上下文、相关性评分
 
 #### 路径段索引优化
 - 精确文件路径匹配和删除操作
@@ -545,8 +598,10 @@ interface SearchOptions {
 4. 🔄 增强目录级过滤和精确文件匹配
 5. 🔄 **实现查询融合服务和智能结果协调**
 6. 🔄 **开发跨数据库查询优化器**
-7. ⬜ 实现模型维度自动适配
-8. ⬜ 添加查询前缀处理支持
+7. 🔄 **实现多层次重排模型（语义→图关系→代码特征）**
+8. 🔄 **开发代码特定相似度算法**
+9. ⬜ 实现模型维度自动适配
+10. ⬜ 添加查询前缀处理支持
 
 ### 阶段三: 增量索引和实时更新 (2周)
 1. 🔄 集成文件监视器（Chokidar）
@@ -571,12 +626,14 @@ interface SearchOptions {
 ### 阶段五: 高级搜索功能和测试 (2-3周)
 1. 🔄 **实现增强型语义搜索和图关系融合**
 2. 🔄 **开发影响范围分析和依赖追踪功能**
-3. ⬜ 基础语义搜索优化
-4. ⬜ 结果重排和相关性提升
-5. ⬜ 高级过滤和排序功能
-6. ⬜ 单元测试和集成测试
-7. ⬜ 性能测试和调优
-8. ⬜ 文档编写和用户指南
+3. 🔄 **实现机器学习增强重排模型**
+4. 🔄 **开发实时学习和自适应优化机制**
+5. 🔄 **集成用户反馈收集和权重调整系统**
+6. ⬜ 基础语义搜索优化
+7. ⬜ 高级过滤和排序功能
+8. ⬜ 单元测试和集成测试
+9. ⬜ 性能测试和调优
+10. ⬜ 文档编写和用户指南
 
 ## 风险评估
 
@@ -589,6 +646,9 @@ interface SearchOptions {
 6. **跨数据库同步复杂性**: Qdrant和Neo4j之间的数据一致性保证
 7. **查询协调性能**: 跨数据库查询的延迟和优化挑战
 8. **资源管理**: 同时维护两个高性能数据库连接的资源开销
+9. **重排模型复杂性**: 多层次重排算法的实现和调优挑战
+10. **相似度算法精度**: 代码特定相似度算法的准确性和计算效率平衡
+11. **实时学习机制**: 用户反馈收集和权重自适应调整的技术实现难度
 
 ### 依赖风险
 1. **Tree-sitter解析器维护**: 多语言解析器的版本管理和兼容性
