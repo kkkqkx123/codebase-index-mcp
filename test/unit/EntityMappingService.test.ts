@@ -1,13 +1,13 @@
 import { EntityMappingService } from '../../src/services/sync/EntityMappingService';
 import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
-import { LoggerService } from '../../src/services/core/LoggerService';
-import { ErrorHandlerService } from '../../src/services/core/ErrorHandlerService';
-import { CodebaseIndexError } from '../../src/services/core/ErrorHandlerService';
+import { LoggerService } from '../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
 import { createTestContainer, createMockEntityMapping, createMockSyncOperation } from '../setup';
 
 // Mock dependencies
-jest.mock('../../src/services/core/LoggerService');
-jest.mock('../../src/services/core/ErrorHandlerService');
+jest.mock('../../src/core/LoggerService');
+jest.mock('../../src/core/ErrorHandlerService');
 jest.mock('../../src/services/sync/EntityIdManager');
 
 describe('EntityMappingService', () => {
@@ -518,7 +518,8 @@ describe('EntityMappingService', () => {
         },
       ];
 
-      const batch = await entityMappingService.createBatch(projectId, operations);
+      const operationsWithProjectId = operations.map(op => ({ ...op, projectId }));
+      const batch = await entityMappingService.createBatch(projectId, operationsWithProjectId);
 
       expect(batch).toEqual({
         id: expect.any(String),
@@ -561,7 +562,8 @@ describe('EntityMappingService', () => {
         },
       ];
 
-      const batch = await entityMappingService.createBatch(projectId, operations);
+      const operationsWithProjectId = operations.map(op => ({ ...op, projectId }));
+      const batch = await entityMappingService.createBatch(projectId, operationsWithProjectId);
 
       expect(batch.operations).toHaveLength(1);
       expect(batch.operations[0]).toEqual(

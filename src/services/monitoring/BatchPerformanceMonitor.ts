@@ -97,7 +97,7 @@ export class BatchPerformanceMonitor {
   private alerts: PerformanceAlert[] = [];
   
   // Configuration
-  private thresholds: PerformanceThresholds;
+  private thresholds!: PerformanceThresholds;
   private maxMetricsCount: number = 1000;
   private maxAlertsCount: number = 500;
   private cleanupInterval: number = 3600000; // 1 hour
@@ -119,17 +119,18 @@ export class BatchPerformanceMonitor {
   }
 
   private initializeThresholds(): void {
-    const config = this.configService.get('batchProcessing');
-    const monitoringConfig = config.monitoring;
+    const config = this.configService.get('batchProcessing') || {};
+    const monitoringConfig = config?.monitoring || {};
+    const alertThresholds = monitoringConfig?.alertThresholds || {};
     
     this.thresholds = {
-      highLatency: monitoringConfig.alertThresholds.highLatency,
-      lowThroughput: monitoringConfig.alertThresholds.lowThroughput,
-      highErrorRate: monitoringConfig.alertThresholds.highErrorRate,
-      highMemoryUsage: monitoringConfig.alertThresholds.highMemoryUsage,
-      criticalMemoryUsage: monitoringConfig.alertThresholds.criticalMemoryUsage,
-      highCpuUsage: monitoringConfig.alertThresholds.highCpuUsage,
-      criticalCpuUsage: monitoringConfig.alertThresholds.criticalCpuUsage
+      highLatency: alertThresholds.highLatency || 5000,
+      lowThroughput: alertThresholds.lowThroughput || 10,
+      highErrorRate: alertThresholds.highErrorRate || 0.1,
+      highMemoryUsage: alertThresholds.highMemoryUsage || 80,
+      criticalMemoryUsage: alertThresholds.criticalMemoryUsage || 90,
+      highCpuUsage: alertThresholds.highCpuUsage || 70,
+      criticalCpuUsage: alertThresholds.criticalCpuUsage || 85
     };
     
     this.logger.info('Performance thresholds initialized', this.thresholds);
@@ -304,9 +305,9 @@ export class BatchPerformanceMonitor {
     }
     
     const completedMetrics = filteredMetrics.filter(m => m.duration > 0);
-    const durations = completedMetrics.map(m => m.duration);
-    const throughputs = completedMetrics.map(m => m.throughput).filter(t => t > 0);
-    const errorRates = completedMetrics.map(m => m.errorRate);
+    const durations = completedMetrics.map(m => m.duration || 0);
+    const throughputs = completedMetrics.map(m => m.throughput || 0).filter(t => t > 0);
+    const errorRates = completedMetrics.map(m => m.errorRate || 0);
     
     // Calculate percentiles
     const p95Latency = this.percentile(durations, 95);
@@ -352,11 +353,11 @@ export class BatchPerformanceMonitor {
       timeRange,
       summary: {
         totalOperations: 0,
-        averageLatency: 0,
-        p95Latency: 0,
-        p99Latency: 0,
-        throughput: 0,
-        errorRate: 0,
+        averageDuration: 0,
+        p95Duration: 0,
+        p99Duration: 0,
+        averageThroughput: 0,
+        averageErrorRate: 0,
         memoryEfficiency: 0,
         adaptiveBatchingStats: {
           averageBatchSize: 0,
@@ -398,9 +399,9 @@ export class BatchPerformanceMonitor {
     const totalAdjustments = metrics.reduce((sum, m) => sum + m.retryCount, 0);
     
     // Calculate improvement rate based on performance trends
-    const improvements = metrics.filter(m => 
-      m.throughput > this.thresholds.lowThroughput && 
-      m.errorRate < this.thresholds.highErrorRate
+    const improvements = metrics.filter(m =>
+      m.throughput !== undefined && m.throughput > this.thresholds.lowThroughput &&
+      m.errorRate !== undefined && m.errorRate < this.thresholds.highErrorRate
     ).length;
     const improvementRate = metrics.length > 0 ? improvements / metrics.length : 0;
     
@@ -427,7 +428,7 @@ export class BatchPerformanceMonitor {
     if (sortedArray.length === 0) return 0;
     
     const index = Math.ceil((p / 100) * sortedArray.length) - 1;
-    return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))];
+    return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))] || 0;
   }
 
   getRecentAlerts(limit: number = 50): PerformanceAlert[] {
@@ -506,8 +507,10 @@ export class BatchPerformanceMonitor {
   }
 
   private cleanupOldMetrics(): void {
-    const config = this.configService.get('batchProcessing');
-    const retentionPeriod = config.monitoring.metricsInterval * 100; // Keep 100 intervals
+    const config = this.configService.get('batchProcessing') || {};
+    const monitoringConfig = config?.monitoring || {};
+    const metricsInterval = monitoringConfig?.metricsInterval || 3600000; // Default to 1 hour
+    const retentionPeriod = metricsInterval * 100; // Keep 100 intervals
     const cutoffTime = Date.now() - retentionPeriod;
 
     const initialSize = this.metrics.length;
@@ -522,8 +525,10 @@ export class BatchPerformanceMonitor {
   }
 
   private cleanupOldAlerts(): void {
-    const config = this.configService.get('batchProcessing');
-    const retentionPeriod = config.monitoring.metricsInterval * 100; // Keep 100 intervals
+    const config = this.configService.get('batchProcessing') || {};
+    const monitoringConfig = config?.monitoring || {};
+    const metricsInterval = monitoringConfig?.metricsInterval || 3600000; // Default to 1 hour
+    const retentionPeriod = metricsInterval * 100; // Keep 100 intervals
     const cutoffTime = Date.now() - retentionPeriod;
 
     const initialSize = this.alerts.length;

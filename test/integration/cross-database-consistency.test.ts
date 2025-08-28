@@ -2,8 +2,8 @@ import { ConsistencyChecker } from '../../src/services/sync/ConsistencyChecker';
 import { EntityMappingService } from '../../src/services/sync/EntityMappingService';
 import { TransactionCoordinator } from '../../src/services/sync/TransactionCoordinator';
 import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
-import { LoggerService } from '../../src/services/core/LoggerService';
-import { ErrorHandlerService } from '../../src/services/core/ErrorHandlerService';
+import { LoggerService } from '../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
 import { createTestContainer, createMockEntityMapping } from '../setup';
 
@@ -541,6 +541,7 @@ describe('Cross-Database Consistency Integration Tests', () => {
           type: 'create',
           entityType: 'file',
           entityId: 'file1',
+          projectId: projectId,
           vectorData: { id: 'file1', content: 'content1' },
           graphData: { id: 'file1', nodes: [{ id: 'file1', type: 'file' }] }
         },
@@ -548,6 +549,7 @@ describe('Cross-Database Consistency Integration Tests', () => {
           type: 'create',
           entityType: 'file',
           entityId: 'file2',
+          projectId: projectId,
           vectorData: { id: 'file2', content: 'content2' },
           graphData: { id: 'file2', nodes: [{ id: 'file2', type: 'file' }] }
         }

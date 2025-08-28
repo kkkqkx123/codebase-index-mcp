@@ -83,6 +83,8 @@ export const createMockTransaction = (overrides = {}) => ({
   steps: [],
   status: 'pending' as const,
   createdAt: new Date(),
+  completedAt: undefined,
+  error: undefined,
   ...overrides,
 });
 

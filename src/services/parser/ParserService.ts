@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
-import { ConfigService } from '../config/ConfigService';
-import { LoggerService } from '../core/LoggerService';
-import { ErrorHandlerService } from '../core/ErrorHandlerService';
+import { ConfigService } from '../../config/ConfigService';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { TreeSitterService } from './TreeSitterService';
 import { SmartCodeParser } from './SmartCodeParser';
 
@@ -49,22 +49,47 @@ export class ParserService {
     this.logger.info('Parsing file', { filePath, options });
 
     try {
+      // Read file content
+      const fs = await import('fs').then(m => m.promises);
+      const content = await fs.readFile(filePath, 'utf-8');
+
       // Determine the best parser for this file
       const language = this.detectLanguage(filePath);
-      
+
       let result: ParseResult;
-      
-      if (this.treeSitterService.supportsLanguage(language)) {
-        result = await this.treeSitterService.parseFile(filePath, options);
+
+      const parserLanguage = this.treeSitterService.detectLanguage(filePath);
+      if (parserLanguage) {
+        const parseResult = await this.treeSitterService.parseFile(filePath, content);
+        result = {
+          filePath,
+          language: parseResult.language.name,
+          ast: parseResult.ast,
+          functions: this.treeSitterService.extractFunctions(parseResult.ast),
+          classes: this.treeSitterService.extractClasses(parseResult.ast),
+          imports: this.treeSitterService.extractImports(parseResult.ast),
+          exports: this.treeSitterService.extractExports(parseResult.ast),
+          metadata: {}
+        };
       } else {
-        result = await this.smartCodeParser.parseFile(filePath, options);
+        const parsedFile = await this.smartCodeParser.parseFile(filePath, content, options);
+        result = {
+          filePath,
+          language: parsedFile.language,
+          ast: {} as any,
+          functions: [],
+          classes: [],
+          imports: parsedFile.metadata.imports,
+          exports: parsedFile.metadata.exports,
+          metadata: {}
+        };
       }
 
-      this.logger.debug('File parsed successfully', { 
-        filePath, 
+      this.logger.debug('File parsed successfully', {
+        filePath,
         language,
         functionCount: result.functions.length,
-        classCount: result.classes.length 
+        classCount: result.classes.length
       });
 
       return result;
@@ -87,7 +112,7 @@ export class ParserService {
     const batchSize = 10;
     for (let i = 0; i < filePaths.length; i += batchSize) {
       const batch = filePaths.slice(i, i + batchSize);
-      
+
       const batchPromises = batch.map(async (filePath) => {
         try {
           return await this.parseFile(filePath, options);
@@ -104,7 +129,7 @@ export class ParserService {
     }
 
     if (errors.length > 0) {
-      this.logger.warn('Some files failed to parse', { 
+      this.logger.warn('Some files failed to parse', {
         totalFiles: filePaths.length,
         successCount: results.length,
         errorCount: errors.length
@@ -146,7 +171,7 @@ export class ParserService {
 
   async getLanguageStats(filePaths: string[]): Promise<Record<string, number>> {
     const stats: Record<string, number> = {};
-    
+
     for (const filePath of filePaths) {
       const language = this.detectLanguage(filePath);
       stats[language] = (stats[language] || 0) + 1;
@@ -157,7 +182,7 @@ export class ParserService {
 
   private detectLanguage(filePath: string): string {
     const ext = filePath.split('.').pop()?.toLowerCase();
-    
+
     const languageMap: Record<string, string> = {
       'ts': 'typescript',
       'tsx': 'typescript',
@@ -193,9 +218,10 @@ export class ParserService {
   }
 
   getSupportedLanguages(): string[] {
-    const treeSitterLanguages = this.treeSitterService.getSupportedLanguages();
-    const smartParserLanguages = this.smartCodeParser.getSupportedLanguages();
-    
+    const treeSitterLanguages = this.treeSitterService.getSupportedLanguages().map(lang => lang.name.toLowerCase());
+    // SmartCodeParser doesn't have a method for this, so we'll return an empty array for now
+    const smartParserLanguages: string[] = [];
+
     return [...new Set([...treeSitterLanguages, ...smartParserLanguages])];
   }
 

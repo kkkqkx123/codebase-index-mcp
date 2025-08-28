@@ -235,9 +235,9 @@ export class BatchProcessingMetrics {
     }
 
     const completedMetrics = filteredMetrics.filter(m => m.endTime);
-    const durations = completedMetrics.map(m => m.duration!);
-    const throughputs = completedMetrics.map(m => m.throughput!).filter(t => t > 0);
-    const errorRates = completedMetrics.map(m => m.errorRate!);
+    const durations = completedMetrics.map(m => m.duration || 0);
+    const throughputs = completedMetrics.map(m => m.throughput || 0).filter(t => t > 0);
+    const errorRates = completedMetrics.map(m => m.errorRate || 0);
 
     // Calculate percentiles
     const sortedDurations = durations.sort((a, b) => a - b);
@@ -307,15 +307,15 @@ export class BatchProcessingMetrics {
 
   private checkForAlerts(metrics: BatchOperationMetrics): void {
     const config = this.configService.get('batchProcessing');
-    const thresholds = config.monitoring.alertThresholds;
+    const thresholds = config?.monitoring?.alertThresholds || {};
 
     // High latency alert
-    if (metrics.duration && metrics.duration > thresholds.highLatency) {
+    if (metrics.duration && thresholds.highLatency && metrics.duration > thresholds.highLatency) {
       this.createAlert({
         type: 'warning',
         category: 'performance',
         message: `High batch operation latency: ${metrics.duration}ms`,
-        severity: metrics.duration > thresholds.highLatency * 2 ? 'high' : 'medium',
+        severity: metrics.duration && thresholds.highLatency && metrics.duration > thresholds.highLatency * 2 ? 'high' : 'medium',
         metadata: {
           operationId: metrics.operationId,
           duration: metrics.duration,
@@ -325,7 +325,7 @@ export class BatchProcessingMetrics {
     }
 
     // Low throughput alert
-    if (metrics.throughput && metrics.throughput < thresholds.lowThroughput) {
+    if (metrics.throughput && thresholds.lowThroughput && metrics.throughput < thresholds.lowThroughput) {
       this.createAlert({
         type: 'warning',
         category: 'performance',
@@ -340,12 +340,12 @@ export class BatchProcessingMetrics {
     }
 
     // High error rate alert
-    if (metrics.errorRate > thresholds.highErrorRate) {
+    if (thresholds.highErrorRate && metrics.errorRate !== undefined && metrics.errorRate > thresholds.highErrorRate) {
       this.createAlert({
         type: 'error',
         category: 'error',
         message: `High batch operation error rate: ${(metrics.errorRate * 100).toFixed(1)}%`,
-        severity: metrics.errorRate > thresholds.highErrorRate * 2 ? 'critical' : 'high',
+        severity: thresholds.highErrorRate && metrics.errorRate !== undefined && metrics.errorRate > thresholds.highErrorRate * 2 ? 'critical' : 'high',
         metadata: {
           operationId: metrics.operationId,
           errorRate: metrics.errorRate,
@@ -356,12 +356,12 @@ export class BatchProcessingMetrics {
 
     // High memory usage alert
     const memoryUsagePercent = (metrics.memoryUsage.peak / process.memoryUsage().heapTotal) * 100;
-    if (memoryUsagePercent > thresholds.highMemoryUsage) {
+    if (thresholds.highMemoryUsage && memoryUsagePercent > thresholds.highMemoryUsage) {
       this.createAlert({
         type: 'error',
         category: 'memory',
         message: `High memory usage during batch operation: ${memoryUsagePercent.toFixed(1)}%`,
-        severity: memoryUsagePercent > thresholds.highMemoryUsage * 1.1 ? 'critical' : 'high',
+        severity: thresholds.highMemoryUsage && memoryUsagePercent > thresholds.highMemoryUsage * 1.1 ? 'critical' : 'high',
         metadata: {
           operationId: metrics.operationId,
           memoryUsage: memoryUsagePercent,
@@ -477,7 +477,7 @@ export class BatchProcessingMetrics {
     if (sortedArray.length === 0) return 0;
     
     const index = Math.ceil((p / 100) * sortedArray.length) - 1;
-    return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))];
+    return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))] || 0;
   }
 
   private getEmptyStats(timeRange: { start: Date; end: Date }): BatchProcessingStats {
@@ -548,20 +548,21 @@ export class BatchProcessingMetrics {
 
   private startCleanupTask(): void {
     const config = this.configService.get('batchProcessing');
-    const cleanupInterval = config.monitoring.metricsInterval;
+    const cleanupInterval = config?.monitoring?.metricsInterval || 60000; // Default to 1 minute
 
     this.cleanupInterval = setInterval(() => {
       this.cleanupOldMetrics();
     }, cleanupInterval);
 
-    this.logger.info('Batch processing metrics cleanup task started', { 
-      interval: cleanupInterval 
+    this.logger.info('Batch processing metrics cleanup task started', {
+      interval: cleanupInterval
     });
   }
 
   private cleanupOldMetrics(): void {
     const config = this.configService.get('batchProcessing');
-    const retentionPeriod = config.monitoring.metricsInterval * 100; // Keep 100 intervals
+    const metricsInterval = config?.monitoring?.metricsInterval || 60000; // Default to 1 minute
+    const retentionPeriod = metricsInterval * 100; // Keep 100 intervals
     const cutoffTime = Date.now() - retentionPeriod;
 
     const initialSize = this.metrics.length;

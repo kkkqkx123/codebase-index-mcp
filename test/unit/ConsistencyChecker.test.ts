@@ -3,11 +3,11 @@ import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityId
 import { LoggerService } from '../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
-import { createTestContainer, createMockEntityMapping, createMockConsistencyIssue } from '../setup';
+import { createMockEntityMapping, createMockConsistencyIssue } from '../setup';
 
 // Mock dependencies
-jest.mock('../../src/services/core/LoggerService');
-jest.mock('../../src/services/core/ErrorHandlerService');
+jest.mock('../../src/core/LoggerService');
+jest.mock('../../src/core/ErrorHandlerService');
 jest.mock('../../src/services/sync/EntityIdManager');
 
 describe('ConsistencyChecker', () => {

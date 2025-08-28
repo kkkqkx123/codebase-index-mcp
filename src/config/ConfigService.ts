@@ -85,7 +85,10 @@ const configSchema = Joi.object({
         highLatency: Joi.number().positive().default(5000), // ms
         lowThroughput: Joi.number().positive().default(10), // operations/sec
         highErrorRate: Joi.number().positive().default(0.1), // 10%
-        highMemoryUsage: Joi.number().positive().default(90) // percentage
+        highMemoryUsage: Joi.number().positive().default(80), // percentage
+        criticalMemoryUsage: Joi.number().positive().default(90), // percentage
+        highCpuUsage: Joi.number().positive().default(70), // percentage
+        criticalCpuUsage: Joi.number().positive().default(85) // percentage
       })
     })
   })
@@ -167,6 +170,9 @@ export interface Config {
         lowThroughput: number;
         highErrorRate: number;
         highMemoryUsage: number;
+        criticalMemoryUsage: number;
+        highCpuUsage: number;
+        criticalCpuUsage: number;
       };
     };
   };
@@ -249,7 +255,10 @@ export class ConfigService {
             highLatency: parseInt(process.env.HIGH_LATENCY_THRESHOLD || '5000'),
             lowThroughput: parseInt(process.env.LOW_THROUGHPUT_THRESHOLD || '10'),
             highErrorRate: parseFloat(process.env.HIGH_ERROR_RATE_THRESHOLD || '0.1'),
-            highMemoryUsage: parseInt(process.env.HIGH_MEMORY_USAGE_THRESHOLD || '90')
+            highMemoryUsage: parseInt(process.env.HIGH_MEMORY_USAGE_THRESHOLD || '80'),
+            criticalMemoryUsage: parseInt(process.env.CRITICAL_MEMORY_USAGE_THRESHOLD || '90'),
+            highCpuUsage: parseInt(process.env.HIGH_CPU_USAGE_THRESHOLD || '70'),
+            criticalCpuUsage: parseInt(process.env.CRITICAL_CPU_USAGE_THRESHOLD || '85')
           }
         }
       }
