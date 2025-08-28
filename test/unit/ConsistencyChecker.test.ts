@@ -427,10 +427,12 @@ describe('ConsistencyChecker', () => {
         createMockConsistencyIssue({
           id: 'issue_1',
           severity: 'low',
+          detectedAt: new Date(Date.now() - 1000), // Earlier timestamp
         }),
         createMockConsistencyIssue({
           id: 'issue_2',
           severity: 'high',
+          detectedAt: new Date(), // Later timestamp
         }),
       ];
 
