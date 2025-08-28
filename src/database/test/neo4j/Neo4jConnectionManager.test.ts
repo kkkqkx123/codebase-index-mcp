@@ -1,8 +1,8 @@
-import { Neo4jConnectionManager } from '../neo4j/Neo4jConnectionManager';
+import { Neo4jConnectionManager } from '../../neo4j/Neo4jConnectionManager';
 import { Driver, Session } from 'neo4j-driver';
-import { ConfigService } from '../../config/ConfigService';
-import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { ConfigService } from '../../../config/ConfigService';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 
 // Mock services
 class MockConfigService {

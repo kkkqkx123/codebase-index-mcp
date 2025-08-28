@@ -1,7 +1,7 @@
-import { Neo4jService } from '../Neo4jService';
-import { Neo4jConnectionManager } from '../neo4j/Neo4jConnectionManager';
-import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { Neo4jService } from '../../Neo4jService';
+import { Neo4jConnectionManager } from '../../neo4j/Neo4jConnectionManager';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 
 // Mock services
 class MockLoggerService {

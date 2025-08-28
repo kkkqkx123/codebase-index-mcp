@@ -1,9 +1,9 @@
-import { Neo4jService } from '../Neo4jService';
-import { Neo4jConnectionManager } from '../neo4j/Neo4jConnectionManager';
-import { ConfigService } from '../../config/ConfigService';
-import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { container } from '../../inversify.config';
+import { Neo4jService } from '../../Neo4jService';
+import { Neo4jConnectionManager } from '../../neo4j/Neo4jConnectionManager';
+import { ConfigService } from '../../../config/ConfigService';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { container } from '../../../inversify.config';
 
 describe('Neo4j Integration', () => {
   let neo4jService: Neo4jService;

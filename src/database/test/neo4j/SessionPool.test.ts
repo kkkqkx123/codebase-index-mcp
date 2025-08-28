@@ -1,6 +1,6 @@
-import { SessionPool, SessionMonitor } from '../neo4j/SessionPool';
+import { SessionPool, SessionMonitor } from '../../neo4j/SessionPool';
 import { Driver, Session } from 'neo4j-driver';
-import { LoggerService } from '../../core/LoggerService';
+import { LoggerService } from '../../../core/LoggerService';
 
 // Mock LoggerService
 class MockLoggerService extends LoggerService {

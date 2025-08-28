@@ -335,7 +335,6 @@ describe('EntityMappingService', () => {
         await entityMappingService.deleteEntity(entityId);
         fail('Expected deleteEntity to throw an error');
       } catch (error) {
-        console.log('Caught deleteEntity error message:', (error as Error).message); // Diagnostic log
         expect(error).toBeInstanceOf(CodebaseIndexError);
         expect((error as CodebaseIndexError).message).toMatch(/Entity not found: nonexistent_entity/);
       }
@@ -442,7 +441,6 @@ describe('EntityMappingService', () => {
         await entityMappingService.syncEntity(entityId);
         fail('Expected syncEntity to throw an error');
       } catch (error) {
-        console.log('Caught syncEntity error message:', (error as Error).message); // Diagnostic log
         expect(error).toBeInstanceOf(CodebaseIndexError);
         expect((error as CodebaseIndexError).message).toMatch(/Entity not found: nonexistent_entity/);
       }
@@ -725,7 +723,6 @@ describe('EntityMappingService', () => {
         await entityMappingService.executeBatch(batchId);
         fail('Expected executeBatch to throw an error');
       } catch (error) {
-        console.log('Caught executeBatch error message:', (error as Error).message); // Diagnostic log
         expect(error).toBeInstanceOf(CodebaseIndexError);
         expect((error as CodebaseIndexError).message).toMatch(/Batch not found: nonexistent_batch/);
       }
