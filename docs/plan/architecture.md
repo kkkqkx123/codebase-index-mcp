@@ -229,6 +229,14 @@ interface MCPTools {
     input: { ruleType: 'language' | 'framework'; rulePath: string }
     output: { success: boolean; importedRules: number }
   }
+  'codebase/sync/status': {
+    input: { projectPath: string }
+    output: { qdrantSync: boolean; neo4jSync: boolean; lastSync: string }
+  }
+  'codebase/monitoring/metrics': {
+    input: { timeRange?: string; metrics?: string[] }
+    output: { qdrant: DatabaseMetrics; neo4j: DatabaseMetrics; system: SystemMetrics }
+  }
 }
 
 // 核心服务接口
@@ -242,6 +250,29 @@ interface GraphAnalysisService {
   analyzeCodebase(projectPath: string): Promise<GraphAnalysisResult>
   queryGraph(query: string): Promise<GraphQueryResult>
   importRules(ruleType: string, rulePath: string): Promise<RuleImportResult>
+}
+
+// 跨数据库同步服务接口
+interface CrossDatabaseSyncService {
+  syncFileChange(filePath: string, operation: 'create' | 'update' | 'delete'): Promise<void>
+  executeWithCompensation(
+    qdrantOperation: () => Promise<void>,
+    neo4jOperation: () => Promise<void>
+  ): Promise<void>
+  checkConsistency(projectPath: string): Promise<ConsistencyReport>
+}
+
+// 实体管理器接口
+interface EntityManager {
+  generateEntityId(filePath: string, entityType: string, name: string): string
+  createEntityMapping(entity: CodeEntity): Promise<EntityMapping>
+  resolveEntityReference(entityId: string): Promise<EntityReference>
+}
+
+// 查询融合服务接口
+interface QueryFusionService {
+  enhancedSearch(query: string): Promise<FusedSearchResult[]>
+  fuseResults(semanticResults: SearchResult[], graphResults: GraphResult[]): Promise<FusedSearchResult[]>
 }
 
 ### 5. 数据模型
@@ -399,6 +430,12 @@ interface SearchOptions {
 - 健康检查和就绪探针，确保服务可用性
 - 警报系统，及时发现问题并通知
 
+#### 跨数据库监控优化
+- 统一监控仪表板，同时监控Qdrant和Neo4j性能指标
+- 数据同步延迟监控，确保双数据库一致性
+- 跨数据库查询性能分析，识别性能瓶颈
+- 资源使用对比监控，优化资源分配策略
+
 #### 批处理优化
 - 嵌入请求智能批处理（支持多种提供商限制）
 - 向量存储批量操作，减少网络往返
@@ -488,9 +525,9 @@ interface SearchOptions {
 - 安全漏洞定期扫描
 - 依赖包安全更新管理
 
-## 实施计划
+## 实施计划（基于架构分析优化）
 
-### 阶段一: 智能代码解析和基础架构 (2-3周)
+### 阶段一: 核心双数据库集成 (3-4周)
 1. ✅ 分析现有项目结构和依赖
 2. ✅ 设计MCP服务架构和协议接口
 3. 🔄 集成Tree-sitter多语言解析器
@@ -498,39 +535,48 @@ interface SearchOptions {
 5. 🔄 创建独立MCP服务项目结构
 6. 🔄 实现MCP服务器框架和工具注册
 7. 🔄 集成Qdrant和Neo4j客户端
-8. ⬜ 实现哈希去重和内容缓存机制
+8. 🔄 **实现跨数据库同步机制和实体ID统一管理**
+9. ⬜ 实现哈希去重和内容缓存机制
 
-### 阶段二: 多嵌入器支持和路径索引 (2-3周)
+### 阶段二: 查询协调和智能融合 (2-3周)
 1. 🔄 实现统一嵌入器接口和工厂模式
 2. 🔄 集成OpenAI、Ollama、Gemini、Mistral提供商
 3. 🔄 实现路径段索引机制
 4. 🔄 增强目录级过滤和精确文件匹配
-5. ⬜ 实现模型维度自动适配
-6. ⬜ 添加查询前缀处理支持
+5. 🔄 **实现查询融合服务和智能结果协调**
+6. 🔄 **开发跨数据库查询优化器**
+7. ⬜ 实现模型维度自动适配
+8. ⬜ 添加查询前缀处理支持
 
 ### 阶段三: 增量索引和实时更新 (2周)
 1. 🔄 集成文件监视器（Chokidar）
 2. 🔄 实现异步处理队列和重试机制
 3. 🔄 添加哈希比对避免重复处理
 4. 🔄 实现文件变更实时响应
-5. ⬜ 优化事件批处理和性能调优
-6. ⬜ 添加状态管理和进度跟踪
+5. 🔄 **实现双数据库增量更新协调机制**
+6. 🔄 **开发数据一致性检查和修复工具**
+7. ⬜ 优化事件批处理和性能调优
+8. ⬜ 添加状态管理和进度跟踪
 
-### 阶段四: 监控系统和错误处理 (1-2周)
+### 阶段四: 跨数据库监控和错误处理 (2-3周)
 1. 🔄 实现Prometheus指标收集
 2. 🔄 集成统一错误处理框架
 3. 🔄 添加健康检查和就绪探针
 4. 🔄 实现警报系统和通知机制
-5. ⬜ 完善日志和追踪系统
-6. ⬜ 添加性能仪表板集成
+5. 🔄 **开发双数据库统一监控仪表板**
+6. 🔄 **实现跨数据库性能分析和瓶颈识别**
+7. ⬜ 完善日志和追踪系统
+8. ⬜ 添加性能仪表板集成
 
-### 阶段五: 搜索功能完善和测试 (1-2周)
-1. ⬜ 基础语义搜索优化
-2. ⬜ 结果重排和相关性提升
-3. ⬜ 高级过滤和排序功能
-4. ⬜ 单元测试和集成测试
-5. ⬜ 性能测试和调优
-6. ⬜ 文档编写和用户指南
+### 阶段五: 高级搜索功能和测试 (2-3周)
+1. 🔄 **实现增强型语义搜索和图关系融合**
+2. 🔄 **开发影响范围分析和依赖追踪功能**
+3. ⬜ 基础语义搜索优化
+4. ⬜ 结果重排和相关性提升
+5. ⬜ 高级过滤和排序功能
+6. ⬜ 单元测试和集成测试
+7. ⬜ 性能测试和调优
+8. ⬜ 文档编写和用户指南
 
 ## 风险评估
 
@@ -540,6 +586,9 @@ interface SearchOptions {
 3. **实时索引性能**: 高频文件变更时的系统响应能力
 4. **维度不匹配处理**: 向量存储维度与嵌入模型不一致时的处理
 5. **监控系统复杂性**: Prometheus集成和警报规则配置
+6. **跨数据库同步复杂性**: Qdrant和Neo4j之间的数据一致性保证
+7. **查询协调性能**: 跨数据库查询的延迟和优化挑战
+8. **资源管理**: 同时维护两个高性能数据库连接的资源开销
 
 ### 依赖风险
 1. **Tree-sitter解析器维护**: 多语言解析器的版本管理和兼容性

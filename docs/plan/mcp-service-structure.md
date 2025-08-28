@@ -594,9 +594,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 ```
 
-### 健康检查
+### 跨数据库健康检查
 ```typescript
-// 添加健康检查端点
+// 添加增强型健康检查端点
 server.setResourceHandler('health', async () => {
   const status = {
     status: 'healthy',
@@ -604,7 +604,13 @@ server.setResourceHandler('health', async () => {
     services: {
       qdrant: await this.checkQdrantHealth(),
       neo4j: await this.checkNeo4jHealth(),
-      openai: await this.checkOpenAIHealth()
+      openai: await this.checkOpenAIHealth(),
+      sync: await this.checkCrossDatabaseSync()
+    },
+    metrics: {
+      qdrantLatency: await this.getQdrantLatency(),
+      neo4jLatency: await this.getNeo4jLatency(),
+      syncDelay: await this.getSyncDelay()
     }
   };
   
@@ -615,6 +621,123 @@ server.setResourceHandler('health', async () => {
     }]
   };
 });
+```
+
+### 综合监控仪表板
+```typescript
+// src/services/monitoring/MonitoringDashboard.ts
+export class MonitoringDashboard {
+  private prometheusClient: PrometheusClient;
+  private grafanaClient: GrafanaClient;
+  
+  async initialize(): Promise<void> {
+    // 初始化跨数据库监控指标
+    this.setupCrossDatabaseMetrics();
+    this.setupQueryCoordinationMetrics();
+    this.setupSyncMetrics();
+  }
+  
+  private setupCrossDatabaseMetrics(): void {
+    // Qdrant性能指标
+    new Prometheus.Gauge({
+      name: 'qdrant_search_latency_seconds',
+      help: 'Qdrant search latency in seconds',
+      labelNames: ['operation', 'status']
+    });
+    
+    // Neo4j性能指标
+    new Prometheus.Gauge({
+      name: 'neo4j_query_latency_seconds',
+      help: 'Neo4j query latency in seconds',
+      labelNames: ['query_type', 'status']
+    });
+    
+    // 跨数据库协调指标
+    new Prometheus.Gauge({
+      name: 'cross_database_sync_delay_seconds',
+      help: 'Cross-database synchronization delay in seconds'
+    });
+  }
+  
+  private setupQueryCoordinationMetrics(): void {
+    // 查询融合性能
+    new Prometheus.Histogram({
+      name: 'query_fusion_duration_seconds',
+      help: 'Query fusion processing time in seconds',
+      buckets: [0.1, 0.5, 1.0, 2.0, 5.0]
+    });
+    
+    // 结果缓存命中率
+    new Prometheus.Gauge({
+      name: 'query_cache_hit_rate',
+      help: 'Query cache hit rate percentage'
+    });
+  }
+  
+  private setupSyncMetrics(): void {
+    // 同步操作计数
+    new Prometheus.Counter({
+      name: 'sync_operations_total',
+      help: 'Total number of sync operations',
+      labelNames: ['operation_type', 'status']
+    });
+    
+    // 一致性检查结果
+    new Prometheus.Gauge({
+      name: 'consistency_check_status',
+      help: 'Consistency check status (1=consistent, 0=inconsistent)'
+    });
+  }
+}
+```
+
+### 智能警报系统
+```typescript
+// src/services/monitoring/AlertManager.ts
+export class AlertManager {
+  private alertRules: AlertRule[] = [
+    {
+      name: 'qdrant_latency_high',
+      condition: 'qdrant_search_latency_seconds > 1.0',
+      severity: 'warning',
+      message: 'Qdrant search latency is high'
+    },
+    {
+      name: 'neo4j_latency_high',
+      condition: 'neo4j_query_latency_seconds > 2.0',
+      severity: 'warning',
+      message: 'Neo4j query latency is high'
+    },
+    {
+      name: 'sync_delay_critical',
+      condition: 'cross_database_sync_delay_seconds > 30',
+      severity: 'critical',
+      message: 'Cross-database sync delay is critical'
+    },
+    {
+      name: 'consistency_failed',
+      condition: 'consistency_check_status == 0',
+      severity: 'critical',
+      message: 'Database consistency check failed'
+    }
+  ];
+  
+  async evaluateAlerts(metrics: MetricsData): Promise<Alert[]> {
+    const alerts: Alert[] = [];
+    
+    for (const rule of this.alertRules) {
+      if (this.evaluateCondition(rule.condition, metrics)) {
+        alerts.push({
+          ...rule,
+          timestamp: new Date().toISOString(),
+          metrics: this.extractRelevantMetrics(rule.condition, metrics)
+        });
+      }
+    }
+    
+    return alerts;
+  }
+}
 ```
 
 这个项目结构提供了完整的MCP服务实现，与Kode CLI完全分离，通过标准MCP协议进行通信，支持代码索引、搜索、结构分析和规则导入等功能。

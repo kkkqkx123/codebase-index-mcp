@@ -187,7 +187,79 @@ interface GraphRelationship {
 
 ### 5. 智能查询服务阶段
 ```
-用户查询 → 语义搜索(Qdrant) → 图关系查询(Neo4j) → 结果融合 → 重排优化 → 可视化输出
+用户查询 → 查询分析 → 并行执行(语义搜索+图关系查询) → 智能结果融合 → 相关性重排 → 可视化输出
+```
+
+#### 查询协调策略
+```typescript
+class QueryCoordinationService {
+  async executeEnhancedSearch(query: string): Promise<EnhancedSearchResult[]> {
+    // 并行执行查询以提高性能
+    const [semanticResults, graphResults] = await Promise.all([
+      this.qdrantService.semanticSearch(query),
+      this.neo4jService.graphQuery(query)
+    ]);
+    
+    // 智能结果融合
+    const fusedResults = await this.fusionEngine.combineResults(
+      semanticResults, 
+      graphResults,
+      {
+        semanticWeight: 0.6,    // 语义搜索权重
+        graphWeight: 0.4,        // 图关系权重
+        contextBoost: 1.2       // 上下文增强因子
+      }
+    );
+    
+    return fusedResults;
+  }
+}
+```
+
+#### 结果融合算法
+```typescript
+class FusionEngine {
+  combineResults(
+    semanticResults: SearchResult[],
+    graphResults: GraphResult[],
+    weights: FusionWeights
+  ): EnhancedSearchResult[] {
+    // 基于实体ID进行结果匹配
+    const entityMap = new Map<string, EnhancedResult>();
+    
+    // 处理语义搜索结果
+    semanticResults.forEach(result => {
+      entityMap.set(result.entityId, {
+        ...result,
+        semanticScore: result.score,
+        graphScore: 0,
+        finalScore: result.score * weights.semanticWeight
+      });
+    });
+    
+    // 融合图关系结果
+    graphResults.forEach(result => {
+      const existing = entityMap.get(result.entityId);
+      if (existing) {
+        // 已存在实体，增强评分
+        existing.graphScore = result.score;
+        existing.finalScore += result.score * weights.graphWeight;
+        existing.relatedEntities = result.relatedEntities;
+      } else {
+        // 新实体，添加到结果集
+        entityMap.set(result.entityId, {
+          ...result,
+          semanticScore: 0,
+          graphScore: result.score,
+          finalScore: result.score * weights.graphWeight
+        });
+      }
+    });
+    
+    // 应用上下文增强
+    return this.applyContextBoost(Array.from(entityMap.values()), weights);
+  }
+}
 ```
 
 ### 6. 监控和错误处理阶段
@@ -210,6 +282,22 @@ src/services/graph/
 ├── SemanticEnhancer.ts        # 语义增强服务
 ├── PathIndexManager.ts        # 路径段索引管理
 └── GraphQueryService.ts       # 图查询服务
+
+// 查询协调服务模块
+src/services/coordination/
+├── QueryCoordinationService.ts    # 查询协调服务
+├── FusionEngine.ts                 # 结果融合引擎
+├── QueryOptimizer.ts              # 查询优化器
+├── CacheManager.ts                # 缓存管理器
+└── PerformanceAnalyzer.ts         # 性能分析器
+
+// 跨数据库同步服务模块
+src/services/sync/
+├── CrossDatabaseSyncService.ts    # 跨数据库同步服务
+├── EntityManager.ts               # 实体管理器
+├── ConsistencyChecker.ts          # 一致性检查器
+├── ChangePropagator.ts            # 变更传播器
+└── RecoveryManager.ts             # 恢复管理器
 
 // 多嵌入器支持
 src/embedders/
