@@ -3,6 +3,40 @@ import { Driver, Session } from 'neo4j-driver';
 import { ConfigService } from '../../../config/ConfigService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { spawn } from 'child_process';
+import { join } from 'path';
+
+// Function to run PowerShell script
+async function runPowerShellScript(scriptName: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const scriptPath = join(__dirname, scriptName);
+    const child = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
+      cwd: __dirname
+    });
+    
+    child.on('close', (code) => {
+      resolve(code === 0);
+    });
+    
+    child.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+// Create database before running tests
+beforeAll(async () => {
+  const result = await runPowerShellScript('setup-test-database.ps1');
+  if (!result) {
+    throw new Error('Failed to create test database');
+  }
+});
+
+// Drop database after running tests
+afterAll(async () => {
+  // We don't fail the test if we can't drop the database
+  await runPowerShellScript('drop-test-database.ps1');
+});
 
 // Mock services
 class MockConfigService {

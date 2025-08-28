@@ -1,6 +1,40 @@
 import { SessionPool, SessionMonitor } from '../../neo4j/SessionPool';
 import { Driver, Session } from 'neo4j-driver';
 import { LoggerService } from '../../../core/LoggerService';
+import { spawn } from 'child_process';
+import { join } from 'path';
+
+// Function to run PowerShell script
+async function runPowerShellScript(scriptName: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const scriptPath = join(__dirname, scriptName);
+    const child = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
+      cwd: __dirname
+    });
+    
+    child.on('close', (code) => {
+      resolve(code === 0);
+    });
+    
+    child.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+// Create database before running tests
+beforeAll(async () => {
+  const result = await runPowerShellScript('setup-test-database.ps1');
+  if (!result) {
+    throw new Error('Failed to create test database');
+  }
+});
+
+// Drop database after running tests
+afterAll(async () => {
+  // We don't fail the test if we can't drop the database
+  await runPowerShellScript('drop-test-database.ps1');
+});
 
 // Mock LoggerService
 class MockLoggerService extends LoggerService {
