@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 
@@ -127,7 +128,7 @@ export class FileSystemTraversal {
   private async processFile(
     filePath: string,
     relativePath: string,
-    stats: fs.Stats,
+    stats: fsSync.Stats,
     result: TraversalResult,
     options: Required<TraversalOptions>
   ): Promise<void> {
@@ -264,7 +265,7 @@ export class FileSystemTraversal {
 
   private async calculateFileHash(filePath: string): Promise<string> {
     const hash = createHash('sha256');
-    const stream = fs.createReadStream(filePath);
+    const stream = fsSync.createReadStream(filePath);
     
     for await (const chunk of stream) {
       hash.update(chunk);

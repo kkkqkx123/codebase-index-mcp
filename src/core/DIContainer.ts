@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import { Container, ContainerModule } from 'inversify';
-import type { interfaces } from 'inversify';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
@@ -61,20 +60,20 @@ export const TYPES = {
   EventQueueService: Symbol.for('EventQueueService')
 };
 
-const coreModule = new ContainerModule((bind: interfaces.Bind) => {
+const coreModule = new ContainerModule((bind: any) => {
   bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
   bind(TYPES.LoggerService).to(LoggerService).inSingletonScope();
   bind(TYPES.ErrorHandlerService).to(ErrorHandlerService).inSingletonScope();
 });
 
-const databaseModule = new ContainerModule((bind: interfaces.Bind) => {
+const databaseModule = new ContainerModule((bind: any) => {
   bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   bind(TYPES.Neo4jService).to(Neo4jService).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
   bind(TYPES.Neo4jConnectionManager).to(Neo4jConnectionManager).inSingletonScope();
 });
 
-const embedderModule = new ContainerModule((bind: interfaces.Bind) => {
+const embedderModule = new ContainerModule((bind: any) => {
   bind(TYPES.OpenAIEmbedder).to(OpenAIEmbedder).inSingletonScope();
   bind(TYPES.OllamaEmbedder).to(OllamaEmbedder).inSingletonScope();
   bind(TYPES.GeminiEmbedder).to(GeminiEmbedder).inSingletonScope();
@@ -82,7 +81,7 @@ const embedderModule = new ContainerModule((bind: interfaces.Bind) => {
   bind(TYPES.EmbedderFactory).to(EmbedderFactory).inSingletonScope();
 });
 
-const serviceModule = new ContainerModule((bind: interfaces.Bind) => {
+const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.IndexService).to(IndexService).inSingletonScope();
   bind(TYPES.GraphService).to(GraphService).inSingletonScope();
   bind(TYPES.ParserService).to(ParserService).inSingletonScope();
@@ -96,11 +95,11 @@ const serviceModule = new ContainerModule((bind: interfaces.Bind) => {
   bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
 });
 
-const queueModule = new ContainerModule((bind: interfaces.Bind) => {
+const queueModule = new ContainerModule((bind: any) => {
   bind(TYPES.EventQueueService).to(EventQueueService).inSingletonScope();
 });
 
-const syncModule = new ContainerModule((bind: interfaces.Bind) => {
+const syncModule = new ContainerModule((bind: any) => {
   bind(TYPES.EntityIdManager).to(EntityIdManager).inSingletonScope();
   bind(TYPES.EntityMappingService).to(EntityMappingService).inSingletonScope();
   bind(TYPES.TransactionCoordinator).to(TransactionCoordinator).inSingletonScope();

@@ -1,4 +1,4 @@
-import { IndexOptions, SearchOptions, SearchResult, IndexStatus } from '../models/IndexTypes';
+import { IndexOptions, SearchOptions, SearchResult, IndexStatus } from '../../models/IndexTypes';
 import { FileChangeEvent } from '../filesystem/ChangeDetectionService';
 
 export interface IIndexService {

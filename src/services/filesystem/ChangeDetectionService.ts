@@ -443,7 +443,7 @@ export class ChangeDetectionService extends EventEmitter {
     return this.fileHashes.size;
   }
 
-  isRunning(): boolean {
+  isServiceRunning(): boolean {
     return this.isRunning;
   }
 

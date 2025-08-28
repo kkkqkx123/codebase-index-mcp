@@ -8,7 +8,7 @@ import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 export interface QdrantConfig {
   host: string;
   port: number;
-  apiKey?: string;
+  apiKey?: string | undefined;
   useHttps: boolean;
   timeout: number;
 }
@@ -35,10 +35,10 @@ export interface CollectionInfo {
   name: string;
   vectors: {
     size: number;
-    distance: 'Cosine' | 'Euclidean' | 'Dot';
+    distance: 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan';
   };
   pointsCount: number;
-  status: 'green' | 'yellow' | 'red';
+  status: 'green' | 'yellow' | 'red' | 'grey';
 }
 
 export interface SearchOptions {
@@ -75,7 +75,7 @@ export class QdrantClientWrapper {
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
-    
+
     const qdrantConfig = configService.get('qdrant');
     this.config = {
       host: qdrantConfig.host,
@@ -115,12 +115,12 @@ export class QdrantClientWrapper {
   async createCollection(
     collectionName: string,
     vectorSize: number,
-    distance: 'Cosine' | 'Euclidean' | 'Dot' = 'Cosine',
+    distance: 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan' = 'Cosine',
     recreateIfExists: boolean = false
   ): Promise<boolean> {
     try {
       const exists = await this.collectionExists(collectionName);
-      
+
       if (exists && recreateIfExists) {
         await this.deleteCollection(collectionName);
       } else if (exists) {
@@ -165,9 +165,9 @@ export class QdrantClientWrapper {
       const collections = await this.client.getCollections();
       return collections.collections.some(col => col.name === collectionName);
     } catch (error) {
-      this.logger.warn('Failed to check collection existence', { 
-        collectionName, 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.warn('Failed to check collection existence', {
+        collectionName,
+        error: error instanceof Error ? error.message : String(error)
       });
       return false;
     }
@@ -191,19 +191,29 @@ export class QdrantClientWrapper {
   async getCollectionInfo(collectionName: string): Promise<CollectionInfo | null> {
     try {
       const info = await this.client.getCollection(collectionName);
+
+      // Handle the new structure of vectors configuration
+      const vectorsConfig = info.config.params.vectors;
+      const vectorSize = typeof vectorsConfig === 'object' && vectorsConfig !== null && 'size' in vectorsConfig
+        ? vectorsConfig.size
+        : 0;
+      const vectorDistance = typeof vectorsConfig === 'object' && vectorsConfig !== null && 'distance' in vectorsConfig
+        ? vectorsConfig.distance
+        : 'Cosine';
+
       return {
         name: collectionName,
         vectors: {
-          size: info.config.params.vectors.size,
-          distance: info.config.params.vectors.distance
+          size: typeof vectorSize === 'number' ? vectorSize : 0,
+          distance: typeof vectorDistance === 'string' ? vectorDistance as 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan' : 'Cosine'
         },
-        pointsCount: info.points_count,
+        pointsCount: info.points_count || 0,
         status: info.status
       };
     } catch (error) {
-      this.logger.warn('Failed to get collection info', { 
-        collectionName, 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.warn('Failed to get collection info', {
+        collectionName,
+        error: error instanceof Error ? error.message : String(error)
       });
       return null;
     }
@@ -218,7 +228,7 @@ export class QdrantClientWrapper {
       const batchSize = 100;
       for (let i = 0; i < points.length; i += batchSize) {
         const batch = points.slice(i, i + batchSize);
-        
+
         await this.client.upsert(collectionName, {
           points: batch.map(point => ({
             id: point.id,
@@ -273,7 +283,7 @@ export class QdrantClientWrapper {
         score: result.score,
         payload: {
           ...result.payload as any,
-          timestamp: new Date(result.payload?.timestamp || Date.now())
+          timestamp: result.payload?.timestamp && typeof result.payload.timestamp === 'string' ? new Date(result.payload.timestamp) : new Date()
         }
       }));
     } catch (error) {
@@ -345,9 +355,9 @@ export class QdrantClientWrapper {
       const info = await this.client.getCollection(collectionName);
       return info.points_count || 0;
     } catch (error) {
-      this.logger.warn('Failed to get point count', { 
-        collectionName, 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.warn('Failed to get point count', {
+        collectionName,
+        error: error instanceof Error ? error.message : String(error)
       });
       return 0;
     }
@@ -363,10 +373,10 @@ export class QdrantClientWrapper {
       this.logger.info(`Created payload index for field ${field} in collection ${collectionName}`);
       return true;
     } catch (error) {
-      this.logger.warn('Failed to create payload index', { 
-        collectionName, 
+      this.logger.warn('Failed to create payload index', {
+        collectionName,
         field,
-        error: error instanceof Error ? error.message : String(error) 
+        error: error instanceof Error ? error.message : String(error)
       });
       return false;
     }

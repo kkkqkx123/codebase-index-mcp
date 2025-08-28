@@ -1,4 +1,4 @@
-import { GraphNode, GraphEdge } from '../models/IndexTypes';
+import { GraphNode, GraphEdge } from '../../models/IndexTypes';
 
 export interface GraphOptions {
   depth?: number;

@@ -140,7 +140,7 @@ export class MCPServer {
     return {
       success: true,
       nodes: analysis.nodes,
-      relationships: analysis.relationships,
+      relationships: analysis.edges,
       metrics: analysis.metrics,
       timestamp: new Date().toISOString()
     };
