@@ -13,11 +13,12 @@ const configSchema = Joi.object({
     collection: Joi.string().default('code-snippets')
   }),
   
-  neo4j: Joi.object({
-    uri: Joi.string().uri().default('bolt://localhost:7687'),
-    username: Joi.string().default('neo4j'),
-    password: Joi.string().default('password'),
-    database: Joi.string().default('codegraph')
+  nebula: Joi.object({
+    host: Joi.string().hostname().default('localhost'),
+    port: Joi.number().port().default(9669),
+    username: Joi.string().default('root'),
+    password: Joi.string().default('nebula'),
+    space: Joi.string().default('codegraph')
   }),
   
   embedding: Joi.object({
@@ -102,11 +103,12 @@ export interface Config {
     port: number;
     collection: string;
   };
-  neo4j: {
-    uri: string;
+  nebula: {
+    host: string;
+    port: number;
     username: string;
     password: string;
-    database: string;
+    space: string;
   };
   embedding: {
     provider: string;
@@ -191,11 +193,12 @@ export class ConfigService {
         port: parseInt(process.env.QDRANT_PORT || '6333'),
         collection: process.env.QDRANT_COLLECTION
       },
-      neo4j: {
-        uri: process.env.NEO4J_URI,
-        username: process.env.NEO4J_USERNAME,
-        password: process.env.NEO4J_PASSWORD,
-        database: process.env.NEO4J_DATABASE
+      nebula: {
+        host: process.env.NEBULA_HOST,
+        port: parseInt(process.env.NEBULA_PORT || '9669'),
+        username: process.env.NEBULA_USERNAME,
+        password: process.env.NEBULA_PASSWORD,
+        space: process.env.NEBULA_SPACE
       },
       embedding: {
         provider: process.env.EMBEDDING_PROVIDER,

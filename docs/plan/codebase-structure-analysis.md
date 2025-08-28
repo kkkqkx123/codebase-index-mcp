@@ -39,9 +39,9 @@
   - 查询前缀处理
 - **输出**: 语义向量用于增强搜索和分析
 
-#### 4. Neo4j连接器 (Neo4j Connector)
-- **职责**: 管理与Neo4j数据库的连接和数据操作
-- **技术选择**: Neo4j JavaScript官方驱动
+#### 4. NebulaGraph连接器 (NebulaGraph Connector)
+- **职责**: 管理与NebulaGraph数据库的连接和数据操作
+- **技术选择**: @nebula-contrib/nebula-nodejs官方客户端
 - **功能**: 
   - 批量导入和查询优化
   - 连接池管理和事务处理
@@ -147,9 +147,9 @@ interface GraphRelationship {
 
 | 组件 | 技术选择 | 版本 | 功能 |
 |------|----------|------|------|
-| 图数据库 | Neo4j | 5.x | 生产级图数据库，支持Cypher查询 |
+| 图数据库 | NebulaGraph | 3.x | 分布式图数据库，支持nGQL查询 |
 | 向量数据库 | Qdrant | 1.x | 语义向量存储和搜索 |
-| 数据库驱动 | neo4j-driver | 5.x | Neo4j官方JavaScript驱动 |
+| 数据库驱动 | @nebula-contrib/nebula-nodejs | 1.x | NebulaGraph官方JavaScript客户端 |
 | 向量客户端 | qdrant-client | 1.x | Qdrant官方JavaScript客户端 |
 | 智能解析 | Tree-sitter | 0.20.x | 多语言语法解析器 |
 | 语言解析器 | @tree-sitter/* | 0.20.x | TypeScript、JavaScript、Python、Java、Go、Rust、C/C++、Markdown |
@@ -190,7 +190,7 @@ interface GraphRelationship {
 
 ### 3. 数据存储阶段  
 ```
-图数据 → Cypher查询生成 → 批量导入Neo4j → 索引构建 → 路径段索引
+图数据 → nGQL查询生成 → 批量导入NebulaGraph → 索引构建 → 路径段索引
 ```
 
 ### 4. 增量更新阶段
@@ -377,7 +377,7 @@ class MultiStageRerankingPipeline {
 // 智能图分析服务模块
 src/services/graph/
 ├── GraphAnalysisService.ts    # 主图分析服务
-├── Neo4jConnector.ts          # Neo4j连接管理
+├── NebulaGraphConnector.ts    # NebulaGraph连接管理
 ├── SmartCodeParser.ts         # 智能代码解析器
 ├── GraphBuilder.ts            # 图构建器
 ├── SemanticEnhancer.ts        # 语义增强服务
@@ -451,7 +451,7 @@ interface MCPGraphTools {
 {
   "dependencies": {
     // 核心数据库
-    "neo4j-driver": "^5.0.0",
+    "@nebula-contrib/nebula-nodejs": "^1.0.0",
     "qdrant-client": "^1.10.0",
     
     // 智能解析
@@ -497,19 +497,80 @@ interface MCPGraphTools {
 ```yaml
 # docker-compose.enhanced.yml
 services:
-  neo4j:
-    image: neo4j:5.0
+  nebula-metad:
+    image: vesoft/nebula-metad:v3.8.0
     ports:
-      - "7474:7474"  # Browser UI
-      - "7687:7687"  # Bolt protocol
+      - "9559:9559"  # Meta service RPC
+      - "19559:19559"  # Meta service HTTP
     environment:
-      - NEO4J_AUTH=neo4j/password
-      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
-      - NEO4J_PLUGINS=["apoc"]
+      - USER=root
+      - PASSWORD=nebula
+      - TZ=Asia/Shanghai
     volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-      - ./neo4j/plugins:/plugins
+      - nebula_metad_data:/data/meta
+      - nebula_metad_logs:/usr/local/nebula/logs
+    command:
+      - --meta_server_addrs=nebula-metad:9559
+      - --local_ip=nebula-metad
+      - --ws_ip=nebula-metad
+      - --port=9559
+      - --ws_http_port=19559
+      - --data_path=/data/meta
+      - --log_dir=/usr/local/nebula/logs
+      - --v=0
+      - --minloglevel=0
+
+  nebula-storaged:
+    image: vesoft/nebula-storaged:v3.8.0
+    ports:
+      - "9779:9779"  # Storage service RPC
+      - "19779:19779"  # Storage service HTTP
+      - "9780:9780"  # Storage service agent
+    environment:
+      - USER=root
+      - PASSWORD=nebula
+      - TZ=Asia/Shanghai
+    volumes:
+      - nebula_storaged_data:/data/storage
+      - nebula_storaged_logs:/usr/local/nebula/logs
+    command:
+      - --meta_server_addrs=nebula-metad:9559
+      - --local_ip=nebula-storaged
+      - --ws_ip=nebula-storaged
+      - --port=9779
+      - --ws_http_port=19779
+      - --data_path=/data/storage
+      - --log_dir=/usr/local/nebula/logs
+      - --v=0
+      - --minloglevel=0
+    depends_on:
+      - nebula-metad
+
+  nebula-graphd:
+    image: vesoft/nebula-graphd:v3.8.0
+    ports:
+      - "9669:9669"  # Graph service RPC
+      - "19669:19669"  # Graph service HTTP
+      - "19670:19670"  # Graph service HTTP2
+    environment:
+      - USER=root
+      - PASSWORD=nebula
+      - TZ=Asia/Shanghai
+    volumes:
+      - nebula_graphd_data:/data/graph
+      - nebula_graphd_logs:/usr/local/nebula/logs
+    command:
+      - --meta_server_addrs=nebula-metad:9559
+      - --local_ip=nebula-graphd
+      - --ws_ip=nebula-graphd
+      - --port=9669
+      - --ws_http_port=19669
+      - --log_dir=/usr/local/nebula/logs
+      - --v=0
+      - --minloglevel=0
+    depends_on:
+      - nebula-metad
+      - nebula-storaged
 
   qdrant:
     image: qdrant/qdrant:v1.7.0
@@ -653,7 +714,7 @@ services:
 #### 监控指标
 - **解析性能**: 代码解析速度和准确率
 - **嵌入生成**: 嵌入API调用成功率和延迟
-- **数据库性能**: Neo4j和Qdrant查询性能
+- **数据库性能**: NebulaGraph和Qdrant查询性能
 - **系统资源**: CPU、内存、磁盘IO使用率
 - **业务指标**: 搜索结果相关性和用户满意度
 
@@ -668,7 +729,7 @@ services:
 ### 第一阶段: 核心架构搭建 (3-4周)
 1. ✅ 智能代码解析器集成 (Tree-sitter)
 2. ✅ 多嵌入器支持框架
-3. 🔄 图数据库基础架构
+3. 🔄 NebulaGraph数据库基础架构
 4. 🔄 向量数据库集成
 5. ⬜ 基础监控和错误处理
 
