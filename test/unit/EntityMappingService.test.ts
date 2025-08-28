@@ -3,7 +3,7 @@ import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityId
 import { LoggerService } from '../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
-import { createTestContainer, createMockEntityMapping, createMockSyncOperation } from '../setup';
+import { createMockEntityMapping, createMockSyncOperation } from '../setup';
 
 // Mock dependencies
 jest.mock('../../src/core/LoggerService');
@@ -56,6 +56,28 @@ describe('EntityMappingService', () => {
     // Setup mock return values
     mockEntityIdManager.generateEntityId.mockReturnValue('generated_entity_id');
     mockEntityIdManager.getMapping.mockReturnValue(mockMapping);
+    mockEntityIdManager.createMapping.mockImplementation((entityId, entityType, projectId, vectorId, graphId) => ({
+      entityId,
+      entityType,
+      projectId,
+      vectorId,
+      graphId,
+      lastSynced: new Date(),
+      syncStatus: vectorId && graphId ? 'synced' : vectorId ? 'vector_only' : graphId ? 'graph_only' : 'conflict'
+    }));
+    mockEntityIdManager.updateMapping.mockImplementation((entityId, updates) => {
+      const existingMapping = mockEntityIdManager.getMapping(entityId);
+      if (!existingMapping) return null;
+      
+      return {
+        ...existingMapping,
+        ...updates,
+        lastSynced: new Date(),
+        syncStatus: updates.vectorId !== undefined || updates.graphId !== undefined
+          ? (updates.vectorId && updates.graphId ? 'synced' : updates.vectorId ? 'vector_only' : updates.graphId ? 'graph_only' : 'conflict')
+          : existingMapping.syncStatus
+      };
+    });
 
     // Create EntityMappingService instance
     entityMappingService = new EntityMappingService(
@@ -333,6 +355,8 @@ describe('EntityMappingService', () => {
       expect(result).toEqual({
         operationId: expect.any(String),
         success: true,
+        vectorId: 'vector_1',
+        graphId: 'graph_1',
         timestamp: expect.any(Date),
       });
     });
@@ -351,6 +375,8 @@ describe('EntityMappingService', () => {
       expect(result).toEqual({
         operationId: expect.any(String),
         success: true,
+        vectorId: 'vector_1',
+        graphId: 'graph_1',
         timestamp: expect.any(Date),
       });
     });
@@ -369,6 +395,8 @@ describe('EntityMappingService', () => {
       expect(result).toEqual({
         operationId: expect.any(String),
         success: true,
+        vectorId: 'vector_1',
+        graphId: 'graph_1',
         timestamp: expect.any(Date),
       });
     });

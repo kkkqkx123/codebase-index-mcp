@@ -3,6 +3,7 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { SessionPool } from './SessionPool';
 
 export interface Neo4jConfig {
   uri: string;
@@ -45,6 +46,7 @@ export interface GraphQueryResult {
 @injectable()
 export class Neo4jConnectionManager {
   private driver: Driver | null = null;
+  private sessionPool: SessionPool | null = null;
   private config: Neo4jConfig;
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
@@ -81,6 +83,9 @@ export class Neo4jConnectionManager {
         }
       );
 
+      // 初始化会话池
+      this.sessionPool = new SessionPool(this.driver, 20, 30000, this.logger);
+
       await this.verifyConnection();
       this.isConnected = true;
 
@@ -94,6 +99,7 @@ export class Neo4jConnectionManager {
     } catch (error) {
       this.isConnected = false;
       this.driver = null;
+      this.sessionPool = null;
 
       const report = this.errorHandler.handleError(
         new Error(`Failed to connect to Neo4j: ${error instanceof Error ? error.message : String(error)}`),
@@ -149,15 +155,16 @@ export class Neo4jConnectionManager {
     this.logger.info('Neo4j schema initialized with constraints and indexes');
   }
 
-  async executeQuery(query: GraphQuery): Promise<GraphQueryResult> {
+  async executeQuery(query: GraphQuery, accessMode: 'READ' | 'WRITE' = 'WRITE'): Promise<GraphQueryResult> {
     if (!this.driver || !this.isConnected) {
       throw new Error('Not connected to Neo4j');
     }
 
-    const session = this.driver.session({
-      database: this.config.database,
-      defaultAccessMode: 'WRITE'
-    });
+    if (!this.sessionPool) {
+      throw new Error('Session pool not initialized');
+    }
+
+    const session = await this.sessionPool.getSession(accessMode);
 
     try {
       const result = await session.run(query.cypher, query.parameters || {});
@@ -183,7 +190,7 @@ export class Neo4jConnectionManager {
       this.logger.error('Neo4j query failed', { errorId: report.id, query: query.cypher });
       throw error;
     } finally {
-      await session.close();
+      await this.sessionPool.releaseSession(session);
     }
   }
 
@@ -192,10 +199,11 @@ export class Neo4jConnectionManager {
       throw new Error('Not connected to Neo4j');
     }
 
-    const session = this.driver.session({
-      database: this.config.database,
-      defaultAccessMode: 'WRITE'
-    });
+    if (!this.sessionPool) {
+      throw new Error('Session pool not initialized');
+    }
+
+    const session = await this.sessionPool.getSession('WRITE');
 
     try {
       const results: GraphQueryResult[] = [];
@@ -232,7 +240,7 @@ export class Neo4jConnectionManager {
       this.logger.error('Neo4j transaction failed', { errorId: report.id, queryCount: queries.length });
       throw error;
     } finally {
-      await session.close();
+      await this.sessionPool.releaseSession(session);
     }
   }
 
@@ -411,7 +419,45 @@ export class Neo4jConnectionManager {
     return this.isConnected;
   }
 
+  /**
+   * 获取读会话
+   * @returns 读会话
+   */
+  async getReadSession(): Promise<Session> {
+    if (!this.sessionPool) {
+      throw new Error('Session pool not initialized');
+    }
+    return this.sessionPool.getReadSession();
+  }
+
+  /**
+   * 获取写会话
+   * @returns 写会话
+   */
+  async getWriteSession(): Promise<Session> {
+    if (!this.sessionPool) {
+      throw new Error('Session pool not initialized');
+    }
+    return this.sessionPool.getWriteSession();
+  }
+
+  /**
+   * 获取会话池监控指标
+   * @returns 会话池指标
+   */
+  getSessionMetrics(): ReturnType<SessionPool['getMetrics']> {
+    if (!this.sessionPool) {
+      throw new Error('Session pool not initialized');
+    }
+    return this.sessionPool.getMetrics();
+  }
+
   async close(): Promise<void> {
+    if (this.sessionPool) {
+      await this.sessionPool.close();
+      this.sessionPool = null;
+    }
+    
     if (this.driver) {
       await this.driver.close();
       this.driver = null;

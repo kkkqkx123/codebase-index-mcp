@@ -38,8 +38,22 @@ export class Neo4jService {
     }
   }
 
-  async executeQuery(cypher: string, parameters?: Record<string, any>): Promise<any> {
-    return this.neo4jConnection.executeQuery({ cypher, parameters });
+  async executeReadQuery(cypher: string, parameters?: Record<string, any>): Promise<any> {
+    const session = await this.neo4jConnection.getReadSession();
+    try {
+      return await session.run(cypher, parameters);
+    } finally {
+      await session.close();
+    }
+  }
+
+  async executeWriteQuery(cypher: string, parameters?: Record<string, any>): Promise<any> {
+    const session = await this.neo4jConnection.getWriteSession();
+    try {
+      return await session.run(cypher, parameters);
+    } finally {
+      await session.close();
+    }
   }
 
   async executeTransaction(queries: Array<{ cypher: string; parameters?: Record<string, any> }>): Promise<any[]> {
