@@ -62,7 +62,7 @@ export const createMockConsistencyIssue = (overrides = {}) => ({
   projectId: 'test_project',
   severity: 'medium' as const,
   description: 'Test issue',
-  detectedAt: new Date(),
+  detectedAt: new Date(Date.now() - Math.random() * 1000000), // Random timestamp in the past
   ...overrides,
 });
 

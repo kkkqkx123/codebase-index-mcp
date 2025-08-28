@@ -7,7 +7,6 @@ import { createMockEntityMapping, createMockConsistencyIssue } from '../setup';
 
 // Mock dependencies
 jest.mock('../../src/core/LoggerService');
-jest.mock('../../src/core/ErrorHandlerService');
 jest.mock('../../src/services/sync/EntityIdManager');
 
 describe('ConsistencyChecker', () => {
@@ -82,7 +81,7 @@ describe('ConsistencyChecker', () => {
       expect(result).toEqual({
         projectId,
         totalEntities: mockMappings.length,
-        issuesFound: 3, // entity_2, entity_3, and entity_4 have issues
+        issuesFound: 4, // entity_2 (1), entity_3 (1), and entity_4 (2) have issues
         issues: expect.arrayContaining([
           expect.objectContaining({
             type: 'missing_vector',
@@ -427,10 +426,12 @@ describe('ConsistencyChecker', () => {
         createMockConsistencyIssue({
           id: 'issue_1',
           severity: 'low',
+          detectedAt: new Date(Date.now() - 1000), // Earlier timestamp
         }),
         createMockConsistencyIssue({
           id: 'issue_2',
           severity: 'high',
+          detectedAt: new Date(), // Later timestamp
         }),
       ];
 
