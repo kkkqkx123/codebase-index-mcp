@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "pre-commit": "lint-staged",
+    "pre-push": "npm run lint && npm run typecheck && npm test"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run lint && npm run typecheck && npm test"
+    }
+  }
+}

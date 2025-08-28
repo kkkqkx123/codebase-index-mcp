@@ -21,6 +21,10 @@ import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 import { Neo4jConnectionManager } from '../database/neo4j/Neo4jConnectionManager';
 import { VectorStorageService } from '../services/storage/VectorStorageService';
 import { GraphPersistenceService } from '../services/storage/GraphPersistenceService';
+import { EntityIdManager } from '../services/sync/EntityIdManager';
+import { EntityMappingService } from '../services/sync/EntityMappingService';
+import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
+import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
 
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
@@ -43,7 +47,11 @@ export const TYPES = {
   QdrantClientWrapper: Symbol.for('QdrantClientWrapper'),
   Neo4jConnectionManager: Symbol.for('Neo4jConnectionManager'),
   VectorStorageService: Symbol.for('VectorStorageService'),
-  GraphPersistenceService: Symbol.for('GraphPersistenceService')
+  GraphPersistenceService: Symbol.for('GraphPersistenceService'),
+  EntityIdManager: Symbol.for('EntityIdManager'),
+  EntityMappingService: Symbol.for('EntityMappingService'),
+  TransactionCoordinator: Symbol.for('TransactionCoordinator'),
+  ConsistencyChecker: Symbol.for('ConsistencyChecker')
 };
 
 const coreModule = new ContainerModule((bind: interfaces.Bind) => {
@@ -79,13 +87,20 @@ const serviceModule = new ContainerModule((bind: interfaces.Bind) => {
   bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
 });
 
+const syncModule = new ContainerModule((bind: interfaces.Bind) => {
+  bind(TYPES.EntityIdManager).to(EntityIdManager).inSingletonScope();
+  bind(TYPES.EntityMappingService).to(EntityMappingService).inSingletonScope();
+  bind(TYPES.TransactionCoordinator).to(TransactionCoordinator).inSingletonScope();
+  bind(TYPES.ConsistencyChecker).to(ConsistencyChecker).inSingletonScope();
+});
+
 export class DIContainer {
   private static instance: Container;
 
   static getInstance(): Container {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
-      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule);
+      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, syncModule);
     }
     return DIContainer.instance;
   }
