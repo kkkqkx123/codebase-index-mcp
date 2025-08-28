@@ -1,5 +1,5 @@
-import { Server } from '@modelcontextprotocol/server';
-import { ServerConfig } from '@modelcontextprotocol/types';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { ServerConfig } from '@modelcontextprotocol/sdk/server/index.js';
 import { DIContainer, TYPES } from '../core/DIContainer';
 import { LoggerService } from '../core/LoggerService';
 import { IndexService } from '../services/index/IndexService';
