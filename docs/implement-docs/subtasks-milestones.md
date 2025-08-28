@@ -5,14 +5,14 @@
 ### Phase 1: Foundation Setup (Week 1-2)
 
 #### Task 1.1: Environment Setup
-- [ ] Install and configure Node.js 18+
-- [ ] Set up Docker Desktop
-- [ ] Configure development tools (VS Code, Git)
-- [ ] Create project repository structure
+- [-] Install and configure Node.js 18+
+- [-] Set up Docker Desktop
+- [-] Configure development tools (VS Code, Git)
+- [-] Create project repository structure
 
 #### Task 1.2: Database Services
-- [ ] Configure Qdrant Docker container
-- [ ] Set up Neo4j Docker container
+- [-] Configure Qdrant Docker container
+- [-] Set up Neo4j Docker container
 - [ ] Verify database connectivity
 - [ ] Create initial database schemas
 
