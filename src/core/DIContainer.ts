@@ -1,0 +1,72 @@
+import 'reflect-metadata';
+import { Container, ContainerModule, interfaces } from 'inversify';
+import { ConfigService } from '../config/ConfigService';
+import { LoggerService } from '../core/LoggerService';
+import { ErrorHandlerService } from '../core/ErrorHandlerService';
+import { IndexService } from '../services/index/IndexService';
+import { GraphService } from '../services/graph/GraphService';
+import { ParserService } from '../services/parser/ParserService';
+import { QdrantService } from '../database/QdrantService';
+import { Neo4jService } from '../database/Neo4jService';
+import { OpenAIEmbedder } from '../embedders/OpenAIEmbedder';
+import { OllamaEmbedder } from '../embedders/OllamaEmbedder';
+import { GeminiEmbedder } from '../embedders/GeminiEmbedder';
+import { MistralEmbedder } from '../embedders/MistralEmbedder';
+import { EmbedderFactory } from '../embedders/EmbedderFactory';
+
+export const TYPES = {
+  ConfigService: Symbol.for('ConfigService'),
+  LoggerService: Symbol.for('LoggerService'),
+  ErrorHandlerService: Symbol.for('ErrorHandlerService'),
+  IndexService: Symbol.for('IndexService'),
+  GraphService: Symbol.for('GraphService'),
+  ParserService: Symbol.for('ParserService'),
+  QdrantService: Symbol.for('QdrantService'),
+  Neo4jService: Symbol.for('Neo4jService'),
+  EmbedderFactory: Symbol.for('EmbedderFactory'),
+  OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
+  OllamaEmbedder: Symbol.for('OllamaEmbedder'),
+  GeminiEmbedder: Symbol.for('GeminiEmbedder'),
+  MistralEmbedder: Symbol.for('MistralEmbedder')
+};
+
+const coreModule = new ContainerModule((bind: interfaces.Bind) => {
+  bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
+  bind(TYPES.LoggerService).to(LoggerService).inSingletonScope();
+  bind(TYPES.ErrorHandlerService).to(ErrorHandlerService).inSingletonScope();
+});
+
+const databaseModule = new ContainerModule((bind: interfaces.Bind) => {
+  bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
+  bind(TYPES.Neo4jService).to(Neo4jService).inSingletonScope();
+});
+
+const embedderModule = new ContainerModule((bind: interfaces.Bind) => {
+  bind(TYPES.OpenAIEmbedder).to(OpenAIEmbedder).inSingletonScope();
+  bind(TYPES.OllamaEmbedder).to(OllamaEmbedder).inSingletonScope();
+  bind(TYPES.GeminiEmbedder).to(GeminiEmbedder).inSingletonScope();
+  bind(TYPES.MistralEmbedder).to(MistralEmbedder).inSingletonScope();
+  bind(TYPES.EmbedderFactory).to(EmbedderFactory).inSingletonScope();
+});
+
+const serviceModule = new ContainerModule((bind: interfaces.Bind) => {
+  bind(TYPES.IndexService).to(IndexService).inSingletonScope();
+  bind(TYPES.GraphService).to(GraphService).inSingletonScope();
+  bind(TYPES.ParserService).to(ParserService).inSingletonScope();
+});
+
+export class DIContainer {
+  private static instance: Container;
+
+  static getInstance(): Container {
+    if (!DIContainer.instance) {
+      DIContainer.instance = new Container();
+      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule);
+    }
+    return DIContainer.instance;
+  }
+
+  static reset(): void {
+    DIContainer.instance = null;
+  }
+}
