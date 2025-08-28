@@ -1,11 +1,9 @@
 import { EventEmitter } from 'events';
 import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService, ErrorContext, CodebaseIndexError } from '../../core/ErrorHandlerService';
+import { ErrorHandlerService, ErrorContext } from '../../core/ErrorHandlerService';
 import { FileWatcherService, FileWatcherOptions, FileWatcherCallbacks } from './FileWatcherService';
-import { FileSystemTraversal, FileInfo, TraversalOptions } from './FileSystemTraversal';
-import fs from 'fs/promises';
+import { FileSystemTraversal, FileInfo } from './FileSystemTraversal';
 import path from 'path';
-import { performance } from 'perf_hooks';
 
 export interface ChangeDetectionOptions {
   debounceInterval?: number;
@@ -55,7 +53,6 @@ export class ChangeDetectionService extends EventEmitter {
   private fileHashes: Map<string, string> = new Map();
   private fileHistory: Map<string, FileHistoryEntry[]> = new Map();
   private pendingChanges: Map<string, NodeJS.Timeout> = new Map();
-  private permissionRetries: Map<string, number> = new Map();
   private isRunning: boolean = false;
   private options: Required<ChangeDetectionOptions>;
   private callbacks: ChangeDetectionCallbacks = {};
@@ -447,49 +444,7 @@ export class ChangeDetectionService extends EventEmitter {
     return this.isRunning;
   }
 
-  private shouldExcludeFile(file: FileInfo): boolean {
-    // Check excluded extensions
-    if (this.options.excludedExtensions.includes(file.extension)) {
-      return true;
-    }
-    
-    // Check excluded directories
-    for (const dir of this.options.excludedDirectories) {
-      if (file.relativePath.includes(dir + '/') || file.relativePath.startsWith(dir + '/')) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
 
-  private async handlePermissionError(filePath: string, error: any): Promise<boolean> {
-    this.stats.permissionErrors++;
-    
-    if (this.options.permissionRetryAttempts <= 0) {
-      return false;
-    }
-    
-    const retryCount = this.permissionRetries.get(filePath) || 0;
-    
-    if (retryCount >= this.options.permissionRetryAttempts) {
-      this.logger.warn(`Max permission retries reached for file: ${filePath}`);
-      this.permissionRetries.delete(filePath);
-      return false;
-    }
-    
-    this.permissionRetries.set(filePath, retryCount + 1);
-    
-    this.logger.debug(`Retrying file access due to permission error: ${filePath}`, {
-      retryCount: retryCount + 1,
-      maxRetries: this.options.permissionRetryAttempts
-    });
-    
-    // Wait for the specified delay before retrying
-    await new Promise(resolve => setTimeout(resolve, this.options.permissionRetryDelay));
-    
-    return true;
-  }
 
   getStats() {
     return { ...this.stats };

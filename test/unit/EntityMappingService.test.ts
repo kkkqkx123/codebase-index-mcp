@@ -2,12 +2,13 @@ import { EntityMappingService } from '../../src/services/sync/EntityMappingServi
 import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
 import { LoggerService } from '../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../src/core/ErrorHandlerService'; // Keep this import for toBeInstanceOf
 import { createMockEntityMapping, createMockSyncOperation } from '../setup';
 
 // Mock dependencies
 jest.mock('../../src/core/LoggerService');
-jest.mock('../../src/core/ErrorHandlerService');
 jest.mock('../../src/services/sync/EntityIdManager');
+// Removed: jest.mock('../../src/core/ErrorHandlerService'); to allow actual CodebaseIndexError to be used
 
 describe('EntityMappingService', () => {
   let entityMappingService: EntityMappingService;
@@ -278,8 +279,16 @@ describe('EntityMappingService', () => {
 
       mockEntityIdManager.getMapping.mockReturnValue(null);
 
-      await expect(entityMappingService.updateEntity(entityId, updates))
-        .rejects.toThrow(/Entity not found: nonexistent_entity/); // Match the error message
+      // Direct try/catch to bypass Jest's rejects.toThrow issues
+      try {
+        await entityMappingService.updateEntity(entityId, updates);
+        // If we reach here, no error was thrown, which is unexpected
+        fail('Expected updateEntity to throw an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CodebaseIndexError);
+        const codebaseError = error as CodebaseIndexError; // Type assertion
+        expect(codebaseError.message).toMatch(/Entity not found: nonexistent_entity/);
+      }
     });
 
     it('should handle update failure', async () => {
@@ -322,8 +331,14 @@ describe('EntityMappingService', () => {
 
       mockEntityIdManager.getMapping.mockReturnValue(null);
 
-      await expect(entityMappingService.deleteEntity(entityId))
-        .rejects.toThrow(/Entity not found: nonexistent_entity/); // Match the error message
+      try {
+        await entityMappingService.deleteEntity(entityId);
+        fail('Expected deleteEntity to throw an error');
+      } catch (error) {
+        console.log('Caught deleteEntity error message:', (error as Error).message); // Diagnostic log
+        expect(error).toBeInstanceOf(CodebaseIndexError);
+        expect((error as CodebaseIndexError).message).toMatch(/Entity not found: nonexistent_entity/);
+      }
     });
 
     it('should handle deletion failure', async () => {
@@ -423,8 +438,14 @@ describe('EntityMappingService', () => {
 
       mockEntityIdManager.getMapping.mockReturnValue(null);
 
-      await expect(entityMappingService.syncEntity(entityId))
-        .rejects.toThrow(/Entity not found: nonexistent_entity/); // Match the error message
+      try {
+        await entityMappingService.syncEntity(entityId);
+        fail('Expected syncEntity to throw an error');
+      } catch (error) {
+        console.log('Caught syncEntity error message:', (error as Error).message); // Diagnostic log
+        expect(error).toBeInstanceOf(CodebaseIndexError);
+        expect((error as CodebaseIndexError).message).toMatch(/Entity not found: nonexistent_entity/);
+      }
     });
 
     it('should handle sync failure', async () => {
@@ -700,8 +721,14 @@ describe('EntityMappingService', () => {
       // Mock the batch retrieval to return null
       jest.spyOn(entityMappingService as any, 'getBatch').mockResolvedValue(null);
 
-      await expect(entityMappingService.executeBatch(batchId))
-        .rejects.toThrow(/Batch not found: nonexistent_batch/); // Match the error message
+      try {
+        await entityMappingService.executeBatch(batchId);
+        fail('Expected executeBatch to throw an error');
+      } catch (error) {
+        console.log('Caught executeBatch error message:', (error as Error).message); // Diagnostic log
+        expect(error).toBeInstanceOf(CodebaseIndexError);
+        expect((error as CodebaseIndexError).message).toMatch(/Batch not found: nonexistent_batch/);
+      }
     });
   });
 

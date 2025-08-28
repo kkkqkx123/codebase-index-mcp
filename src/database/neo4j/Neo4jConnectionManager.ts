@@ -398,7 +398,8 @@ export class Neo4jConnectionManager {
   }
 
   isConnectedToDatabase(): boolean {
-    return this.isConnected;
+    // 检查驱动是否初始化且连接状态为true
+    return this.isConnected && this.driver !== null;
   }
 
   /**

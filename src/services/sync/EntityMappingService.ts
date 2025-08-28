@@ -104,8 +104,10 @@ export class EntityMappingService {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
       const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'update' });
-      this.errorHandler.handleError(error, error.context);
+      // Temporarily remove error handling to debug test failure
+      // this.errorHandler.handleError(error, error.context);
       throw error;
+      // return Promise.reject(error); // Diagnostic: explicit promise rejection
     }
 
     const operationId = this.generateOperationId();

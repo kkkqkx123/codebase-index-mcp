@@ -112,7 +112,6 @@ class MockSessionPool {
 // Mock the SessionPool import
 describe('Neo4jConnectionManager', () => {
   let connectionManager: Neo4jConnectionManager;
-  let mockDriver: Driver;
   
   beforeEach(() => {
     // Mock the neo4j-driver import
@@ -126,6 +125,9 @@ describe('Neo4jConnectionManager', () => {
         toNumber: (val: any) => val
       }
     }));
+    
+    // 确保模块被正确重置
+    jest.resetModules();
     
     // Mock the SessionPool import
     jest.mock('../neo4j/SessionPool', () => ({
@@ -149,8 +151,15 @@ describe('Neo4jConnectionManager', () => {
   
   describe('connect', () => {
     it('should connect successfully', async () => {
+      console.log('Before calling connect');
       const result = await connectionManager.connect();
+      console.log('After calling connect, result:', result);
       expect(result).toBe(true);
+      // 验证连接状态
+      console.log('Before calling isConnectedToDatabase');
+      const isConnected = connectionManager.isConnectedToDatabase();
+      console.log('After calling isConnectedToDatabase, result:', isConnected);
+      expect(isConnected).toBe(true);
     });
   });
   

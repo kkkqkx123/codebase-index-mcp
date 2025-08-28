@@ -3,41 +3,19 @@ import { Neo4jConnectionManager } from '../neo4j/Neo4jConnectionManager';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-
-// Mock services
-class MockConfigService {
-  get(key: string) {
-    if (key === 'neo4j') {
-      return {
-        uri: 'bolt://localhost:7687',
-        username: 'neo4j',
-        password: 'password',
-        database: 'neo4j'
-      };
-    }
-    return {};
-  }
-}
-
-class MockLoggerService {
-  error(_message: string, _meta?: any) {}
-  info(_message: string, _meta?: any) {}
-}
-
-class MockErrorHandlerService {
-  handleError(_error: Error, _context?: any) {
-    return { id: 'test-error-id' };
-  }
-}
+import { container } from '../../inversify.config';
 
 describe('Neo4j Integration', () => {
   let neo4jService: Neo4jService;
   let connectionManager: Neo4jConnectionManager;
   
   beforeEach(() => {
-    const configService = new MockConfigService() as unknown as ConfigService;
-    const loggerService = new MockLoggerService() as unknown as LoggerService;
-    const errorHandlerService = new MockErrorHandlerService() as unknown as ErrorHandlerService;
+    // 重置容器以确保干净的测试环境
+    jest.resetModules();
+    
+    const configService = container.get<ConfigService>(ConfigService);
+    const loggerService = container.get<LoggerService>(LoggerService);
+    const errorHandlerService = container.get<ErrorHandlerService>(ErrorHandlerService);
     
     connectionManager = new Neo4jConnectionManager(
       configService,
@@ -46,7 +24,6 @@ describe('Neo4j Integration', () => {
     );
     
     neo4jService = new Neo4jService(
-      configService,
       loggerService,
       errorHandlerService,
       connectionManager
