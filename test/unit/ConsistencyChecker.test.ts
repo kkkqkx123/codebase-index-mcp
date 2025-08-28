@@ -1,8 +1,8 @@
 import { ConsistencyChecker } from '../../src/services/sync/ConsistencyChecker';
 import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
-import { LoggerService } from '../../src/services/core/LoggerService';
-import { ErrorHandlerService } from '../../src/services/core/ErrorHandlerService';
-import { CodebaseIndexError } from '../../src/services/core/ErrorHandlerService';
+import { LoggerService } from '../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
 import { createTestContainer, createMockEntityMapping, createMockConsistencyIssue } from '../setup';
 
 // Mock dependencies

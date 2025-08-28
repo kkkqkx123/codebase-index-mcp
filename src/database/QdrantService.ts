@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { QdrantClientWrapper } from './qdrant/QdrantClientWrapper';
+import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 
 @injectable()
 export class QdrantService {

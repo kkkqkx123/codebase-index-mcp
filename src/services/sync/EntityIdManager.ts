@@ -1,8 +1,7 @@
 import { injectable, inject } from 'inversify';
-import { LoggerService } from '../core/LoggerService';
-import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { CodebaseIndexError } from '../core/ErrorHandlerService';
-import { HashUtils } from '../utils/HashUtils';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 
 export interface EntityId {
   id: string;
@@ -14,8 +13,8 @@ export interface EntityId {
 }
 
 export interface EntityMapping {
-  vectorId?: string;
-  graphId?: string;
+  vectorId: string | undefined;
+  graphId: string | undefined;
   entityId: string;
   entityType: string;
   projectId: string;
@@ -83,8 +82,8 @@ export class EntityIdManager {
   updateMapping(
     entityId: string,
     updates: {
-      vectorId?: string;
-      graphId?: string;
+      vectorId: string | undefined;
+      graphId: string | undefined;
       syncStatus?: EntityMapping['syncStatus'];
     }
   ): EntityMapping | null {

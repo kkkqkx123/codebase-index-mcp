@@ -1,8 +1,8 @@
 import { injectable, inject } from 'inversify';
-import { LoggerService } from '../core/LoggerService';
-import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { CodebaseIndexError } from '../core/ErrorHandlerService';
-import { EntityIdManager, EntityMapping } from './EntityIdManager';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../core/ErrorHandlerService';
+import { EntityIdManager } from './EntityIdManager';
 
 export interface SyncOperation {
   id: string;
@@ -38,18 +38,16 @@ export interface SyncBatch {
 @injectable()
 export class EntityMappingService {
   private logger: LoggerService;
-  private errorHandler: ErrorHandlerService;
   private entityIdManager: EntityIdManager;
   private pendingOperations: Map<string, SyncOperation> = new Map();
   private operationHistory: SyncOperation[] = [];
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
     @inject(EntityIdManager) entityIdManager: EntityIdManager
   ) {
     this.logger = logger;
-    this.errorHandler = errorHandler;
     this.entityIdManager = entityIdManager;
   }
 
@@ -349,8 +347,8 @@ export class EntityMappingService {
     return {
       operationId: operation.id,
       success: true,
-      vectorId,
-      graphId,
+      ...(vectorId && { vectorId }),
+      ...(graphId && { graphId }),
       timestamp: new Date()
     };
   }

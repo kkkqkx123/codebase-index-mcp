@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
-import { LoggerService } from '../core/LoggerService';
-import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { CodebaseIndexError } from '../core/ErrorHandlerService';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 import { EntityIdManager, EntityMapping } from './EntityIdManager';
 
 export interface ConsistencyIssue {
@@ -37,18 +37,16 @@ export interface DataRepairResult {
 @injectable()
 export class ConsistencyChecker {
   private logger: LoggerService;
-  private errorHandler: ErrorHandlerService;
   private entityIdManager: EntityIdManager;
   private consistencyIssues: Map<string, ConsistencyIssue> = new Map();
   private repairHistory: DataRepairResult[] = [];
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
     @inject(EntityIdManager) entityIdManager: EntityIdManager
   ) {
     this.logger = logger;
-    this.errorHandler = errorHandler;
     this.entityIdManager = entityIdManager;
   }
 
@@ -137,7 +135,7 @@ export class ConsistencyChecker {
     return issues;
   }
 
-  private async checkDataConsistency(mapping: EntityMapping): Promise<boolean> {
+  private async checkDataConsistency(_mapping: EntityMapping): Promise<boolean> {
     // This would compare the actual data between vector and graph stores
     // For now, we'll simulate the check
     // In a real implementation, this would fetch data from both databases and compare
@@ -222,7 +220,8 @@ export class ConsistencyChecker {
       
       // Update the mapping
       this.entityIdManager.updateMapping(issue.entityId, {
-        vectorId: `vector_${issue.entityId}_repaired`
+        vectorId: `vector_${issue.entityId}_repaired`,
+        graphId: undefined
       });
       
       return {
@@ -250,6 +249,7 @@ export class ConsistencyChecker {
       
       // Update the mapping
       this.entityIdManager.updateMapping(issue.entityId, {
+        vectorId: undefined,
         graphId: `graph_${issue.entityId}_repaired`
       });
       

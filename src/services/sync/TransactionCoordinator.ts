@@ -1,8 +1,8 @@
 import { injectable, inject } from 'inversify';
-import { LoggerService } from '../core/LoggerService';
-import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { CodebaseIndexError } from '../core/ErrorHandlerService';
-import { EntityMappingService, SyncOperation } from './EntityMappingService';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../core/ErrorHandlerService';
+import { EntityMappingService } from './EntityMappingService';
 
 export interface TransactionStep {
   id: string;
@@ -35,20 +35,16 @@ export interface TransactionResult {
 @injectable()
 export class TransactionCoordinator {
   private logger: LoggerService;
-  private errorHandler: ErrorHandlerService;
-  private entityMappingService: EntityMappingService;
   private activeTransactions: Map<string, Transaction> = new Map();
   private transactionHistory: Transaction[] = [];
   private currentTransaction: Transaction | null = null;
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(EntityMappingService) entityMappingService: EntityMappingService
+    @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
+    @inject(EntityMappingService) _entityMappingService: EntityMappingService
   ) {
     this.logger = logger;
-    this.errorHandler = errorHandler;
-    this.entityMappingService = entityMappingService;
   }
 
   async executeTransaction(
@@ -548,7 +544,6 @@ export class TransactionCoordinator {
     const active = this.activeTransactions.size;
     const recent = this.transactionHistory.slice(-100);
     const success = recent.filter(t => t.status === 'completed').length;
-    const failed = recent.filter(t => t.status === 'failed').length;
 
     return {
       activeTransactions: active,

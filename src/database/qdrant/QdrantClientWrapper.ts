@@ -87,19 +87,17 @@ export class QdrantClientWrapper {
 
     this.client = new QdrantClient({
       url: `${this.config.useHttps ? 'https' : 'http'}://${this.config.host}:${this.config.port}`,
-      apiKey: this.config.apiKey,
+      ...(this.config.apiKey ? { apiKey: this.config.apiKey } : {}),
       timeout: this.config.timeout
     });
   }
 
   async connect(): Promise<boolean> {
     try {
-      const health = await this.client.health();
+      // Use getCollections as a health check
+      await this.client.getCollections();
       this.isConnected = true;
-      this.logger.info('Connected to Qdrant successfully', {
-        version: health.version,
-        status: health.status
-      });
+      this.logger.info('Connected to Qdrant successfully');
       return true;
     } catch (error) {
       this.isConnected = false;

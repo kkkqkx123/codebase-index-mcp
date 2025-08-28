@@ -1,5 +1,5 @@
 import { injectable, inject } from 'inversify';
-import { QdrantClientWrapper, VectorPoint, SearchOptions, SearchResult } from '../qdrant/QdrantClientWrapper';
+import { QdrantClientWrapper, VectorPoint, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
 import { CodeChunk } from '../../services/parser/TreeSitterService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';

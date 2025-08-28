@@ -1,8 +1,10 @@
+import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from './BatchProcessingMetrics';
+import { BatchProcessingMetrics } from './BatchProcessingMetrics';
+import { BatchOperationMetrics } from './BatchProcessingMetrics';
 
 export interface PerformanceMetrics {
   timestamp: number;
@@ -330,11 +332,11 @@ export class BatchPerformanceMonitor {
       timeRange,
       summary: {
         totalOperations: filteredMetrics.length,
-        averageLatency,
-        p95Latency,
-        p99Latency,
-        throughput: averageThroughput,
-        errorRate: averageErrorRate,
+        averageDuration: averageLatency,
+        p95Duration: p95Latency,
+        p99Duration: p99Latency,
+        averageThroughput: averageThroughput,
+        averageErrorRate: averageErrorRate,
         memoryEfficiency,
         adaptiveBatchingStats,
         systemHealth

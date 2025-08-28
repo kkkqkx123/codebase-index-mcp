@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Container } from 'inversify';
 import { ConfigService } from './config/ConfigService';
 import { LoggerService } from './core/LoggerService';
@@ -11,9 +12,8 @@ import { ParserService } from './services/parser/ParserService';
 import { TransactionCoordinator } from './services/sync/TransactionCoordinator';
 import { IndexService } from './services/index/IndexService';
 import { EventQueueService } from './services/EventQueueService';
-import { QdrantClient } from './database/qdrant/QdrantClient';
 import { Neo4jConnectionManager } from './database/neo4j/Neo4jConnectionManager';
-import { QdrantClientWrapper } from './services/qdrant/QdrantClientWrapper';
+import { QdrantClientWrapper } from './database/qdrant/QdrantClientWrapper';
 
 // Batch processing services
 import { BatchProcessingMetrics } from './services/monitoring/BatchProcessingMetrics';
@@ -36,7 +36,6 @@ container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
 container.bind<PathUtils>(PathUtils).toSelf().inSingletonScope();
 
 // Bind database clients
-container.bind<QdrantClient>(QdrantClient).toSelf().inSingletonScope();
 container.bind<Neo4jConnectionManager>(Neo4jConnectionManager).toSelf().inSingletonScope();
 container.bind<QdrantClientWrapper>(QdrantClientWrapper).toSelf().inSingletonScope();
 

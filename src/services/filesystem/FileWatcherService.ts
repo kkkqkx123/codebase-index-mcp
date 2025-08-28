@@ -1,4 +1,4 @@
-import chokidar from 'chokidar';
+import chokidar, { FSWatcher, ChokidarOptions } from 'chokidar';
 import path from 'path';
 import fs from 'fs/promises';
 import { LoggerService } from '../../core/LoggerService';
@@ -11,7 +11,6 @@ export interface FileWatcherOptions {
   ignoreInitial?: boolean;
   followSymlinks?: boolean;
   cwd?: string;
-  disableGlobbing?: boolean;
   usePolling?: boolean;
   interval?: number;
   binaryInterval?: number;
@@ -19,8 +18,8 @@ export interface FileWatcherOptions {
   depth?: number;
   awaitWriteFinish?: boolean;
   awaitWriteFinishOptions?: {
-    stabilityThreshold: number;
-    pollInterval: number;
+    stabilityThreshold?: number;
+    pollInterval?: number;
   };
 }
 
@@ -44,7 +43,7 @@ export class FileWatcherService {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private fileSystemTraversal: FileSystemTraversal;
-  private watchers: Map<string, chokidar.FSWatcher> = new Map();
+  private watchers: Map<string, FSWatcher> = new Map();
   private callbacks: FileWatcherCallbacks = {};
   private isWatching: boolean = false;
   private traversalOptions: TraversalOptions;
@@ -107,22 +106,22 @@ export class FileWatcherService {
         return;
       }
 
-      const chokidarOptions: chokidar.WatchOptions = {
+      const chokidarOptions: ChokidarOptions = {
         ignored: options.ignored || [],
         ignoreInitial: options.ignoreInitial ?? true,
         followSymlinks: options.followSymlinks ?? false,
-        cwd: options.cwd,
-        disableGlobbing: options.disableGlobbing ?? false,
         usePolling: options.usePolling ?? false,
-        interval: options.interval,
-        binaryInterval: options.binaryInterval,
         alwaysStat: options.alwaysStat ?? true,
-        depth: options.depth,
-        awaitWriteFinish: options.awaitWriteFinish ?? true,
-        awaitWriteFinishOptions: options.awaitWriteFinishOptions || {
-          stabilityThreshold: 2000,
-          pollInterval: 100
-        }
+        ...(options.cwd !== undefined && { cwd: options.cwd }),
+        ...(options.interval !== undefined && { interval: options.interval }),
+        ...(options.binaryInterval !== undefined && { binaryInterval: options.binaryInterval }),
+        ...(options.depth !== undefined && { depth: options.depth }),
+        ...(options.awaitWriteFinish !== undefined && {
+          awaitWriteFinish: options.awaitWriteFinish ? {
+            stabilityThreshold: options.awaitWriteFinishOptions?.stabilityThreshold ?? 2000,
+            pollInterval: options.awaitWriteFinishOptions?.pollInterval ?? 100
+          } : false
+        })
       };
 
       const watcher = chokidar.watch(watchPath, chokidarOptions);
@@ -134,7 +133,7 @@ export class FileWatcherService {
         .on('unlink', (filePath) => this.handleFileDelete(filePath, watchPath))
         .on('addDir', (dirPath) => this.handleDirectoryAdd(dirPath, watchPath))
         .on('unlinkDir', (dirPath) => this.handleDirectoryDelete(dirPath, watchPath))
-        .on('error', (error) => this.handleWatcherError(error, watchPath));
+        .on('error', (error: unknown) => this.handleWatcherError(error as Error, watchPath));
 
       this.watchers.set(watchPath, watcher);
       this.logger.info(`Started watching path: ${watchPath}`);

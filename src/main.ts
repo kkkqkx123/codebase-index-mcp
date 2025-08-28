@@ -1,4 +1,5 @@
-import { DIContainer } from './core/DIContainer';
+import 'reflect-metadata';
+import { DIContainer, TYPES } from './core/DIContainer'; // 添加 TYPES 导入
 import { MCPServer } from './mcp/MCPServer';
 import { ConfigService } from './config/ConfigService';
 import { LoggerService } from './core/LoggerService';
@@ -7,9 +8,9 @@ import { ErrorHandlerService } from './core/ErrorHandlerService';
 async function main(): Promise<void> {
   try {
     const container = DIContainer.getInstance();
-    const config = container.get<ConfigService>(DIContainer.TYPES.ConfigService);
-    const logger = container.get<LoggerService>(DIContainer.TYPES.LoggerService);
-    const errorHandler = container.get<ErrorHandlerService>(DIContainer.TYPES.ErrorHandlerService);
+    const config = container.get<ConfigService>(TYPES.ConfigService); // 改为直接使用 TYPES
+    const logger = container.get<LoggerService>(TYPES.LoggerService); // 改为直接使用 TYPES
+    const errorHandler = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService); // 改为直接使用 TYPES
 
     logger.info('Starting Codebase Index MCP Service', {
       version: '1.0.0',
@@ -32,12 +33,12 @@ async function main(): Promise<void> {
     });
 
     process.on('uncaughtException', (error) => {
-      logger.error('Uncaught Exception', error);
-      errorHandler.handleError(error, {
-        component: 'Process',
-        operation: 'uncaughtException'
-      });
-      process.exit(1);
+       logger.error('Uncaught Exception', error);
+       errorHandler.handleError(error, {
+         component: 'Process',
+         operation: 'uncaughtException'
+       });
+       process.exit(1);
     });
 
     process.on('unhandledRejection', (reason, promise) => {

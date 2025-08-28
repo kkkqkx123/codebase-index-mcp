@@ -12,16 +12,8 @@ import { TransactionCoordinator } from '../sync/TransactionCoordinator';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
 
 // Type definitions for Node.js environment
-declare global {
-  var setTimeout: (callback: (...args: any[]) => void, ms: number, ...args: any[]) => NodeJS.Timeout;
-  var clearTimeout: (timerId: NodeJS.Timeout) => void;
-  namespace NodeJS {
-    interface Timeout {
-      ref(): this;
-      unref(): this;
-    }
-  }
-}
+// setTimeout and clearTimeout are already available in Node.js environment
+// No need to redeclare them as they cause duplicate identifier errors
 
 export interface IndexOptions {
   recursive?: boolean;

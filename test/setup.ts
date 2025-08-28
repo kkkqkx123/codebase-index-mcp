@@ -1,6 +1,6 @@
 import { Container } from 'inversify';
-import { LoggerService } from '../src/services/core/LoggerService';
-import { ErrorHandlerService } from '../src/services/core/ErrorHandlerService';
+import { LoggerService } from '../src/core/LoggerService';
+import { ErrorHandlerService } from '../src/core/ErrorHandlerService';
 import { EntityIdManager } from '../src/services/sync/EntityIdManager';
 
 // Set up test environment
