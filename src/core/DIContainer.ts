@@ -13,6 +13,14 @@ import { OllamaEmbedder } from '../embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../embedders/GeminiEmbedder';
 import { MistralEmbedder } from '../embedders/MistralEmbedder';
 import { EmbedderFactory } from '../embedders/EmbedderFactory';
+import { TreeSitterService } from '../services/parser/TreeSitterService';
+import { SmartCodeParser } from '../services/parser/SmartCodeParser';
+import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
+import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
+import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
+import { Neo4jConnectionManager } from '../database/neo4j/Neo4jConnectionManager';
+import { VectorStorageService } from '../services/storage/VectorStorageService';
+import { GraphPersistenceService } from '../services/storage/GraphPersistenceService';
 
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
@@ -27,7 +35,15 @@ export const TYPES = {
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
   OllamaEmbedder: Symbol.for('OllamaEmbedder'),
   GeminiEmbedder: Symbol.for('GeminiEmbedder'),
-  MistralEmbedder: Symbol.for('MistralEmbedder')
+  MistralEmbedder: Symbol.for('MistralEmbedder'),
+  TreeSitterService: Symbol.for('TreeSitterService'),
+  SmartCodeParser: Symbol.for('SmartCodeParser'),
+  FileSystemTraversal: Symbol.for('FileSystemTraversal'),
+  HashBasedDeduplicator: Symbol.for('HashBasedDeduplicator'),
+  QdrantClientWrapper: Symbol.for('QdrantClientWrapper'),
+  Neo4jConnectionManager: Symbol.for('Neo4jConnectionManager'),
+  VectorStorageService: Symbol.for('VectorStorageService'),
+  GraphPersistenceService: Symbol.for('GraphPersistenceService')
 };
 
 const coreModule = new ContainerModule((bind: interfaces.Bind) => {
@@ -39,6 +55,8 @@ const coreModule = new ContainerModule((bind: interfaces.Bind) => {
 const databaseModule = new ContainerModule((bind: interfaces.Bind) => {
   bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   bind(TYPES.Neo4jService).to(Neo4jService).inSingletonScope();
+  bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
+  bind(TYPES.Neo4jConnectionManager).to(Neo4jConnectionManager).inSingletonScope();
 });
 
 const embedderModule = new ContainerModule((bind: interfaces.Bind) => {
@@ -53,6 +71,12 @@ const serviceModule = new ContainerModule((bind: interfaces.Bind) => {
   bind(TYPES.IndexService).to(IndexService).inSingletonScope();
   bind(TYPES.GraphService).to(GraphService).inSingletonScope();
   bind(TYPES.ParserService).to(ParserService).inSingletonScope();
+  bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+  bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
+  bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
+  bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
+  bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
+  bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
 });
 
 export class DIContainer {
