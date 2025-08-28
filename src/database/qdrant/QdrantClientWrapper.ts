@@ -357,8 +357,7 @@ export class QdrantClientWrapper {
     try {
       await this.client.createPayloadIndex(collectionName, {
         field_name: field,
-        field_schema: 'keyword',
-        field_type: 'keyword'
+        field_schema: 'keyword'
       });
 
       this.logger.info(`Created payload index for field ${field} in collection ${collectionName}`);

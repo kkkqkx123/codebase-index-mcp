@@ -420,7 +420,7 @@ export class BatchSizeConfigManager {
     return `${serviceType}:${operationType}`;
   }
 
-  private getStats(serviceType: string, operationType: string): BatchSizeStats {
+  getStats(serviceType: string, operationType: string): BatchSizeStats {
     const key = this.getConfigKey(serviceType, operationType);
     let stats = this.stats.get(key);
     
@@ -440,11 +440,6 @@ export class BatchSizeConfigManager {
     }
     
     return stats;
-  }
-
-  getStats(serviceType: string, operationType: string): BatchSizeStats {
-    const key = this.getConfigKey(serviceType, operationType);
-    return this.stats.get(key) || this.getStats(serviceType, operationType);
   }
 
   getAllStats(): BatchSizeStats[] {

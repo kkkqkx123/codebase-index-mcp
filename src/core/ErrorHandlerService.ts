@@ -112,7 +112,8 @@ export class ErrorHandlerService {
         reports = reports.filter(r => r.context.component === filter.component);
       }
       if (filter.since !== undefined) {
-        reports = reports.filter(r => r.timestamp >= filter.since);
+        const since = filter.since;
+        reports = reports.filter(r => r.timestamp >= since);
       }
     }
 

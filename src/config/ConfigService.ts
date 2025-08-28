@@ -37,7 +37,10 @@ const configSchema = Joi.object({
     mistral: Joi.object({
       apiKey: Joi.string().required(),
       model: Joi.string().default('mistral-embed')
-    })
+    }),
+    dimensionRules: Joi.object().pattern(Joi.string(), Joi.number()).optional(),
+    qualityWeight: Joi.number().min(0).max(1).default(0.7),
+    performanceWeight: Joi.number().min(0).max(1).default(0.3)
   }),
   
   logging: Joi.object({
@@ -120,6 +123,9 @@ export interface Config {
       apiKey: string;
       model: string;
     };
+    dimensionRules?: { [key: string]: number };
+    qualityWeight?: number;
+    performanceWeight?: number;
   };
   logging: {
     level: string;

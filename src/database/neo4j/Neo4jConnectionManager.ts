@@ -1,4 +1,4 @@
-import { Driver, Session, auth, driver as neo4jDriver } from 'neo4j-driver';
+import { Driver, Session, auth, driver as neo4jDriver, integer } from 'neo4j-driver';
 import { injectable, inject } from 'inversify';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
@@ -29,7 +29,7 @@ export interface GraphRelationship {
 
 export interface GraphQuery {
   cypher: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, any> | undefined;
 }
 
 export interface GraphQueryResult {
@@ -57,7 +57,7 @@ export class Neo4jConnectionManager {
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
-    
+
     const neo4jConfig = configService.get('neo4j');
     this.config = {
       uri: neo4jConfig.uri,
@@ -83,7 +83,7 @@ export class Neo4jConnectionManager {
 
       await this.verifyConnection();
       this.isConnected = true;
-      
+
       this.logger.info('Connected to Neo4j successfully', {
         uri: this.config.uri,
         database: this.config.database
@@ -94,7 +94,7 @@ export class Neo4jConnectionManager {
     } catch (error) {
       this.isConnected = false;
       this.driver = null;
-      
+
       const report = this.errorHandler.handleError(
         new Error(`Failed to connect to Neo4j: ${error instanceof Error ? error.message : String(error)}`),
         { component: 'Neo4jConnection', operation: 'connect' }
@@ -161,14 +161,18 @@ export class Neo4jConnectionManager {
 
     try {
       const result = await session.run(query.cypher, query.parameters || {});
-      
+
       return {
         records: result.records.map(record => record.toObject()),
         summary: {
           query: query.cypher,
           parameters: query.parameters || {},
-          resultAvailableAfter: result.summary.resultAvailableAfter,
-          resultConsumedAfter: result.summary.resultConsumedAfter
+          resultAvailableAfter: integer.inSafeRange(result.summary.resultAvailableAfter)
+            ? integer.toNumber(result.summary.resultAvailableAfter)
+            : Number(result.summary.resultAvailableAfter.toString()),
+          resultConsumedAfter: integer.inSafeRange(result.summary.resultConsumedAfter)
+            ? integer.toNumber(result.summary.resultConsumedAfter)
+            : Number(result.summary.resultConsumedAfter.toString())
         }
       };
     } catch (error) {
@@ -195,10 +199,10 @@ export class Neo4jConnectionManager {
 
     try {
       const results: GraphQueryResult[] = [];
-      
+
       const transactionResult = await session.writeTransaction(async tx => {
         const txResults: GraphQueryResult[] = [];
-        
+
         for (const query of queries) {
           const result = await tx.run(query.cypher, query.parameters || {});
           txResults.push({
@@ -206,12 +210,16 @@ export class Neo4jConnectionManager {
             summary: {
               query: query.cypher,
               parameters: query.parameters || {},
-              resultAvailableAfter: result.summary.resultAvailableAfter,
-              resultConsumedAfter: result.summary.resultConsumedAfter
+              resultAvailableAfter: integer.inSafeRange(result.summary.resultAvailableAfter)
+                ? integer.toNumber(result.summary.resultAvailableAfter)
+                : Number(result.summary.resultAvailableAfter.toString()),
+              resultConsumedAfter: integer.inSafeRange(result.summary.resultConsumedAfter)
+                ? integer.toNumber(result.summary.resultConsumedAfter)
+                : Number(result.summary.resultConsumedAfter.toString())
             }
           });
         }
-        
+
         return txResults;
       });
 
@@ -231,7 +239,7 @@ export class Neo4jConnectionManager {
   async createNode(node: GraphNode): Promise<string> {
     const labels = node.labels.join(':');
     const properties = this.formatProperties(node.properties);
-    
+
     const query: GraphQuery = {
       cypher: `CREATE (n:${labels} $properties) RETURN n.id as id`,
       parameters: { properties: { ...node.properties, id: node.id } }
@@ -263,7 +271,7 @@ export class Neo4jConnectionManager {
   async findNodesByLabel(label: string, properties?: Record<string, any>): Promise<GraphNode[]> {
     const whereClause = properties ? this.buildWhereClause(properties) : '';
     const parameters = properties ? { properties } : {};
-    
+
     const query: GraphQuery = {
       cypher: `MATCH (n:${label})${whereClause} RETURN n`,
       parameters
@@ -277,7 +285,7 @@ export class Neo4jConnectionManager {
     const typePattern = type ? `:${type}` : '';
     const whereClause = properties ? this.buildWhereClause(properties, 'r') : '';
     const parameters = properties ? { properties } : {};
-    
+
     const query: GraphQuery = {
       cypher: `MATCH (start)-[r${typePattern}]->(end)${whereClause} 
                RETURN r, start.id as startId, end.id as endId`,
@@ -351,7 +359,7 @@ export class Neo4jConnectionManager {
 
   private formatProperties(properties: Record<string, any>): Record<string, any> {
     const formatted: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(properties)) {
       if (value instanceof Date) {
         formatted[key] = value.toISOString();
@@ -361,7 +369,7 @@ export class Neo4jConnectionManager {
         formatted[key] = value;
       }
     }
-    
+
     return formatted;
   }
 
@@ -377,7 +385,7 @@ export class Neo4jConnectionManager {
         return `${variable}.${key} = $properties.${key}`;
       }
     });
-    
+
     return conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
   }
 

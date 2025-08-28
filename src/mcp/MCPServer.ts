@@ -1,12 +1,14 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { ServerConfig } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 import { DIContainer, TYPES } from '../core/DIContainer';
 import { LoggerService } from '../core/LoggerService';
 import { IndexService } from '../services/index/IndexService';
 import { GraphService } from '../services/graph/GraphService';
 
 export class MCPServer {
-  private server: Server;
+  private server: McpServer;
+  private transport: StdioServerTransport;
   private logger: LoggerService;
   private indexService: IndexService;
   private graphService: GraphService;
@@ -17,116 +19,86 @@ export class MCPServer {
     this.indexService = container.get<IndexService>(TYPES.IndexService);
     this.graphService = container.get<GraphService>(TYPES.GraphService);
 
-    const config: ServerConfig = {
+    // Initialize the server with basic configuration
+    this.server = new McpServer({
       name: 'codebase-index-mcp',
       version: '1.0.0',
       description: 'Intelligent codebase indexing and analysis service',
-      capabilities: {
-        tools: {
-          'codebase.index.create': {
-            description: 'Create a new codebase index',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                projectPath: {
-                  type: 'string',
-                  description: 'Path to the project directory'
-                },
-                options: {
-                  type: 'object',
-                  properties: {
-                    recursive: { type: 'boolean', default: true },
-                    includePatterns: { type: 'array', items: { type: 'string' } },
-                    excludePatterns: { type: 'array', items: { type: 'string' } }
-                  }
-                }
-              },
-              required: ['projectPath']
-            }
-          },
-          'codebase.index.search': {
-            description: 'Search the codebase index',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Search query'
-                },
-                options: {
-                  type: 'object',
-                  properties: {
-                    limit: { type: 'number', default: 10 },
-                    threshold: { type: 'number', default: 0.7 },
-                    includeGraph: { type: 'boolean', default: false }
-                  }
-                }
-              },
-              required: ['query']
-            }
-          },
-          'codebase.graph.analyze': {
-            description: 'Analyze codebase structure and relationships',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                projectPath: {
-                  type: 'string',
-                  description: 'Path to the project directory'
-                },
-                options: {
-                  type: 'object',
-                  properties: {
-                    depth: { type: 'number', default: 3 },
-                    focus: { type: 'string', enum: ['dependencies', 'imports', 'classes', 'functions'] }
-                  }
-                }
-              },
-              required: ['projectPath']
-            }
-          },
-          'codebase.status.get': {
-            description: 'Get current indexing status',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                projectPath: {
-                  type: 'string',
-                  description: 'Path to the project directory'
-                }
-              }
-            }
-          }
-        }
-      }
-    };
-
-    this.server = new Server(config);
+    });
+    
+    // Initialize the stdio transport
+    this.transport = new StdioServerTransport();
+    
+    // Register all available tools
     this.setupToolHandlers();
   }
 
   private setupToolHandlers(): void {
-    this.server.setRequestHandler('tools/call', async (request) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        switch (name) {
-          case 'codebase.index.create':
-            return await this.handleCreateIndex(args);
-          case 'codebase.index.search':
-            return await this.handleSearch(args);
-          case 'codebase.graph.analyze':
-            return await this.handleGraphAnalyze(args);
-          case 'codebase.status.get':
-            return await this.handleGetStatus(args);
-          default:
-            throw new Error(`Unknown tool: ${name}`);
-        }
-      } catch (error) {
-        this.logger.error(`Tool execution failed: ${name}`, error);
-        throw error;
+    this.server.tool(
+      'codebase.index.create',
+      {
+        projectPath: z.string().describe('Path to the project directory'),
+        options: z.object({
+          recursive: z.boolean().optional().default(true),
+          includePatterns: z.array(z.string()).optional(),
+          excludePatterns: z.array(z.string()).optional()
+        }).optional()
+      },
+      async (args) => {
+        const result = await this.handleCreateIndex(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }]
+        };
       }
-    });
+    );
+
+    this.server.tool(
+      'codebase.index.search',
+      {
+        query: z.string().describe('Search query'),
+        options: z.object({
+          limit: z.number().optional().default(10),
+          threshold: z.number().optional().default(0.7),
+          includeGraph: z.boolean().optional().default(false)
+        }).optional()
+      },
+      async (args) => {
+        const result = await this.handleSearch(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }]
+        };
+      }
+    );
+
+    this.server.tool(
+      'codebase.graph.analyze',
+      {
+        projectPath: z.string().describe('Path to the project directory'),
+        options: z.object({
+          depth: z.number().optional().default(3),
+          focus: z.enum(['dependencies', 'imports', 'classes', 'functions']).optional()
+        }).optional()
+      },
+      async (args) => {
+        const result = await this.handleGraphAnalyze(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }]
+        };
+      }
+    );
+
+    this.server.tool(
+      'codebase.status.get',
+      {
+        projectPath: z.string().describe('Path to the project directory')
+      },
+      async (args) => {
+        const result = await this.handleGetStatus(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }]
+        };
+      }
+    );
   }
 
   private async handleCreateIndex(args: any): Promise<any> {
@@ -187,7 +159,7 @@ export class MCPServer {
 
   async start(): Promise<void> {
     try {
-      await this.server.start();
+      await this.server.connect(this.transport);
       this.logger.info('MCP Server started successfully');
     } catch (error) {
       this.logger.error('Failed to start MCP Server', error);
@@ -197,7 +169,7 @@ export class MCPServer {
 
   async stop(): Promise<void> {
     try {
-      await this.server.stop();
+      this.server.close();
       this.logger.info('MCP Server stopped successfully');
     } catch (error) {
       this.logger.error('Failed to stop MCP Server', error);

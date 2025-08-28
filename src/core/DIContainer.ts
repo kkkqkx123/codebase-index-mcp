@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { Container, ContainerModule, interfaces } from 'inversify';
+import { Container, ContainerModule } from 'inversify';
+import type { interfaces } from 'inversify';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
@@ -107,7 +108,7 @@ const syncModule = new ContainerModule((bind: interfaces.Bind) => {
 });
 
 export class DIContainer {
-  private static instance: Container;
+  private static instance: Container | null = null;
 
   static getInstance(): Container {
     if (!DIContainer.instance) {

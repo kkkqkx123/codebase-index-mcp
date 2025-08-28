@@ -6,7 +6,7 @@ import { EmbedderFactory } from './EmbedderFactory';
 import { BaseEmbedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
 
 export interface DimensionAdapter {
-  adaptEmbedding(embedding: EmbeddingResult, targetDimensions: number): EmbeddingResult;
+  adaptEmbedding(embedding: EmbeddingResult, targetDimensions: number): Promise<EmbeddingResult>;
   getOptimalDimensions(contentType: string, provider: string): Promise<number>;
   canAdapt(fromDimensions: number, toDimensions: number): boolean;
 }

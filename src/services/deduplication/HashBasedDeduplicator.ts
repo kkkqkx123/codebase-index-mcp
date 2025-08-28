@@ -353,7 +353,7 @@ export class HashBasedDeduplicator {
   } {
     return {
       exactCacheSize: this.exactHashCache.size,
-      fuzzyCacheSize: this.fuzzyCacheCache.size
+      fuzzyCacheSize: this.fuzzyHashCache.size
     };
   }
 }
