@@ -104,6 +104,7 @@ async function createDatabase() {
   } catch (error) {
     // If we can't connect to the database, it might not exist
     console.log('Database $Database does not exist or is not accessible');
+    console.log('Error:', error.message);
     await driver.close();
     
     // Try to create it using system database
@@ -140,7 +141,9 @@ createDatabase();
     Write-Host $output
     
     # Clean up the create file
-    Remove-Item $createScriptPath -Force
+    if (Test-Path $createScriptPath) {
+      Remove-Item $createScriptPath -Force
+    }
     
     return $LASTEXITCODE -eq 0
   } catch {

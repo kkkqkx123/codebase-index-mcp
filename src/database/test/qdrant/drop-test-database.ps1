@@ -1,4 +1,4 @@
-# Qdrant Connection Test Script
+# Drop Test Database Script
 
 # Load environment variables from .env file
 $envFile = '.env'
@@ -58,7 +58,7 @@ if (-not $host -or -not $port) {
 }
 
 # Test connection to Qdrant using the Node.js script
-Write-Host "Testing connection to Qdrant at ${host}:${port}"
+Write-Host "Dropping test collections from Qdrant at ${host}:${port}"
 Write-Host "Current working directory: $((Get-Location).Path)"
 
 try {
@@ -74,17 +74,69 @@ try {
     Write-Host "Package @qdrant/js-client-rest is already installed"
   }
   
-  # Check if the Node.js script exists
-  $nodeScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "test-qdrant-connection.js"
-  if (-not (Test-Path $nodeScriptPath)) {
-    Write-Host "Error: test-qdrant-connection.js not found at $nodeScriptPath"
+  # Create a Node.js script to drop test collections
+  $dropScript = @"
+const { QdrantClient } = require('@qdrant/js-client-rest');
+
+async function dropTestCollections() {
+  // Get configuration from environment variables
+  const host = process.env.QDRANT_HOST || 'localhost';
+  const port = process.env.QDRANT_PORT || 6333;
+  const apiKey = process.env.QDRANT_API_KEY;
+  
+  console.log(`Connecting to Qdrant at ${host}:${port}`);
+  console.log(`API Key provided: ${!!apiKey}`);
+  
+  const client = new QdrantClient({
+    host,
+    port,
+    ...(apiKey ? { apiKey } : {})
+  });
+  
+  try {
+    console.log('Attempting to connect to Qdrant...');
+    // Get all collections
+    const collections = await client.getCollections();
+    console.log('Available collections:', collections.collections.map(c => c.name));
+    
+    // Delete test collections (those starting with 'test-' prefix)
+    let deletedCount = 0;
+    for (const collection of collections.collections) {
+      if (collection.name.startsWith('test-')) {
+        console.log(`Deleting collection: ${collection.name}`);
+        await client.deleteCollection(collection.name);
+        console.log(`Successfully deleted collection: ${collection.name}`);
+        deletedCount++;
+      }
+    }
+    
+    console.log(`Deleted ${deletedCount} test collections`);
+    console.log('Test database cleanup completed successfully');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during test database cleanup:', error.message);
+    console.error('Error stack:', error.stack);
+    process.exit(1);
+  }
+}
+
+dropTestCollections();
+"@
+  
+  # Write the drop script to a file
+  $dropScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "drop-test-collections.js"
+  $dropScript | Out-File -FilePath $dropScriptPath -Encoding UTF8
+  
+  # Check if the drop script file was created successfully
+  if (-not (Test-Path $dropScriptPath)) {
+    Write-Host "Error: Failed to create drop script file at $dropScriptPath"
     exit 1
   }
   
-  # Run the Node.js script to test Qdrant connection
-  Write-Host "Testing Qdrant database connection and authentication..."
-  Write-Host "Executing: node test-qdrant-connection.js"
-  $output = node test-qdrant-connection.js 2>&1
+  # Run the Node.js script to drop test collections
+  Write-Host "Dropping test collections..."
+  Write-Host "Executing: node drop-test-collections.js"
+  $output = node $dropScriptPath 2>&1
   
   # Capture the exit code
   $exitCode = $LASTEXITCODE
@@ -93,17 +145,19 @@ try {
   Write-Host "Node.js script output:"
   Write-Host $output
   
+  # Clean up the drop script file
+  Remove-Item $dropScriptPath -Force
+  
   if ($exitCode -eq 0) {
-    Write-Host "Qdrant database connection and authentication successful"
-    Write-Host "You can now run the Qdrant tests"
+    Write-Host "Test database cleanup completed successfully"
     exit 0
   } else {
-    Write-Host "Qdrant database connection or authentication failed"
+    Write-Host "Test database cleanup failed"
     Write-Host "Exit code: $exitCode"
     exit 1
   }
 } catch {
-  Write-Host "Error connecting to Qdrant at ${host}:${port}: $_"
+  Write-Host "Error during test database cleanup: $_"
   Write-Host "Exception type: $($_.Exception.GetType().FullName)"
   Write-Host "Stack trace: $($_.ScriptStackTrace)"
   exit 1

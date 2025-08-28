@@ -26,16 +26,22 @@ async function runPowerShellScript(scriptName: string): Promise<boolean> {
 
 // Create database before running tests
 beforeAll(async () => {
+  console.log('Setting up test database...');
   const result = await runPowerShellScript('setup-test-database.ps1');
+  console.log('Test database setup result:', result);
   if (!result) {
     throw new Error('Failed to create test database');
   }
+  console.log('Test database setup completed successfully');
 });
 
 // Drop database after running tests
 afterAll(async () => {
+  console.log('Cleaning up test database...');
   // We don't fail the test if we can't drop the database
-  await runPowerShellScript('drop-test-database.ps1');
+  const result = await runPowerShellScript('drop-test-database.ps1');
+  console.log('Test database cleanup result:', result);
+  console.log('Test database cleanup completed');
 });
 
 describe('Qdrant Integration', () => {
@@ -62,7 +68,9 @@ describe('Qdrant Integration', () => {
   });
   
   it('should initialize Qdrant client successfully', async () => {
+    console.log('Testing Qdrant client initialization');
     const result = await qdrantClient.connect();
+    console.log('Client initialization result:', result);
     expect(result).toBe(true);
   });
   
@@ -78,8 +86,8 @@ describe('Qdrant Integration', () => {
   it('should create and manage collections', async () => {
     await qdrantClient.connect();
     
-    // Create a collection
-    const collectionName = 'test-collection-integration';
+    // Create a collection with test prefix
+    const collectionName = 'test-collection-integration-' + Date.now();
     const result = await qdrantClient.createCollection(collectionName, 128);
     expect(result).toBe(true);
     
@@ -105,7 +113,7 @@ describe('Qdrant Integration', () => {
   it('should upsert and search vectors', async () => {
     await qdrantClient.connect();
     
-    const collectionName = 'test-search-collection';
+    const collectionName = 'test-search-collection-' + Date.now();
     await qdrantClient.createCollection(collectionName, 128);
     
     // Upsert points
@@ -163,7 +171,7 @@ describe('Qdrant Integration', () => {
   it('should delete points', async () => {
     await qdrantClient.connect();
     
-    const collectionName = 'test-delete-collection';
+    const collectionName = 'test-delete-collection-' + Date.now();
     await qdrantClient.createCollection(collectionName, 128);
     
     // Upsert points
@@ -197,7 +205,7 @@ describe('Qdrant Integration', () => {
   it('should get point count', async () => {
     await qdrantClient.connect();
     
-    const collectionName = 'test-count-collection';
+    const collectionName = 'test-count-collection-' + Date.now();
     await qdrantClient.createCollection(collectionName, 128);
     
     // Initially should have 0 points

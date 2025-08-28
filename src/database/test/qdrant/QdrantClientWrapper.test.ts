@@ -148,16 +148,20 @@ describe('QdrantClientWrapper', () => {
 
   describe('connect', () => {
     it('should connect successfully', async () => {
+      console.log('Testing QdrantClientWrapper connection');
       const result = await qdrantClient.connect();
+      console.log('Connection result:', result);
       expect(result).toBe(true);
       expect(qdrantClient.isConnectedToDatabase()).toBe(true);
     });
 
     it('should handle connection failure', async () => {
+      console.log('Testing QdrantClientWrapper connection failure handling');
       // Mock the client to throw an error
       jest.spyOn(mockQdrantClient, 'getCollections').mockRejectedValue(new Error('Connection failed'));
       
       const result = await qdrantClient.connect();
+      console.log('Connection failure result:', result);
       expect(result).toBe(false);
       expect(qdrantClient.isConnectedToDatabase()).toBe(false);
     });

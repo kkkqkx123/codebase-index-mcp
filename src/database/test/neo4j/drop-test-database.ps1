@@ -125,7 +125,9 @@ dropDatabase();
     Write-Host $output
     
     # Clean up the drop file
-    Remove-Item $dropScriptPath -Force
+    if (Test-Path $dropScriptPath) {
+      Remove-Item $dropScriptPath -Force
+    }
     
     return $LASTEXITCODE -eq 0
   } catch {

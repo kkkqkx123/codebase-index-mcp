@@ -14,11 +14,37 @@ async function runPowerShellScript(scriptName: string): Promise<boolean> {
       cwd: __dirname
     });
     
-    child.on('close', (code) => {
-      resolve(code === 0);
+    let stdout = '';
+    let stderr = '';
+    
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
     });
     
-    child.on('error', () => {
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    child.on('close', (code) => {
+      console.log(`PowerShell script ${scriptName} completed with exit code ${code}`);
+      console.log('stdout:', stdout);
+      console.log('stderr:', stderr);
+      
+      if (code !== 0) {
+        console.error(`PowerShell script ${scriptName} failed with exit code ${code}`);
+        resolve(false);
+      } else {
+        // Even if exit code is 0, check for error messages in output
+        if (stderr && stderr.toLowerCase().includes('error')) {
+          console.warn(`PowerShell script ${scriptName} completed with errors:`);
+          console.warn('stderr:', stderr);
+        }
+        resolve(true);
+      }
+    });
+    
+    child.on('error', (error) => {
+      console.error(`Failed to start PowerShell script ${scriptName}:`, error);
       resolve(false);
     });
   });
@@ -26,17 +52,20 @@ async function runPowerShellScript(scriptName: string): Promise<boolean> {
 
 // Create database before running tests
 beforeAll(async () => {
+  console.log('Starting setup-test-database.ps1 script');
   const result = await runPowerShellScript('setup-test-database.ps1');
+  console.log('setup-test-database.ps1 script completed with result:', result);
   if (!result) {
     throw new Error('Failed to create test database');
   }
-});
+  console.log('Test database created successfully');
+}, 30000); // 30 seconds timeout
 
 // Drop database after running tests
 afterAll(async () => {
   // We don't fail the test if we can't drop the database
   await runPowerShellScript('drop-test-database.ps1');
-});
+}, 30000); // 30 seconds timeout
 
 // Mock services
 class MockConfigService {
@@ -111,27 +140,44 @@ class MockDriver {
 // Mock SessionPool
 class MockSessionPool {
   private mockSession: Session;
+  private metrics: {
+    totalSessionsCreated: number;
+    totalSessionsClosed: number;
+    activeSessions: number;
+    avgSessionDuration: number;
+    sessionTimeouts: number;
+  };
   
   constructor(_driver: Driver) {
     this.mockSession = new MockSession() as unknown as Session;
-  }
-  
-  async getSession(_accessMode: 'READ' | 'WRITE' = 'WRITE') {
-    return this.mockSession;
-  }
-  
-  async releaseSession(_session: Session) {}
-  
-  async close() {}
-  
-  getMetrics() {
-    return {
+    this.metrics = {
       totalSessionsCreated: 0,
       totalSessionsClosed: 0,
       activeSessions: 0,
       avgSessionDuration: 0,
       sessionTimeouts: 0
     };
+  }
+  
+  async getSession(_accessMode: 'READ' | 'WRITE' = 'WRITE') {
+    this.metrics.totalSessionsCreated++;
+    this.metrics.activeSessions++;
+    return this.mockSession;
+  }
+  
+  async releaseSession(_session: Session) {
+    this.metrics.totalSessionsClosed++;
+    this.metrics.activeSessions--;
+  }
+  
+  async close() {}
+  
+  getMetrics() {
+    return { ...this.metrics };
+  }
+
+  getSessionMetrics() {
+    return this.getMetrics();
   }
   
   async getReadSession() {
@@ -164,7 +210,7 @@ describe('Neo4jConnectionManager', () => {
     jest.resetModules();
     
     // Mock the SessionPool import
-    jest.mock('../neo4j/SessionPool', () => ({
+    jest.mock('../../neo4j/SessionPool', () => ({
       SessionPool: MockSessionPool
     }));
     
