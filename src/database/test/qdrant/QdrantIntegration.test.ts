@@ -2,9 +2,35 @@ import { QdrantClientWrapper } from '../../qdrant/QdrantClientWrapper';
 import { ConfigService } from '../../../config/ConfigService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
-import { container } from '../../../inversify.config';
 import { spawn } from 'child_process';
 import { join } from 'path';
+
+// Mock services for integration test
+class MockLoggerService {
+  info(message: string, meta?: any) {
+    console.log(`[INFO] ${message}`, meta);
+  }
+  
+  error(message: string, error?: any) {
+    console.error(`[ERROR] ${message}`, error);
+  }
+  
+  warn(message: string, meta?: any) {
+    console.warn(`[WARN] ${message}`, meta);
+  }
+  
+  debug(message: string, meta?: any) {
+    console.debug(`[DEBUG] ${message}`, meta);
+  }
+}
+
+class MockErrorHandlerService {
+  handleError(error: Error, context?: any) {
+    console.error(`[ERROR HANDLER] ${error.message}`, context);
+    console.error(`[ERROR STACK] ${error.stack}`);
+    return { id: 'test-error-id', timestamp: new Date(), type: 'test', message: error.message, stack: error.stack, context: context || {}, severity: 'medium', handled: false };
+  }
+}
 
 // Function to run PowerShell script
 async function runPowerShellScript(scriptName: string): Promise<boolean> {
@@ -51,9 +77,10 @@ describe('Qdrant Integration', () => {
     // Reset modules to ensure clean test environment
     jest.resetModules();
     
-    const configService = container.get<ConfigService>(ConfigService);
-    const loggerService = container.get<LoggerService>(LoggerService);
-    const errorHandlerService = container.get<ErrorHandlerService>(ErrorHandlerService);
+    // Create real instances with mocked services
+    const configService = ConfigService.getInstance();
+    const loggerService = new MockLoggerService() as unknown as LoggerService;
+    const errorHandlerService = new MockErrorHandlerService() as unknown as ErrorHandlerService;
     
     qdrantClient = new QdrantClientWrapper(
       configService,
@@ -119,7 +146,7 @@ describe('Qdrant Integration', () => {
     // Upsert points
     const points = [
       {
-        id: 'point-1',
+        id: 1,
         vector: Array(128).fill(0.5),
         payload: {
           content: 'This is test content for vector search',
@@ -133,7 +160,7 @@ describe('Qdrant Integration', () => {
         }
       },
       {
-        id: 'point-2',
+        id: 2,
         vector: Array(128).fill(0.8),
         payload: {
           content: 'Another test content for vector search',
@@ -215,7 +242,7 @@ describe('Qdrant Integration', () => {
     // Upsert points
     const points = [
       {
-        id: 'count-point-1',
+        id: 4,
         vector: Array(128).fill(0.5),
         payload: {
           content: 'Test content',

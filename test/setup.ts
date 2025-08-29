@@ -15,17 +15,27 @@ export const createTestContainer = () => {
   const container = new Container();
   
   // Mock LoggerService
-  container.bind<LoggerService>(LoggerService).toConstantValue({
+  const mockLogger = {
     info: jest.fn(),
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  } as any);
+  };
   
-  // Mock ErrorHandlerService
-  container.bind<ErrorHandlerService>(ErrorHandlerService).toConstantValue({
+  container.bind<LoggerService>(LoggerService).toConstantValue(mockLogger as any);
+  
+  // Mock ErrorHandlerService with proper dependencies
+  const mockErrorHandler = {
     handleError: jest.fn(),
-  } as any);
+    handleAsyncError: jest.fn(),
+    wrapAsync: jest.fn().mockImplementation((fn) => fn),
+    onError: jest.fn(),
+    getErrorReports: jest.fn().mockReturnValue([]),
+    markErrorHandled: jest.fn(),
+    clearErrorReports: jest.fn(),
+  };
+  
+  container.bind<ErrorHandlerService>(ErrorHandlerService).toConstantValue(mockErrorHandler as any);
   
   // Mock EntityIdManager for tests that need it
   container.bind<EntityIdManager>(EntityIdManager).toConstantValue({

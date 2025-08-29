@@ -72,6 +72,14 @@ describe('NebulaConnectionManager', () => {
         }
         return mockClient;
       }),
+      removeListener: jest.fn(function(event, callback) {
+        // 简单实现，实际测试中不需要真正移除监听器
+        return this;
+      }),
+      removeAllListeners: jest.fn(function() {
+        // 简单实现，实际测试中不需要真正移除所有监听器
+        return this;
+      }),
       execute: jest.fn(),
       close: jest.fn(),
     };

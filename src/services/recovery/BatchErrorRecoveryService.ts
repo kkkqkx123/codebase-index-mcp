@@ -77,7 +77,14 @@ export class BatchErrorRecoveryService {
   
   // Recovery history
   private recoveryReports: RecoveryReport[] = [];
-  private recoveryMetrics: RecoveryMetrics;
+  private recoveryMetrics: RecoveryMetrics = {
+    totalRecoveryAttempts: 0,
+    successfulRecoveries: 0,
+    failedRecoveries: 0,
+    averageRecoveryTime: 0,
+    recoveryRate: 0,
+    strategiesSuccess: new Map()
+  };
   
   // Configuration
   private maxRecoveryReports: number = 1000;

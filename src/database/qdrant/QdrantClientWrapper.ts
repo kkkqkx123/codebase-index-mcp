@@ -13,7 +13,7 @@ export interface QdrantConfig {
 }
 
 export interface VectorPoint {
-  id: string;
+  id: string | number;
   vector: number[];
   payload: {
     content: string;
@@ -245,7 +245,7 @@ export class QdrantClientWrapper {
         new Error(`Failed to upsert points to ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
         { component: 'QdrantClient', operation: 'upsertPoints' }
       );
-      this.logger.error('Failed to upsert points', { errorId: report.id, collectionName, pointCount: points.length });
+      this.logger.error('Failed to upsert points', { errorId: report.id, collectionName, pointCount: points.length, error: error });
       return false;
     }
   }

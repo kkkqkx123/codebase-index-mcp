@@ -24,14 +24,14 @@ export interface QueuedEvent {
   type: 'created' | 'modified' | 'deleted';
   path: string;
   relativePath: string;
-  previousHash?: string;
-  currentHash?: string;
+  previousHash?: string | undefined;
+  currentHash?: string | undefined;
   timestamp: Date;
-  size?: number;
-  language?: string;
+  size?: number | undefined;
+  language?: string | undefined;
   priority: number;
   retryCount: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface EventBatch {
@@ -45,7 +45,7 @@ export interface QueueStatus {
   totalEvents: number;
   eventsByPriority: Record<number, number>;
   isProcessing: boolean;
-  lastProcessed?: Date;
+  lastProcessed?: Date | undefined;
   batchesProcessed: number;
   eventsProcessed: number;
   errorsEncountered: number;
@@ -73,7 +73,7 @@ export class EventQueueService extends EventEmitter {
   private queue: Map<string, QueuedEvent> = new Map();
   private priorityQueues: Map<number, string[]> = new Map();
   private isProcessing: boolean = false;
-  private processingTimer?: NodeJS.Timeout;
+  private processingTimer?: NodeJS.Timeout | undefined;
   private options: Required<EventQueueOptions>;
   private callbacks: EventQueueCallbacks = {};
   
@@ -165,7 +165,7 @@ export class EventQueueService extends EventEmitter {
       for (const file of eventFiles) {
         try {
           const content = await fs.readFile(path.join(this.persistencePath, file), 'utf-8');
-          const event = JSON.parse(content) as QueuedEvent;
+          const event: QueuedEvent = JSON.parse(content);
           this.enqueueInternal(event, false); // Don't persist already persisted events
         } catch (error) {
           this.logger.error(`Failed to load persisted event from ${file}`, error);
@@ -248,7 +248,8 @@ export class EventQueueService extends EventEmitter {
       size: event.size,
       language: event.language,
       priority,
-      retryCount: 0
+      retryCount: 0,
+      previousHash: undefined
     };
     
     await this.enqueue(queuedEvent);
@@ -283,7 +284,10 @@ export class EventQueueService extends EventEmitter {
       previousHash: event.previousHash,
       timestamp: event.timestamp,
       priority,
-      retryCount: 0
+      retryCount: 0,
+      currentHash: undefined,
+      size: undefined,
+      language: undefined
     };
     
     await this.enqueue(queuedEvent);
@@ -693,7 +697,7 @@ export class EventQueueService extends EventEmitter {
 
   getEventsByPriority(priority: number): QueuedEvent[] {
     const queue = this.priorityQueues.get(priority) || [];
-    return queue.map(eventId => this.queue.get(eventId)).filter(Boolean) as QueuedEvent[];
+    return queue.map(eventId => this.queue.get(eventId)).filter((event): event is QueuedEvent => event !== undefined);
   }
 
   async retryFailedEvents(): Promise<number> {
@@ -709,7 +713,7 @@ export class EventQueueService extends EventEmitter {
       for (const file of eventFiles) {
         try {
           const content = await fs.readFile(path.join(overflowPath, file), 'utf-8');
-          const event = JSON.parse(content) as QueuedEvent;
+          const event: QueuedEvent = JSON.parse(content);
           
           // Reset retry count
           event.retryCount = 0;
