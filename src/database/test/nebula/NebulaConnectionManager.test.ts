@@ -37,6 +37,8 @@ describe('NebulaConnectionManager', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
+    // 使用真实定时器以避免测试间干扰
+    jest.useRealTimers();
 
     // Create mock instances
     mockLoggerService = {

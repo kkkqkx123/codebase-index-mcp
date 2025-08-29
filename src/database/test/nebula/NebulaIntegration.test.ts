@@ -71,6 +71,8 @@ describe('Nebula Database Integration Tests', () => {
       if (nebulaConnectionManager.isConnectedToDatabase()) {
         await nebulaConnectionManager.disconnect();
       }
+      // 清理所有挂起的定时器
+      jest.useRealTimers();
     });
   });
 
@@ -219,6 +221,8 @@ describe('Nebula Database Integration Tests', () => {
 
         await nebulaConnectionManager.disconnect();
       }
+      // 清理所有挂起的定时器
+      jest.useRealTimers();
     });
   });
 });

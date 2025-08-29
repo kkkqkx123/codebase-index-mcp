@@ -47,12 +47,16 @@ export class NebulaConnectionManager {
       await new Promise<void>((resolve, reject) => {
         // 定义事件处理函数
         const readyHandler = () => {
+          // 清理定时器引用
+          this.connectionTimeout = null;
           // 移除事件监听器
           this.removeListener('error', errorHandler);
           resolve();
         };
         
         const errorHandler = (error: any) => {
+          // 清理定时器引用
+          this.connectionTimeout = null;
           // 移除事件监听器
           this.removeListener('ready', readyHandler);
           reject(error);
@@ -63,7 +67,9 @@ export class NebulaConnectionManager {
         this.client!.on('error', errorHandler);
         
         // 设置超时
-        const timeout = setTimeout(() => {
+        this.connectionTimeout = setTimeout(() => {
+          // 清理定时器引用
+          this.connectionTimeout = null;
           // 移除事件监听器
           this.removeListener('ready', readyHandler);
           this.removeListener('error', errorHandler);
@@ -71,7 +77,7 @@ export class NebulaConnectionManager {
         }, 10000);
         
         // 确保超时定时器不会阻止进程退出
-        timeout.unref();
+        this.connectionTimeout.unref();
       });
       
       this.isConnected = true;
@@ -101,9 +107,23 @@ export class NebulaConnectionManager {
     }
   }
 
+  // 存储连接超时定时器引用，以便在断开连接时清理
+  private connectionTimeout: NodeJS.Timeout | null = null;
+
   async disconnect(): Promise<void> {
     try {
+      // 清理连接超时定时器
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+        this.connectionTimeout = null;
+      }
+
       if (this.client) {
+        // 移除所有事件监听器
+        if (typeof this.client.removeAllListeners === 'function') {
+          this.client.removeAllListeners();
+        }
+        
         // 关闭NebulaGraph客户端连接
         if (typeof this.client.close === 'function') {
           await this.client.close();

@@ -58,6 +58,8 @@ describe('NebulaConnectionManager', () => {
     if (connectionManager && connectionManager.isConnectedToDatabase()) {
       await connectionManager.disconnect();
     }
+    // 清理所有挂起的定时器
+    jest.useRealTimers();
   });
   
   describe('connect', () => {
