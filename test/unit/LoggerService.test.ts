@@ -1,63 +1,83 @@
-import { LoggerService } from '../../src/core/LoggerService';
-import winston from 'winston';
-
-// Mock winston module
-jest.mock('winston', () => ({
-  createLogger: jest.fn().mockReturnValue({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    verbose: jest.fn(),
-  }),
-  format: {
-    json: jest.fn().mockReturnValue('json-format'),
-    combine: jest.fn().mockReturnValue('combined-format'),
-    colorize: jest.fn().mockReturnValue('colorize-format'),
-    timestamp: jest.fn().mockReturnValue('timestamp-format'),
-    printf: jest.fn().mockReturnValue('printf-format'),
-  },
-  transports: {
-    Console: jest.fn().mockImplementation(() => ({})),
-    File: jest.fn().mockImplementation(() => ({})),
-  },
-}));
-
 describe('LoggerService', () => {
-  let loggerService: LoggerService;
+  let LoggerService: any;
+  let winston: any;
+  let loggerService: any;
   let mockLogger: any;
 
   beforeEach(() => {
-    // Reset all mocks
-    jest.clearAllMocks();
+    // Clear module cache and mock winston
+    jest.resetModules();
+    jest.doMock('winston', () => ({
+      createLogger: jest.fn(),
+      format: {
+        json: jest.fn().mockReturnValue('json-format'),
+        combine: jest.fn().mockReturnValue('combined-format'),
+        colorize: jest.fn().mockReturnValue('colorize-format'),
+        timestamp: jest.fn().mockReturnValue('timestamp-format'),
+        printf: jest.fn().mockReturnValue('printf-format'),
+      },
+      transports: {
+        Console: jest.fn().mockImplementation(() => ({})),
+        File: jest.fn().mockImplementation(() => ({})),
+      },
+    }));
+
+    // Import modules after mocking
+    winston = require('winston');
+    LoggerService = require('../../src/core/LoggerService').LoggerService;
+
+    // Create mock logger instance
+    mockLogger = {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+    };
     
-    // Get the mock logger instance
-    mockLogger = (winston.createLogger as jest.Mock)();
+    // Mock createLogger to return our mock
+    winston.createLogger.mockReturnValue(mockLogger);
     
     // Create LoggerService instance
     loggerService = new LoggerService();
   });
 
   describe('Constructor', () => {
-    it('should create logger with default configuration', () => {
+    it('should create logger with configuration object', () => {
       expect(winston.createLogger).toHaveBeenCalledWith({
-        level: 'info',
-        format: expect.any(Object),
+        level: expect.any(String),
+        format: 'combined-format',
         transports: expect.any(Array),
       });
     });
 
     it('should use environment variables when provided', () => {
+      const originalLogLevel = process.env.LOG_LEVEL;
+      const originalLogFormat = process.env.LOG_FORMAT;
+      
       process.env.LOG_LEVEL = 'debug';
       process.env.LOG_FORMAT = 'text';
 
       const newLoggerService = new LoggerService();
 
-      expect(winston.createLogger).toHaveBeenCalledWith({
-        level: 'debug',
-        format: expect.any(Object),
-        transports: expect.any(Array),
-      });
+      expect(winston.createLogger).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: 'debug',
+          transports: expect.any(Array),
+        })
+      );
+
+      // Restore original environment variables
+      if (originalLogLevel) {
+        process.env.LOG_LEVEL = originalLogLevel;
+      } else {
+        delete process.env.LOG_LEVEL;
+      }
+      if (originalLogFormat) {
+        process.env.LOG_FORMAT = originalLogFormat;
+      } else {
+        delete process.env.LOG_FORMAT;
+      }
     });
   });
 

@@ -4,7 +4,7 @@ import Joi from 'joi';
 dotenv.config();
 
 const configSchema = Joi.object({
-  nodeEnv: Joi.string().valid('development', 'production', 'test').default('development'),
+  nodeEnv: Joi.string().trim().valid('development', 'production', 'test').default('development'),
   port: Joi.number().port().default(3000),
   
   qdrant: Joi.object({
@@ -217,7 +217,9 @@ export class ConfigService {
         mistral: {
           apiKey: process.env.MISTRAL_API_KEY,
           model: process.env.MISTRAL_MODEL
-        }
+        },
+        qualityWeight: process.env.QUALITY_WEIGHT ? parseFloat(process.env.QUALITY_WEIGHT) : undefined,
+        performanceWeight: process.env.PERFORMANCE_WEIGHT ? parseFloat(process.env.PERFORMANCE_WEIGHT) : undefined
       },
       logging: {
         level: process.env.LOG_LEVEL,
