@@ -6,7 +6,6 @@
 创建 `docker-compose.yml` 文件：
 
 ```yaml
-version: '3.4'
 services:
   metad0:
     image: vesoft/nebula-metad:v3.8.0
@@ -146,10 +145,21 @@ services:
 
 ```bash
 # 创建数据目录
+cd /home/share
+mkdir nebula && cd nebula
 mkdir -p data/meta0 data/meta1 data/meta2 data/storage0 data/storage1 data/storage2
-
+touch docker-compose.yml
+vi docker-compose.yml
 # 启动 NebulaGraph 集群
 docker-compose up -d
+
+
+
+# 重写docker-compose.yml
+cd /home/share/nebula
+rm docker-compose.yml
+touch docker-compose.yml
+vi docker-compose.yml
 ```
 
 ## 参数说明
@@ -189,6 +199,9 @@ docker run --rm -it vesoft/nebula-console:v3.8.0 \
   -port 9669 \
   -user root \
   -password nebula
+
+# 使用 docker-compose 中的 console 服务连接
+docker-compose exec console /bin/sh
 ```
 
 ## 常用管理命令

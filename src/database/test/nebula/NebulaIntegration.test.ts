@@ -137,7 +137,10 @@ describe('Nebula Database Integration Tests', () => {
       );
 
       // Connect to NebulaGraph
-      await nebulaConnectionManager.connect();
+      const isConnected = await nebulaConnectionManager.connect();
+      if (!isConnected) {
+        throw new Error('Failed to connect to NebulaGraph');
+      }
     });
 
     it('should create and find nodes', async () => {

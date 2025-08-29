@@ -42,18 +42,20 @@ if (Test-Path $envFile) {
 
 # Get NebulaGraph configuration from environment variables
 $nebulaHost = [Environment]::GetEnvironmentVariable("NEBULA_HOST")
+$nebulaPort = [Environment]::GetEnvironmentVariable("NEBULA_PORT")
 $username = [Environment]::GetEnvironmentVariable("NEBULA_USERNAME")
 $password = [Environment]::GetEnvironmentVariable("NEBULA_PASSWORD")
 $space = [Environment]::GetEnvironmentVariable("NEBULA_SPACE")
 
 Write-Host "NebulaGraph Host: $nebulaHost"
+Write-Host "NebulaGraph Port: $nebulaPort"
 Write-Host "NebulaGraph Username: $username"
 Write-Host "NebulaGraph Password: $password"
-Write-Host "NebulaGraph Space: $space
-Write-Host "Note: If space '$space' doesn't exist, try using 'codegraph' instead""
+Write-Host "NebulaGraph Space: $space"
+Write-Host "Note: If space '$space' doesn't exist, try using 'codegraph' instead"
 
 # Validate configuration
-if (-not $nebulaHost -or -not $username -or -not $password) {
+if (-not $nebulaHost -or -not $nebulaPort -or -not $username -or -not $password) {
   Write-Host "Missing NebulaGraph configuration"
   exit 1
 }
@@ -62,6 +64,7 @@ if (-not $nebulaHost -or -not $username -or -not $password) {
 function Test-NebulaConnection {
   param(
     [string]$NebulaHost,
+    [string]$NebulaPort,
     [string]$Username,
     [string]$Password,
     [string]$Space
@@ -83,10 +86,10 @@ const { createClient } = require('@nebula-contrib/nebula-nodejs');
 async function testConnection() {
   // Create client with correct options based on NebulaConnectionManager implementation
   const client = createClient({
-    servers: ['$NebulaHost:9669'],
-    userName: '$Username',
-    password: '$Password',
-    space: '$Space',
+    servers: ['${NebulaHost}:${NebulaPort}'],
+    userName: '${Username}',
+    password: '${Password}',
+    space: '${Space}',
     poolSize: 2,
     executeTimeout: 10000
   });
@@ -159,7 +162,7 @@ testConnection();
 }
 
 # Test the connection
-$result = Test-NebulaConnection -NebulaHost $nebulaHost -Username $username -Password $password -Space $space
+$result = Test-NebulaConnection -NebulaHost $nebulaHost -NebulaPort $nebulaPort -Username $username -Password $password -Space $space
 
 if ($result) {
   Write-Host "NebulaGraph connection test passed successfully!" -ForegroundColor Green

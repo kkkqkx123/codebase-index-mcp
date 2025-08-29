@@ -45,11 +45,25 @@ export class NebulaConnectionManager {
       
       // 等待客户端准备就绪
       await new Promise<void>((resolve, reject) => {
-        this.client!.on('ready', () => resolve());
-        this.client!.on('error', (error: any) => reject(error));
+        const readyHandler = () => {
+          this.client!.off('error', errorHandler);
+          resolve();
+        };
+        
+        const errorHandler = (error: any) => {
+          this.client!.off('ready', readyHandler);
+          reject(error);
+        };
+        
+        this.client!.on('ready', readyHandler);
+        this.client!.on('error', errorHandler);
         
         // 设置超时
-        setTimeout(() => reject(new Error('Connection timeout')), 10000);
+        setTimeout(() => {
+          this.client!.off('ready', readyHandler);
+          this.client!.off('error', errorHandler);
+          reject(new Error('Connection timeout'));
+        }, 10000);
       });
       
       this.isConnected = true;
