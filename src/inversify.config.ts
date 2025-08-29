@@ -12,7 +12,7 @@ import { ParserService } from './services/parser/ParserService';
 import { TransactionCoordinator } from './services/sync/TransactionCoordinator';
 import { IndexService } from './services/index/IndexService';
 import { EventQueueService } from './services/EventQueueService';
-import { Neo4jConnectionManager } from './database/neo4j/Neo4jConnectionManager';
+import { NebulaConnectionManager } from './database/nebula/NebulaConnectionManager';
 import { QdrantClientWrapper } from './database/qdrant/QdrantClientWrapper';
 
 // Batch processing services
@@ -36,7 +36,7 @@ container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
 container.bind<PathUtils>(PathUtils).toSelf().inSingletonScope();
 
 // Bind database clients
-container.bind<Neo4jConnectionManager>(Neo4jConnectionManager).toSelf().inSingletonScope();
+container.bind<NebulaConnectionManager>(NebulaConnectionManager).toSelf().inSingletonScope();
 container.bind<QdrantClientWrapper>(QdrantClientWrapper).toSelf().inSingletonScope();
 
 // Bind services
