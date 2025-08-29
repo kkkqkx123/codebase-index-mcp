@@ -5,11 +5,11 @@ import { ConfigService } from '../../config/ConfigService';
 
 // 使用社区贡献的NebulaGraph Node.js客户端
 // https://github.com/nebula-contrib/nebula-node
-import { createClient, NebulaClient } from '@nebula-contrib/nebula-nodejs';
+import { createClient } from '@nebula-contrib/nebula-nodejs';
 
 @injectable()
 export class NebulaConnectionManager {
-  private client: NebulaClient | null = null;
+  private client: any | null = null;
   private isConnected: boolean = false;
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
@@ -27,7 +27,7 @@ export class NebulaConnectionManager {
 
   async connect(): Promise<boolean> {
     try {
-      const config = this.configService.getConfig();
+      const config = this.configService.getAll();
       
       // 使用社区贡献的NebulaGraph Node.js客户端
       // https://github.com/nebula-contrib/nebula-node
@@ -163,7 +163,7 @@ export class NebulaConnectionManager {
       const query = `INSERT VERTEX ${label}(${propertyNames.join(', ')}) VALUES ${id}:(${propertyValues.map(() => '%s').join(', ')})`;
       
       // 执行查询
-      const result = await this.client.execute(query, false, properties);
+      await this.client.execute(query, false, properties);
       return id;
     } catch (error) {
       this.errorHandler.handleError(
@@ -201,7 +201,7 @@ export class NebulaConnectionManager {
       query += ` VALUES ${srcId}->${dstId}:(${propertyValues.map(() => '%s').join(', ')})`;
       
       // 执行查询
-      const result = await this.client.execute(query, false, properties);
+      await this.client.execute(query, false, properties);
       return `${srcId}->${dstId}`;
     } catch (error) {
       this.errorHandler.handleError(

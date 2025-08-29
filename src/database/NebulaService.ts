@@ -53,7 +53,12 @@ export class NebulaService {
       params: q.parameters
     }));
     
-    return this.nebulaConnection.executeTransaction(formattedQueries);
+    return this.nebulaConnection.executeTransaction(
+      formattedQueries.map(q => ({
+        query: q.query,
+        params: q.params ?? {}
+      }))
+    );
   }
 
   async createNode(node: { label: string; properties: Record<string, any> }): Promise<string> {
