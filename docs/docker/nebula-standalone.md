@@ -8,7 +8,7 @@
 
 ```bash
 # 启动 NebulaGraph 单机模式
-# 注意：需要将命令中的 v3.8.0 替换为您要使用的 NebulaGraph 版本
+# 注意：需要将命令中的 nightly 替换为您要使用的 NebulaGraph 版本
 # 同时需要将 /path/to/nebula/data 替换为您想存储数据的本地目录
 mkdir -p /path/to/nebula/data  # 创建数据目录
 
@@ -17,9 +17,9 @@ docker run -d \
   -p 9669:9669 \
   -p 19669:19669 \
   -p 19779:19779 \
-  -v /path/to/nebula/data:/data \
+  -v /home/share/nebula/data:/data \
   -e TZ=Asia/Shanghai \
-  vesoft/nebula-standalone:v3.8.0
+  vesoft/nebula-graphd:nightly
 ```
 
 ## 参数说明
@@ -31,7 +31,7 @@ docker run -d \
 - `-p 19779:19779`：映射 Storage HTTP 监控端口
 - `-v /path/to/nebula/data:/data`：挂载数据卷，确保数据持久化
 - `-e TZ=Asia/Shanghai`：设置时区
-- `vesoft/nebula-standalone:v3.8.0`：使用 NebulaGraph 官方单机模式镜像
+- `vesoft/nebula-graphd:nightly`：使用 NebulaGraph 官方 graphd 镜像
 
 ## 验证部署
 

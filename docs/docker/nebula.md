@@ -1,6 +1,7 @@
 # NebulaGraph Docker 部署指南
 
 ## Docker Compose 部署（推荐）
+在 `/home/docker-compose/nebula` 目录下创建 `docker-compose.yml` 文件：
 
 创建 `docker-compose.yml` 文件：
 
