@@ -39,6 +39,14 @@ export class NebulaConnectionManager {
       
       const config = this.configService.getAll();
       
+      // 记录连接配置用于调试
+      this.logger.debug('NebulaGraph connection config:', {
+        host: config.nebula.host,
+        port: config.nebula.port,
+        username: config.nebula.username,
+        space: config.nebula.space
+      });
+      
       // 使用社区贡献的NebulaGraph Node.js客户端
       // https://github.com/nebula-contrib/nebula-node
       const options = {
@@ -49,6 +57,7 @@ export class NebulaConnectionManager {
       };
       
       this.client = createClient(options);
+      this.logger.debug('NebulaGraph client created');
       
       // 检查客户端是否已经准备就绪
       if (this.client && typeof this.client.isConnected === 'function' && this.client.isConnected()) {
@@ -67,7 +76,10 @@ export class NebulaConnectionManager {
             this.connectionTimeout = null;
           }
           // 移除事件监听器
-          this.removeListener('error', errorHandler);
+          if (this.client) {
+            this.client.removeListener('error', errorHandler);
+            this.client.removeListener('ready', readyHandler);
+          }
           resolve(true);
         };
         
@@ -78,7 +90,10 @@ export class NebulaConnectionManager {
             this.connectionTimeout = null;
           }
           // 移除事件监听器
-          this.removeListener('ready', readyHandler);
+          if (this.client) {
+            this.client.removeListener('ready', readyHandler);
+            this.client.removeListener('error', errorHandler);
+          }
           reject(error);
         };
         
@@ -91,8 +106,10 @@ export class NebulaConnectionManager {
           // 清理定时器引用
           this.connectionTimeout = null;
           // 移除事件监听器
-          this.removeListener('ready', readyHandler);
-          this.removeListener('error', errorHandler);
+          if (this.client) {
+            this.client.removeListener('ready', readyHandler);
+            this.client.removeListener('error', errorHandler);
+          }
           reject(new Error('Connection timeout'));
         }, 10000);
         
@@ -108,8 +125,10 @@ export class NebulaConnectionManager {
       }
       return result;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('NebulaGraph connection failed:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
       this.errorHandler.handleError(
-        new Error(`Failed to connect to NebulaGraph: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(`Failed to connect to NebulaGraph: ${errorMessage}`),
         { component: 'NebulaConnectionManager', operation: 'connect' }
       );
       this.isConnected = false;
@@ -124,6 +143,7 @@ export class NebulaConnectionManager {
           }
         } catch (closeError) {
           // 忽略关闭错误
+          this.logger.debug('Error while closing client during cleanup:', closeError);
         }
         this.client = null;
       }
@@ -132,19 +152,6 @@ export class NebulaConnectionManager {
   }
 
   
-    /**
-     * 移除事件监听器的辅助方法
-     * @param event 事件名称
-     * @param listener 事件监听器
-     */
-    private removeListener(event: string, listener: Function): void {
-      // 检查client是否存在off方法，如果不存在则使用removeListener
-      if (this.client && typeof this.client.off === 'function') {
-        this.client.off(event, listener);
-      } else if (this.client && typeof this.client.removeListener === 'function') {
-        this.client.removeListener(event, listener);
-      }
-    }
   async disconnect(): Promise<void> {
     try {
       // 清理连接超时定时器
