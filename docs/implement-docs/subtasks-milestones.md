@@ -12,7 +12,7 @@
 
 #### Task 1.2: Database Services
 - [-] Configure Qdrant Docker container
-- [-] Set up Neo4j Docker container
+- [-] Set up NebulaGraph Docker container
 - [ ] Verify database connectivity
 - [ ] Create initial database schemas
 
@@ -50,7 +50,7 @@
 
 #### Task 2.3: Database Clients
 - [ ] Create Qdrant client wrapper
-- [ ] Implement Neo4j connection manager
+- [ ] Implement NebulaGraph connection manager
 - [ ] Develop vector operations
 - [ ] Create graph query builder
 

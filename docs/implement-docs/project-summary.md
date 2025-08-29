@@ -12,7 +12,7 @@
 ### Primary Goals
 1. **Intelligent Code Indexing**: Syntax-aware parsing with Tree-sitter
 2. **Semantic Search**: Vector-based search using Qdrant
-3. **Structural Analysis**: Code relationship mapping with Neo4j
+3. **Structural Analysis**: Code relationship mapping with NebulaGraph
 4. **Real-time Updates**: File monitoring and incremental indexing
 5. **Multi-provider Support**: OpenAI, Ollama, Gemini, Mistral embeddings
 
@@ -27,7 +27,7 @@
 
 ### Technical Stack
 - **Runtime**: Node.js 18+, TypeScript 5.9.2
-- **Database**: Qdrant (vector), Neo4j (graph)
+- **Database**: Qdrant (vector), NebulaGraph (graph)
 - **Parsing**: Tree-sitter with language-specific parsers
 - **Protocol**: MCP (Model Context Protocol)
 - **Monitoring**: Prometheus, Grafana, Winston logging
@@ -124,7 +124,7 @@ npm start
 ### Development Deployment
 ```bash
 # 1. Start database services
-docker-compose up -d qdrant neo4j
+docker-compose up -d qdrant nebula
 
 # 2. Install dependencies
 npm install
@@ -175,8 +175,8 @@ scrape_configs:
 # Check Qdrant status
 curl http://localhost:6333
 
-# Check Neo4j status
-cypher-shell -u neo4j -p password "CALL dbms.components()"
+# Check NebulaGraph status
+nebula-console -addr localhost -port 9669 -user root -p password
 ```
 
 #### MCP Protocol Issues
@@ -200,7 +200,7 @@ cypher-shell -u neo4j -p password "CALL dbms.components()"
 ### Technical References
 - [MCP Protocol Specification](https://modelcontextprotocol.io)
 - [Qdrant Documentation](https://qdrant.tech/documentation/)
-- [Neo4j Documentation](https://neo4j.com/docs/)
+- [NebulaGraph Documentation](https://docs.nebula-graph.io/)
 - [Tree-sitter Documentation](https://tree-sitter.github.io/tree-sitter/)
 
 ## 🎯 Success Metrics

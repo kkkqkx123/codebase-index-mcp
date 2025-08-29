@@ -11,7 +11,7 @@
 
 ### Database Services
 - [ ] Qdrant Docker container running (port 6333)
-- [ ] Neo4j Docker container running (port 7687)
+- [ ] NebulaGraph Docker container running (port 9669)
 - [ ] Database connectivity verified
 - [ ] Initial schemas created
 - [ ] Authentication configured
@@ -53,10 +53,10 @@
 
 ### Database Integration
 - [ ] Qdrant client with connection pooling
-- [✅] Neo4j client with session management
-- [✅] Neo4j session pooling implementation
-- [✅] Neo4j read/write session separation
-- [✅] Neo4j session monitoring and metrics
+- [✅] NebulaGraph client with session management
+- [✅] NebulaGraph session pooling implementation
+- [✅] NebulaGraph read/write session separation
+- [✅] NebulaGraph session monitoring and metrics
 - [ ] Database configuration management
 - [ ] Connection health monitoring
 - [ ] Basic CRUD operations for both databases

@@ -252,7 +252,7 @@ describe('QdrantClientWrapper', () => {
             startLine: 1,
             endLine: 10,
             metadata: {},
-            timestamp: new Date().toISOString()
+            timestamp: new Date()
           }
         }
       ];

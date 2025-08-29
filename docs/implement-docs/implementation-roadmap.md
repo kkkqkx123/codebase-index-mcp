@@ -57,7 +57,7 @@ gantt
 ### Week 1: Foundation Setup (Sep 2-6)
 **Focus**: Environment and Infrastructure
 - **Monday**: Install development tools, configure Node.js and Docker
-- **Tuesday**: Set up Qdrant and Neo4j Docker containers
+- **Tuesday**: Set up Qdrant and NebulaGraph Docker containers
 - **Wednesday**: Verify database connectivity, create initial schemas
 - **Thursday**: Initialize TypeScript project, configure package.json
 - **Friday**: Create basic directory structure, set up Git repository
@@ -85,7 +85,7 @@ gantt
 - **Monday**: Implement MCP protocol handler
 - **Tuesday**: Create tool registration system
 - **Wednesday**: Integrate Qdrant client with connection pooling
-- **Thursday**: Integrate Neo4j client with session management
+- **Thursday**: Integrate NebulaGraph client with session management
 - **Friday**: Basic MCP server and database connectivity testing
 
 **Deliverables**:
@@ -136,7 +136,7 @@ gantt
 ### Week 5: Database Integration (Sep 30-Oct 4)
 **Focus**: Database Clients
 - **Monday**: Create Qdrant client wrapper
-- **Tuesday**: Implement Neo4j connection manager
+- **Tuesday**: Implement NebulaGraph connection manager
 - **Wednesday**: Develop vector operations
 - **Thursday**: Create graph query builder
 - **Friday**: Database integration testing
@@ -215,7 +215,7 @@ gantt
 
 ### Infrastructure Requirements
 - **Development Machine**: 16GB RAM, 4-core CPU, 50GB storage
-- **Docker Containers**: Qdrant, Neo4j, optional monitoring stack
+- **Docker Containers**: Qdrant, NebulaGraph, optional monitoring stack
 - **Network**: Stable internet for API calls (OpenAI, etc.)
 - **Storage**: Local or network storage for code repositories
 
