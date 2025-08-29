@@ -40,7 +40,7 @@ codebase-index-mcp/
 │   │   │   └── markdown-processor.ts   # Markdown处理器
 │   │   ├── graph/
 │   │   │   ├── graph-service.ts         # 图分析服务
-│   │   │   ├── neo4j-connector.ts      # Neo4j连接管理
+│   │   │   ├── nebula-graph-connector.ts      # Nebula Graph连接管理
 │   │   │   └── graph-builder.ts        # 图构建器
 │   │   ├── monitoring/
 │   │   │   ├── monitoring-service.ts   # 监控服务
@@ -67,8 +67,8 @@ codebase-index-mcp/
 │   │   └── mistral-embedder.ts         # Mistral嵌入器
 │   ├── 📁 database/          # 数据库客户端
 │   │   ├── qdrant-client.ts  # Qdrant客户端
-│   │   ├── neo4j-client.ts   # Neo4j客户端
-│   │   └── redis-client.ts   # Redis缓存客户端
+│   ├── nebula-graph-client.ts   # Nebula Graph客户端
+│   └── redis-client.ts   # Redis缓存客户端
 │   ├── 📁 models/            # 数据模型
 │   │   ├── index-model.ts    # 索引数据模型
 │   │   ├── graph-model.ts    # 图数据模型
@@ -132,7 +132,7 @@ const container = new Container();
 
 // 注册数据库客户端
 container.bind<QdrantClient>('QdrantClient').toConstantValue(qdrantClient);
-container.bind<neo4j.Driver>('Neo4jDriver').toConstantValue(neo4jDriver);
+container.bind<NebulaGraph>('NebulaGraphDriver').toConstantValue(nebulaGraphDriver);
 container.bind<OpenAI>('OpenAIClient').toConstantValue(openaiClient);
 
 // 注册服务
@@ -158,10 +158,12 @@ export interface AppConfig {
     url: string;
     collection: string;
   };
-  neo4j: {
-    uri: string;
+  nebulaGraph: {
+    host: string;
+    port: number;
     username: string;
     password: string;
+    space: string;
   };
   openai: {
     apiKey: string;
@@ -179,6 +181,13 @@ export const config: AppConfig = {
     host: process.env.MCP_HOST || 'localhost',
     name: process.env.MCP_NAME || 'codebase-index-service'
   },
+  nebulaGraph: {
+    host: process.env.NEBULA_HOST || '127.0.0.1',
+    port: parseInt(process.env.NEBULA_PORT || '9669'),
+    username: process.env.NEBULA_USERNAME || 'root',
+    password: process.env.NEBULA_PASSWORD || 'nebula',
+    space: process.env.NEBULA_SPACE || 'codebase_index'
+  }
   // ... 其他配置
 };
 ```
@@ -214,7 +223,7 @@ export class IndexService {
 @injectable()
 export class GraphService {
   constructor(
-    @inject('Neo4jDriver') private neo4jDriver: neo4j.Driver
+    @inject('NebulaGraphDriver') private nebulaGraphDriver: NebulaGraph
   ) {}
 
   async analyzeCodeStructure(files: CodeFile[]): Promise<CodeGraph> {
@@ -513,20 +522,20 @@ export class QdrantClientWrapper {
 }
 ```
 
-**neo4j-client.ts** - Neo4j客户端封装
+**nebula-graph-client.ts** - Nebula Graph客户端封装
 ```typescript
-export class Neo4jClientWrapper {
-  private driver: neo4j.Driver;
+export class NebulaGraphClientWrapper {
+  private client: NebulaClient;
 
-  constructor(uri: string, username: string, password: string) {
-    this.driver = neo4j.driver(uri, neo4j.auth.basic(username, password));
+  constructor(host: string, port: number, username: string, password: string, space: string) {
+    this.client = createClient({ host, port, username, password, space });
   }
 
-  async createNode(label: string, properties: any): Promise<void> {
-    const session = this.driver.session();
+  async createNode(tag: string, properties: any): Promise<void> {
+    const session = this.client.session();
     try {
-      await session.run(
-        `CREATE (n:${label} $properties) RETURN n`,
+      await session.execute(
+        `INSERT VERTEX ${tag}(${Object.keys(properties).join(',')}) VALUES $properties`,
         { properties }
       );
     } finally {
@@ -535,20 +544,19 @@ export class Neo4jClientWrapper {
   }
 
   async createRelationship(
-    fromLabel: string,
-    fromProps: any,
-    toLabel: string, 
-    toProps: any,
-    relType: string,
-    relProps: any = {}
+    srcTag: string,
+    srcProps: any,
+    dstTag: string, 
+    dstProps: any,
+    edgeType: string,
+    edgeProps: any = {}
   ): Promise<void> {
-    const session = this.driver.session();
+    const session = this.client.session();
     try {
-      await session.run(`
-        MATCH (a:${fromLabel} $fromProps), (b:${toLabel} $toProps)
-        CREATE (a)-[r:${relType} $relProps]->(b)
-        RETURN r
-      `, { fromProps, toProps, relProps });
+      await session.execute(`
+        INSERT EDGE ${edgeType}(${Object.keys(edgeProps).join(',')}) 
+        VALUES ${srcProps.id} -> ${dstProps.id}:(${Object.values(edgeProps).map(v => `"${v}"`).join(',')})
+      `);
     } finally {
       await session.close();
     }
@@ -581,7 +589,7 @@ export class Neo4jClientWrapper {
     "@modelcontextprotocol/server": "^1.0.0",
     "@modelcontextprotocol/types": "^1.0.0",
     "@qdrant/js-client-rest": "^1.10.0",
-    "neo4j-driver": "^5.20.0",
+    "@nebula-contrib/nebula-nodejs": "^1.0.0",
     "openai": "^5.15.0",
     "inversify": "^6.0.0",
     "reflect-metadata": "^0.1.13",
@@ -620,18 +628,28 @@ services:
     networks:
       - codebase-network
 
-  neo4j:
-    image: neo4j:5.20.0
+  nebula-graph:
+    image: vesoft/nebula-graphd:v3.8.0
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - "9669:9669"
+      - "19669:19669"
     environment:
-      - NEO4J_AUTH=neo4j/password
-      - NEO4J_server_memory_pagecache_size=2G
-      - NEO4J_server_memory_heap_max__size=4G
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
+      - USER=root
+      - PASSWORD=nebula
+    networks:
+      - codebase-network
+  nebula-metad:
+    image: vesoft/nebula-metad:v3.8.0
+    environment:
+      - USER=root
+      - PASSWORD=nebula
+    networks:
+      - codebase-network
+  nebula-storaged:
+    image: vesoft/nebula-storaged:v3.8.0
+    environment:
+      - USER=root
+      - PASSWORD=nebula
     networks:
       - codebase-network
 
@@ -643,20 +661,23 @@ services:
       - MCP_PORT=8000
       - MCP_HOST=0.0.0.0
       - QDRANT_URL=http://qdrant:6333
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USERNAME=neo4j
-      - NEO4J_PASSWORD=password
+      - NEBULA_HOST=nebula-graph
+      - NEBULA_PORT=9669
+      - NEBULA_USERNAME=root
+      - NEBULA_PASSWORD=nebula
+      - NEBULA_SPACE=codebase_index
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - qdrant
-      - neo4j
+      - nebula-graph
+      - nebula-metad
+      - nebula-storaged
     networks:
       - codebase-network
 
 volumes:
   qdrant_data:
-  neo4j_data:
-  neo4j_logs:
+  nebula_data:
 
 networks:
   codebase-network:
@@ -679,7 +700,7 @@ cp .env.example .env
 # 编辑.env文件配置必要的参数
 
 # 启动依赖服务
-docker-compose up -d qdrant neo4j
+docker-compose up -d qdrant nebula-graph nebula-metad nebula-storaged
 
 # 开发模式运行
 npm run dev
@@ -716,7 +737,11 @@ pm2 start dist/main.js --name "codebase-index-mcp"
       "env": {
         "MCP_PORT": "8000",
         "QDRANT_URL": "http://localhost:6333",
-        "NEO4J_URI": "bolt://localhost:7687",
+        "NEBULA_HOST": "localhost",
+        "NEBULA_PORT": "9669",
+        "NEBULA_USERNAME": "root",
+        "NEBULA_PASSWORD": "nebula",
+        "NEBULA_SPACE": "codebase_index",
         "OPENAI_API_KEY": "your-api-key"
       }
     }
@@ -776,13 +801,13 @@ server.setResourceHandler('health', async () => {
     timestamp: new Date().toISOString(),
     services: {
       qdrant: await this.checkQdrantHealth(),
-      neo4j: await this.checkNeo4jHealth(),
+      nebulaGraph: await this.checkNebulaGraphHealth(),
       openai: await this.checkOpenAIHealth(),
       sync: await this.checkCrossDatabaseSync()
     },
     metrics: {
       qdrantLatency: await this.getQdrantLatency(),
-      neo4jLatency: await this.getNeo4jLatency(),
+      nebulaGraphLatency: await this.getNebulaGraphLatency(),
       syncDelay: await this.getSyncDelay()
     }
   };
@@ -818,10 +843,10 @@ export class MonitoringDashboard {
       labelNames: ['operation', 'status']
     });
     
-    // Neo4j性能指标
+    // NebulaGraph性能指标
     new Prometheus.Gauge({
-      name: 'neo4j_query_latency_seconds',
-      help: 'Neo4j query latency in seconds',
+      name: 'nebula_graph_query_latency_seconds',
+      help: 'NebulaGraph query latency in seconds',
       labelNames: ['query_type', 'status']
     });
     
@@ -876,10 +901,10 @@ export class AlertManager {
       message: 'Qdrant search latency is high'
     },
     {
-      name: 'neo4j_latency_high',
-      condition: 'neo4j_query_latency_seconds > 2.0',
+      name: 'nebula_graph_latency_high',
+      condition: 'nebula_graph_query_latency_seconds > 2.0',
       severity: 'warning',
-      message: 'Neo4j query latency is high'
+      message: 'NebulaGraph query latency is high'
     },
     {
       name: 'sync_delay_critical',

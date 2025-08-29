@@ -2,7 +2,7 @@
 
 ## 概述
 
-为Kode项目提供独立的MCP服务，包含代码库索引和结构分析功能。使用Qdrant向量数据库实现智能代码搜索，使用Neo4j图数据库存储代码调用关系图，通过MCP协议与Kode CLI进行通信。
+为Kode项目提供独立的MCP服务，包含代码库索引和结构分析功能。使用Qdrant向量数据库实现智能代码搜索，使用Nebula Graph图数据库存储代码调用关系图，通过MCP协议与Kode CLI进行通信。
 
 **🚀 架构增强**: 基于KiloCode设计思想，已集成智能语法解析、多嵌入器提供商支持、路径段索引、增量实时索引和全方位监控体系。
 
@@ -47,7 +47,7 @@
 
 ##### 1.2.5 GraphAnalysisService (图分析服务)
 - 静态代码分析提取调用关系
-- Neo4j图数据库集成
+- Nebula Graph图数据库集成
 - 代码结构可视化和查询
 
 ##### 1.2.6 MonitoringService (监控服务)
@@ -56,7 +56,7 @@
 - 健康检查和就绪探针
 - 警报系统和通知机制
 
-### 2. 技术栈选择
+### 技术栈选择
 
 #### 向量数据库
 - **Qdrant**: 生产级向量搜索引擎，支持REST和gRPC API
@@ -64,9 +64,9 @@
 - **客户端**: 使用官方JavaScript客户端
 
 #### 图数据库
-- **Neo4j**: 生产级图数据库，支持Cypher查询语言
-- **地址**: bolt://127.0.0.1:7687 (Docker部署)
-- **客户端**: 使用官方JavaScript驱动
+- **Nebula Graph**: 生产级图数据库，支持nGQL查询语言
+- **地址**: graphd:9669 (Docker部署)
+- **客户端**: 使用Nebula Contrib Node.js客户端
 
 #### 嵌入模型
 - **多提供商支持**: OpenAI、Ollama、Gemini、Mistral等
@@ -98,7 +98,7 @@
 ```bash
 # 核心依赖
 qdrant-client@^1.10.0
-neo4j-driver@^5.0.0
+@nebula-contrib/nebula-nodejs@^1.0.0
 @modelcontextprotocol/server@^1.0.0
 @modelcontextprotocol/types@^1.0.0
 
@@ -159,7 +159,7 @@ codebase-index-mcp/
   │   │   │   └── IncrementalIndexer.ts  # 增量索引器
   │   │   ├── graph/
   │   │   │   ├── GraphAnalysisService.ts # 图分析服务
-  │   │   │   ├── Neo4jConnector.ts      # Neo4j连接管理
+  │   │   │   ├── NebulaGraphConnector.ts      # Nebula Graph连接管理
   │   │   │   ├── CodeParser.ts          # 代码解析器
   │   │   │   └── GraphBuilder.ts        # 图构建器
   │   │   ├── parser/
@@ -233,11 +233,11 @@ interface MCPTools {
   }
   'codebase/sync/status': {
     input: { projectPath: string }
-    output: { qdrantSync: boolean; neo4jSync: boolean; lastSync: string }
+    output: { qdrantSync: boolean; nebulaGraphSync: boolean; lastSync: string }
   }
   'codebase/monitoring/metrics': {
     input: { timeRange?: string; metrics?: string[] }
-    output: { qdrant: DatabaseMetrics; neo4j: DatabaseMetrics; system: SystemMetrics }
+    output: { qdrant: DatabaseMetrics; nebulaGraph: DatabaseMetrics; system: SystemMetrics }
   }
 }
 
@@ -259,7 +259,7 @@ interface CrossDatabaseSyncService {
   syncFileChange(filePath: string, operation: 'create' | 'update' | 'delete'): Promise<void>
   executeWithCompensation(
     qdrantOperation: () => Promise<void>,
-    neo4jOperation: () => Promise<void>
+    nebulaGraphOperation: () => Promise<void>
   ): Promise<void>
   checkConsistency(projectPath: string): Promise<ConsistencyReport>
 }
@@ -389,7 +389,7 @@ interface SearchOptions {
 
 #### 6.1 MCP服务启动流程
 1. 加载环境配置和MCP服务器配置
-2. 初始化数据库连接（Qdrant + Neo4j）. 加载规则引擎和预定义规则
+2. 初始化数据库连接（Qdrant + Nebula Graph）. 加载规则引擎和预定义规则
 4. 注册MCP工具和处理程序
 5. 启动stdio或socket监听
 
@@ -409,7 +409,7 @@ interface SearchOptions {
 3. 使用AST解析器提取代码结构
 4. 应用语言特定规则识别实体和关系
 5. 构建图数据结构
-极6. 批量导入Neo4j数据库
+极6. 批量导入Nebula Graph数据库
 7. 创建图索引优化查询性能
 8. 返回分析结果统计
 
@@ -418,7 +418,7 @@ interface SearchOptions {
 2. 生成查询向量并准备多模态搜索策略
 3. 并行执行：
    - Qdrant向量相似性搜索
-   - Neo4j图关系查询
+   - Nebula Graph图关系查询
    - 关键词和结构化搜索
 4. 多层次重排处理：
    - 第一阶段：语义重排（基于嵌入相似度）
@@ -484,7 +484,7 @@ interface SearchOptions {
 - 警报系统，及时发现问题并通知
 
 #### 跨数据库监控优化
-- 统一监控仪表板，同时监控Qdrant和Neo4j性能指标
+- 统一监控仪表板，同时监控Qdrant和Nebula Graph性能指标
 - 数据同步延迟监控，确保双数据库一致性
 - 跨数据库查询性能分析，识别性能瓶颈
 - 资源使用对比监控，优化资源分配策略
@@ -492,7 +492,7 @@ interface SearchOptions {
 #### 批处理优化
 - 嵌入请求智能批处理（支持多种提供商限制）
 - 向量存储批量操作，减少网络往返
-- 图数据批量导入（Neo4j UNWIND操作）
+- 图数据批量导入（Nebula Graph批量操作）
 - 异步并行处理，提升整体吞吐量
 
 #### 缓存策略
@@ -502,7 +502,7 @@ interface SearchOptions {
 - 智能缓存失效，确保数据一致性
 
 #### 资源管理
-- 连接池管理（Qdrant + Neo4j + 多嵌入器）
+- 连接池管理（Qdrant + Nebula Graph + 多嵌入器）
 - 内存使用监控和硬限制
 - 并发请求限制和速率控制
 - 超时和指数退避重试机制
@@ -587,7 +587,7 @@ interface SearchOptions {
 4. 🔄 实现智能语法感知代码分块
 5. 🔄 创建独立MCP服务项目结构
 6. 🔄 实现MCP服务器框架和工具注册
-7. 🔄 集成Qdrant和Neo4j客户端
+7. 🔄 集成Qdrant和Nebula Graph客户端
 8. 🔄 **实现跨数据库同步机制和实体ID统一管理**
 9. ⬜ 实现哈希去重和内容缓存机制
 
@@ -643,7 +643,7 @@ interface SearchOptions {
 3. **实时索引性能**: 高频文件变更时的系统响应能力
 4. **维度不匹配处理**: 向量存储维度与嵌入模型不一致时的处理
 5. **监控系统复杂性**: Prometheus集成和警报规则配置
-6. **跨数据库同步复杂性**: Qdrant和Neo4j之间的数据一致性保证
+6. **跨数据库同步复杂性**: Qdrant和Nebula Graph之间的数据一致性保证
 7. **查询协调性能**: 跨数据库查询的延迟和优化挑战
 8. **资源管理**: 同时维护两个高性能数据库连接的资源开销
 9. **重排模型复杂性**: 多层次重排算法的实现和调优挑战

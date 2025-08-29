@@ -2,7 +2,7 @@
 
 ## 🎯 功能概述
 
-为Kode项目提供智能代码库结构分析功能，通过静态代码分析提取函数/方法、变量、类等的调用关系，构建图结构并存储到Neo4j图数据库。基于KiloCode设计思想，已集成智能语法解析、多嵌入器支持和全方位监控体系。
+为Kode项目提供智能代码库结构分析功能，通过静态代码分析提取函数/方法、变量、类等的调用关系，构建图结构并存储到Nebula Graph图数据库。基于KiloCode设计思想，已集成智能语法解析、多嵌入器支持和全方位监控体系。
 
 **🚀 架构增强**: 基于KiloCode设计思想，已集成智能语法解析、多嵌入器支持、路径段索引、增量实时索引和全方位监控体系。
 
@@ -27,7 +27,7 @@
   - 图结构优化和索引创建
   - 批量数据处理和性能优化
   - 路径段索引和目录级过滤
-- **输出**: Neo4j兼容的Cypher查询语句
+- **输出**: Nebula Graph兼容的nGQL查询语句
 
 #### 3. 多嵌入器增强服务 (Multi-Embedder Enhancement Service)
 - **职责**: 为图节点提供语义向量化支持
@@ -237,7 +237,7 @@ class EnhancedQueryCoordinationService {
     // 并行执行多模态查询
     const [semanticResults, graphResults, keywordResults] = await Promise.all([
       this.qdrantService.semanticSearch(query, searchStrategy.semantic),
-      this.neo4jService.graphQuery(query, searchStrategy.graph),
+      this.nebulaGraphService.graphQuery(query, searchStrategy.graph),
       this.keywordService.keywordSearch(query, searchStrategy.keyword)
     ]);
     

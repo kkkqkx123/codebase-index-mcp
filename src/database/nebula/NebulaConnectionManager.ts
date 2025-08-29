@@ -1,0 +1,316 @@
+import { injectable } from 'inversify';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { ConfigService } from '../../config/ConfigService';
+
+// 使用社区贡献的NebulaGraph Node.js客户端
+// https://github.com/nebula-contrib/nebula-node
+import { createClient, NebulaClient } from '@nebula-contrib/nebula-nodejs';
+
+@injectable()
+export class NebulaConnectionManager {
+  private client: NebulaClient | null = null;
+  private isConnected: boolean = false;
+  private logger: LoggerService;
+  private errorHandler: ErrorHandlerService;
+  private configService: ConfigService;
+
+  constructor(
+    logger: LoggerService,
+    errorHandler: ErrorHandlerService,
+    configService: ConfigService
+  ) {
+    this.logger = logger;
+    this.errorHandler = errorHandler;
+    this.configService = configService;
+  }
+
+  async connect(): Promise<boolean> {
+    try {
+      const config = this.configService.getConfig();
+      
+      // 使用社区贡献的NebulaGraph Node.js客户端
+      // https://github.com/nebula-contrib/nebula-node
+      const options = {
+        servers: [`${config.nebula.host}:${config.nebula.port}`],
+        userName: config.nebula.username,
+        password: config.nebula.password,
+        space: config.nebula.space
+      };
+      
+      this.client = createClient(options);
+      
+      // 等待客户端准备就绪
+      await new Promise<void>((resolve, reject) => {
+        this.client!.on('ready', () => resolve());
+        this.client!.on('error', (error: any) => reject(error));
+        
+        // 设置超时
+        setTimeout(() => reject(new Error('Connection timeout')), 10000);
+      });
+      
+      this.isConnected = true;
+      this.logger.info('Connected to NebulaGraph successfully');
+      return true;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to connect to NebulaGraph: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'connect' }
+      );
+      this.isConnected = false;
+      return false;
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    try {
+      if (this.client) {
+        // NebulaGraph Node.js客户端可能没有显式的disconnect方法
+        // 我们将客户端设置为null并更新连接状态
+        this.client = null;
+      }
+      this.isConnected = false;
+      this.logger.info('Disconnected from NebulaGraph successfully');
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to disconnect from NebulaGraph: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'disconnect' }
+      );
+    }
+  }
+
+  async executeQuery(query: string, params?: Record<string, any>): Promise<any> {
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 使用社区贡献的NebulaGraph Node.js客户端执行查询
+      // https://github.com/nebula-contrib/nebula-node
+      return await this.client.execute(query, false, params);
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to execute query: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'executeQuery' }
+      );
+      throw error;
+    }
+  }
+
+  isConnectedToDatabase(): boolean {
+    return this.isConnected;
+  }
+
+  async getReadSession(): Promise<any> {
+    // NebulaGraph Node.js客户端使用连接池管理连接
+    // 我们直接返回客户端实例，因为它已经处理了连接池
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+    return this.client;
+  }
+
+  async getWriteSession(): Promise<any> {
+    // NebulaGraph Node.js客户端使用连接池管理连接
+    // 我们直接返回客户端实例，因为它已经处理了连接池
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+    return this.client;
+  }
+
+  async executeTransaction(queries: Array<{ query: string; params?: Record<string, any> }>): Promise<any[]> {
+    // NebulaGraph Node.js客户端可能没有直接的事务支持
+    // 我们将逐个执行查询，并在出现错误时抛出异常
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    const results: any[] = [];
+    
+    try {
+      for (const { query, params } of queries) {
+        const result = await this.client.execute(query, false, params);
+        results.push(result);
+      }
+      
+      return results;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to execute transaction: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'executeTransaction' }
+      );
+      throw error;
+    }
+  }
+
+  async createNode(node: any): Promise<string> {
+    // NebulaGraph使用INSERT VERTEX语句创建节点
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 构造INSERT VERTEX语句
+      // 这里假设node对象包含标签、ID和属性
+      const { label, id, properties } = node;
+      
+      // 构造属性列表
+      const propertyNames = Object.keys(properties);
+      const propertyValues = Object.values(properties);
+      
+      // 构造nGQL查询
+      const query = `INSERT VERTEX ${label}(${propertyNames.join(', ')}) VALUES ${id}:(${propertyValues.map(() => '%s').join(', ')})`;
+      
+      // 执行查询
+      const result = await this.client.execute(query, false, properties);
+      return id;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to create node: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'createNode' }
+      );
+      throw error;
+    }
+  }
+
+  async createRelationship(relationship: any): Promise<string> {
+    // NebulaGraph使用INSERT EDGE语句创建关系
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 构造INSERT EDGE语句
+      // 这里假设relationship对象包含类型、源节点ID、目标节点ID和属性
+      const { type, srcId, dstId, properties } = relationship;
+      
+      // 构造属性列表
+      const propertyNames = Object.keys(properties);
+      const propertyValues = Object.values(properties);
+      
+      // 构造nGQL查询
+      let query = `INSERT EDGE ${type}`;
+      
+      // 如果有属性，添加属性列表
+      if (propertyNames.length > 0) {
+        query += `(${propertyNames.join(', ')})`;
+      }
+      
+      // 添加值部分
+      query += ` VALUES ${srcId}->${dstId}:(${propertyValues.map(() => '%s').join(', ')})`;
+      
+      // 执行查询
+      const result = await this.client.execute(query, false, properties);
+      return `${srcId}->${dstId}`;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to create relationship: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'createRelationship' }
+      );
+      throw error;
+    }
+  }
+
+  async findNodesByLabel(label: string, properties?: Record<string, any>): Promise<any[]> {
+    // NebulaGraph使用MATCH语句查找节点
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 构造MATCH语句
+      let query = `MATCH (n:${label})`;
+      
+      // 如果有属性条件，添加WHERE子句
+      if (properties && Object.keys(properties).length > 0) {
+        const conditions = Object.keys(properties).map(key => `n.${key} = $${key}`);
+        query += ` WHERE ${conditions.join(' AND ')}`;
+      }
+      
+      query += ' RETURN n';
+      
+      // 执行查询
+      const result = await this.client.execute(query, false, properties);
+      
+      // 解析结果
+      // 这里假设结果是一个包含节点数据的数组
+      return result.data || [];
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to find nodes by label: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'findNodesByLabel' }
+      );
+      throw error;
+    }
+  }
+
+  async findRelationships(type?: string, properties?: Record<string, any>): Promise<any[]> {
+    // NebulaGraph使用MATCH语句查找关系
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 构造MATCH语句
+      let query = 'MATCH (n1)-[r]->(n2)';
+      
+      // 如果有类型条件，添加类型过滤
+      if (type) {
+        query = `MATCH (n1)-[r:${type}]->(n2)`;
+      }
+      
+      // 如果有属性条件，添加WHERE子句
+      if (properties && Object.keys(properties).length > 0) {
+        const conditions = Object.keys(properties).map(key => `r.${key} = $${key}`);
+        query += ` WHERE ${conditions.join(' AND ')}`;
+      }
+      
+      query += ' RETURN r, n1, n2';
+      
+      // 执行查询
+      const result = await this.client.execute(query, false, properties);
+      
+      // 解析结果
+      // 这里假设结果是一个包含关系数据的数组
+      return result.data || [];
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to find relationships: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'findRelationships' }
+      );
+      throw error;
+    }
+  }
+
+  async getDatabaseStats(): Promise<any> {
+    // NebulaGraph使用SHOW命令获取数据库统计信息
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 执行SHOW SPACES命令获取空间信息
+      const spacesResult = await this.client.execute('SHOW SPACES', false);
+      
+      // 执行SHOW HOSTS命令获取主机信息
+      const hostsResult = await this.client.execute('SHOW HOSTS', false);
+      
+      // 执行SHOW PARTS命令获取分区信息
+      const partsResult = await this.client.execute('SHOW PARTS', false);
+      
+      // 组合统计信息
+      return {
+        spaces: spacesResult.data || [],
+        hosts: hostsResult.data || [],
+        parts: partsResult.data || []
+      };
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to get database stats: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'getDatabaseStats' }
+      );
+      throw error;
+    }
+  }
+}
