@@ -60,6 +60,8 @@ describe('NebulaConnectionManager', () => {
     }
     // 清理所有挂起的定时器
     jest.useRealTimers();
+    // 清理所有定时器和间隔
+    jest.clearAllTimers();
   });
   
   describe('connect', () => {

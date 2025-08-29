@@ -25,28 +25,11 @@ async function testNebulaConnection() {
     const client: any = createClient(options);
     
     // 监听连接事件
-    client.on('ready', async () => {
+    // 监听连接事件
+    const readyHandler = async () => {
       console.log('连接成功!');
       
       try {
-        // 等待连接准备就绪
-          await new Promise<void>((resolve, reject) => {
-            const readyHandler = () => {
-              console.log('连接已准备就绪');
-              client.off('error', errorHandler);
-              resolve();
-            };
-
-            const errorHandler = (error: any) => {
-              console.error('连接错误:', error);
-              client.off('ready', readyHandler);
-              reject(error);
-            };
-
-            client.on('ready', readyHandler);
-            client.on('error', errorHandler);
-          });
-
         console.log('已成功连接到Nebula Graph');
 
         // 激活离线的storaged容器
@@ -173,23 +156,54 @@ async function testNebulaConnection() {
         console.log(`删除space结果:`, dropSpaceResult);
         
         console.log('\n测试完成!');
-        process.exit(0);
       } catch (error) {
         console.error('操作过程中发生错误:', error);
-        process.exit(1);
+      } finally {
+        // 确保连接被正确关闭
+        try {
+          if (client && typeof client.close === 'function') {
+            await client.close();
+            console.log('连接已关闭');
+          }
+        } catch (closeError) {
+          console.error('关闭连接时出错:', closeError);
+        }
+        process.exit(0);
       }
-    });
+    };
     
-    client.on('error', ({ error }: { error: any }) => {
+    const errorHandler = ({ error }: { error: any }) => {
       console.error('连接错误:', error);
+      // 确保连接被正确关闭
+      try {
+        if (client && typeof client.close === 'function') {
+          client.close();
+        }
+      } catch (closeError) {
+        console.error('关闭连接时出错:', closeError);
+      }
       process.exit(1);
-    });
+    };
+    
+    client.on('ready', readyHandler);
+    client.on('error', errorHandler);
     
     // 设置连接超时
-    setTimeout(() => {
+    const connectionTimeout = setTimeout(() => {
       console.error('连接超时');
+      // 确保连接被正确关闭
+      try {
+        if (client && typeof client.close === 'function') {
+          client.close();
+        }
+      } catch (closeError) {
+        console.error('关闭连接时出错:', closeError);
+      }
       process.exit(1);
     }, 15000);
+    
+    // 确保定时器不会阻止进程退出
+    connectionTimeout.unref();
     
   } catch (error) {
     console.error('测试过程中发生错误:', error);

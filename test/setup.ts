@@ -91,4 +91,7 @@ export const createMockTransaction = (overrides = {}) => ({
 // Clean up after all tests
 afterAll(() => {
   // Clean up any global state if needed
+  // 清理所有挂起的定时器
+  jest.useRealTimers();
+  jest.clearAllTimers();
 });

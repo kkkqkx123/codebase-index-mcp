@@ -54,7 +54,7 @@ This is an MCP (Model Context Protocol) service for intelligent codebase indexin
 
 **Database Architecture**:
 - **Qdrant**: Vector storage for semantic search with path segment indexing
-- **Neo4j**: Graph database for code relationships and call analysis
+- **NebulaGraph**: Graph database for code relationships and call analysis
 - **Synchronization**: Entity ID management, transaction coordination, consistency checking
 
 ### MCP Protocol Integration

@@ -18,7 +18,7 @@ describe('Nebula Database Integration Tests', () => {
   const describeIfNebulaAvailable = process.env.NEBULA_HOST ? describe : describe.skip;
 
   describeIfNebulaAvailable('NebulaConnectionManager Integration', () => {
-    beforeAll(() => {
+    beforeAll(async () => {
       // Create real instances
       loggerService = new LoggerService();
       errorHandlerService = new ErrorHandlerService(loggerService);
@@ -30,6 +30,11 @@ describe('Nebula Database Integration Tests', () => {
         errorHandlerService,
         configService
       );
+      
+      // Ensure we start with a clean connection
+      if (nebulaConnectionManager.isConnectedToDatabase()) {
+        await nebulaConnectionManager.disconnect();
+      }
     });
 
     it('should connect to NebulaGraph', async () => {
@@ -68,8 +73,12 @@ describe('Nebula Database Integration Tests', () => {
     });
 
     afterAll(async () => {
-      if (nebulaConnectionManager.isConnectedToDatabase()) {
-        await nebulaConnectionManager.disconnect();
+      try {
+        if (nebulaConnectionManager.isConnectedToDatabase()) {
+          await nebulaConnectionManager.disconnect();
+        }
+      } catch (error) {
+        // Ignore disconnect errors in cleanup
       }
       // 清理所有挂起的定时器
       jest.useRealTimers();
@@ -137,6 +146,11 @@ describe('Nebula Database Integration Tests', () => {
         errorHandlerService,
         configService
       );
+
+      // Ensure we start with a clean connection
+      if (nebulaConnectionManager.isConnectedToDatabase()) {
+        await nebulaConnectionManager.disconnect();
+      }
 
       // Connect to NebulaGraph
       const isConnected = await nebulaConnectionManager.connect();
@@ -207,19 +221,23 @@ describe('Nebula Database Integration Tests', () => {
     });
 
     afterAll(async () => {
-      if (nebulaConnectionManager.isConnectedToDatabase()) {
-        // Clean up test data
-        try {
-          await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_1"');
-          await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_2"');
-          await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_3"');
-          await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_4"');
-          await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_5"');
-        } catch (error) {
-          // Ignore cleanup errors
-        }
+      try {
+        if (nebulaConnectionManager.isConnectedToDatabase()) {
+          // Clean up test data
+          try {
+            await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_1"');
+            await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_2"');
+            await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_3"');
+            await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_4"');
+            await nebulaConnectionManager.executeQuery('DELETE VERTEX "test_5"');
+          } catch (error) {
+            // Ignore cleanup errors
+          }
 
-        await nebulaConnectionManager.disconnect();
+          await nebulaConnectionManager.disconnect();
+        }
+      } catch (error) {
+        // Ignore disconnect errors in cleanup
       }
       // 清理所有挂起的定时器
       jest.useRealTimers();

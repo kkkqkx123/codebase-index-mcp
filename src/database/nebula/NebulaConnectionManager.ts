@@ -16,6 +16,8 @@ export class NebulaConnectionManager {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private queryBuilder: NebulaQueryBuilder;
+  // 存储连接超时定时器引用，以便在断开连接时清理
+  private connectionTimeout: NodeJS.Timeout | null = null;
 
   constructor(
     logger: LoggerService,
@@ -30,6 +32,11 @@ export class NebulaConnectionManager {
 
   async connect(): Promise<boolean> {
     try {
+      // 如果已经连接，直接返回true
+      if (this.isConnected && this.client) {
+        return true;
+      }
+      
       const config = this.configService.getAll();
       
       // 使用社区贡献的NebulaGraph Node.js客户端
@@ -43,20 +50,33 @@ export class NebulaConnectionManager {
       
       this.client = createClient(options);
       
+      // 检查客户端是否已经准备就绪
+      if (this.client && typeof this.client.isConnected === 'function' && this.client.isConnected()) {
+        this.isConnected = true;
+        this.logger.info('Already connected to NebulaGraph');
+        return true;
+      }
+      
       // 等待客户端准备就绪
-      await new Promise<void>((resolve, reject) => {
+      const result = await new Promise<boolean>((resolve, reject) => {
         // 定义事件处理函数
         const readyHandler = () => {
           // 清理定时器引用
-          this.connectionTimeout = null;
+          if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+            this.connectionTimeout = null;
+          }
           // 移除事件监听器
           this.removeListener('error', errorHandler);
-          resolve();
+          resolve(true);
         };
         
         const errorHandler = (error: any) => {
           // 清理定时器引用
-          this.connectionTimeout = null;
+          if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+            this.connectionTimeout = null;
+          }
           // 移除事件监听器
           this.removeListener('ready', readyHandler);
           reject(error);
@@ -73,43 +93,58 @@ export class NebulaConnectionManager {
           // 移除事件监听器
           this.removeListener('ready', readyHandler);
           this.removeListener('error', errorHandler);
-          reject(new Error('Connection timeout'));  
+          reject(new Error('Connection timeout'));
         }, 10000);
         
         // 确保超时定时器不会阻止进程退出
-        this.connectionTimeout.unref();
+        if (this.connectionTimeout) {
+          this.connectionTimeout.unref();
+        }
       });
       
-      this.isConnected = true;
-      this.logger.info('Connected to NebulaGraph successfully');
-      return true;
+      this.isConnected = result;
+      if (result) {
+        this.logger.info('Connected to NebulaGraph successfully');
+      }
+      return result;
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to connect to NebulaGraph: ${error instanceof Error ? error.message : String(error)}`),
         { component: 'NebulaConnectionManager', operation: 'connect' }
       );
       this.isConnected = false;
+      // 清理连接
+      if (this.client) {
+        try {
+          if (typeof this.client.removeAllListeners === 'function') {
+            this.client.removeAllListeners();
+          }
+          if (typeof this.client.close === 'function') {
+            await this.client.close();
+          }
+        } catch (closeError) {
+          // 忽略关闭错误
+        }
+        this.client = null;
+      }
       return false;
     }
   }
 
-  /**
-   * 移除事件监听器的辅助方法
-   * @param event 事件名称
-   * @param listener 事件监听器
-   */
-  private removeListener(event: string, listener: Function): void {
-    // 检查client是否存在off方法，如果不存在则使用removeListener
-    if (this.client && typeof this.client.off === 'function') {
-      this.client.off(event, listener);
-    } else if (this.client && typeof this.client.removeListener === 'function') {
-      this.client.removeListener(event, listener);
+  
+    /**
+     * 移除事件监听器的辅助方法
+     * @param event 事件名称
+     * @param listener 事件监听器
+     */
+    private removeListener(event: string, listener: Function): void {
+      // 检查client是否存在off方法，如果不存在则使用removeListener
+      if (this.client && typeof this.client.off === 'function') {
+        this.client.off(event, listener);
+      } else if (this.client && typeof this.client.removeListener === 'function') {
+        this.client.removeListener(event, listener);
+      }
     }
-  }
-
-  // 存储连接超时定时器引用，以便在断开连接时清理
-  private connectionTimeout: NodeJS.Timeout | null = null;
-
   async disconnect(): Promise<void> {
     try {
       // 清理连接超时定时器
