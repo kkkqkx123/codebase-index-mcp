@@ -5,7 +5,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
-import { NebulaService } from '../database/NebulaService';
+import { NebulaService } from '../../database/NebulaService';
 
 export interface GraphPersistenceOptions {
   projectId?: string;
@@ -36,6 +36,11 @@ export interface CodeGraphRelationship {
   sourceId: string;
   targetId: string;
   properties: Record<string, any>;
+}
+
+export interface GraphQuery {
+  nGQL: string;
+  parameters?: Record<string, any>;
 }
 
 @injectable()
@@ -318,12 +323,16 @@ export class GraphPersistenceService {
     try {
       // NebulaGraph使用nGQL而不是Cypher
       // 这里需要根据实际的NebulaGraph数据模型进行调整
-      const relationshipPattern = relationshipTypes ? `WHERE type(r) IN [${relationshipTypes.map(t => `'${t}'`).join(', ')}]` : '';
+      // For NebulaGraph, we use GO statement to traverse the graph
+      const edgeTypes = relationshipTypes && relationshipTypes.length > 0
+        ? relationshipTypes.join(',')
+        : '*'; // Use * to match all edge types
+      
       const query: GraphQuery = {
         nGQL: `
-          MATCH (start)-[r]->(related)
-          WHERE id(start) == $nodeId ${relationshipPattern}
-          RETURN DISTINCT related
+          GO FROM $nodeId OVER ${edgeTypes}
+          YIELD dst(edge) AS destination
+          | FETCH PROP ON * $-.destination YIELD vertex AS related
           LIMIT 100
         `,
         parameters: { nodeId }
@@ -331,7 +340,11 @@ export class GraphPersistenceService {
 
       const result = await this.nebulaService.executeReadQuery(query.nGQL, query.parameters);
       // 这里需要根据NebulaGraph的返回结果格式进行调整
-      return result.records.map((record: any) => this.recordToGraphNode(record.related));
+      // For NebulaGraph, we need to extract vertex information from the result
+      if (result && Array.isArray(result)) {
+        return result.map((record: any) => this.recordToGraphNode(record.related || record.vertex || record));
+      }
+      return [];
     } catch (error) {
       const report = this.errorHandler.handleError(
         new Error(`Failed to find related nodes: ${error instanceof Error ? error.message : String(error)}`),
@@ -350,12 +363,11 @@ export class GraphPersistenceService {
     try {
       // NebulaGraph使用nGQL而不是Cypher
       // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
+      // NebulaGraph has a built-in shortest path function
       const query: GraphQuery = {
         nGQL: `
           FIND SHORTEST PATH FROM $sourceId TO $targetId OVER * UPTO ${maxDepth} STEPS
           YIELD path as p
-          UNWIND nodes(p) as n
-          RETURN n
         `,
         parameters: { sourceId, targetId }
       };
@@ -363,6 +375,8 @@ export class GraphPersistenceService {
       const result = await this.nebulaService.executeReadQuery(query.nGQL, query.parameters);
       // 这里需要根据NebulaGraph的返回结果格式进行调整
       // NebulaGraph的最短路径查询返回格式与Neo4j不同，需要重新实现
+      // For now, we'll return an empty array as the implementation would be complex
+      // A full implementation would need to parse the path result and convert it to CodeGraphRelationship[]
       return [];
     } catch (error) {
       const report = this.errorHandler.handleError(
@@ -387,28 +401,40 @@ export class GraphPersistenceService {
     try {
       // NebulaGraph使用nGQL而不是Cypher
       // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
-      const [nodeCountResult, relationshipCountResult, nodeTypesResult, relationshipTypesResult] = await Promise.all([
-        this.nebulaService.executeReadQuery('MATCH (n) RETURN count(*) as count'),
-        this.nebulaService.executeReadQuery('MATCH ()-[e]->() RETURN count(*) as count'),
-        this.nebulaService.executeReadQuery('MATCH (n) RETURN tags(n)[0] as type, count(*) as count ORDER BY count DESC'),
-        this.nebulaService.executeReadQuery('MATCH ()-[e]->() RETURN type(e) as type, count(*) as count ORDER BY count DESC')
-      ]);
-
+      // For NebulaGraph, we need to use different queries to get stats
+      // Since NebulaGraph doesn't have direct equivalent queries, we'll use SHOW commands
+      
+      // Get basic stats using NebulaGraph's SHOW commands
+      const nodeCountResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
+      const relationshipCountResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
+      
+      // For more detailed stats, we would need to query each tag/edge type separately
+      // This is a simplified implementation
+      
       const nodeTypes: Record<string, number> = {};
       const relationshipTypes: Record<string, number> = {};
-
-      // 这里需要根据NebulaGraph的返回结果格式进行调整
-      nodeTypesResult.forEach((record: any) => {
-        nodeTypes[record.type] = record.count;
-      });
-
-      relationshipTypesResult.forEach((record: any) => {
-        relationshipTypes[record.type] = record.count;
-      });
-
+      
+      // Extract tag information
+      if (nodeCountResult && Array.isArray(nodeCountResult)) {
+        nodeCountResult.forEach((record: any) => {
+          const tagName = record.Name || record.name || 'Unknown';
+          // In a real implementation, we would count vertices for each tag
+          nodeTypes[tagName] = 0; // Placeholder value
+        });
+      }
+      
+      // Extract edge information
+      if (relationshipCountResult && Array.isArray(relationshipCountResult)) {
+        relationshipCountResult.forEach((record: any) => {
+          const edgeName = record.Name || record.name || 'Unknown';
+          // In a real implementation, we would count edges for each type
+          relationshipTypes[edgeName] = 0; // Placeholder value
+        });
+      }
+      
       return {
-        nodeCount: nodeCountResult[0]?.count || 0,
-        relationshipCount: relationshipCountResult[0]?.count || 0,
+        nodeCount: Object.keys(nodeTypes).length,
+        relationshipCount: Object.keys(relationshipTypes).length,
         nodeTypes,
         relationshipTypes
       };
@@ -441,21 +467,15 @@ export class GraphPersistenceService {
         const batch = nodeIds.slice(i, i + batchSize);
         // NebulaGraph使用nGQL而不是Cypher
         // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
-        const query: GraphQuery = {
-          nGQL: `
-            UNWIND $nodeIds AS nodeId
-            MATCH (n {id: nodeId})
-            DETACH DELETE n
-            RETURN count(n) as deletedCount
-          `,
-          parameters: { nodeIds: batch }
-        };
+        // For NebulaGraph, we need to delete vertices and their associated edges
+        const queries: GraphQuery[] = batch.map(nodeId => ({
+          nGQL: `DELETE VERTEX $nodeId WITH EDGE`,
+          parameters: { nodeId }
+        }));
 
-        // NebulaGraph的删除操作可能与Neo4j不同，需要调整
-        const result = await this.nebulaService.executeWriteQuery(query.nGQL, query.parameters);
-        // 这里需要根据NebulaGraph的返回结果格式进行调整
-        const deletedCount = result[0]?.deletedCount || 0;
-        results.push(deletedCount > 0);
+        // Execute batch deletion
+        const result = await this.executeBatch(queries);
+        results.push(result.success);
       }
 
       const success = results.every(r => r);
@@ -590,17 +610,9 @@ export class GraphPersistenceService {
 
     if (chunk.type === 'function') {
       queries.push({
-        cypher: `
-          MERGE (f:Function {id: $chunkId})
-          SET f.name = $functionName,
-              f.content = $content,
-              f.startLine = $startLine,
-              f.endLine = $endLine,
-              f.complexity = $complexity,
-              f.parameters = $parameters,
-              f.returnType = $returnType,
-              f.language = $language,
-              f.updatedAt = datetime()
+        nGQL: `
+          INSERT VERTEX Function(id, name, content, startLine, endLine, complexity, parameters, returnType, language, updatedAt)
+          VALUES $chunkId:($chunkId, $functionName, $content, $startLine, $endLine, $complexity, $parameters, $returnType, $language, now())
         `,
         parameters: {
           chunkId: chunk.id,
@@ -617,28 +629,19 @@ export class GraphPersistenceService {
 
       if (file) {
         queries.push({
-          cypher: `
-            MATCH (f:Function {id: $chunkId}), (file:File {id: $fileId})
-            MERGE (file)-[:CONTAINS]->(f)
+          nGQL: `
+            INSERT EDGE CONTAINS() VALUES $fileId->$chunkId:()
           `,
-          parameters: { chunkId: chunk.id, fileId: file.id }
+          parameters: { fileId: file.id, chunkId: chunk.id }
         });
       }
     }
 
     if (chunk.type === 'class') {
       queries.push({
-        cypher: `
-          MERGE (c:Class {id: $chunkId})
-          SET c.name = $className,
-              c.content = $content,
-              c.startLine = $startLine,
-              c.endLine = $endLine,
-              c.methods = $methods,
-              c.properties = $properties,
-              c.inheritance = $inheritance,
-              c.language = $language,
-              c.updatedAt = datetime()
+        nGQL: `
+          INSERT VERTEX Class(id, name, content, startLine, endLine, methods, properties, inheritance, language, updatedAt)
+          VALUES $chunkId:($chunkId, $className, $content, $startLine, $endLine, $methods, $properties, $inheritance, $language, now())
         `,
         parameters: {
           chunkId: chunk.id,
@@ -655,11 +658,10 @@ export class GraphPersistenceService {
 
       if (file) {
         queries.push({
-          cypher: `
-            MATCH (c:Class {id: $chunkId}), (file:File {id: $fileId})
-            MERGE (file)-[:CONTAINS]->(c)
+          nGQL: `
+            INSERT EDGE CONTAINS() VALUES $fileId->$chunkId:()
           `,
-          parameters: { chunkId: chunk.id, fileId: file.id }
+          parameters: { fileId: file.id, chunkId: chunk.id }
         });
       }
     }
@@ -702,22 +704,20 @@ export class GraphPersistenceService {
 
   private async executeBatch(queries: GraphQuery[]): Promise<GraphPersistenceResult> {
     try {
-      const results = await this.neo4jManager.executeTransaction(queries);
+      const results = await this.nebulaService.executeTransaction(queries);
       
       let nodesCreated = 0;
       let relationshipsCreated = 0;
       let nodesUpdated = 0;
 
-      for (const result of results) {
-        const summary = result.summary;
-        if (summary.query.includes('MERGE')) {
-          nodesCreated += result.records.length;
-        }
-        if (summary.query.includes('->')) {
-          relationshipsCreated += result.records.length;
-        }
-        if (summary.query.includes('SET')) {
-          nodesUpdated += result.records.length;
+      // For NebulaGraph, we'll use a simpler approach to count operations
+      for (const query of queries) {
+        if (query.nGQL.includes('INSERT VERTEX')) {
+          nodesCreated++;
+        } else if (query.nGQL.includes('INSERT EDGE')) {
+          relationshipsCreated++;
+        } else if (query.nGQL.includes('UPDATE VERTEX')) {
+          nodesUpdated++;
         }
       }
 
@@ -742,21 +742,29 @@ export class GraphPersistenceService {
   }
 
   private recordToGraphNode(record: any): CodeGraphNode {
+    // NebulaGraph records have different structure than Neo4j
+    // We need to extract the vertex information from NebulaGraph result
+    const vertex = record._vertex || record.vertex || record;
+    
     return {
-      id: record.id,
-      type: record.labels[0],
-      name: record.name || record.id,
-      properties: record.properties || {}
+      id: vertex.id || vertex._id || '',
+      type: vertex.tag || vertex.label || 'Unknown',
+      name: vertex.name || vertex.id || '',
+      properties: vertex.properties || vertex || {}
     };
   }
 
   private recordToGraphRelationship(record: any, sourceId: string, targetId: string): CodeGraphRelationship {
+    // NebulaGraph records have different structure than Neo4j
+    // We need to extract the edge information from NebulaGraph result
+    const edge = record._edge || record.edge || record;
+    
     return {
-      id: record.id.toString(),
-      type: record.type,
-      sourceId,
-      targetId,
-      properties: record.properties || {}
+      id: (edge.id || edge._src + '->' + edge._dst).toString(),
+      type: edge.name || edge.type || 'Unknown',
+      sourceId: edge._src || sourceId,
+      targetId: edge._dst || targetId,
+      properties: edge.properties || edge || {}
     };
   }
 
@@ -1016,15 +1024,16 @@ export class GraphPersistenceService {
     for (const chunk of chunks) {
       if (chunk.type === 'function') {
         queries.push({
-          cypher: `
-            MATCH (f:Function {id: $chunkId})
-            SET f.content = $content,
-                f.startLine = $startLine,
-                f.endLine = $endLine,
-                f.complexity = $complexity,
-                f.parameters = $parameters,
-                f.returnType = $returnType,
-                f.updatedAt = datetime()
+          nGQL: `
+            UPDATE VERTEX Function
+            SET content = $content,
+                startLine = $startLine,
+                endLine = $endLine,
+                complexity = $complexity,
+                parameters = $parameters,
+                returnType = $returnType,
+                updatedAt = now()
+            WHERE id = $chunkId
           `,
           parameters: {
             chunkId: chunk.id,
@@ -1040,15 +1049,16 @@ export class GraphPersistenceService {
 
       if (chunk.type === 'class') {
         queries.push({
-          cypher: `
-            MATCH (c:Class {id: $chunkId})
-            SET c.content = $content,
-                c.startLine = $startLine,
-                c.endLine = $endLine,
-                c.methods = $methods,
-                c.properties = $properties,
-                c.inheritance = $inheritance,
-                c.updatedAt = datetime()
+          nGQL: `
+            UPDATE VERTEX Class
+            SET content = $content,
+                startLine = $startLine,
+                endLine = $endLine,
+                methods = $methods,
+                properties = $properties,
+                inheritance = $inheritance,
+                updatedAt = now()
+            WHERE id = $chunkId
           `,
           parameters: {
             chunkId: chunk.id,

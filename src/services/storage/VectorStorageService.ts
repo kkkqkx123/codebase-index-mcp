@@ -39,7 +39,7 @@ export class VectorStorageService {
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
   private isInitialized: boolean = false;
-  
+
   // Batch processing configuration
   private maxConcurrentOperations: number = 5;
   private defaultBatchSize: number = 100;
@@ -70,7 +70,7 @@ export class VectorStorageService {
       distance: 'Cosine',
       recreateCollection: false
     };
-    
+
     this.initializeBatchProcessingConfig();
   }
 
@@ -84,12 +84,12 @@ export class VectorStorageService {
       }
 
       const collectionExists = await this.qdrantClient.collectionExists(this.config.collectionName);
-      
+
       if (!collectionExists || this.config.recreateCollection) {
         const created = await this.qdrantClient.createCollection(
           this.config.collectionName,
           this.config.vectorSize,
-          this.config.distance,
+          this.config.distance as 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan',
           this.config.recreateCollection
         );
 
@@ -130,7 +130,7 @@ export class VectorStorageService {
     const startTime = Date.now();
     const operationId = `storeChunks_${options.projectId || 'unknown'}_${Date.now()}`;
     const batchSize = options.batchSize || this.calculateOptimalBatchSize(chunks.length);
-    
+
     // Start batch operation metrics
     const batchMetrics = this.batchMetrics.startBatchOperation(
       operationId,
@@ -156,18 +156,18 @@ export class VectorStorageService {
 
       // Process chunks in batches with optimized conversion
       const vectorPoints = await this.convertChunksToVectorPointsOptimized(chunks, options, batchSize);
-      
+
       if (vectorPoints.length === 0) {
         result.success = true;
         result.processingTime = Date.now() - startTime;
-        
+
         // Update batch metrics
         this.batchMetrics.updateBatchOperation(operationId, {
           processedCount: chunks.length,
           successCount: chunks.length,
           errorCount: 0
         });
-        
+
         return result;
       }
 
@@ -175,20 +175,20 @@ export class VectorStorageService {
       const success = await this.retryOperation(() =>
         this.qdrantClient.upsertPoints(this.config.collectionName, vectorPoints)
       );
-      
+
       if (success) {
         result.success = true;
         result.uniqueChunks = vectorPoints.length;
         result.duplicatesRemoved = chunks.length - vectorPoints.length;
         result.processingTime = Date.now() - startTime;
-        
+
         // Update batch metrics
         this.batchMetrics.updateBatchOperation(operationId, {
           processedCount: chunks.length,
           successCount: result.uniqueChunks,
           errorCount: result.duplicatesRemoved
         });
-        
+
         this.logger.info('Chunks stored successfully', {
           totalChunks: chunks.length,
           uniqueChunks: vectorPoints.length,
@@ -206,7 +206,7 @@ export class VectorStorageService {
       );
       result.errors.push(`Storage failed: ${report.id}`);
       this.logger.error('Failed to store chunks', { errorId: report.id });
-      
+
       // Update batch metrics with error
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: 0,
@@ -309,11 +309,11 @@ export class VectorStorageService {
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
-      
+
       for (const chunk of batch) {
         try {
           const vector = await this.generateEmbedding(chunk.content);
-          
+
           const vectorPoint: VectorPoint = {
             id: chunk.id,
             vector,
@@ -324,18 +324,18 @@ export class VectorStorageService {
               chunkType: chunk.type,
               startLine: chunk.startLine,
               endLine: chunk.endLine,
-              functionName: chunk.functionName,
-              className: chunk.className,
-              imports: chunk.imports,
-              exports: chunk.exports,
+              ...(chunk.functionName && { functionName: chunk.functionName }),
+              ...(chunk.className && { className: chunk.className }),
+              ...(options.projectId && { projectId: options.projectId }),
               metadata: {
                 ...chunk.metadata,
+                imports: chunk.imports || [],
+                exports: chunk.exports || [],
                 complexity: chunk.metadata.complexity || 1,
                 parameters: chunk.metadata.parameters || [],
                 returnType: chunk.metadata.returnType || 'unknown'
               },
-              timestamp: new Date(),
-              projectId: options.projectId
+              timestamp: new Date()
             }
           };
 
@@ -360,13 +360,13 @@ export class VectorStorageService {
     for (let i = 0; i < this.config.vectorSize; i++) {
       vector.push(Math.random() * 2 - 1); // Random values between -1 and 1
     }
-    
+
     // Normalize the vector
     const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
     if (magnitude > 0) {
       return vector.map(val => val / magnitude);
     }
-    
+
     return vector;
   }
 
@@ -377,16 +377,16 @@ export class VectorStorageService {
 
   private initializeBatchProcessingConfig(): void {
     const batchConfig = this.configService.get('batchProcessing');
-    
-    this.maxConcurrentOperations = batchConfig.maxConcurrentOperations;
-    this.defaultBatchSize = batchConfig.defaultBatchSize;
-    this.maxBatchSize = batchConfig.maxBatchSize;
-    this.memoryThreshold = batchConfig.memoryThreshold;
-    this.processingTimeout = batchConfig.processingTimeout;
-    this.retryAttempts = batchConfig.retryAttempts;
-    this.retryDelay = batchConfig.retryDelay;
-    this.adaptiveBatchingEnabled = batchConfig.adaptiveBatching.enabled;
-    
+
+    this.maxConcurrentOperations = batchConfig?.maxConcurrentOperations ?? this.maxConcurrentOperations;
+    this.defaultBatchSize = batchConfig?.defaultBatchSize ?? this.defaultBatchSize;
+    this.maxBatchSize = batchConfig?.maxBatchSize ?? this.maxBatchSize;
+    this.memoryThreshold = batchConfig?.memoryThreshold ?? this.memoryThreshold;
+    this.processingTimeout = batchConfig?.processingTimeout ?? this.processingTimeout;
+    this.retryAttempts = batchConfig?.retryAttempts ?? this.retryAttempts;
+    this.retryDelay = batchConfig?.retryDelay ?? this.retryDelay;
+    this.adaptiveBatchingEnabled = batchConfig?.adaptiveBatching?.enabled ?? this.adaptiveBatchingEnabled;
+
     this.logger.info('Vector storage batch processing configuration initialized', {
       maxConcurrentOperations: this.maxConcurrentOperations,
       defaultBatchSize: this.defaultBatchSize,
@@ -400,7 +400,7 @@ export class VectorStorageService {
   private checkMemoryUsage(): boolean {
     const memUsage = process.memoryUsage();
     const memoryUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-    
+
     if (memoryUsagePercent > this.memoryThreshold) {
       this.logger.warn('Memory usage exceeds threshold', {
         memoryUsagePercent,
@@ -408,7 +408,7 @@ export class VectorStorageService {
       });
       return false;
     }
-    
+
     return true;
   }
 
@@ -420,7 +420,7 @@ export class VectorStorageService {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-      
+
       operation()
         .then(result => {
           clearTimeout(timeout);
@@ -438,27 +438,27 @@ export class VectorStorageService {
     maxAttempts: number = this.retryAttempts,
     delayMs: number = this.retryDelay
   ): Promise<T> {
-    let lastError: Error;
-    
+    let lastError: Error = new Error(`Operation failed after ${maxAttempts} attempts.`);
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt < maxAttempts) {
           this.logger.debug('Operation failed, retrying', {
             attempt,
             maxAttempts,
             error: lastError.message
           });
-          
+
           // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
       }
     }
-    
+
     throw lastError;
   }
 
@@ -474,7 +474,7 @@ export class VectorStorageService {
     const startTime = Date.now();
     const operationId = `updateChunks_${options.projectId || 'unknown'}_${Date.now()}`;
     const batchSize = options.batchSize || this.calculateOptimalBatchSize(chunks.length);
-    
+
     // Start batch operation metrics
     const batchMetrics = this.batchMetrics.startBatchOperation(
       operationId,
@@ -502,14 +502,14 @@ export class VectorStorageService {
       // 1. Check which chunks already exist
       // 2. Only update the chunks that have changed
       // 3. Delete chunks that no longer exist (if specified in options)
-      
+
       const existingChunkIds = await this.getExistingChunkIds(chunks.map(c => c.id));
       const chunksToUpdate = chunks.filter(chunk => existingChunkIds.includes(chunk.id));
       const chunksToCreate = chunks.filter(chunk => !existingChunkIds.includes(chunk.id));
-      
+
       let updatedCount = 0;
       let createdCount = 0;
-      
+
       // Update existing chunks in batches
       if (chunksToUpdate.length > 0) {
         const updateBatchSize = this.calculateOptimalBatchSize(chunksToUpdate.length);
@@ -519,14 +519,14 @@ export class VectorStorageService {
           updateBatchSize,
           'update'
         );
-        
+
         if (updateResults.success) {
           updatedCount = chunksToUpdate.length;
         } else {
           throw new Error('Failed to update existing chunks');
         }
       }
-      
+
       // Create new chunks in batches
       if (chunksToCreate.length > 0) {
         const createBatchSize = this.calculateOptimalBatchSize(chunksToCreate.length);
@@ -536,27 +536,27 @@ export class VectorStorageService {
           createBatchSize,
           'create'
         );
-        
+
         if (createResults.success) {
           createdCount = chunksToCreate.length;
         } else {
           throw new Error('Failed to create new chunks');
         }
       }
-      
+
       result.success = true;
       result.processedFiles = this.extractUniqueFileCount(chunks);
       result.uniqueChunks = createdCount + updatedCount;
       result.duplicatesRemoved = 0; // No duplicates in incremental update
       result.processingTime = Date.now() - startTime;
-      
+
       // Update batch metrics
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: chunks.length,
         successCount: result.uniqueChunks,
         errorCount: result.duplicatesRemoved
       });
-      
+
       this.logger.info('Chunks updated incrementally', {
         totalChunks: chunks.length,
         createdChunks: createdCount,
@@ -564,7 +564,7 @@ export class VectorStorageService {
         processingTime: result.processingTime,
         batchSize
       });
-      
+
       return result;
     } catch (error) {
       const report = this.errorHandler.handleError(
@@ -573,14 +573,14 @@ export class VectorStorageService {
       );
       result.errors.push(`Incremental update failed: ${report.id}`);
       this.logger.error('Failed to update chunks incrementally', { errorId: report.id });
-      
+
       // Update batch metrics with error
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: 0,
         successCount: 0,
         errorCount: chunks.length
       });
-      
+
       return result;
     } finally {
       // End batch operation metrics
@@ -596,22 +596,22 @@ export class VectorStorageService {
     try {
       // Get all chunk IDs for the specified files
       const chunkIds = await this.getChunkIdsByFiles(filePaths);
-      
+
       if (chunkIds.length === 0) {
         this.logger.debug('No chunks found for files', { filePaths });
         return true;
       }
-      
+
       // Delete the chunks
       const success = await this.qdrantClient.deletePoints(this.config.collectionName, chunkIds);
-      
+
       if (success) {
         this.logger.info('Chunks deleted by files', {
           fileCount: filePaths.length,
           chunkCount: chunkIds.length
         });
       }
-      
+
       return success;
     } catch (error) {
       const report = this.errorHandler.handleError(
@@ -636,7 +636,7 @@ export class VectorStorageService {
     // This would typically query the vector database to get chunk IDs for the specified files
     // For now, we'll return a mock implementation
     const chunkIds: string[] = [];
-    
+
     for (const filePath of filePaths) {
       // Generate mock chunk IDs based on file path
       const mockChunkCount = Math.floor(Math.random() * 5) + 1;
@@ -644,19 +644,19 @@ export class VectorStorageService {
         chunkIds.push(`chunk_${filePath.replace(/[^a-zA-Z0-9]/g, '_')}_${i}`);
       }
     }
-    
+
     return chunkIds;
   }
 
   private extractUniqueFileCount(chunks: CodeChunk[]): number {
     const uniqueFiles = new Set<string>();
-    
+
     for (const chunk of chunks) {
       if (chunk.metadata.filePath) {
         uniqueFiles.add(chunk.metadata.filePath);
       }
     }
-    
+
     return uniqueFiles.size;
   }
 
@@ -667,19 +667,21 @@ export class VectorStorageService {
 
     // For vector operations, use a different strategy based on item count
     const config = this.configService.get('batchProcessing');
-    const adaptiveConfig = config.adaptiveBatching;
-    
+    const adaptiveConfig = config?.adaptiveBatching;
+
     // Start with a reasonable batch size based on total items
     let batchSize = Math.min(this.defaultBatchSize, totalItems);
-    
+
     // Adjust based on item count - smaller batches for very large item counts
-    if (totalItems > 1000) {
+    if (totalItems > 1000 && adaptiveConfig?.minBatchSize) {
       batchSize = Math.min(adaptiveConfig.minBatchSize * 2, totalItems);
-    } else if (totalItems > 500) {
+    } else if (totalItems > 500 && adaptiveConfig?.minBatchSize) {
       batchSize = Math.min(adaptiveConfig.minBatchSize * 3, totalItems);
     }
 
-    return Math.max(adaptiveConfig.minBatchSize, Math.min(batchSize, adaptiveConfig.maxBatchSize));
+    const minBatchSize = adaptiveConfig?.minBatchSize ?? 10;
+    const maxBatchSize = adaptiveConfig?.maxBatchSize ?? 200;
+    return Math.max(minBatchSize, Math.min(batchSize, maxBatchSize));
   }
 
   private async convertChunksToVectorPointsOptimized(
@@ -692,25 +694,25 @@ export class VectorStorageService {
     }
 
     const vectorPoints: VectorPoint[] = [];
-    
+
     // Process chunks in batches with concurrent embedding generation
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
-      
+
       // Check memory usage before processing each batch
       if (!this.checkMemoryUsage()) {
         throw new Error('Insufficient memory available for batch processing');
       }
-      
+
       // Generate embeddings for the batch with timeout and retry
       const batchVectorPoints = await this.processWithTimeout(
         () => this.generateEmbeddingsForBatch(batch, options),
         this.processingTimeout
       );
-      
+
       vectorPoints.push(...batchVectorPoints);
     }
-    
+
     return vectorPoints;
   }
 
@@ -722,8 +724,8 @@ export class VectorStorageService {
     const embeddingPromises = batch.map(async (chunk) => {
       try {
         const vector = await this.generateEmbedding(chunk.content);
-        
-        return {
+
+        const vectorPoint: VectorPoint = {
           id: chunk.id,
           vector,
           payload: {
@@ -733,20 +735,22 @@ export class VectorStorageService {
             chunkType: chunk.type,
             startLine: chunk.startLine,
             endLine: chunk.endLine,
-            functionName: chunk.functionName,
-            className: chunk.className,
-            imports: chunk.imports,
-            exports: chunk.exports,
+            ...(chunk.functionName && { functionName: chunk.functionName }),
+            ...(chunk.className && { className: chunk.className }),
+            ...(options.projectId && { projectId: options.projectId }),
             metadata: {
               ...chunk.metadata,
+              imports: chunk.imports || [],
+              exports: chunk.exports || [],
               complexity: chunk.metadata.complexity || 1,
               parameters: chunk.metadata.parameters || [],
               returnType: chunk.metadata.returnType || 'unknown'
             },
-            timestamp: new Date(),
-            projectId: options.projectId
+            timestamp: new Date()
           }
         };
+
+        return vectorPoint;
       } catch (error) {
         this.logger.warn('Failed to generate embedding for chunk', {
           chunkId: chunk.id,
@@ -780,7 +784,7 @@ export class VectorStorageService {
 
     try {
       const vectorPoints = await this.convertChunksToVectorPointsOptimized(chunks, options, batchSize);
-      
+
       if (vectorPoints.length === 0) {
         result.success = true;
         result.processingTime = Date.now() - startTime;
@@ -791,13 +795,13 @@ export class VectorStorageService {
       const success = await this.retryOperation(() =>
         this.qdrantClient.upsertPoints(this.config.collectionName, vectorPoints)
       );
-      
+
       if (success) {
         result.success = true;
         result.uniqueChunks = vectorPoints.length;
         result.duplicatesRemoved = chunks.length - vectorPoints.length;
         result.processingTime = Date.now() - startTime;
-        
+
         this.logger.debug(`Chunks ${operationType}d successfully in batch`, {
           operationType,
           totalChunks: chunks.length,

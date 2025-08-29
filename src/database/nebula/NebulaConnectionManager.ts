@@ -2,6 +2,7 @@ import { injectable } from 'inversify';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
+import { NebulaQueryBuilder } from './NebulaQueryBuilder';
 
 // 使用社区贡献的NebulaGraph Node.js客户端
 // https://github.com/nebula-contrib/nebula-node
@@ -14,6 +15,7 @@ export class NebulaConnectionManager {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
+  private queryBuilder: NebulaQueryBuilder;
 
   constructor(
     logger: LoggerService,
@@ -23,6 +25,7 @@ export class NebulaConnectionManager {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.configService = configService;
+    this.queryBuilder = new NebulaQueryBuilder();
   }
 
   async connect(): Promise<boolean> {
@@ -151,19 +154,15 @@ export class NebulaConnectionManager {
     }
 
     try {
-      // 构造INSERT VERTEX语句
+      // 使用查询构建器构造INSERT VERTEX语句
       // 这里假设node对象包含标签、ID和属性
       const { label, id, properties } = node;
       
-      // 构造属性列表
-      const propertyNames = Object.keys(properties);
-      const propertyValues = Object.values(properties);
-      
-      // 构造nGQL查询
-      const query = `INSERT VERTEX ${label}(${propertyNames.join(', ')}) VALUES ${id}:(${propertyValues.map(() => '%s').join(', ')})`;
+      // 使用NebulaQueryBuilder构建查询
+      const { query, params } = this.queryBuilder.insertVertex(label, id, properties);
       
       // 执行查询
-      await this.client.execute(query, false, properties);
+      await this.client.execute(query, false, params);
       return id;
     } catch (error) {
       this.errorHandler.handleError(
@@ -181,27 +180,15 @@ export class NebulaConnectionManager {
     }
 
     try {
-      // 构造INSERT EDGE语句
+      // 使用查询构建器构造INSERT EDGE语句
       // 这里假设relationship对象包含类型、源节点ID、目标节点ID和属性
       const { type, srcId, dstId, properties } = relationship;
       
-      // 构造属性列表
-      const propertyNames = Object.keys(properties);
-      const propertyValues = Object.values(properties);
-      
-      // 构造nGQL查询
-      let query = `INSERT EDGE ${type}`;
-      
-      // 如果有属性，添加属性列表
-      if (propertyNames.length > 0) {
-        query += `(${propertyNames.join(', ')})`;
-      }
-      
-      // 添加值部分
-      query += ` VALUES ${srcId}->${dstId}:(${propertyValues.map(() => '%s').join(', ')})`;
+      // 使用NebulaQueryBuilder构建查询
+      const { query, params } = this.queryBuilder.insertEdge(type, srcId, dstId, properties);
       
       // 执行查询
-      await this.client.execute(query, false, properties);
+      await this.client.execute(query, false, params);
       return `${srcId}->${dstId}`;
     } catch (error) {
       this.errorHandler.handleError(
@@ -213,22 +200,25 @@ export class NebulaConnectionManager {
   }
 
   async findNodesByLabel(label: string, properties?: Record<string, any>): Promise<any[]> {
-    // NebulaGraph使用MATCH语句查找节点
+    // NebulaGraph使用GO语句或MATCH语句查找节点
     if (!this.isConnected || !this.client) {
       throw new Error('Not connected to NebulaGraph');
     }
 
     try {
-      // 构造MATCH语句
-      let query = `MATCH (n:${label})`;
+      // 使用MATCH语句查找节点
+      let pattern = `(n:${label})`;
+      let returnClause = 'n';
+      let whereClause: string | undefined;
       
       // 如果有属性条件，添加WHERE子句
       if (properties && Object.keys(properties).length > 0) {
         const conditions = Object.keys(properties).map(key => `n.${key} = $${key}`);
-        query += ` WHERE ${conditions.join(' AND ')}`;
+        whereClause = conditions.join(' AND ');
       }
       
-      query += ' RETURN n';
+      // 使用NebulaQueryBuilder构建查询
+      const query = this.queryBuilder.match(pattern, returnClause, whereClause);
       
       // 执行查询
       const result = await this.client.execute(query, false, properties);
@@ -246,27 +236,30 @@ export class NebulaConnectionManager {
   }
 
   async findRelationships(type?: string, properties?: Record<string, any>): Promise<any[]> {
-    // NebulaGraph使用MATCH语句查找关系
+    // NebulaGraph使用GO语句或MATCH语句查找关系
     if (!this.isConnected || !this.client) {
       throw new Error('Not connected to NebulaGraph');
     }
 
     try {
-      // 构造MATCH语句
-      let query = 'MATCH (n1)-[r]->(n2)';
+      // 使用MATCH语句查找关系
+      let pattern = '(n1)-[r]->(n2)';
+      let returnClause = 'r, n1, n2';
+      let whereClause: string | undefined;
       
       // 如果有类型条件，添加类型过滤
       if (type) {
-        query = `MATCH (n1)-[r:${type}]->(n2)`;
+        pattern = `(n1)-[r:${type}]->(n2)`;
       }
       
       // 如果有属性条件，添加WHERE子句
       if (properties && Object.keys(properties).length > 0) {
         const conditions = Object.keys(properties).map(key => `r.${key} = $${key}`);
-        query += ` WHERE ${conditions.join(' AND ')}`;
+        whereClause = conditions.join(' AND ');
       }
       
-      query += ' RETURN r, n1, n2';
+      // 使用NebulaQueryBuilder构建查询
+      const query = this.queryBuilder.match(pattern, returnClause, whereClause);
       
       // 执行查询
       const result = await this.client.execute(query, false, properties);
