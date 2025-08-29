@@ -7,7 +7,8 @@ import { IndexService } from '../services/index/IndexService';
 import { GraphService } from '../services/graph/GraphService';
 import { ParserService } from '../services/parser/ParserService';
 import { QdrantService } from '../database/QdrantService';
-import { Neo4jService } from '../database/Neo4jService';
+import { NebulaService } from '../database/NebulaService';
+import { NebulaConnectionManager } from '../database/nebula/NebulaConnectionManager';
 import { OpenAIEmbedder } from '../embedders/OpenAIEmbedder';
 import { OllamaEmbedder } from '../embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../embedders/GeminiEmbedder';
@@ -20,7 +21,6 @@ import { FileWatcherService } from '../services/filesystem/FileWatcherService';
 import { ChangeDetectionService } from '../services/filesystem/ChangeDetectionService';
 import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
-import { Neo4jConnectionManager } from '../database/neo4j/Neo4jConnectionManager';
 import { VectorStorageService } from '../services/storage/VectorStorageService';
 import { GraphPersistenceService } from '../services/storage/GraphPersistenceService';
 import { EntityIdManager } from '../services/sync/EntityIdManager';
@@ -38,6 +38,8 @@ export const TYPES = {
   ParserService: Symbol.for('ParserService'),
   QdrantService: Symbol.for('QdrantService'),
   Neo4jService: Symbol.for('Neo4jService'),
+  NebulaService: Symbol.for('NebulaService'),
+  NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
   OllamaEmbedder: Symbol.for('OllamaEmbedder'),
@@ -68,9 +70,9 @@ const coreModule = new ContainerModule((bind: any) => {
 
 const databaseModule = new ContainerModule((bind: any) => {
   bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
-  bind(TYPES.Neo4jService).to(Neo4jService).inSingletonScope();
+  bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
+  bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
-  bind(TYPES.Neo4jConnectionManager).to(Neo4jConnectionManager).inSingletonScope();
 });
 
 const embedderModule = new ContainerModule((bind: any) => {
