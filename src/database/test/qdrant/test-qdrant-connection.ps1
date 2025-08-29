@@ -1,8 +1,10 @@
 # Qdrant Connection Test Script
 
 # Load environment variables from .env file
-$envFile = '.env'
-$envExampleFile = '.env.example'
+# Look for .env and .env.example files in the project root directory
+$projectRoot = Resolve-Path "../../../../"
+$envFile = Join-Path -Path $projectRoot -ChildPath ".env"
+$envExampleFile = Join-Path -Path $projectRoot -ChildPath ".env.example"
 
 # Function to load environment variables from file
 function Load-EnvFile {

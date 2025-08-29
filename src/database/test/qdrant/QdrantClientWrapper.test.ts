@@ -1,3 +1,103 @@
+// Mock the @qdrant/js-client-rest module before importing QdrantClientWrapper
+jest.mock('@qdrant/js-client-rest', () => {
+  // Mock QdrantClient
+  class MockQdrantClient {
+    private collections: string[] = [];
+    private points: Map<string, any[]> = new Map();
+
+    async getCollections() {
+      return { collections: this.collections.map(name => ({ name })) };
+    }
+
+    async createCollection(collectionName: string, _config: any) {
+      this.collections.push(collectionName);
+      this.points.set(collectionName, []);
+      return { result: true };
+    }
+
+    async deleteCollection(collectionName: string) {
+      // Check if we should simulate an error
+      if (collectionName === 'error-collection') {
+        throw new Error('Deletion failed');
+      }
+      
+      this.collections = this.collections.filter(name => name !== collectionName);
+      this.points.delete(collectionName);
+      return { result: true };
+    }
+
+    async getCollection(collectionName: string) {
+      if (!this.collections.includes(collectionName)) {
+        throw new Error('Collection not found');
+      }
+      const points = this.points.get(collectionName) || [];
+      return {
+        points_count: points.length,
+        status: 'green',
+        config: {
+          params: {
+            vectors: {
+              size: 128,
+              distance: 'Cosine'
+            }
+          }
+        }
+      };
+    }
+
+    async upsert(collectionName: string, data: any) {
+      if (!this.collections.includes(collectionName)) {
+        throw new Error('Collection not found');
+      }
+      
+      const collectionPoints = this.points.get(collectionName) || [];
+      data.points.forEach((point: any) => {
+        const existingIndex = collectionPoints.findIndex((p: any) => p.id === point.id);
+        if (existingIndex >= 0) {
+          collectionPoints[existingIndex] = point;
+        } else {
+          collectionPoints.push(point);
+        }
+      });
+      this.points.set(collectionName, collectionPoints);
+      return { result: { operation_id: 1, status: 'completed' } };
+    }
+
+    async search(_collectionName: string, params: any) {
+      // Return mock search results
+      return [
+        {
+          id: 'test-point-1',
+          score: 0.95,
+          payload: {
+            content: 'test content',
+            filePath: '/test/file.ts',
+            language: 'typescript',
+            chunkType: 'function',
+            startLine: 1,
+            endLine: 10,
+            timestamp: new Date().toISOString()
+          },
+          // Only include vector if with_vector is true
+          ...(params.with_vector === true && { vector: Array(128).fill(0.5) })
+        }
+      ];
+    }
+
+    async delete(_collectionName: string, _params: any) {
+      return { result: { operation_id: 2, status: 'completed' } };
+    }
+
+    async createPayloadIndex(_collectionName: string, _params: any) {
+      return { result: { operation_id: 3, status: 'completed' } };
+    }
+  }
+
+  return {
+    QdrantClient: jest.fn().mockImplementation(() => new MockQdrantClient())
+  };
+});
+
 import { QdrantClientWrapper, VectorPoint, SearchOptions } from '../../qdrant/QdrantClientWrapper';
 import { ConfigService } from '../../../config/ConfigService';
 import { LoggerService } from '../../../core/LoggerService';
@@ -28,116 +128,15 @@ class MockErrorHandlerService {
   }
 }
 
-// Mock QdrantClient
-class MockQdrantClient {
-  private collections: string[] = [];
-  private points: Map<string, any[]> = new Map();
-
-  async getCollections() {
-    return { collections: this.collections.map(name => ({ name })) };
-  }
-
-  async createCollection(collectionName: string, _config: any) {
-    this.collections.push(collectionName);
-    this.points.set(collectionName, []);
-    return { result: true };
-  }
-
-  async deleteCollection(collectionName: string) {
-    // Check if we should simulate an error
-    if (collectionName === 'error-collection') {
-      throw new Error('Deletion failed');
-    }
-    
-    this.collections = this.collections.filter(name => name !== collectionName);
-    this.points.delete(collectionName);
-    return { result: true };
-  }
-
-  async getCollection(collectionName: string) {
-    if (!this.collections.includes(collectionName)) {
-      throw new Error('Collection not found');
-    }
-    const points = this.points.get(collectionName) || [];
-    return {
-      points_count: points.length,
-      status: 'green',
-      config: {
-        params: {
-          vectors: {
-            size: 128,
-            distance: 'Cosine'
-          }
-        }
-      }
-    };
-  }
-
-  async upsert(collectionName: string, data: any) {
-    if (!this.collections.includes(collectionName)) {
-      throw new Error('Collection not found');
-    }
-    
-    const collectionPoints = this.points.get(collectionName) || [];
-    data.points.forEach((point: any) => {
-      const existingIndex = collectionPoints.findIndex((p: any) => p.id === point.id);
-      if (existingIndex >= 0) {
-        collectionPoints[existingIndex] = point;
-      } else {
-        collectionPoints.push(point);
-      }
-    });
-    this.points.set(collectionName, collectionPoints);
-    return { result: { operation_id: 1, status: 'completed' } };
-  }
-
-  async search(_collectionName: string, params: any) {
-    // Return mock search results
-    return [
-      {
-        id: 'test-point-1',
-        score: 0.95,
-        payload: {
-          content: 'test content',
-          filePath: '/test/file.ts',
-          language: 'typescript',
-          chunkType: 'function',
-          startLine: 1,
-          endLine: 10,
-          timestamp: new Date().toISOString()
-        },
-        // Only include vector if with_vector is true
-        ...(params.with_vector === true && { vector: Array(128).fill(0.5) })
-      }
-    ];
-  }
-
-  async delete(_collectionName: string, _params: any) {
-    return { result: { operation_id: 2, status: 'completed' } };
-  }
-
-  async createPayloadIndex(_collectionName: string, _params: any) {
-    return { result: { operation_id: 3, status: 'completed' } };
-  }
-}
-
 describe('QdrantClientWrapper', () => {
   let qdrantClient: QdrantClientWrapper;
-  let mockQdrantClient: MockQdrantClient;
+  let mockQdrantClient: any;
 
   beforeEach(() => {
-    // Mock the QdrantClient
-    jest.mock('@qdrant/js-client-rest', () => {
-      return {
-        QdrantClient: jest.fn().mockImplementation(() => mockQdrantClient)
-      };
-    });
-
     // Reset modules to ensure fresh mocks
     jest.resetModules();
-
-    mockQdrantClient = new MockQdrantClient();
     
+    // Re-import the module to get fresh mock
     const configService = new MockConfigService() as unknown as ConfigService;
     const loggerService = new MockLoggerService() as unknown as LoggerService;
     const errorHandlerService = new MockErrorHandlerService() as unknown as ErrorHandlerService;
@@ -147,6 +146,9 @@ describe('QdrantClientWrapper', () => {
       loggerService,
       errorHandlerService
     );
+    
+    // Get the mock client instance
+    mockQdrantClient = (qdrantClient as any).client;
   });
 
   afterEach(() => {
@@ -256,14 +258,15 @@ describe('QdrantClientWrapper', () => {
           }
         }
       ];
-
+      
       const result = await qdrantClient.upsertPoints('test-collection', points);
       expect(result).toBe(true);
     });
 
     it('should handle upsert failure', async () => {
-      // Mock the client to throw an error
-      jest.spyOn(mockQdrantClient, 'upsert').mockRejectedValue(new Error('Upsert failed'));
+      // We need to simulate an error in the upsert method
+      // This can be done by creating a special collection that causes errors
+      jest.spyOn(mockQdrantClient, 'upsert').mockRejectedValueOnce(new Error('Upsert failed'));
       
       const points: VectorPoint[] = [
         {
@@ -290,6 +293,27 @@ describe('QdrantClientWrapper', () => {
   describe('searchVectors', () => {
     it('should search vectors successfully', async () => {
       await qdrantClient.createCollection('test-collection', 128);
+      
+      // First, insert a test point
+      const points: VectorPoint[] = [
+        {
+          id: 'test-point-1',
+          vector: Array(128).fill(0.5),
+          payload: {
+            content: 'test content',
+            filePath: '/test/file.ts',
+            language: 'typescript',
+            chunkType: 'function',
+            startLine: 1,
+            endLine: 10,
+            metadata: {},
+            timestamp: new Date()
+          }
+        }
+      ];
+      
+      // Insert the test point
+      await qdrantClient.upsertPoints('test-collection', points);
       
       const queryVector = Array(128).fill(0.5);
       const options: SearchOptions = {
@@ -327,7 +351,7 @@ describe('QdrantClientWrapper', () => {
       jest.spyOn(mockQdrantClient, 'delete').mockRejectedValue(new Error('Delete failed'));
       
       const result = await qdrantClient.deletePoints('test-collection', ['point-1']);
-      expect(result).toBe(true); // Updated to match actual implementation which always returns true
+      expect(result).toBe(false); // Should return false when delete operation fails
     });
   });
 
