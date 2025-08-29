@@ -10,15 +10,15 @@ class MockLoggerService {
   info(message: string, meta?: any) {
     console.log(`[INFO] ${message}`, meta);
   }
-  
+
   error(message: string, error?: any) {
     console.error(`[ERROR] ${message}`, error);
   }
-  
+
   warn(message: string, meta?: any) {
     console.warn(`[WARN] ${message}`, meta);
   }
-  
+
   debug(message: string, meta?: any) {
     console.debug(`[DEBUG] ${message}`, meta);
   }
@@ -39,11 +39,11 @@ async function runPowerShellScript(scriptName: string): Promise<boolean> {
     const child = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
       cwd: __dirname
     });
-    
+
     child.on('close', (code) => {
       resolve(code === 0);
     });
-    
+
     child.on('error', () => {
       resolve(false);
     });
@@ -72,77 +72,77 @@ afterAll(async () => {
 
 describe('Qdrant Integration', () => {
   let qdrantClient: QdrantClientWrapper;
-  
+
   beforeEach(() => {
     // Reset modules to ensure clean test environment
     jest.resetModules();
-    
+
     // Create real instances with mocked services
     const configService = ConfigService.getInstance();
     const loggerService = new MockLoggerService() as unknown as LoggerService;
     const errorHandlerService = new MockErrorHandlerService() as unknown as ErrorHandlerService;
-    
+
     qdrantClient = new QdrantClientWrapper(
       configService,
       loggerService,
       errorHandlerService
     );
   });
-  
+
   afterEach(async () => {
     // Clean up any connections
     await qdrantClient.close();
   });
-  
+
   it('should initialize Qdrant client successfully', async () => {
     console.log('Testing Qdrant client initialization');
     const result = await qdrantClient.connect();
     console.log('Client initialization result:', result);
     expect(result).toBe(true);
   });
-  
+
   it('should handle connection status correctly', async () => {
     // Initially not connected
     expect(qdrantClient.isConnectedToDatabase()).toBe(false);
-    
+
     // After connection, should be connected
     await qdrantClient.connect();
     expect(qdrantClient.isConnectedToDatabase()).toBe(true);
   });
-  
+
   it('should create and manage collections', async () => {
     await qdrantClient.connect();
-    
+
     // Create a collection with test prefix
     const collectionName = 'test-collection-integration-' + Date.now();
     const result = await qdrantClient.createCollection(collectionName, 128);
     expect(result).toBe(true);
-    
+
     // Check if collection exists
     const exists = await qdrantClient.collectionExists(collectionName);
     expect(exists).toBe(true);
-    
+
     // Get collection info
     const info = await qdrantClient.getCollectionInfo(collectionName);
     expect(info).toBeDefined();
     expect(info?.name).toBe(collectionName);
     expect(info?.vectors.size).toBe(128);
-    
+
     // Delete collection
     const deleteResult = await qdrantClient.deleteCollection(collectionName);
     expect(deleteResult).toBe(true);
-    
+
     // Verify collection is deleted
     const existsAfterDelete = await qdrantClient.collectionExists(collectionName);
     expect(existsAfterDelete).toBe(false);
   });
-  
+
   it('should upsert and search vectors', async () => {
     await qdrantClient.connect();
-    
+
     const collectionName = 'test-search-collection-' + Date.now();
     await qdrantClient.createCollection(collectionName, 128);
-    
+
     // Upsert points
     const points = [
       {
@@ -174,10 +174,10 @@ describe('Qdrant Integration', () => {
         }
       }
     ];
-    
+
     const upsertResult = await qdrantClient.upsertPoints(collectionName, points);
     expect(upsertResult).toBe(true);
-    
+
     // Search vectors
     const queryVector = Array(128).fill(0.6);
     const results = await qdrantClient.searchVectors(collectionName, queryVector, {
@@ -187,20 +187,20 @@ describe('Qdrant Integration', () => {
         language: ['typescript']
       }
     });
-    
+
     expect(results).toBeDefined();
     expect(results.length).toBeGreaterThan(0);
-    
+
     // Clean up
     await qdrantClient.deleteCollection(collectionName);
   });
-  
+
   it('should delete points', async () => {
     await qdrantClient.connect();
-    
+
     const collectionName = 'test-delete-collection-' + Date.now();
     await qdrantClient.createCollection(collectionName, 128);
-    
+
     // Upsert points
     const points = [
       {
@@ -218,27 +218,27 @@ describe('Qdrant Integration', () => {
         }
       }
     ];
-    
+
     await qdrantClient.upsertPoints(collectionName, points);
-    
+
     // Delete points
     const deleteResult = await qdrantClient.deletePoints(collectionName, ['point-to-delete']);
     expect(deleteResult).toBe(true);
-    
+
     // Clean up
     await qdrantClient.deleteCollection(collectionName);
   });
-  
+
   it('should get point count', async () => {
     await qdrantClient.connect();
-    
+
     const collectionName = 'test-count-collection-' + Date.now();
     await qdrantClient.createCollection(collectionName, 128);
-    
+
     // Initially should have 0 points
     const initialCount = await qdrantClient.getPointCount(collectionName);
     expect(initialCount).toBe(0);
-    
+
     // Upsert points
     const points = [
       {
@@ -256,13 +256,13 @@ describe('Qdrant Integration', () => {
         }
       }
     ];
-    
+
     await qdrantClient.upsertPoints(collectionName, points);
-    
+
     // Should have 1 point now
     const count = await qdrantClient.getPointCount(collectionName);
     expect(count).toBe(1);
-    
+
     // Clean up
     await qdrantClient.deleteCollection(collectionName);
   });

@@ -30,7 +30,7 @@ describe('Nebula Database Integration Tests', () => {
         errorHandlerService,
         configService
       );
-      
+
       // Ensure we start with a clean connection
       if (nebulaConnectionManager.isConnectedToDatabase()) {
         await nebulaConnectionManager.disconnect();
@@ -135,7 +135,7 @@ describe('Nebula Database Integration Tests', () => {
       }
       // 清理所有挂起的定时器
       jest.useRealTimers();
-      
+
       // 确保所有异步操作完成
       await new Promise(resolve => setTimeout(resolve, 100));
     });
@@ -313,7 +313,7 @@ describe('Nebula Database Integration Tests', () => {
       }
       // 清理所有挂起的定时器
       jest.useRealTimers();
-      
+
       // 确保所有异步操作完成
       await new Promise(resolve => setTimeout(resolve, 100));
     });

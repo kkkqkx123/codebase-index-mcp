@@ -1,0 +1,110 @@
+2025-08-29T15:51:54.241Z [[32minfo[39m]: Test info message {
+  "key": "value",
+  "userId": 123
+}
+2025-08-29T15:51:54.255Z [[32minfo[39m]: Test info message 
+2025-08-29T15:51:54.259Z [[31merror[39m]: Test error message Test error {
+  "stack": "Error: Test error\n    at Object.<anonymous> (D:\\ide与cli\\tool\\codebase-index\\test\\unit\\LoggerService.test.ts:89:21)\n    at Promise.finally.completed (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1556:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1496:10)\n    at _callCircusTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1006:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:946:3)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1917:21)\n    at jestAdapter (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\testWorker.js:275:16)\n    at runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\testWorker.js:343:7)\n    at Object.worker (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\testWorker.js:497:12)"
+}
+2025-08-29T15:51:54.263Z [[33mwarn[39m]: Test warning message {
+  "warning": true
+}
+2025-08-29T15:51:54.264Z [[34mdebug[39m]: Test debug message {
+  "debug": true,
+  "data": {
+    "nested": true
+  }
+}
+2025-08-29T15:51:54.266Z [[36mverbose[39m]: Test verbose message {
+  "verbose": true,
+  "details": "extra information"
+}
+2025-08-29T15:51:54.261Z [[31merror[39m]: Test error message 
+2025-08-29T15:55:00.646Z [[32minfo[39m]: Test info message {
+  "key": "value",
+  "userId": 123
+}
+2025-08-29T15:55:00.662Z [[32minfo[39m]: Test info message 
+2025-08-29T15:55:00.666Z [[31merror[39m]: Test error message Test error {
+  "stack": "Error: Test error\n    at Object.<anonymous> (D:\\ide与cli\\tool\\codebase-index\\test\\unit\\LoggerService.test.ts:87:21)\n    at Promise.finally.completed (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1556:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1496:10)\n    at _callCircusTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1006:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:946:3)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1917:21)\n    at jestAdapter (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\testWorker.js:275:16)\n    at runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\testWorker.js:343:7)\n    at Object.worker (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\testWorker.js:497:12)"
+}
+2025-08-29T15:55:00.669Z [[31merror[39m]: Test error message 
+2025-08-29T15:55:00.672Z [[33mwarn[39m]: Test warning message {
+  "warning": true
+}
+2025-08-29T15:55:00.675Z [[34mdebug[39m]: Test debug message {
+  "debug": true,
+  "data": {
+    "nested": true
+  }
+}
+2025-08-29T15:55:00.677Z [[36mverbose[39m]: Test verbose message {
+  "verbose": true,
+  "details": "extra information"
+}
+2025-08-29T15:55:43.853Z [[32minfo[39m]: Test info message {
+  "key": "value",
+  "userId": 123
+}
+2025-08-29T15:55:43.856Z [[32minfo[39m]: Test info message 
+2025-08-29T15:55:43.857Z [[31merror[39m]: Test error message Test error {
+  "stack": "Error: Test error\n    at Object.<anonymous> (D:\\ide与cli\\tool\\codebase-index\\test\\unit\\LoggerService.test.ts:86:21)\n    at Promise.finally.completed (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1556:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1496:10)\n    at _callCircusTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1006:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:946:3)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1917:21)\n    at jestAdapter (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\index.js:343:7)"
+}
+2025-08-29T15:55:43.858Z [[31merror[39m]: Test error message 
+2025-08-29T15:55:43.859Z [[33mwarn[39m]: Test warning message {
+  "warning": true
+}
+2025-08-29T15:55:43.861Z [[34mdebug[39m]: Test debug message {
+  "debug": true,
+  "data": {
+    "nested": true
+  }
+}
+2025-08-29T15:55:43.862Z [[36mverbose[39m]: Test verbose message {
+  "verbose": true,
+  "details": "extra information"
+}
+2025-08-29T15:56:10.694Z [[32minfo[39m]: Test info message {
+  "key": "value",
+  "userId": 123
+}
+2025-08-29T15:56:10.697Z [[32minfo[39m]: Test info message 
+2025-08-29T15:56:10.698Z [[31merror[39m]: Test error message Test error {
+  "stack": "Error: Test error\n    at Object.<anonymous> (D:\\ide与cli\\tool\\codebase-index\\test\\unit\\LoggerService.test.ts:84:21)\n    at Promise.finally.completed (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1556:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1496:10)\n    at _callCircusTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1006:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:946:3)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1917:21)\n    at jestAdapter (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\index.js:343:7)"
+}
+2025-08-29T15:56:10.699Z [[31merror[39m]: Test error message 
+2025-08-29T15:56:10.702Z [[34mdebug[39m]: Test debug message {
+  "debug": true,
+  "data": {
+    "nested": true
+  }
+}
+2025-08-29T15:56:10.701Z [[33mwarn[39m]: Test warning message {
+  "warning": true
+}
+2025-08-29T15:56:10.703Z [[36mverbose[39m]: Test verbose message {
+  "verbose": true,
+  "details": "extra information"
+}
+2025-08-29T15:56:31.917Z [[32minfo[39m]: Test info message {
+  "key": "value",
+  "userId": 123
+}
+2025-08-29T15:56:31.920Z [[32minfo[39m]: Test info message 
+2025-08-29T15:56:31.922Z [[31merror[39m]: Test error message Test error {
+  "stack": "Error: Test error\n    at Object.<anonymous> (D:\\ide与cli\\tool\\codebase-index\\test\\unit\\LoggerService.test.ts:86:21)\n    at Promise.finally.completed (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1556:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1496:10)\n    at _callCircusTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1006:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:946:3)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1917:21)\n    at jestAdapter (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (D:\\ide与cli\\tool\\codebase-index\\node_modules\\jest-runner\\build\\index.js:343:7)"
+}
+2025-08-29T15:56:31.923Z [[31merror[39m]: Test error message 
+2025-08-29T15:56:31.924Z [[33mwarn[39m]: Test warning message {
+  "warning": true
+}
+2025-08-29T15:56:31.926Z [[34mdebug[39m]: Test debug message {
+  "debug": true,
+  "data": {
+    "nested": true
+  }
+}
+2025-08-29T15:56:31.927Z [[36mverbose[39m]: Test verbose message {
+  "verbose": true,
+  "details": "extra information"
+}
