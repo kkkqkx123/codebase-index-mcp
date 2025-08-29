@@ -2,7 +2,7 @@ import { NebulaConnectionManager } from '../../nebula/NebulaConnectionManager';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { ConfigService } from '../../../config/ConfigService';
-import { NebulaQueryBuilder } from '../../nebula/NebulaQueryBuilder';
+// import { NebulaQueryBuilder } from '../../nebula/NebulaQueryBuilder';
 
 // Mock the Nebula client
 jest.mock('@nebula-contrib/nebula-nodejs', () => ({
@@ -13,7 +13,19 @@ jest.mock('@nebula-contrib/nebula-nodejs', () => ({
 jest.mock('../../../../src/core/LoggerService');
 jest.mock('../../../../src/core/ErrorHandlerService');
 jest.mock('../../../../src/config/ConfigService');
-jest.mock('../../../../src/database/nebula/NebulaQueryBuilder');
+jest.mock('../../../../src/database/nebula/NebulaQueryBuilder', () => {
+  return {
+    NebulaQueryBuilder: jest.fn().mockImplementation(() => {
+      return {
+        insertVertex: jest.fn(),
+        insertEdge: jest.fn(),
+        match: jest.fn(),
+        go: jest.fn(),
+        parameterize: jest.fn(),
+      };
+    }),
+  };
+});
 
 describe('NebulaConnectionManager', () => {
   let nebulaConnectionManager: NebulaConnectionManager;
@@ -72,6 +84,10 @@ describe('NebulaConnectionManager', () => {
       mockErrorHandlerService,
       mockConfigService
     );
+
+    // Get the mock query builder instance
+    // const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+    // const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
   });
 
   describe('connect', () => {
@@ -251,21 +267,21 @@ describe('NebulaConnectionManager', () => {
         properties: { name: 'Alice', age: 30 },
       };
 
-      const mockQueryBuilder = {
-        insertVertex: jest.fn().mockReturnValue({
-          query: 'INSERT VERTEX person(name, age) VALUES 1:($param0, $param1)',
-          params: { param0: 'Alice', param1: 30 },
-        }),
-      };
+      // Get the mock query builder instance
+      const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+      const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      (NebulaQueryBuilder as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      mockQueryBuilderInstance.insertVertex.mockReturnValue({
+        query: 'INSERT VERTEX person(name, age) VALUES 1:($param0, $param1)',
+        params: { param0: 'Alice', param1: 30 },
+      });
 
       mockClient.execute.mockResolvedValue({});
 
       const result = await nebulaConnectionManager.createNode(node);
 
       expect(result).toBe('1');
-      expect(mockQueryBuilder.insertVertex).toHaveBeenCalledWith(
+      expect(mockQueryBuilderInstance.insertVertex).toHaveBeenCalledWith(
         'person',
         '1',
         { name: 'Alice', age: 30 }
@@ -300,21 +316,21 @@ describe('NebulaConnectionManager', () => {
         properties: { since: 2020 },
       };
 
-      const mockQueryBuilder = {
-        insertEdge: jest.fn().mockReturnValue({
-          query: 'INSERT EDGE knows(since) VALUES 1->2:($param0)',
-          params: { param0: 2020 },
-        }),
-      };
+      // Get the mock query builder instance
+      const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+      const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      (NebulaQueryBuilder as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      mockQueryBuilderInstance.insertEdge.mockReturnValue({
+        query: 'INSERT EDGE knows(since) VALUES 1->2:($param0)',
+        params: { param0: 2020 },
+      });
 
       mockClient.execute.mockResolvedValue({});
 
       const result = await nebulaConnectionManager.createRelationship(relationship);
 
       expect(result).toBe('1->2');
-      expect(mockQueryBuilder.insertEdge).toHaveBeenCalledWith(
+      expect(mockQueryBuilderInstance.insertEdge).toHaveBeenCalledWith(
         'knows',
         '1',
         '2',
@@ -344,11 +360,11 @@ describe('NebulaConnectionManager', () => {
     it('should find nodes by label successfully', async () => {
       await nebulaConnectionManager.connect();
 
-      const mockQueryBuilder = {
-        match: jest.fn().mockReturnValue('MATCH (n:person) RETURN n'),
-      };
+      // Get the mock query builder instance
+      const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+      const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      (NebulaQueryBuilder as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      mockQueryBuilderInstance.match.mockReturnValue('MATCH (n:person) RETURN n');
 
       const mockResult = { data: [{ id: 1, name: 'Alice' }] };
       mockClient.execute.mockResolvedValue(mockResult);
@@ -356,7 +372,7 @@ describe('NebulaConnectionManager', () => {
       const result = await nebulaConnectionManager.findNodesByLabel('person');
 
       expect(result).toEqual([{ id: 1, name: 'Alice' }]);
-      expect(mockQueryBuilder.match).toHaveBeenCalledWith('(n:person)', 'n', undefined);
+      expect(mockQueryBuilderInstance.match).toHaveBeenCalledWith('(n:person)', 'n', undefined);
       expect(mockClient.execute).toHaveBeenCalledWith(
         'MATCH (n:person) RETURN n',
         false,
@@ -367,11 +383,11 @@ describe('NebulaConnectionManager', () => {
     it('should find nodes by label with properties', async () => {
       await nebulaConnectionManager.connect();
 
-      const mockQueryBuilder = {
-        match: jest.fn().mockReturnValue('MATCH (n:person) WHERE n.name = $name RETURN n'),
-      };
+      // Get the mock query builder instance
+      const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+      const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      (NebulaQueryBuilder as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      mockQueryBuilderInstance.match.mockReturnValue('MATCH (n:person) WHERE n.name = $name RETURN n');
 
       const mockResult = { data: [{ id: 1, name: 'Alice' }] };
       mockClient.execute.mockResolvedValue(mockResult);
@@ -379,7 +395,7 @@ describe('NebulaConnectionManager', () => {
       const result = await nebulaConnectionManager.findNodesByLabel('person', { name: 'Alice' });
 
       expect(result).toEqual([{ id: 1, name: 'Alice' }]);
-      expect(mockQueryBuilder.match).toHaveBeenCalledWith(
+      expect(mockQueryBuilderInstance.match).toHaveBeenCalledWith(
         '(n:person)',
         'n',
         'n.name = $name'
@@ -401,11 +417,11 @@ describe('NebulaConnectionManager', () => {
     it('should find relationships successfully', async () => {
       await nebulaConnectionManager.connect();
 
-      const mockQueryBuilder = {
-        match: jest.fn().mockReturnValue('MATCH (n1)-[r]->(n2) RETURN r, n1, n2'),
-      };
+      // Get the mock query builder instance
+      const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+      const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      (NebulaQueryBuilder as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      mockQueryBuilderInstance.match.mockReturnValue('MATCH (n1)-[r]->(n2) RETURN r, n1, n2');
 
       const mockResult = { data: [{ src: 1, dst: 2, type: 'knows' }] };
       mockClient.execute.mockResolvedValue(mockResult);
@@ -413,7 +429,7 @@ describe('NebulaConnectionManager', () => {
       const result = await nebulaConnectionManager.findRelationships();
 
       expect(result).toEqual([{ src: 1, dst: 2, type: 'knows' }]);
-      expect(mockQueryBuilder.match).toHaveBeenCalledWith(
+      expect(mockQueryBuilderInstance.match).toHaveBeenCalledWith(
         '(n1)-[r]->(n2)',
         'r, n1, n2',
         undefined
@@ -428,11 +444,11 @@ describe('NebulaConnectionManager', () => {
     it('should find relationships with type filter', async () => {
       await nebulaConnectionManager.connect();
 
-      const mockQueryBuilder = {
-        match: jest.fn().mockReturnValue('MATCH (n1)-[r:knows]->(n2) RETURN r, n1, n2'),
-      };
+      // Get the mock query builder instance
+      const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
+      const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      (NebulaQueryBuilder as jest.Mock).mockImplementation(() => mockQueryBuilder);
+      mockQueryBuilderInstance.match.mockReturnValue('MATCH (n1)-[r:knows]->(n2) RETURN r, n1, n2');
 
       const mockResult = { data: [{ src: 1, dst: 2, type: 'knows' }] };
       mockClient.execute.mockResolvedValue(mockResult);
@@ -440,7 +456,7 @@ describe('NebulaConnectionManager', () => {
       const result = await nebulaConnectionManager.findRelationships('knows');
 
       expect(result).toEqual([{ src: 1, dst: 2, type: 'knows' }]);
-      expect(mockQueryBuilder.match).toHaveBeenCalledWith(
+      expect(mockQueryBuilderInstance.match).toHaveBeenCalledWith(
         '(n1)-[r:knows]->(n2)',
         'r, n1, n2',
         undefined

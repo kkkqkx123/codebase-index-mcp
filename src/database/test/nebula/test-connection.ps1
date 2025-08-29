@@ -41,18 +41,19 @@ if (Test-Path $envFile) {
 }
 
 # Get NebulaGraph configuration from environment variables
-$host = [Environment]::GetEnvironmentVariable("NEBULA_HOST")
+$nebulaHost = [Environment]::GetEnvironmentVariable("NEBULA_HOST")
 $username = [Environment]::GetEnvironmentVariable("NEBULA_USERNAME")
 $password = [Environment]::GetEnvironmentVariable("NEBULA_PASSWORD")
 $space = [Environment]::GetEnvironmentVariable("NEBULA_SPACE")
 
-Write-Host "NebulaGraph Host: $host"
+Write-Host "NebulaGraph Host: $nebulaHost"
 Write-Host "NebulaGraph Username: $username"
 Write-Host "NebulaGraph Password: $password"
-Write-Host "NebulaGraph Space: $space"
+Write-Host "NebulaGraph Space: $space
+Write-Host "Note: If space '$space' doesn't exist, try using 'codegraph' instead""
 
 # Validate configuration
-if (-not $host -or -not $username -or -not $password) {
+if (-not $nebulaHost -or -not $username -or -not $password) {
   Write-Host "Missing NebulaGraph configuration"
   exit 1
 }
@@ -60,7 +61,7 @@ if (-not $host -or -not $username -or -not $password) {
 # Function to test NebulaGraph connection
 function Test-NebulaConnection {
   param(
-    [string]$Host,
+    [string]$NebulaHost,
     [string]$Username,
     [string]$Password,
     [string]$Space
@@ -80,28 +81,49 @@ function Test-NebulaConnection {
 const { createClient } = require('@nebula-contrib/nebula-nodejs');
 
 async function testConnection() {
-  // Create client
+  // Create client with correct options based on NebulaConnectionManager implementation
   const client = createClient({
-    addresses: ['$Host:9669'],
-    username: '$Username',
-    password: '$Password'
+    servers: ['$NebulaHost:9669'],
+    userName: '$Username',
+    password: '$Password',
+    space: '$Space',
+    poolSize: 2,
+    executeTimeout: 10000
   });
   
   try {
-    // Connect to NebulaGraph
-    await client.connect();
+    // Connect to NebulaGraph using event listeners (no explicit connect method)
+    await new Promise((resolve, reject) => {
+      client.on('ready', () => resolve());
+      client.on('error', (error) => reject(error));
+      
+      // Set timeout
+      setTimeout(() => reject(new Error('Connection timeout')), 10000);
+    });
+    
     console.log('Connected to NebulaGraph successfully');
     
-    // Try to use the target space
+    // Test basic query to verify connection
     try {
-      await client.execute('USE $Space');
-      console.log('Space $Space is accessible');
-      await client.close();
-      process.exit(0);
-    } catch (error) {
-      console.log('Space $Space is not accessible or does not exist');
-      console.log('Error:', error.message);
-      await client.close();
+      const result = await client.execute('SHOW HOSTS', false);
+      console.log('Basic query executed successfully');
+      console.log('Basic query successful - received response with', result?.data?.length || 0, 'hosts');
+      
+      // Try to use the target space
+      try {
+        await client.execute('USE $Space', false);
+        console.log('Space $Space is accessible');
+        client.removeAllListeners();
+        process.exit(0);
+      } catch (spaceError) {
+        console.log('Space $Space is not accessible or does not exist');
+        console.log('Error:', spaceError.message);
+        client.removeAllListeners();
+        process.exit(1);
+      }
+    } catch (queryError) {
+      console.log('Failed to execute basic query:', queryError.message);
+      client.removeAllListeners();
       process.exit(1);
     }
   } catch (error) {
@@ -137,7 +159,7 @@ testConnection();
 }
 
 # Test the connection
-$result = Test-NebulaConnection -Host $host -Username $username -Password $password -Space $space
+$result = Test-NebulaConnection -NebulaHost $nebulaHost -Username $username -Password $password -Space $space
 
 if ($result) {
   Write-Host "NebulaGraph connection test passed successfully!" -ForegroundColor Green
