@@ -45,25 +45,33 @@ export class NebulaConnectionManager {
       
       // 等待客户端准备就绪
       await new Promise<void>((resolve, reject) => {
+        // 定义事件处理函数
         const readyHandler = () => {
-          this.client!.off('error', errorHandler);
+          // 移除事件监听器
+          this.removeListener('error', errorHandler);
           resolve();
         };
         
         const errorHandler = (error: any) => {
-          this.client!.off('ready', readyHandler);
+          // 移除事件监听器
+          this.removeListener('ready', readyHandler);
           reject(error);
         };
         
+        // 添加事件监听器
         this.client!.on('ready', readyHandler);
         this.client!.on('error', errorHandler);
         
         // 设置超时
-        setTimeout(() => {
-          this.client!.off('ready', readyHandler);
-          this.client!.off('error', errorHandler);
-          reject(new Error('Connection timeout'));
+        const timeout = setTimeout(() => {
+          // 移除事件监听器
+          this.removeListener('ready', readyHandler);
+          this.removeListener('error', errorHandler);
+          reject(new Error('Connection timeout'));  
         }, 10000);
+        
+        // 确保超时定时器不会阻止进程退出
+        timeout.unref();
       });
       
       this.isConnected = true;
@@ -79,11 +87,28 @@ export class NebulaConnectionManager {
     }
   }
 
+  /**
+   * 移除事件监听器的辅助方法
+   * @param event 事件名称
+   * @param listener 事件监听器
+   */
+  private removeListener(event: string, listener: Function): void {
+    // 检查client是否存在off方法，如果不存在则使用removeListener
+    if (this.client && typeof this.client.off === 'function') {
+      this.client.off(event, listener);
+    } else if (this.client && typeof this.client.removeListener === 'function') {
+      this.client.removeListener(event, listener);
+    }
+  }
+
   async disconnect(): Promise<void> {
     try {
       if (this.client) {
-        // NebulaGraph Node.js客户端可能没有显式的disconnect方法
-        // 我们将客户端设置为null并更新连接状态
+        // 关闭NebulaGraph客户端连接
+        if (typeof this.client.close === 'function') {
+          await this.client.close();
+        }
+        // 将客户端设置为null并更新连接状态
         this.client = null;
       }
       this.isConnected = false;

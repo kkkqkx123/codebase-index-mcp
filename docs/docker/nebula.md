@@ -4,142 +4,7 @@
 在 `/home/docker-compose/nebula` 目录下创建 `docker-compose.yml` 文件：
 
 创建 `docker-compose.yml` 文件：
-
-```yaml
-services:
-  metad0:
-    image: vesoft/nebula-metad:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --local_ip=metad0
-      - --ws_ip=metad0
-      - --port=9559
-      - --data_path=/data/meta
-    volumes:
-      - ./data/meta0:/data/meta
-    ports:
-      - 9559:9559
-      - 19559:19559
-    restart: unless-stopped
-
-  metad1:
-    image: vesoft/nebula-metad:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --local_ip=metad1
-      - --ws_ip=metad1
-      - --port=9559
-      - --data_path=/data/meta
-    volumes:
-      - ./data/meta1:/data/meta
-    ports:
-      - 9560:9559
-      - 19560:19559
-    restart: unless-stopped
-
-  metad2:
-    image: vesoft/nebula-metad:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --local_ip=metad2
-      - --ws_ip=metad2
-      - --port=9559
-      - --data_path=/data/meta
-    volumes:
-      - ./data/meta2:/data/meta
-    ports:
-      - 9561:9559
-      - 19561:19559
-    restart: unless-stopped
-
-  storaged0:
-    image: vesoft/nebula-storaged:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --local_ip=storaged0
-      - --ws_ip=storaged0
-      - --port=9779
-      - --data_path=/data/storage
-    depends_on:
-      - metad0
-      - metad1
-      - metad2
-    volumes:
-      - ./data/storage0:/data/storage
-    ports:
-      - 9779:9779
-      - 19779:19779
-    restart: unless-stopped
-
-  storaged1:
-    image: vesoft/nebula-storaged:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --local_ip=storaged1
-      - --ws_ip=storaged1
-      - --port=9779
-      - --data_path=/data/storage
-    depends_on:
-      - metad0
-      - metad1
-      - metad2
-    volumes:
-      - ./data/storage1:/data/storage
-    ports:
-      - 9780:9779
-      - 19780:19779
-    restart: unless-stopped
-
-  storaged2:
-    image: vesoft/nebula-storaged:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --local_ip=storaged2
-      - --ws_ip=storaged2
-      - --port=9779
-      - --data_path=/data/storage
-    depends_on:
-      - metad0
-      - metad1
-      - metad2
-    volumes:
-      - ./data/storage2:/data/storage
-    ports:
-      - 9781:9779
-      - 19781:19779
-    restart: unless-stopped
-
-  graphd:
-    image: vesoft/nebula-graphd:v3.8.0
-    environment:
-      TZ: "Asia/Shanghai"
-    command:
-      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
-      - --port=9669
-      - --local_ip=graphd
-      - --ws_ip=graphd
-      - --enable_authorize=true
-    depends_on:
-      - storaged0
-      - storaged1
-      - storaged2
-    ports:
-      - 9669:9669
-      - 19669:19669
-    restart: unless-stopped
-```
+见`./docker-compose.yml`
 
 ## 启动 NebulaGraph 集群
 
@@ -147,12 +12,27 @@ services:
 # 创建数据目录
 cd /home/share
 mkdir nebula && cd nebula
-mkdir -p data/meta0 data/meta1 data/meta2 data/storage0 data/storage1 data/storage2
 touch docker-compose.yml
 vi docker-compose.yml
+
 # 启动 NebulaGraph 集群
+# 创建目录
+mkdir -p data/meta{0,1,2}
+mkdir -p data/storage{0,1,2}
+mkdir -p logs/{metad0,metad1,metad2,storaged0,storaged1,storaged2,graphd,console}
+# 启动
+# 清除现有实例
+docker-compose down
 docker-compose up -d
 
+# 查看状态
+docker-compose ps
+
+# 查看 storaged 日志
+docker-compose logs storaged0
+
+# 进入 CLI
+docker exec -it graphd /usr/local/nebula/bin/nebula-console -u root -p nebula
 
 
 # 重写docker-compose.yml

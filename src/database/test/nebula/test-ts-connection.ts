@@ -49,9 +49,68 @@ async function testNebulaConnection() {
 
         console.log('已成功连接到Nebula Graph');
 
+        // 激活离线的storaged容器
+        console.log('\n激活离线的storaged容器...');
+        try {
+          await client.execute('ADD HOSTS "storaged0":9779, "storaged1":9779, "storaged2":9779;');
+          console.log('已发送激活命令，等待storaged容器上线...');
+          // 等待storaged容器上线
+          await new Promise(resolve => setTimeout(resolve, 10000));
+        } catch (error) {
+          console.error('激活storaged容器时出错:', error);
+        }
+
+        // 检查storage主机状态
+        console.log('\n检查storage主机状态:');
+        try {
+          const showHostsResult = await client.execute('SHOW HOSTS');
+          console.log('Hosts状态:', showHostsResult);
+          
+          // 检查是否所有主机都已上线
+          const hostsData = showHostsResult.data || [];
+          const offlineHosts = hostsData.filter((host: any) => host.Status !== 'ONLINE');
+          
+          if (offlineHosts.length > 0) {
+            console.warn('警告: 仍有离线的storage主机:', offlineHosts);
+          } else {
+            console.log('所有storage主机均已上线');
+          }
+        } catch (error) {
+          console.error('检查storage主机状态时出错:', error);
+        }
+
         // 首先创建配置中指定的space（如果不存在）
         console.log(`\n创建space: ${config.nebula.space}`);
         try {
+          // 检查是否所有storage主机都已上线，如果未上线则等待一段时间
+          let allHostsOnline = false;
+          let retryCount = 0;
+          const maxRetries = 5;
+          
+          while (!allHostsOnline && retryCount < maxRetries) {
+            try {
+              const showHostsResult = await client.execute('SHOW HOSTS');
+              const hostsData = showHostsResult.data || [];
+              const offlineHosts = hostsData.filter((host: any) => host.Status !== 'ONLINE');
+              
+              if (offlineHosts.length === 0) {
+                allHostsOnline = true;
+                console.log('所有storage主机均已上线，可以创建space');
+              } else {
+                console.log(`仍有 ${offlineHosts.length} 个storage主机离线，等待中... (重试 ${retryCount + 1}/${maxRetries})`);
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 5000));
+              }
+            } catch (hostCheckError) {
+              console.error('检查storage主机状态时出错:', hostCheckError);
+              break; // 如果检查主机状态出错，则跳出循环
+            }
+          }
+          
+          if (!allHostsOnline) {
+            console.warn('警告: 部分storage主机仍处于离线状态，可能会导致space创建失败');
+          }
+          
           await client.execute(`CREATE SPACE IF NOT EXISTS ${config.nebula.space} (vid_type=FIXED_STRING(32))`);
           // 等待space创建完成
           await new Promise(resolve => setTimeout(resolve, 5000));
@@ -85,6 +144,16 @@ async function testNebulaConnection() {
         // 使用配置中指定的space名称作为测试space
         const testSpaceName = config.nebula.space;
         console.log(`\n使用space进行测试: ${testSpaceName}`);
+        
+        // 确保space已正确切换
+        try {
+          console.log(`\n再次确认切换到space: ${testSpaceName}`);
+          await client.execute(`USE ${testSpaceName}`);
+          console.log(`已确认切换到space: ${testSpaceName}`);
+        } catch (switchError) {
+          console.error('切换space时出错:', switchError);
+          throw switchError;
+        }
         
         // 在新space中创建一个标签
         console.log('\n在新space中创建标签:');
