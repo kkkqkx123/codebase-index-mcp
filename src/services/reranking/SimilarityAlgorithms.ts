@@ -57,8 +57,8 @@ export class SimilarityAlgorithms {
    * @returns Jaccard similarity score between 0 and 1
    */
   static jaccardSimilarity(set1: Set<string>, set2: Set<string>): number {
-    const intersection = new Set([...set1].filter(x => set2.has(x)));
-    const union = new Set([...set1, ...set2]);
+    const intersection = new Set([...Array.from(set1)].filter(x => set2.has(x)));
+    const union = new Set([...Array.from(set1), ...Array.from(set2)]);
     
     if (union.size === 0) {
       return 0;
@@ -181,7 +181,7 @@ export class SimilarityAlgorithms {
     let similaritySum = 0;
     let weightSum = 0;
     
-    for (const key of allKeys) {
+    for (const key of Array.from(allKeys)) {
       const val1 = features1[key] || 0;
       const val2 = features2[key] || 0;
       

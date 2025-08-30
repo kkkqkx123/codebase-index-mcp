@@ -92,7 +92,20 @@ const configSchema = Joi.object({
         criticalCpuUsage: Joi.number().positive().default(85) // percentage
       })
     })
-  })
+  }),
+  mlReranking: Joi.object({
+    modelPath: Joi.string().optional(),
+    modelType: Joi.string().valid('linear', 'neural', 'ensemble').default('linear'),
+    features: Joi.array().items(Joi.string()).default([
+      'semanticScore',
+      'graphScore',
+      'contextualScore',
+      'recencyScore',
+      'popularityScore',
+      'originalScore'
+    ]),
+    trainingEnabled: Joi.boolean().default(true)
+  }).optional()
 });
 
 export interface Config {
@@ -177,6 +190,12 @@ export interface Config {
         criticalCpuUsage: number;
       };
     };
+  };
+  mlReranking?: {
+    modelPath?: string;
+    modelType: 'linear' | 'neural' | 'ensemble';
+    features: string[];
+    trainingEnabled: boolean;
   };
 }
 
@@ -268,6 +287,19 @@ export class ConfigService {
         }
       }
     };
+    mlReranking: process.env.ML_RERANKING_MODEL_PATH || process.env.ML_RERANKING_MODEL_TYPE || process.env.ML_RERANKING_FEATURES || process.env.ML_RERANKING_TRAINING_ENABLED ? {
+      modelPath: process.env.ML_RERANKING_MODEL_PATH || undefined,
+      modelType: (process.env.ML_RERANKING_MODEL_TYPE as 'linear' | 'neural' | 'ensemble') || 'linear',
+      features: process.env.ML_RERANKING_FEATURES ? process.env.ML_RERANKING_FEATURES.split(',') : [
+        'semanticScore',
+        'graphScore',
+        'contextualScore',
+        'recencyScore',
+        'popularityScore',
+        'originalScore'
+      ],
+      trainingEnabled: process.env.ML_RERANKING_TRAINING_ENABLED !== 'false'
+    } : undefined;
 
     const { error, value } = configSchema.validate(rawConfig, { allowUnknown: false });
     

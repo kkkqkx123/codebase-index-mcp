@@ -257,12 +257,12 @@ export class MLRerankingService {
     variantB: { ctr: number; impressions: number; clicks: number };
     winner?: 'A' | 'B';
   } {
-    const ctrA = this.abTestResults.variantA.impressions > 0 
-      ? this.abTestResults.variantA.clicks / this.abTestResults.variantA.impressions 
+    const ctrA = this.abTestResults.variantA.impressions > 0
+      ? this.abTestResults.variantA.clicks / this.abTestResults.variantA.impressions
       : 0;
       
-    const ctrB = this.abTestResults.variantB.impressions > 0 
-      ? this.abTestResults.variantB.clicks / this.abTestResults.variantB.impressions 
+    const ctrB = this.abTestResults.variantB.impressions > 0
+      ? this.abTestResults.variantB.clicks / this.abTestResults.variantB.impressions
       : 0;
       
     let winner: 'A' | 'B' | undefined;
@@ -281,7 +281,7 @@ export class MLRerankingService {
         impressions: this.abTestResults.variantB.impressions,
         clicks: this.abTestResults.variantB.clicks
       },
-      winner
+      winner: winner as 'A' | 'B' | undefined
     };
   }
 

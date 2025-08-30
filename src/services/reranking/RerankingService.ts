@@ -111,7 +111,7 @@ export class RerankingService implements IRerankingService {
       const finalScore = this.combineScores({
         original: originalScore,
         semantic: semanticScore,
-        weights: options?.weights
+        weights: options?.weights || {}
       });
       
       const confidence = this.calculateConfidence(result, finalScore);
@@ -145,7 +145,7 @@ export class RerankingService implements IRerankingService {
       const finalScore = this.combineScores({
         original: originalScore,
         graph: graphScore,
-        weights: options?.weights
+        weights: options?.weights || {}
       });
       
       const confidence = this.calculateConfidence(result, finalScore);
@@ -181,7 +181,7 @@ export class RerankingService implements IRerankingService {
         semantic: semanticScore,
         graph: graphScore,
         contextual: contextualScore,
-        weights: options?.weights
+        weights: options?.weights || {}
       });
       
       const confidence = this.calculateConfidence(result, finalScore);
@@ -215,7 +215,7 @@ export class RerankingService implements IRerankingService {
       const finalScore = this.combineScores({
         original: originalScore,
         semantic: mlScore, // Using ML score as semantic for now
-        weights: options?.weights
+        weights: options?.weights || {}
       });
       
       const confidence = this.calculateConfidence(result, finalScore);
@@ -240,8 +240,8 @@ export class RerankingService implements IRerankingService {
     const contentWords = new Set(content.toLowerCase().split(/\s+/));
     const queryWords = new Set(query.toLowerCase().split(/\s+/));
     
-    const intersection = new Set([...contentWords].filter(word => queryWords.has(word)));
-    const union = new Set([...contentWords, ...queryWords]);
+    const intersection = new Set(Array.from(contentWords).filter(word => queryWords.has(word)));
+    const union = new Set([...Array.from(contentWords), ...Array.from(queryWords)]);
     
     return union.size > 0 ? intersection.size / union.size : 0;
   }

@@ -25,8 +25,9 @@
     "noImplicitThis": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "skipDefaultLibCheck": true,
+    "useDefineForClassFields": false
   },
   "include": [
     "src/**/*"
