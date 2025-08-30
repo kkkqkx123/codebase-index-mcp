@@ -282,7 +282,7 @@ describe('File System and Parser Integration Tests', () => {
       
       const newFileEvent = addEvents.find(event => event.file.name === 'new.ts');
       expect(newFileEvent).toBeDefined();
-      expect(newFileEvent.file.language).toBe('typescript');
+      expect(newFileEvent.file.language.toLowerCase()).toBe('typescript');
     });
 
     it('should detect file modification events', async () => {

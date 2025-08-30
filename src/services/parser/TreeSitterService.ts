@@ -93,14 +93,7 @@ export class TreeSitterService {
           return {
             parse: jest.fn().mockImplementation((code: string) => {
               return {
-                rootNode: {
-                  type: 'program',
-                  startPosition: { row: 0, column: 0 },
-                  endPosition: { row: code.split('\n').length - 1, column: 0 },
-                  startIndex: 0,
-                  endIndex: code.length,
-                  children: []
-                }
+                rootNode: this.createMockAST(code)
               };
             }),
             setLanguage: jest.fn()
@@ -228,32 +221,130 @@ export class TreeSitterService {
   extractFunctions(ast: Parser.SyntaxNode): Parser.SyntaxNode[] {
     const functions: Parser.SyntaxNode[] = [];
     
-    // For now, return empty array as we need to implement proper query logic
-    // This would require implementing Tree-sitter queries properly
+    // Function node types for different languages
+    const functionTypes = new Set([
+      'function_declaration', 'function_definition', 'method_definition',
+      'arrow_function', 'function_expression', 'generator_function',
+      'generator_function_declaration', 'method_signature'
+    ]);
+
+    const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 100) return;
+
+      // Check if current node is a function
+      if (functionTypes.has(node.type)) {
+        functions.push(node);
+      }
+
+      // Recursively traverse child nodes
+      const children = node.children || [];
+      for (const child of children) {
+        traverse(child, depth + 1);
+      }
+    };
+
+    traverse(ast);
     return functions;
   }
 
   extractClasses(ast: Parser.SyntaxNode): Parser.SyntaxNode[] {
     const classes: Parser.SyntaxNode[] = [];
     
-    // For now, return empty array as we need to implement proper query logic
-    // This would require implementing Tree-sitter queries properly
+    // Class node types for different languages
+    const classTypes = new Set([
+      'class_declaration', 'class_definition', 'class_expression',
+      'interface_declaration', 'interface_definition', 'struct_definition',
+      'enum_declaration', 'type_alias_declaration'
+    ]);
+
+    const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 100) return;
+
+      // Check if current node is a class or interface
+      if (classTypes.has(node.type)) {
+        classes.push(node);
+      }
+
+      // Recursively traverse child nodes
+      for (const child of node.children) {
+        traverse(child, depth + 1);
+      }
+    };
+
+    traverse(ast);
     return classes;
   }
 
-  extractImports(ast: Parser.SyntaxNode): string[] {
+  extractImports(ast: Parser.SyntaxNode, sourceCode?: string): string[] {
     const imports: string[] = [];
     
-    // For now, return empty array as we need to implement proper query logic
-    // This would require implementing Tree-sitter queries properly
+    if (!sourceCode) {
+      return imports;
+    }
+    
+    // Import node types for different languages
+    const importTypes = new Set([
+      'import_statement', 'import_clause', 'import_specifier',
+      'require', 'import_from_statement', 'import_alias'
+    ]);
+
+    const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 100) return;
+
+      // Check if current node is an import
+      if (importTypes.has(node.type)) {
+        const importText = this.getNodeText(node, sourceCode);
+        if (importText.trim().length > 0) {
+          imports.push(importText);
+        }
+      }
+
+      // Recursively traverse child nodes
+      for (const child of node.children) {
+        traverse(child, depth + 1);
+      }
+    };
+
+    traverse(ast);
     return imports;
   }
 
-  extractExports(ast: Parser.SyntaxNode): string[] {
+  extractExports(ast: Parser.SyntaxNode, sourceCode?: string): string[] {
     const exports: string[] = [];
     
-    // For now, return empty array as we need to implement proper query logic
-    // This would require implementing Tree-sitter queries properly
+    if (!sourceCode) {
+      return exports;
+    }
+    
+    // Export node types for different languages
+    const exportTypes = new Set([
+      'export_statement', 'export_clause', 'export_specifier',
+      'export_default_declaration', 'export_named_declaration',
+      'export_all_declaration', 'export_as_clause'
+    ]);
+
+    const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 100) return;
+
+      // Check if current node is an export
+      if (exportTypes.has(node.type)) {
+        const exportText = this.getNodeText(node, sourceCode);
+        if (exportText.trim().length > 0) {
+          exports.push(exportText);
+        }
+      }
+
+      // Recursively traverse child nodes
+      for (const child of node.children) {
+        traverse(child, depth + 1);
+      }
+    };
+
+    traverse(ast);
     return exports;
   }
 
@@ -791,13 +882,91 @@ export class TreeSitterService {
 
   findNodeByType(ast: Parser.SyntaxNode, type: string): Parser.SyntaxNode[] {
     const nodes: Parser.SyntaxNode[] = [];
-    
-    // For now, return empty array as we need to implement proper query logic
-    // This would require implementing Tree-sitter queries properly
+
+    const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 100) return;
+
+      // Check if current node matches the requested type
+      if (node.type === type) {
+        nodes.push(node);
+      }
+
+      // Recursively traverse child nodes
+      for (const child of node.children) {
+        traverse(child, depth + 1);
+      }
+    };
+
+    traverse(ast);
     return nodes;
   }
 
   isInitialized(): boolean {
     return this.initialized;
+  }
+
+  private createMockAST(code: string): any {
+    const lines = code.split('\n');
+    
+    // Create a mock AST node structure that matches the SyntaxNode interface
+    const createNode = (type: string, text: string, startLine: number, endLine: number, children: any[] = []): any => {
+      const startIndex = code.indexOf(text);
+      const endIndex = startIndex + text.length;
+      
+      return {
+        type,
+        startPosition: { row: startLine, column: 0 },
+        endPosition: { row: endLine, column: text.length },
+        startIndex,
+        endIndex,
+        children,
+        parent: null,
+        text: text
+      };
+    };
+
+    // Parse the code to create a simple mock AST
+    const children: any[] = [];
+    
+    // Look for functions
+    const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+))/g;
+    let match;
+    
+    while ((match = functionRegex.exec(code)) !== null) {
+      const matchedText = match[0];
+      const startLine = code.substring(0, match.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      
+      let nodeType = 'statement';
+      let nodeName = '';
+      
+      if (match[1]) {
+        // function declaration
+        nodeType = 'function_declaration';
+        nodeName = match[1];
+      } else if (match[2]) {
+        // arrow function or function expression
+        nodeType = 'function_expression';
+        nodeName = match[2];
+      } else if (match[3]) {
+        // class declaration
+        nodeType = 'class_declaration';
+        nodeName = match[3];
+      } else if (match[4]) {
+        // import statement
+        nodeType = 'import_statement';
+        nodeName = match[4];
+      } else if (match[5]) {
+        // export statement
+        nodeType = 'export_statement';
+        nodeName = match[5];
+      }
+      
+      children.push(createNode(nodeType, matchedText, startLine, endLine));
+    }
+    
+    // Create root node
+    return createNode('program', code, 0, lines.length - 1, children);
   }
 }

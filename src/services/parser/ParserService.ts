@@ -67,8 +67,8 @@ export class ParserService {
           ast: parseResult.ast,
           functions: this.treeSitterService.extractFunctions(parseResult.ast),
           classes: this.treeSitterService.extractClasses(parseResult.ast),
-          imports: this.treeSitterService.extractImports(parseResult.ast),
-          exports: this.treeSitterService.extractExports(parseResult.ast),
+          imports: this.treeSitterService.extractImports(parseResult.ast, content),
+          exports: this.treeSitterService.extractExports(parseResult.ast, content),
           metadata: {}
         };
       } else {

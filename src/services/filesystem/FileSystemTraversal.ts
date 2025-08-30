@@ -87,6 +87,10 @@ export class FileSystemTraversal {
         await this.processFile(currentPath, relativePath, stats, result, options);
       }
     } catch (error) {
+      // If this is the root path, rethrow to be caught by the outer try-catch
+      if (currentPath === rootPath) {
+        throw error;
+      }
       result.errors.push(`Error accessing ${currentPath}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -210,16 +214,26 @@ export class FileSystemTraversal {
   }
 
   private matchesPattern(filePath: string, pattern: string): boolean {
-    const regexPattern = pattern
-      .replace(/\*\*/g, '.*')
-      .replace(/\*/g, '[^/]*')
-      .replace(/\?/g, '[^/]')
-      .replace(/\./g, '\\.');
-
     try {
-      const regex = new RegExp(`^${regexPattern}$`);
+      // Convert glob pattern to regex
+      let regexPattern = pattern
+        .replace(/\*\*/g, '.*')
+        .replace(/\*/g, '[^/]*')
+        .replace(/\?/g, '[^/]')
+        .replace(/\./g, '\\.');
+      
+      // Ensure the pattern matches the entire path
+      if (!regexPattern.startsWith('^')) {
+        regexPattern = '^' + regexPattern;
+      }
+      if (!regexPattern.endsWith('$')) {
+        regexPattern = regexPattern + '$';
+      }
+      
+      const regex = new RegExp(regexPattern);
       return regex.test(filePath);
     } catch (error) {
+      // If the pattern is invalid, return false
       return false;
     }
   }
