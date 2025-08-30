@@ -29,6 +29,14 @@ import { TransactionCoordinator } from '../services/sync/TransactionCoordinator'
 import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
 import { EventQueueService } from '../services/EventQueueService';
 
+// Monitoring services
+import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
+import { HealthCheckService } from '../services/monitoring/HealthCheckService';
+import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
+
+// Controllers
+import { MonitoringController } from '../controllers/MonitoringController';
+
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
   LoggerService: Symbol.for('LoggerService'),
@@ -59,7 +67,15 @@ export const TYPES = {
   EntityMappingService: Symbol.for('EntityMappingService'),
   TransactionCoordinator: Symbol.for('TransactionCoordinator'),
   ConsistencyChecker: Symbol.for('ConsistencyChecker'),
-  EventQueueService: Symbol.for('EventQueueService')
+  EventQueueService: Symbol.for('EventQueueService'),
+
+  // Monitoring services
+  PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
+  HealthCheckService: Symbol.for('HealthCheckService'),
+  PerformanceAnalysisService: Symbol.for('PerformanceAnalysisService'),
+
+  // Controllers
+  MonitoringController: Symbol.for('MonitoringController')
 };
 
 const coreModule = new ContainerModule((bind: any) => {
@@ -108,16 +124,26 @@ const syncModule = new ContainerModule((bind: any) => {
   bind(TYPES.ConsistencyChecker).to(ConsistencyChecker).inSingletonScope();
 });
 
+const monitoringModule = new ContainerModule((bind: any) => {
+  bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
+  bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
+  bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
+});
+
+const controllerModule = new ContainerModule((bind: any) => {
+  bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
+});
+
 export class DIContainer {
   private static instance: Container | null = null;
 
   static getInstance(): Container {
-    if (!DIContainer.instance) {
-      DIContainer.instance = new Container();
-      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, queueModule, syncModule);
+      if (!DIContainer.instance) {
+        DIContainer.instance = new Container();
+        DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, queueModule, syncModule, monitoringModule, controllerModule);
+      }
+      return DIContainer.instance;
     }
-    return DIContainer.instance;
-  }
 
   static reset(): void {
     DIContainer.instance = null;
