@@ -1,4 +1,4 @@
-import { MLRerankingService } from '../MLRerankingService';
+import { MLRerankingService } from '../../../../src/services/reranking/MLRerankingService';
 
 // Mock dependencies
 const mockConfigService = {

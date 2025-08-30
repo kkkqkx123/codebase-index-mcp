@@ -1,4 +1,4 @@
-import { SimilarityAlgorithms } from '../SimilarityAlgorithms';
+import { SimilarityAlgorithms } from '../../../../src/services/reranking/SimilarityAlgorithms';
 
 describe('SimilarityAlgorithms', () => {
   describe('cosineSimilarity', () => {

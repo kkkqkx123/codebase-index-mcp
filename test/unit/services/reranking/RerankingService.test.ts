@@ -1,5 +1,5 @@
-import { RerankingService } from '../RerankingService';
-import { QueryResult } from '../../query/QueryCoordinationService';
+import { RerankingService } from '../../../../src/services/reranking/RerankingService';
+import { QueryResult } from '../../../../src/services/query/QueryCoordinationService';
 
 // Mock dependencies
 const mockConfigService = {

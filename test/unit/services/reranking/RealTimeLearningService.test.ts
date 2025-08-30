@@ -1,4 +1,4 @@
-import { RealTimeLearningService } from '../RealTimeLearningService';
+import { RealTimeLearningService } from '../../../../src/services/reranking/RealTimeLearningService';
 
 // Mock dependencies
 const mockConfigService = {
