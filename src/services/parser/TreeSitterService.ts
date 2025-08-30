@@ -373,8 +373,8 @@ export class TreeSitterService {
   private extractControlStructures(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
     const snippets: SnippetChunk[] = [];
     const controlStructureTypes = new Set([
-      'if_statement', 'else_clause', 'for_statement', 'while_statement', 
-      'do_statement', 'switch_statement', 'try_statement', 'catch_clause', 'finally_clause'
+      'if_statement', 'else_clause', 'for_statement', 'while_statement',
+      'do_statement', 'switch_statement'
     ]);
 
     const findControlStructures = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
@@ -842,7 +842,7 @@ export class TreeSitterService {
       }
       
       // Less restrictive length filter for testing
-      if (snippet.content.length < 10 || snippet.content.length > 1000) {
+      if (snippet.content.length < 20 || snippet.content.length > 1000) {
         continue;
       }
       
@@ -935,8 +935,8 @@ export class TreeSitterService {
     // Parse the code to create a simple mock AST
     const children: any[] = [];
     
-    // Look for functions
-    const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+))/g;
+    // Look for various constructs including error handling
+    const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)|try\s*{[^}]*}|\bcatch\s*\([^)]*\)\s*{[^}]*}|\bfinally\s*{[^}]*})/g;
     let match;
     
     while ((match = functionRegex.exec(code)) !== null) {
@@ -967,6 +967,18 @@ export class TreeSitterService {
         // export statement
         nodeType = 'export_statement';
         nodeName = match[5];
+      } else if (matchedText.trim().startsWith('try')) {
+        // try statement
+        nodeType = 'try_statement';
+        nodeName = 'try_block';
+      } else if (matchedText.trim().startsWith('catch')) {
+        // catch clause
+        nodeType = 'catch_clause';
+        nodeName = 'catch_block';
+      } else if (matchedText.trim().startsWith('finally')) {
+        // finally clause
+        nodeType = 'finally_clause';
+        nodeName = 'finally_block';
       }
       
       children.push(createNode(nodeType, matchedText, startLine, endLine));

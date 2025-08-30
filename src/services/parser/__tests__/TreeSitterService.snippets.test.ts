@@ -80,9 +80,9 @@ function createMockAST(code: string): any {
       ));
     }
     
-    if (line.includes('try') || line.includes('catch')) {
+    if (line.includes('try') || line.includes('catch') || line.includes('finally')) {
       nodes.push(createMockSyntaxNode(
-        line.includes('try') ? 'try_statement' : 'catch_clause',
+        line.includes('try') ? 'try_statement' : line.includes('catch') ? 'catch_clause' : 'finally_clause',
         line,
         { row: index, column: 0 },
         { row: index, column: line.length },
@@ -176,9 +176,12 @@ function example() {
       const mockAST = createMockAST(code);
       const snippets = treeSitterService.extractSnippets(mockAST, code);
       
+      // Debug: Log all snippet types
+      console.log('All snippet types:', snippets.map(s => s.snippetMetadata.snippetType));
+      
       expect(snippets.length).toBeGreaterThan(0);
       
-      const errorSnippets = snippets.filter(s => 
+      const errorSnippets = snippets.filter(s =>
         s.snippetMetadata.snippetType === 'error_handling'
       );
       expect(errorSnippets.length).toBeGreaterThan(0);

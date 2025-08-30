@@ -217,7 +217,8 @@ export class SmartCodeParser {
       if (currentChunk.join('\n').length >= options.maxChunkSize || i === lines.length - 1) {
         const chunkContent = currentChunk.join('\n');
         
-        if (chunkContent.length >= options.minChunkSize) {
+        // Create chunk if it meets minimum size OR if it's the last chunk and we have no chunks yet
+        if (chunkContent.length >= options.minChunkSize || (i === lines.length - 1 && chunks.length === 0)) {
           const chunk: CodeChunk = {
             id: this.generateChunkId(chunkContent, currentLine),
             content: chunkContent,
