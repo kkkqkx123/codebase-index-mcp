@@ -218,11 +218,15 @@ export class ConsistencyChecker {
       // Simulate repair process
       await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Update the mapping
-      this.entityIdManager.updateMapping(issue.entityId, {
-        vectorId: `vector_${issue.entityId}_repaired`,
-        graphId: undefined
-      });
+      // Get the current mapping
+      const currentMapping = this.entityIdManager.getMapping(issue.entityId);
+      if (currentMapping) {
+        // Update the mapping with vector ID
+        this.entityIdManager.updateMapping(issue.entityId, {
+          vectorId: `vector_${issue.entityId}_repaired`,
+          graphId: currentMapping.graphId
+        });
+      }
       
       return {
         issueId: issue.id,
@@ -247,11 +251,15 @@ export class ConsistencyChecker {
       // Simulate repair process
       await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Update the mapping
-      this.entityIdManager.updateMapping(issue.entityId, {
-        vectorId: undefined,
-        graphId: `graph_${issue.entityId}_repaired`
-      });
+      // Get the current mapping
+      const currentMapping = this.entityIdManager.getMapping(issue.entityId);
+      if (currentMapping) {
+        // Update the mapping with graph ID
+        this.entityIdManager.updateMapping(issue.entityId, {
+          vectorId: currentMapping.vectorId,
+          graphId: `graph_${issue.entityId}_repaired`
+        });
+      }
       
       return {
         issueId: issue.id,
