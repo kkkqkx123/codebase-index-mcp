@@ -35,7 +35,8 @@
   },
   "include": [
     "src/**/*",
-    "test/setup.ts"
+    "test/setup.ts",
+    "test/**/*"
   ],
   "exclude": [
     "node_modules",

@@ -198,6 +198,36 @@ export class IndexService {
     }
   }
 
+  // Add public methods that delegate to IndexCoordinator
+  async getSnippetProcessingStatus(projectId: string): Promise<{
+    totalSnippets: number;
+    processedSnippets: number;
+    duplicateSnippets: number;
+    processingRate: number;
+  }> {
+    return await this.indexCoordinator.getSnippetProcessingStatus(projectId);
+  }
+
+  async checkForDuplicates(snippetContent: string, projectId: string): Promise<boolean> {
+    return await this.indexCoordinator.checkForDuplicates(snippetContent, projectId);
+  }
+
+  async detectCrossReferences(snippetId: string, projectId: string): Promise<string[]> {
+    return await this.indexCoordinator.detectCrossReferences(snippetId, projectId);
+  }
+
+  async analyzeDependencies(snippetId: string, projectId: string): Promise<{
+    dependsOn: string[];
+    usedBy: string[];
+    complexity: number;
+  }> {
+    return await this.indexCoordinator.analyzeDependencies(snippetId, projectId);
+  }
+
+  async detectOverlaps(snippetId: string, projectId: string): Promise<string[]> {
+    return await this.indexCoordinator.detectOverlaps(snippetId, projectId);
+  }
+
   private async searchSnippets(query: string, options: SearchOptions): Promise<SearchResult[]> {
     this.logger.info('Performing snippet search', { query, options });
 

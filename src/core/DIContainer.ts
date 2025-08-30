@@ -31,6 +31,8 @@ import { EventQueueService } from '../services/EventQueueService';
 import { GraphDatabaseErrorHandler } from '../core/GraphDatabaseErrorHandler';
 import { ErrorClassifier } from '../core/ErrorClassifier';
 import { NebulaQueryBuilder } from '../database/nebula/NebulaQueryBuilder';
+import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
+import { StorageCoordinator } from '../services/storage/StorageCoordinator';
 
 // Monitoring services
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
@@ -72,6 +74,8 @@ export const TYPES = {
  TransactionCoordinator: Symbol.for('TransactionCoordinator'),
   ConsistencyChecker: Symbol.for('ConsistencyChecker'),
   EventQueueService: Symbol.for('EventQueueService'),
+  IndexCoordinator: Symbol.for('IndexCoordinator'),
+  StorageCoordinator: Symbol.for('StorageCoordinator'),
 
   // Monitoring services
   PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
@@ -122,6 +126,8 @@ const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
   bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
   bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
+  bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
+  bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
 });
 
 const queueModule = new ContainerModule((bind: any) => {
