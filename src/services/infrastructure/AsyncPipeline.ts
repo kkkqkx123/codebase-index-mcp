@@ -114,28 +114,31 @@ export class AsyncPipeline {
           this.metrics.stepMetrics.set(step.name, stepMetrics);
         }
 
+        const stepEndTime = Date.now();
+        
         try {
           // Execute step with retry logic
-          currentData = await this.executeStepWithRetry(step, currentData, retryCount);
-          
+          const retryResult = await this.executeStepWithRetry(step, currentData);
+          currentData = retryResult.result;
+          retryCount = retryResult.retryCount;
           stepSuccess = true;
+          stepError = undefined;
         } catch (error) {
           stepSuccess = false;
           stepError = error instanceof Error ? error.message : String(error);
+          retryCount = 0; // Reset on failure
           
           if (this.options.enableMetrics) {
             const stepMetrics = this.metrics.stepMetrics.get(step.name)!;
             stepMetrics.failureRate = (stepMetrics.failureRate * (stepMetrics.executions - 1) + 1) / stepMetrics.executions;
           }
 
-          if (!step.continueOnError && !this.options.continueOnError) {
+          if (!this.options.continueOnError || step.continueOnError === false) {
             pipelineSuccess = false;
             pipelineError = stepError;
-            break;
           }
         }
 
-        const stepEndTime = Date.now();
         const stepResult: PipelineStepResult = {
           name: step.name,
           success: stepSuccess,
@@ -147,6 +150,11 @@ export class AsyncPipeline {
         };
 
         stepResults.push(stepResult);
+
+        // Break after adding the step result if the pipeline should stop
+        if (!stepSuccess && (!this.options.continueOnError || step.continueOnError === false)) {
+          break;
+        }
 
         if (this.options.enableMetrics) {
           const stepMetrics = this.metrics.stepMetrics.get(step.name)!;
@@ -226,7 +234,7 @@ export class AsyncPipeline {
     return pipeline;
   }
 
-  private async executeStepWithRetry(step: PipelineStep, data: any, retryCount: number): Promise<any> {
+  private async executeStepWithRetry(step: PipelineStep, data: any): Promise<{ result: any; retryCount: number }> {
     let attempts = 0;
     let lastError: string = '';
 
@@ -238,7 +246,7 @@ export class AsyncPipeline {
           step.timeout || this.options.timeout!
         );
 
-        return result;
+        return { result, retryCount: attempts };
       } catch (error) {
         attempts++;
         lastError = error instanceof Error ? error.message : String(error);
