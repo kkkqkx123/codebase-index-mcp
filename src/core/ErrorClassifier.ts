@@ -1,5 +1,7 @@
 import { ErrorClassification, ErrorContext } from './GraphDatabaseErrorHandler';
+import { injectable } from 'inversify';
 
+@injectable()
 export class ErrorClassifier {
   async classifyError(error: Error): Promise<ErrorClassification> {
     const message = error.message.toLowerCase();

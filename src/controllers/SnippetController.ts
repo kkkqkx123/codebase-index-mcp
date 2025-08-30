@@ -1,5 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { IndexService } from '../services/indexing/IndexService';
+import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
 import { StorageCoordinator } from '../services/storage/StorageCoordinator';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
@@ -12,6 +13,7 @@ export class SnippetController {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private indexService: IndexService;
+  private indexCoordinator: IndexCoordinator;
   private storageCoordinator: StorageCoordinator;
 
   constructor(
@@ -19,12 +21,14 @@ export class SnippetController {
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(IndexService) indexService: IndexService,
+    @inject(IndexCoordinator) indexCoordinator: IndexCoordinator,
     @inject(StorageCoordinator) storageCoordinator: StorageCoordinator
   ) {
     this.configService = configService;
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.indexService = indexService;
+    this.indexCoordinator = indexCoordinator;
     this.storageCoordinator = storageCoordinator;
 
     this.logger.info('Snippet controller initialized');
@@ -45,7 +49,7 @@ export class SnippetController {
       this.logger.info('Searching snippets', { query, options });
       
       // Use the index service to perform the search
-      const results = await this.indexService.searchSnippets(query, options);
+      const results = await this.indexService.search(query, { ...options, searchType: 'snippet' });
       
       return {
         success: true,
@@ -54,7 +58,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to search snippets: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'searchSnippets', query, options }
+        { component: 'SnippetController', operation: 'searchSnippets', metadata: { query, options } }
       );
       
       return {
@@ -94,7 +98,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to get snippet by ID: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'getSnippetById', snippetId, projectId }
+        { component: 'SnippetController', operation: 'getSnippetById', metadata: { snippetId, projectId } }
       );
       
       return {
@@ -111,8 +115,8 @@ export class SnippetController {
     try {
       this.logger.info('Getting snippet processing status', { projectId });
       
-      // Delegate to index service
-      const status = await this.indexService.getSnippetProcessingStatus(projectId);
+      // Delegate to index coordinator
+      const status = await this.indexCoordinator.getSnippetProcessingStatus(projectId);
       
       return {
         success: true,
@@ -121,7 +125,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to get snippet processing status: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'getSnippetProcessingStatus', projectId }
+        { component: 'SnippetController', operation: 'getSnippetProcessingStatus', metadata: { projectId } }
       );
       
       return {
@@ -141,8 +145,8 @@ export class SnippetController {
       // Calculate content hash
       const contentHash = HashUtils.calculateStringHash(snippetContent);
       
-      // Delegate to index service
-      const isDuplicate = await this.indexService.checkForDuplicates(snippetContent, projectId);
+      // Delegate to index coordinator
+      const isDuplicate = await this.indexCoordinator.checkForDuplicates(snippetContent, projectId);
       
       return {
         success: true,
@@ -154,7 +158,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to check for duplicates: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'checkForDuplicates', projectId }
+        { component: 'SnippetController', operation: 'checkForDuplicates', metadata: { projectId } }
       );
       
       return {
@@ -171,8 +175,8 @@ export class SnippetController {
     try {
       this.logger.info('Detecting cross-references', { snippetId, projectId });
       
-      // Delegate to index service
-      const references = await this.indexService.detectCrossReferences(snippetId, projectId);
+      // Delegate to index coordinator
+      const references = await this.indexCoordinator.detectCrossReferences(snippetId, projectId);
       
       return {
         success: true,
@@ -181,7 +185,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to detect cross-references: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'detectCrossReferences', snippetId, projectId }
+        { component: 'SnippetController', operation: 'detectCrossReferences', metadata: { snippetId, projectId } }
       );
       
       return {
@@ -198,8 +202,8 @@ export class SnippetController {
     try {
       this.logger.info('Analyzing dependencies', { snippetId, projectId });
       
-      // Delegate to index service
-      const dependencies = await this.indexService.analyzeDependencies(snippetId, projectId);
+      // Delegate to index coordinator
+      const dependencies = await this.indexCoordinator.analyzeDependencies(snippetId, projectId);
       
       return {
         success: true,
@@ -208,7 +212,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to analyze dependencies: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'analyzeDependencies', snippetId, projectId }
+        { component: 'SnippetController', operation: 'analyzeDependencies', metadata: { snippetId, projectId } }
       );
       
       return {
@@ -225,8 +229,8 @@ export class SnippetController {
     try {
       this.logger.info('Detecting overlaps', { snippetId, projectId });
       
-      // Delegate to index service
-      const overlaps = await this.indexService.detectOverlaps(snippetId, projectId);
+      // Delegate to index coordinator
+      const overlaps = await this.indexCoordinator.detectOverlaps(snippetId, projectId);
       
       return {
         success: true,
@@ -235,7 +239,7 @@ export class SnippetController {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to detect overlaps: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'detectOverlaps', snippetId, projectId }
+        { component: 'SnippetController', operation: 'detectOverlaps', metadata: { snippetId, projectId } }
       );
       
       return {

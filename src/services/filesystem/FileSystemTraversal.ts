@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -33,6 +34,7 @@ export interface TraversalResult {
   processingTime: number;
 }
 
+@injectable()
 export class FileSystemTraversal {
   private defaultOptions: Required<TraversalOptions>;
 

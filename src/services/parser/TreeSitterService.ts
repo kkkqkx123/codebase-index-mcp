@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import Parser from 'tree-sitter';
 import TypeScript from 'tree-sitter-typescript';
 import JavaScript from 'tree-sitter-javascript';
@@ -63,6 +64,7 @@ export interface SnippetChunk extends CodeChunk {
   snippetMetadata: SnippetMetadata;
 }
 
+@injectable()
 export class TreeSitterService {
   private parsers: Map<string, ParserLanguage> = new Map();
   private initialized: boolean = false;

@@ -1,3 +1,4 @@
+import { injectable, inject, optional } from 'inversify';
 import { EventEmitter } from 'events';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService, ErrorContext } from '../../core/ErrorHandlerService';
@@ -45,6 +46,7 @@ export interface FileHistoryEntry {
   language: string;
 }
 
+@injectable()
 export class ChangeDetectionService extends EventEmitter {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
@@ -66,11 +68,11 @@ export class ChangeDetectionService extends EventEmitter {
   private testMode: boolean = false;
 
   constructor(
-    logger: LoggerService,
-    errorHandler: ErrorHandlerService,
-    fileWatcherService: FileWatcherService,
-    fileSystemTraversal: FileSystemTraversal,
-    options?: ChangeDetectionOptions
+    @inject(LoggerService) logger: LoggerService,
+    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(FileWatcherService) fileWatcherService: FileWatcherService,
+    @inject(FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
+    @inject('ChangeDetectionOptions') @optional() options?: ChangeDetectionOptions
   ) {
     super();
     this.logger = logger;

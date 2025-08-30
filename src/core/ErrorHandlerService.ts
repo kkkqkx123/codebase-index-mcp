@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import { LoggerService } from './LoggerService';
 
 export interface ErrorContext {
@@ -38,6 +39,7 @@ export class CodebaseIndexError extends Error {
   }
 }
 
+@injectable()
 export class ErrorHandlerService {
   private logger: LoggerService;
   private errorReports: Map<string, ErrorReport> = new Map();

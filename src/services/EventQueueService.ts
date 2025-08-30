@@ -1,4 +1,4 @@
-import { injectable, inject } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 import { EventEmitter } from 'events';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService, ErrorContext, CodebaseIndexError } from '../core/ErrorHandlerService';
@@ -96,7 +96,7 @@ export class EventQueueService extends EventEmitter {
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ChangeDetectionService) changeDetectionService: ChangeDetectionService,
-    options?: EventQueueOptions
+    @inject('EventQueueOptions') @optional() options?: EventQueueOptions
   ) {
     super();
     this.logger = logger;

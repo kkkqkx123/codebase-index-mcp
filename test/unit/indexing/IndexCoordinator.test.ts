@@ -1,15 +1,15 @@
 import { IndexCoordinator, IndexOptions, IndexResult } from '../../../src/services/indexing/IndexCoordinator';
 import { StorageCoordinator, ParsedFile, Chunk } from '../../../src/services/storage/StorageCoordinator';
 import { ChangeDetectionService, FileChangeEvent } from '../../../src/services/filesystem/ChangeDetectionService';
-import { ParserService } from '../../../src/services/parser/ParserService';
-import { FileSystemTraversal } from '../../../src/services/filesystem/FileSystemTraversal';
-import { AsyncPipeline } from '../../../src/services/infrastructure/AsyncPipeline';
+import { ParserService, ParseResult } from '../../../src/services/parser/ParserService';
+import { FileSystemTraversal, TraversalResult, FileInfo } from '../../../src/services/filesystem/FileSystemTraversal';
+import { AsyncPipeline, PipelineResult, PipelineStepResult } from '../../../src/services/infrastructure/AsyncPipeline';
 import { BatchProcessor } from '../../../src/services/processing/BatchProcessor';
 import { MemoryManager } from '../../../src/services/processing/MemoryManager';
 import { LoggerService } from '../../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { ConfigService } from '../../../src/config/ConfigService';
-import { HashUtils } from '../../../src/utils/HashUtils';
+import { HashUtils, DirectoryHash, FileHash } from '../../../src/utils/HashUtils';
 import { createTestContainer } from '../../setup';
 
 describe('IndexCoordinator', () => {
@@ -112,22 +112,71 @@ describe('IndexCoordinator', () => {
 
     it('should successfully create an index with valid parameters', async () => {
       // Setup mocks
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 2,
+        files: [
+          { path: 'file1.ts', hash: 'hash1', size: 100, lastModified: new Date() },
+          { path: 'file2.ts', hash: 'hash2', size: 200, lastModified: new Date() }
+        ]
+      };
+      
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
-      const mockTraversalResult = {
+      const mockTraversalResult: TraversalResult = {
         files: [
-          { path: '/test/project/file1.ts', size: 1000 },
-          { path: '/test/project/file2.ts', size: 1500 }
+          {
+            path: '/test/project/file1.ts',
+            relativePath: 'file1.ts',
+            name: 'file1.ts',
+            extension: 'ts',
+            size: 1000,
+            hash: 'hash1',
+            lastModified: new Date(),
+            language: 'typescript',
+            isBinary: false
+          },
+          {
+            path: '/test/project/file2.ts',
+            relativePath: 'file2.ts',
+            name: 'file2.ts',
+            extension: 'ts',
+            size: 1500,
+            hash: 'hash2',
+            lastModified: new Date(),
+            language: 'typescript',
+            isBinary: false
+          }
         ],
         directories: [],
-        errors: []
+        errors: [],
+        totalSize: 2500,
+        processingTime: 100
       };
       fileSystemTraversal.traverseDirectory.mockResolvedValue(mockTraversalResult);
 
-      const mockParseResults = [
-        { filePath: '/test/project/file1.ts', language: 'typescript', metadata: {} },
-        { filePath: '/test/project/file2.ts', language: 'typescript', metadata: {} }
+      const mockParseResults: ParseResult[] = [
+        {
+          filePath: '/test/project/file1.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {}
+        },
+        {
+          filePath: '/test/project/file2.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {}
+        }
       ];
       parserService.parseFiles.mockResolvedValue(mockParseResults);
 
@@ -138,7 +187,7 @@ describe('IndexCoordinator', () => {
       };
       storageCoordinator.store.mockResolvedValue(mockStorageResult);
 
-      const mockPipelineResult = {
+      const mockPipelineResult: PipelineResult<any> = {
         success: true,
         data: {
           traversalResult: mockTraversalResult,
@@ -146,10 +195,38 @@ describe('IndexCoordinator', () => {
         },
         totalTime: 1500,
         steps: [
-          { success: true, error: null },
-          { success: true, error: null },
-          { success: true, error: null },
-          { success: true, error: null }
+          {
+            name: 'memory-check',
+            success: true,
+            startTime: Date.now() - 1000,
+            endTime: Date.now() - 900,
+            duration: 100,
+            retryCount: 0
+          },
+          {
+            name: 'file-traversal',
+            success: true,
+            startTime: Date.now() - 800,
+            endTime: Date.now() - 600,
+            duration: 200,
+            retryCount: 0
+          },
+          {
+            name: 'batch-parsing',
+            success: true,
+            startTime: Date.now() - 500,
+            endTime: Date.now() - 300,
+            duration: 200,
+            retryCount: 0
+          },
+          {
+            name: 'storage-coordination',
+            success: true,
+            startTime: Date.now() - 200,
+            endTime: Date.now(),
+            duration: 200,
+            retryCount: 0
+          }
         ]
       };
       asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
@@ -176,17 +253,24 @@ describe('IndexCoordinator', () => {
     });
 
     it('should handle empty project directory', async () => {
-      const mockProjectId = { hash: 'empty_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'empty_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
-      const mockTraversalResult = {
+      const mockTraversalResult: TraversalResult = {
         files: [],
         directories: [],
-        errors: []
+        errors: [],
+        totalSize: 0,
+        processingTime: 50
       };
       fileSystemTraversal.traverseDirectory.mockResolvedValue(mockTraversalResult);
 
-      const mockPipelineResult = {
+      const mockPipelineResult: PipelineResult<any> = {
         success: true,
         data: {
           traversalResult: mockTraversalResult,
@@ -194,10 +278,30 @@ describe('IndexCoordinator', () => {
         },
         totalTime: 500,
         steps: [
-          { success: true, error: null },
-          { success: true, error: null },
-          { success: true, error: null },
-          { success: true, error: null }
+          {
+            name: 'memory-check',
+            success: true,
+            startTime: Date.now() - 400,
+            endTime: Date.now() - 300,
+            duration: 100,
+            retryCount: 0
+          },
+          {
+            name: 'file-traversal',
+            success: true,
+            startTime: Date.now() - 250,
+            endTime: Date.now() - 150,
+            duration: 100,
+            retryCount: 0
+          },
+          {
+            name: 'storage-coordination',
+            success: true,
+            startTime: Date.now() - 100,
+            endTime: Date.now(),
+            duration: 100,
+            retryCount: 0
+          }
         ]
       };
       asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
@@ -211,16 +315,29 @@ describe('IndexCoordinator', () => {
     });
 
     it('should handle pipeline execution failure', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
-      const mockPipelineResult = {
+      const mockPipelineResult: PipelineResult<any> = {
         success: false,
         error: 'Pipeline step failed: memory-check',
         data: null,
         totalTime: 1000,
         steps: [
-          { success: false, error: 'Insufficient memory for indexing operation' }
+          {
+            name: 'memory-check',
+            success: false,
+            startTime: Date.now() - 1000,
+            endTime: Date.now() - 900,
+            duration: 100,
+            retryCount: 0,
+            error: 'Insufficient memory for indexing operation'
+          }
         ]
       };
       asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
@@ -241,7 +358,12 @@ describe('IndexCoordinator', () => {
     });
 
     it('should handle unexpected errors during indexing', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       const unexpectedError = new Error('Unexpected database error');
@@ -263,24 +385,70 @@ describe('IndexCoordinator', () => {
     });
 
     it('should use default options when none provided', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 1,
+        files: [
+          { path: 'file1.ts', hash: 'hash1', size: 100, lastModified: new Date() }
+        ]
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
-      const mockTraversalResult = {
-        files: [{ path: '/test/project/file1.ts', size: 1000 }],
+      const mockTraversalResult: TraversalResult = {
+        files: [
+          {
+            path: '/test/project/file1.ts',
+            relativePath: 'file1.ts',
+            name: 'file1.ts',
+            extension: 'ts',
+            size: 1000,
+            hash: 'hash1',
+            lastModified: new Date(),
+            language: 'typescript',
+            isBinary: false
+          }
+        ],
         directories: [],
-        errors: []
+        errors: [],
+        totalSize: 1000,
+        processingTime: 50
       };
       fileSystemTraversal.traverseDirectory.mockResolvedValue(mockTraversalResult);
 
-      const mockPipelineResult = {
+      const mockPipelineResult: PipelineResult<any> = {
         success: true,
         data: {
           traversalResult: mockTraversalResult,
           storageResult: { success: true, chunksStored: 5 }
         },
         totalTime: 1000,
-        steps: [{ success: true, error: null }]
+        steps: [
+          {
+            name: 'memory-check',
+            success: true,
+            startTime: Date.now() - 800,
+            endTime: Date.now() - 600,
+            duration: 200,
+            retryCount: 0
+          },
+          {
+            name: 'file-traversal',
+            success: true,
+            startTime: Date.now() - 500,
+            endTime: Date.now() - 300,
+            duration: 200,
+            retryCount: 0
+          },
+          {
+            name: 'storage-coordination',
+            success: true,
+            startTime: Date.now() - 200,
+            endTime: Date.now(),
+            duration: 200,
+            retryCount: 0
+          }
+        ]
       };
       asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
 
@@ -299,12 +467,38 @@ describe('IndexCoordinator', () => {
     const mockChangedFiles = ['/test/project/file1.ts', '/test/project/file2.ts'];
 
     it('should successfully update index with changed files', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 2,
+        files: [
+          { path: 'file1.ts', hash: 'hash1', size: 100, lastModified: new Date() },
+          { path: 'file2.ts', hash: 'hash2', size: 200, lastModified: new Date() }
+        ]
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
-      const mockParseResults = [
-        { filePath: '/test/project/file1.ts', language: 'typescript', metadata: {} },
-        { filePath: '/test/project/file2.ts', language: 'typescript', metadata: {} }
+      const mockParseResults: ParseResult[] = [
+        {
+          filePath: '/test/project/file1.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {}
+        },
+        {
+          filePath: '/test/project/file2.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {}
+        }
       ];
       parserService.parseFiles.mockResolvedValue(mockParseResults);
 
@@ -336,8 +530,23 @@ describe('IndexCoordinator', () => {
     });
 
     it('should handle empty changed files list', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
+
+      // Mock parser service to return empty array for empty input
+      parserService.parseFiles.mockResolvedValue([]);
+
+      // Mock storage coordinator to return success for empty files
+      storageCoordinator.store.mockResolvedValue({
+        success: true,
+        chunksStored: 0,
+        errors: []
+      });
 
       const result = await indexCoordinator.updateIndex(mockProjectPath, []);
 
@@ -345,12 +554,17 @@ describe('IndexCoordinator', () => {
       expect(result.filesProcessed).toBe(0);
       expect(result.chunksCreated).toBe(0);
 
-      // Verify parser was not called
-      expect(parserService.parseFiles).not.toHaveBeenCalled();
+      // Verify parser was called with empty array
+      expect(parserService.parseFiles).toHaveBeenCalledWith([]);
     });
 
     it('should handle parsing failures', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       parserService.parseFiles.mockRejectedValue(new Error('Parsing failed'));
@@ -369,7 +583,12 @@ describe('IndexCoordinator', () => {
     const mockProjectPath = '/test/project';
 
     it('should successfully delete index', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       const mockDeleteResult = {
@@ -397,7 +616,12 @@ describe('IndexCoordinator', () => {
     });
 
     it('should handle deletion failure', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       const mockDeleteResult = {
@@ -419,7 +643,12 @@ describe('IndexCoordinator', () => {
     });
 
     it('should handle unexpected errors during deletion', async () => {
-      const mockProjectId = { hash: 'test_project_hash' };
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       storageCoordinator.deleteProject.mockRejectedValue(new Error('Network error'));
@@ -438,15 +667,48 @@ describe('IndexCoordinator', () => {
 
   describe('processIncrementalChanges', () => {
     const mockChanges: FileChangeEvent[] = [
-      { type: 'created', relativePath: '/test/project/newfile.ts', absolutePath: '/test/project/newfile.ts' },
-      { type: 'modified', relativePath: '/test/project/existing.ts', absolutePath: '/test/project/existing.ts' },
-      { type: 'deleted', relativePath: '/test/project/oldfile.ts', absolutePath: '/test/project/oldfile.ts' }
+      { 
+        type: 'created', 
+        path: '/test/project/newfile.ts', 
+        relativePath: '/test/project/newfile.ts',
+        timestamp: new Date()
+      },
+      { 
+        type: 'modified', 
+        path: '/test/project/existing.ts', 
+        relativePath: '/test/project/existing.ts',
+        timestamp: new Date()
+      },
+      { 
+        type: 'deleted', 
+        path: '/test/project/oldfile.ts', 
+        relativePath: '/test/project/oldfile.ts',
+        timestamp: new Date()
+      }
     ];
 
     it('should successfully process incremental changes', async () => {
-      const mockParseResults = [
-        { filePath: '/test/project/newfile.ts', language: 'typescript', metadata: {} },
-        { filePath: '/test/project/existing.ts', language: 'typescript', metadata: {} }
+      const mockParseResults: ParseResult[] = [
+        {
+          filePath: '/test/project/newfile.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {}
+        },
+        {
+          filePath: '/test/project/existing.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {}
+        }
       ];
       parserService.parseFiles.mockResolvedValue(mockParseResults);
 

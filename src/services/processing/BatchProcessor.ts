@@ -1,4 +1,4 @@
-import { injectable } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 
 export interface BatchOptions {
   batchSize?: number;
@@ -28,7 +28,7 @@ export class BatchProcessor {
     continueOnError: false
   };
 
-  constructor(private logger?: any) {}
+  constructor(@inject('LoggerService') @optional() private logger?: any) {}
 
   async processInBatches<T, R>(
     items: T[],

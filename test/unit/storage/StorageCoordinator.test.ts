@@ -116,7 +116,7 @@ describe('StorageCoordinator', () => {
 
     it('should successfully store files with chunks', async () => {
       // Setup transaction mocks
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
       transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
       transactionCoordinator.commitTransaction.mockResolvedValue(true);
@@ -216,11 +216,11 @@ describe('StorageCoordinator', () => {
     });
 
     it('should handle transaction commit failure', async () => {
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
       transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
       transactionCoordinator.commitTransaction.mockResolvedValue(false);
-      transactionCoordinator.rollbackTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.rollbackTransaction.mockResolvedValue(true);
 
       const result = await storageCoordinator.store(mockFiles, mockProjectId);
 
@@ -242,9 +242,9 @@ describe('StorageCoordinator', () => {
     });
 
     it('should handle unexpected errors during storage', async () => {
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
-      transactionCoordinator.rollbackTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.rollbackTransaction.mockResolvedValue(true);
 
       const unexpectedError = new Error('Database connection failed');
       transactionCoordinator.addGraphOperation.mockRejectedValue(unexpectedError);
@@ -269,7 +269,7 @@ describe('StorageCoordinator', () => {
     });
 
     it('should store files without project ID', async () => {
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
       transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
       transactionCoordinator.commitTransaction.mockResolvedValue(true);
@@ -301,7 +301,7 @@ describe('StorageCoordinator', () => {
       ]);
 
       // Setup transaction mocks
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
       transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
       transactionCoordinator.commitTransaction.mockResolvedValue(true);
@@ -372,11 +372,11 @@ describe('StorageCoordinator', () => {
 
     it('should handle transaction failure during deletion', async () => {
       jest.spyOn(storageCoordinator as any, 'getChunkIdsForFiles').mockResolvedValue(['chunk_1']);
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
       transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
       transactionCoordinator.commitTransaction.mockResolvedValue(false);
-      transactionCoordinator.rollbackTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.rollbackTransaction.mockResolvedValue(true);
 
       const result = await storageCoordinator.deleteFiles(mockFilePaths);
 
@@ -400,7 +400,7 @@ describe('StorageCoordinator', () => {
       ]);
 
       // Setup transaction mocks
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
       transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
       transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
       transactionCoordinator.commitTransaction.mockResolvedValue(true);

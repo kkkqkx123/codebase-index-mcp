@@ -1,4 +1,4 @@
-import { injectable } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 
 export interface MemoryUsage {
   heapUsed: number;
@@ -30,7 +30,10 @@ export class MemoryManager {
   private intervalId?: NodeJS.Timeout;
   private listeners: Array<(usage: MemoryUsage) => void> = [];
 
-  constructor(private logger?: any, options: MemoryManagerOptions = {}) {
+  constructor(
+    @inject('LoggerService') @optional() private logger?: any,
+    @inject('MemoryManagerOptions') @optional() options: MemoryManagerOptions = {}
+  ) {
     this.checkInterval = options.checkInterval || 5000;
     this.thresholds = options.thresholds || {
       warning: 70,

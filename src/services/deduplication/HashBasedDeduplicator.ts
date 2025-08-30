@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { injectable } from 'inversify';
 import { CodeChunk } from '../parser/TreeSitterService';
 
 export interface DeduplicationResult {
@@ -18,6 +19,7 @@ export interface DeduplicationOptions {
   minChunkSize?: number;
 }
 
+@injectable()
 export class HashBasedDeduplicator {
   private exactHashCache: Map<string, string> = new Map();
   private fuzzyHashCache: Map<string, string> = new Map();

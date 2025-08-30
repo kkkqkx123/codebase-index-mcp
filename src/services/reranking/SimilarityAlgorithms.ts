@@ -1,3 +1,6 @@
+import { injectable } from 'inversify';
+
+@injectable()
 export class SimilarityAlgorithms {
   /**
    * Calculate cosine similarity between two vectors

@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import chokidar, { FSWatcher, ChokidarOptions } from 'chokidar';
 import path from 'path';
 import fs from 'fs/promises';
@@ -39,6 +40,7 @@ export interface FileWatcherCallbacks {
   onReady?: () => void;
 }
 
+@injectable()
 export class FileWatcherService {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;

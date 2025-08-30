@@ -1,6 +1,8 @@
+import { injectable } from 'inversify';
 import winston from 'winston';
 import path from 'path';
 
+@injectable()
 export class LoggerService {
   private logger: winston.Logger;
 

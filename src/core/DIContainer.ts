@@ -52,7 +52,7 @@ export const TYPES = {
   ParserService: Symbol.for('ParserService'),
   QdrantService: Symbol.for('QdrantService'),
   Neo4jService: Symbol.for('Neo4jService'),
- NebulaService: Symbol.for('NebulaService'),
+  NebulaService: Symbol.for('NebulaService'),
   NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
@@ -71,7 +71,7 @@ export const TYPES = {
   GraphPersistenceService: Symbol.for('GraphPersistenceService'),
   EntityIdManager: Symbol.for('EntityIdManager'),
   EntityMappingService: Symbol.for('EntityMappingService'),
- TransactionCoordinator: Symbol.for('TransactionCoordinator'),
+  TransactionCoordinator: Symbol.for('TransactionCoordinator'),
   ConsistencyChecker: Symbol.for('ConsistencyChecker'),
   EventQueueService: Symbol.for('EventQueueService'),
   IndexCoordinator: Symbol.for('IndexCoordinator'),
@@ -99,7 +99,7 @@ const coreModule = new ContainerModule((bind: any) => {
 });
 
 const databaseModule = new ContainerModule((bind: any) => {
- bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
+  bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
   bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
@@ -115,7 +115,7 @@ const embedderModule = new ContainerModule((bind: any) => {
 });
 
 const serviceModule = new ContainerModule((bind: any) => {
- bind(TYPES.IndexService).to(IndexService).inSingletonScope();
+  bind(TYPES.IndexService).to(IndexService).inSingletonScope();
   bind(TYPES.GraphService).to(GraphService).inSingletonScope();
   bind(TYPES.ParserService).to(ParserService).inSingletonScope();
   bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();

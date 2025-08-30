@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import dotenv from 'dotenv';
 import Joi from 'joi';
 
@@ -283,6 +284,7 @@ export interface Config {
   };
 }
 
+@injectable()
 export class ConfigService {
   private static instance: ConfigService;
   private config: Config;

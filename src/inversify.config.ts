@@ -6,13 +6,13 @@ import { LoggerService } from './core/LoggerService';
 import { ErrorHandlerService } from './core/ErrorHandlerService';
 import { HashUtils } from './utils/HashUtils';
 import { PathUtils } from './utils/PathUtils';
-import { ChangeDetectionService } from './services/filesystem/ChangeDetectionService';
+import { ChangeDetectionService, ChangeDetectionOptions } from './services/filesystem/ChangeDetectionService';
+import { EventQueueService, EventQueueOptions } from './services/EventQueueService';
 import { VectorStorageService } from './services/storage/VectorStorageService';
 import { GraphPersistenceService } from './services/storage/GraphPersistenceService';
 import { ParserService } from './services/parser/ParserService';
 import { TransactionCoordinator } from './services/sync/TransactionCoordinator';
 import { IndexService } from './services/indexing/IndexService';
-import { EventQueueService } from './services/EventQueueService';
 import { NebulaConnectionManager } from './database/nebula/NebulaConnectionManager';
 import { QdrantClientWrapper } from './database/qdrant/QdrantClientWrapper';
 
@@ -40,6 +40,8 @@ import { BatchPerformanceMonitor } from './services/monitoring/BatchPerformanceM
 import { BatchSizeConfigManager } from './services/configuration/BatchSizeConfigManager';
 import { BatchErrorRecoveryService } from './services/recovery/BatchErrorRecoveryService';
 import { BatchProcessingMetrics } from './services/monitoring/BatchProcessingMetrics';
+import { FileSystemTraversal } from './services/filesystem/FileSystemTraversal';
+import { SmartCodeParser } from './services/parser/SmartCodeParser';
 
 // Create a new container
 const container = new Container();
@@ -91,6 +93,14 @@ container.bind<MemoryOptimizationService>(MemoryOptimizationService).toSelf().in
 container.bind<BatchPerformanceMonitor>(BatchPerformanceMonitor).toSelf().inSingletonScope();
 container.bind<BatchSizeConfigManager>(BatchSizeConfigManager).toSelf().inSingletonScope();
 container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().inSingletonScope();
+
+// Bind additional services
+container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
+container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
+
+// Bind configuration objects
+container.bind<ChangeDetectionOptions>('ChangeDetectionOptions').toConstantValue({});
+container.bind<EventQueueOptions>('EventQueueOptions').toConstantValue({});
 
 // Export the container
 export { container };
