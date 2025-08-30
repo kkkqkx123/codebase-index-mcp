@@ -97,7 +97,11 @@ export class HttpServer {
       this.errorHandler.handleError(error, {
         component: 'HttpServer',
         operation: 'globalErrorHandler',
-        method: req.method
+        metadata: {
+          method: req.method,
+          url: req.url,
+          userAgent: req.get('User-Agent')
+        }
       });
       
       res.status(500).json({

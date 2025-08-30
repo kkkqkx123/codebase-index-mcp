@@ -174,3 +174,14 @@
   "verbose": true,
   "details": "extra information"
 }
+{"error":"Step 'memory-check' failed after 2 attempts: Insufficient memory for indexing operation","level":"error","message":"Index creation failed","projectId":"474cbd2006094b3c125d3a235a8d7dcb77e0e88619771c3f5fad806bf699fee8"}
+{"error":"Invalid service configuration section: services.search","level":"error","message":"Failed to get config section 'services.search'"}
+{"error":"Configuration error for section 'services.search': Invalid service configuration section: services.search","level":"error","message":"Search failed","query":"test function","queryTime":1}
+{"error":"Invalid service configuration section: services.search","level":"error","message":"Failed to get config section 'services.search'"}
+{"error":"Configuration error for section 'services.search': Invalid service configuration section: services.search","level":"error","message":"Search failed","query":"test function","queryTime":0}
+{"error":"Invalid service configuration section: services.search","level":"error","message":"Failed to get config section 'services.search'"}
+{"error":"Configuration error for section 'services.search': Invalid service configuration section: services.search","level":"error","message":"Search failed","query":"test function","queryTime":0}
+{"error":"Invalid service configuration section: services.search","level":"error","message":"Failed to get config section 'services.search'"}
+{"error":"Configuration error for section 'services.search': Invalid service configuration section: services.search","level":"error","message":"Search failed","query":"new function","queryTime":1}
+{"error":"Invalid service configuration section: services.search","level":"error","message":"Failed to get config section 'services.search'"}
+{"error":"Configuration error for section 'services.search': Invalid service configuration section: services.search","level":"error","message":"Search failed","query":"new function","queryTime":0}

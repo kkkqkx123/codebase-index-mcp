@@ -154,6 +154,11 @@ describe('Full Index and Retrieval Workflow', () => {
     let testSnippetId: string;
 
     beforeAll(async () => {
+      // Ensure testProjectPath is initialized
+      if (!testProjectPath) {
+        throw new Error('testProjectPath is not initialized');
+      }
+      
       // Get project ID
       const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
       projectId = projectHash.hash;
@@ -212,6 +217,11 @@ describe('Full Index and Retrieval Workflow', () => {
     let newFilePath: string;
 
     beforeAll(async () => {
+      // Ensure testProjectPath is initialized
+      if (!testProjectPath) {
+        throw new Error('testProjectPath is not initialized');
+      }
+      
       // Get project ID
       const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
       projectId = projectHash.hash;
@@ -281,6 +291,11 @@ describe('Full Index and Retrieval Workflow', () => {
     let projectId: string;
 
     beforeAll(async () => {
+      // Ensure testProjectPath is initialized
+      if (!testProjectPath) {
+        throw new Error('testProjectPath is not initialized');
+      }
+      
       // Get project ID
       const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
       projectId = projectHash.hash;

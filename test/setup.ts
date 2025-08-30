@@ -20,6 +20,32 @@ beforeAll(() => {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
   process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
+  
+  // Set required environment variables for embedding services
+  process.env.EMBEDDING_PROVIDER = 'openai';
+  process.env.OPENAI_API_KEY = 'test-key';
+  process.env.OPENAI_MODEL = 'text-embedding-ada-002';
+  
+  // Mistral is required even if not used
+  process.env.MISTRAL_API_KEY = 'test-key';
+  process.env.MISTRAL_MODEL = 'mistral-embed';
+  
+  // Custom embedding services configuration
+  process.env.CUSTOM_CUSTOM1_BASE_URL = 'http://localhost:8000';
+  process.env.CUSTOM_CUSTOM2_BASE_URL = 'http://localhost:8001';
+  process.env.CUSTOM_CUSTOM3_BASE_URL = 'http://localhost:8002';
+  
+  // Qdrant configuration
+  process.env.QDRANT_HOST = 'localhost';
+  process.env.QDRANT_PORT = '6333';
+  process.env.QDRANT_COLLECTION = 'code-snippets';
+  
+  // Nebula configuration
+  process.env.NEBULA_HOST = 'localhost';
+  process.env.NEBULA_PORT = '9669';
+  process.env.NEBULA_USERNAME = 'root';
+  process.env.NEBULA_PASSWORD = 'nebula';
+  process.env.NEBULA_SPACE = 'codegraph';
 });
 
 // Set up dependency injection container for tests
