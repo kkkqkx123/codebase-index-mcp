@@ -22,7 +22,7 @@ const configSchema = Joi.object({
   }),
   
   embedding: Joi.object({
-    provider: Joi.string().valid('openai', 'ollama', 'gemini', 'mistral').default('openai'),
+    provider: Joi.string().valid('openai', 'ollama', 'gemini', 'mistral', 'siliconflow', 'custom1', 'custom2', 'custom3').default('openai'),
     openai: Joi.object({
       apiKey: Joi.string().required(),
       baseUrl: Joi.string().uri().optional(),
@@ -42,6 +42,28 @@ const configSchema = Joi.object({
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('mistral-embed')
     }),
+    siliconflow: Joi.object({
+      apiKey: Joi.string().required(),
+      baseUrl: Joi.string().uri().optional(),
+      model: Joi.string().default('BAAI/bge-large-en-v1.5')
+    }),
+    custom: Joi.object({
+      custom1: Joi.object({
+        apiKey: Joi.string().optional(),
+        baseUrl: Joi.string().uri().optional(),
+        model: Joi.string().optional()
+      }),
+      custom2: Joi.object({
+        apiKey: Joi.string().optional(),
+        baseUrl: Joi.string().uri().optional(),
+        model: Joi.string().optional()
+      }),
+      custom3: Joi.object({
+        apiKey: Joi.string().optional(),
+        baseUrl: Joi.string().uri().optional(),
+        model: Joi.string().optional()
+      })
+    }).optional(),
     dimensionRules: Joi.object().pattern(Joi.string(), Joi.number()).optional(),
     qualityWeight: Joi.number().min(0).max(1).default(0.7),
     performanceWeight: Joi.number().min(0).max(1).default(0.3)
@@ -147,6 +169,28 @@ export interface Config {
       baseUrl?: string;
       model: string;
     };
+    siliconflow: {
+      apiKey: string;
+      baseUrl?: string;
+      model: string;
+    };
+    custom?: {
+      custom1?: {
+        apiKey?: string;
+        baseUrl?: string;
+        model?: string;
+      };
+      custom2?: {
+        apiKey?: string;
+        baseUrl?: string;
+        model?: string;
+      };
+      custom3?: {
+        apiKey?: string;
+        baseUrl?: string;
+        model?: string;
+      };
+    };
     dimensionRules?: { [key: string]: number };
     qualityWeight?: number;
     performanceWeight?: number;
@@ -245,6 +289,28 @@ export class ConfigService {
           apiKey: process.env.MISTRAL_API_KEY,
           baseUrl: process.env.MISTRAL_BASE_URL,
           model: process.env.MISTRAL_MODEL
+        },
+        siliconflow: {
+          apiKey: process.env.SILICONFLOW_API_KEY,
+          baseUrl: process.env.SILICONFLOW_BASE_URL,
+          model: process.env.SILICONFLOW_MODEL
+        },
+        custom: {
+          custom1: {
+            apiKey: process.env.CUSTOM_CUSTOM1_API_KEY,
+            baseUrl: process.env.CUSTOM_CUSTOM1_BASE_URL,
+            model: process.env.CUSTOM_CUSTOM1_MODEL
+          },
+          custom2: {
+            apiKey: process.env.CUSTOM_CUSTOM2_API_KEY,
+            baseUrl: process.env.CUSTOM_CUSTOM2_BASE_URL,
+            model: process.env.CUSTOM_CUSTOM2_MODEL
+          },
+          custom3: {
+            apiKey: process.env.CUSTOM_CUSTOM3_API_KEY,
+            baseUrl: process.env.CUSTOM_CUSTOM3_BASE_URL,
+            model: process.env.CUSTOM_CUSTOM3_MODEL
+          }
         },
         qualityWeight: process.env.QUALITY_WEIGHT ? parseFloat(process.env.QUALITY_WEIGHT) : undefined,
         performanceWeight: process.env.PERFORMANCE_WEIGHT ? parseFloat(process.env.PERFORMANCE_WEIGHT) : undefined

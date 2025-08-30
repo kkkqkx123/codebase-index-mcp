@@ -6,6 +6,10 @@ import { OpenAIEmbedder } from './OpenAIEmbedder';
 import { OllamaEmbedder } from './OllamaEmbedder';
 import { GeminiEmbedder } from './GeminiEmbedder';
 import { MistralEmbedder } from './MistralEmbedder';
+import { SiliconFlowEmbedder } from './SiliconFlowEmbedder';
+import { Custom1Embedder } from './Custom1Embedder';
+import { Custom2Embedder } from './Custom2Embedder';
+import { Custom3Embedder } from './Custom3Embedder';
 import { Embedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
 
 @injectable()
@@ -22,7 +26,11 @@ export class EmbedderFactory {
     @inject(OpenAIEmbedder) openAIEmbedder: OpenAIEmbedder,
     @inject(OllamaEmbedder) ollamaEmbedder: OllamaEmbedder,
     @inject(GeminiEmbedder) geminiEmbedder: GeminiEmbedder,
-    @inject(MistralEmbedder) mistralEmbedder: MistralEmbedder
+    @inject(MistralEmbedder) mistralEmbedder: MistralEmbedder,
+    @inject(SiliconFlowEmbedder) siliconFlowEmbedder: SiliconFlowEmbedder,
+    @inject(Custom1Embedder) custom1Embedder: Custom1Embedder,
+    @inject(Custom2Embedder) custom2Embedder: Custom2Embedder,
+    @inject(Custom3Embedder) custom3Embedder: Custom3Embedder
   ) {
     this.configService = configService;
     this.logger = logger;
@@ -33,6 +41,10 @@ export class EmbedderFactory {
     this.embedders.set('ollama', ollamaEmbedder);
     this.embedders.set('gemini', geminiEmbedder);
     this.embedders.set('mistral', mistralEmbedder);
+    this.embedders.set('siliconflow', siliconFlowEmbedder);
+    this.embedders.set('custom1', custom1Embedder);
+    this.embedders.set('custom2', custom2Embedder);
+    this.embedders.set('custom3', custom3Embedder);
   }
 
   async getEmbedder(provider?: string): Promise<Embedder> {
