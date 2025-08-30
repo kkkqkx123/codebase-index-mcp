@@ -26,10 +26,50 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
     
     try {
       const { result, time } = await this.measureTime(async () => {
-        return inputs.map(inp => this.generateMockEmbedding(inp));
+        // Prepare the API request
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:embedContent?key=${this.apiKey}`;
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        // Process each input separately as Gemini API expects single input
+        const embeddings = [];
+        for (const inp of inputs) {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              content: {
+                parts: [{
+                  text: inp.text
+                }]
+              }
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Gemini API request failed with status ${response.status}: ${await response.text()}`);
+          }
+          
+          const data = await response.json() as { embedding: { values: number[] } };
+          embeddings.push({
+            vector: data.embedding.values,
+            dimensions: data.embedding.values.length,
+            model: this.model,
+            processingTime: 0 // Will be updated after timing
+          });
+        }
+        
+        return embeddings as EmbeddingResult[];
       });
 
-      return Array.isArray(input) ? result : result[0];
+      // Update processingTime with the actual measured time
+      const finalResult = Array.isArray(result) ? result : [result];
+      finalResult.forEach(embedding => {
+        embedding.processingTime = time;
+      });
+
+      return Array.isArray(input) ? finalResult : finalResult[0];
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Gemini embedding failed: ${error instanceof Error ? error.message : String(error)}`),
@@ -48,18 +88,18 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.apiKey && this.apiKey.length > 0;
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`;
+      const response = await fetch(url, {
+        method: 'GET'
+      });
+      
+      return response.ok;
+    } catch (error) {
+      this.logger.warn('Gemini availability check failed', { error });
+      return false;
+    }
   }
 
-  private generateMockEmbedding(input: EmbeddingInput): EmbeddingResult {
-    const dimensions = this.getDimensions();
-    const vector = Array.from({ length: dimensions }, () => Math.random() * 2 - 1);
-    
-    return {
-      vector,
-      dimensions,
-      model: this.model,
-      processingTime: Math.floor(Math.random() * 200) + 150
-    };
-  }
+
 }

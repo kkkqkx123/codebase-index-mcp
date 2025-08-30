@@ -25,12 +25,49 @@ export class OpenAIEmbedder extends BaseEmbedder implements Embedder {
     const inputs = Array.isArray(input) ? input : [input];
     
     try {
-      // For now, simulate embedding generation
       const { result, time } = await this.measureTime(async () => {
-        return inputs.map(inp => this.generateMockEmbedding(inp));
+        // Prepare the API request
+        const url = 'https://api.openai.com/v1/embeddings';
+        const headers = {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        };
+        
+        // Prepare the input texts
+        const inputTexts = inputs.map(inp => inp.text);
+        
+        // Make the API request
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            input: inputTexts,
+            model: this.model
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`OpenAI API request failed with status ${response.status}: ${await response.text()}`);
+        }
+        
+        const data = await response.json() as { data: Array<{ embedding: number[] }> };
+        
+        // Process the response
+        return data.data.map((item, index: number) => ({
+          vector: item.embedding,
+          dimensions: item.embedding.length,
+          model: this.model,
+          processingTime: 0 // Will be updated after timing
+        })) as EmbeddingResult[];
       });
 
-      return Array.isArray(input) ? result : result[0];
+      // Update processingTime with the actual measured time
+      const finalResult = Array.isArray(result) ? result : [result];
+      finalResult.forEach(embedding => {
+        embedding.processingTime = time;
+      });
+
+      return Array.isArray(input) ? finalResult : finalResult[0];
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`OpenAI embedding failed: ${error instanceof Error ? error.message : String(error)}`),
@@ -49,19 +86,22 @@ export class OpenAIEmbedder extends BaseEmbedder implements Embedder {
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.apiKey && this.apiKey.trim().length > 0;
-  }
-
-  private generateMockEmbedding(input: EmbeddingInput): EmbeddingResult {
-    // Generate a mock embedding vector for demonstration
-    const dimensions = this.getDimensions();
-    const vector = Array.from({ length: dimensions }, () => Math.random() * 2 - 1);
-    
-    return {
-      vector,
-      dimensions,
-      model: this.model,
-      processingTime: Math.floor(Math.random() * 100) + 50
-    };
+    try {
+      const url = 'https://api.openai.com/v1/models';
+      const headers = {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+      
+      return response.ok;
+    } catch (error) {
+      this.logger.warn('OpenAI availability check failed', { error });
+      return false;
+    }
   }
 }

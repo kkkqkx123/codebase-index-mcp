@@ -26,10 +26,47 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
     
     try {
       const { result, time } = await this.measureTime(async () => {
-        return inputs.map(inp => this.generateMockEmbedding(inp));
+        // Prepare the API request
+        const url = `${this.baseUrl}/api/embeddings`;
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        // Process each input separately as Ollama API expects single input
+        const embeddings = [];
+        for (const inp of inputs) {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              prompt: inp.text,
+              model: this.model
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Ollama API request failed with status ${response.status}: ${await response.text()}`);
+          }
+          
+          const data = await response.json() as { embedding: number[] };
+          embeddings.push({
+            vector: data.embedding,
+            dimensions: data.embedding.length,
+            model: this.model,
+            processingTime: 0 // Will be updated after timing
+          });
+        }
+        
+        return embeddings as EmbeddingResult[];
       });
 
-      return Array.isArray(input) ? result : result[0];
+      // Update processingTime with the actual measured time
+      const finalResult = Array.isArray(result) ? result : [result];
+      finalResult.forEach(embedding => {
+        embedding.processingTime = time;
+      });
+
+      return Array.isArray(input) ? finalResult : finalResult[0];
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Ollama embedding failed: ${error instanceof Error ? error.message : String(error)}`),
@@ -48,20 +85,18 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
   }
 
   async isAvailable(): Promise<boolean> {
-    // For now, return true as a placeholder
-    // In a real implementation, this would check if Ollama is running
-    return true;
+    try {
+      const url = `${this.baseUrl}/api/tags`;
+      const response = await fetch(url, {
+        method: 'GET'
+      });
+      
+      return response.ok;
+    } catch (error) {
+      this.logger.warn('Ollama availability check failed', { error });
+      return false;
+    }
   }
 
-  private generateMockEmbedding(input: EmbeddingInput): EmbeddingResult {
-    const dimensions = this.getDimensions();
-    const vector = Array.from({ length: dimensions }, () => Math.random() * 2 - 1);
-    
-    return {
-      vector,
-      dimensions,
-      model: this.model,
-      processingTime: Math.floor(Math.random() * 150) + 100
-    };
-  }
+
 }

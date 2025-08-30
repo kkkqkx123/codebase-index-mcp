@@ -26,10 +26,50 @@ export class MistralEmbedder extends BaseEmbedder implements Embedder {
     
     try {
       const { result, time } = await this.measureTime(async () => {
-        return inputs.map(inp => this.generateMockEmbedding(inp));
+        // Prepare the API request
+        const url = 'https://api.mistral.ai/v1/embeddings';
+        const headers = {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        };
+        
+        // Prepare the request body
+        const requestBody = {
+          model: this.model,
+          input: inputs.map(inp => inp.text)
+        };
+        
+        // Make the API request
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Mistral API request failed with status ${response.status}: ${await response.text()}`);
+        }
+        
+        const data = await response.json() as { data: Array<{ embedding: number[] }> };
+        
+        // Process the response
+        const embeddings = data.data.map((item, index: number) => ({
+          vector: item.embedding,
+          dimensions: item.embedding.length,
+          model: this.model,
+          processingTime: 0 // Will be updated after timing
+        }));
+        
+        return embeddings as EmbeddingResult[];
       });
 
-      return Array.isArray(input) ? result : result[0];
+      // Update processingTime with the actual measured time
+      const finalResult = Array.isArray(result) ? result : [result];
+      finalResult.forEach(embedding => {
+        embedding.processingTime = time;
+      });
+
+      return Array.isArray(input) ? finalResult : finalResult[0];
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Mistral embedding failed: ${error instanceof Error ? error.message : String(error)}`),
@@ -48,18 +88,23 @@ export class MistralEmbedder extends BaseEmbedder implements Embedder {
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.apiKey && this.apiKey.length > 0;
+    try {
+      const url = 'https://api.mistral.ai/v1/models';
+      const headers = {
+        'Authorization': `Bearer ${this.apiKey}`
+      };
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+      
+      return response.ok;
+    } catch (error) {
+      this.logger.warn('Mistral availability check failed', { error });
+      return false;
+    }
   }
 
-  private generateMockEmbedding(input: EmbeddingInput): EmbeddingResult {
-    const dimensions = this.getDimensions();
-    const vector = Array.from({ length: dimensions }, () => Math.random() * 2 - 1);
-    
-    return {
-      vector,
-      dimensions,
-      model: this.model,
-      processingTime: Math.floor(Math.random() * 120) + 80
-    };
-  }
+
 }
