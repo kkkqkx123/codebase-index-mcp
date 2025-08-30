@@ -268,7 +268,8 @@ export class TreeSitterService {
       }
 
       // Recursively traverse child nodes
-      for (const child of node.children) {
+      const children = node.children || [];
+      for (const child of children) {
         traverse(child, depth + 1);
       }
     };
@@ -303,7 +304,8 @@ export class TreeSitterService {
       }
 
       // Recursively traverse child nodes
-      for (const child of node.children) {
+      const children = node.children || [];
+      for (const child of children) {
         traverse(child, depth + 1);
       }
     };
@@ -339,7 +341,8 @@ export class TreeSitterService {
       }
 
       // Recursively traverse child nodes
-      for (const child of node.children) {
+      const children = node.children || [];
+      for (const child of children) {
         traverse(child, depth + 1);
       }
     };
@@ -893,7 +896,8 @@ export class TreeSitterService {
       }
 
       // Recursively traverse child nodes
-      for (const child of node.children) {
+      const children = node.children || [];
+      for (const child of children) {
         traverse(child, depth + 1);
       }
     };

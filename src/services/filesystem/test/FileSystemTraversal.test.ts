@@ -959,9 +959,19 @@ describe('FileSystemTraversal', () => {
     });
 
     it('should handle readdir errors gracefully', async () => {
-      // Save original mock implementations
-      const originalReaddir = mockFs.readdir;
-      const originalStat = mockFs.stat;
+      // Reset all mocks before this test
+      jest.clearAllMocks();
+      
+      // Create a fresh instance for this test
+      const testFileSystemTraversal = new FileSystemTraversal();
+      
+      // Mock stat to always succeed
+      mockFs.stat.mockResolvedValue({
+        isDirectory: () => true,
+        isFile: () => false,
+        size: 1024,
+        mtime: new Date('2023-01-01'),
+      } as any);
       
       // Set up a mock that will fail on the second call
       let callCount = 0;
@@ -978,25 +988,10 @@ describe('FileSystemTraversal', () => {
         }
       });
 
-      // Mock stat for all paths
-      mockFs.stat.mockImplementation((path) => {
-        const pathStr = typeof path === 'string' ? path : path.toString();
-        return Promise.resolve({
-          isDirectory: () => pathStr.includes('subdir'),
-          isFile: () => !pathStr.includes('subdir'),
-          size: 1024,
-          mtime: new Date('2023-01-01'),
-        } as any);
-      });
-
-      const result = await fileSystemTraversal.traverseDirectory('/test/root');
+      const result = await testFileSystemTraversal.traverseDirectory('/test/root');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0]).toContain('Error reading directory');
-      
-      // Restore original mock implementations
-      mockFs.readdir.mockImplementation(originalReaddir);
-      mockFs.stat.mockImplementation(originalStat);
     });
 
     it('should handle file read errors gracefully', async () => {
