@@ -28,6 +28,8 @@ import { EntityMappingService } from '../services/sync/EntityMappingService';
 import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
 import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
 import { EventQueueService } from '../services/EventQueueService';
+import { GraphDatabaseErrorHandler, ErrorClassifier } from '../core/GraphDatabaseErrorHandler';
+import { NebulaQueryBuilder } from '../database/nebula/NebulaQueryBuilder';
 
 // Monitoring services
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
@@ -75,13 +77,18 @@ export const TYPES = {
   PerformanceAnalysisService: Symbol.for('PerformanceAnalysisService'),
 
   // Controllers
-  MonitoringController: Symbol.for('MonitoringController')
+  MonitoringController: Symbol.for('MonitoringController'),
+  GraphDatabaseErrorHandler: Symbol.for('GraphDatabaseErrorHandler'),
+  ErrorClassifier: Symbol.for('ErrorClassifier'),
+  NebulaQueryBuilder: Symbol.for('NebulaQueryBuilder')
 };
 
 const coreModule = new ContainerModule((bind: any) => {
   bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
   bind(TYPES.LoggerService).to(LoggerService).inSingletonScope();
   bind(TYPES.ErrorHandlerService).to(ErrorHandlerService).inSingletonScope();
+  bind(TYPES.GraphDatabaseErrorHandler).to(GraphDatabaseErrorHandler).inSingletonScope();
+  bind(TYPES.ErrorClassifier).to(ErrorClassifier).inSingletonScope();
 });
 
 const databaseModule = new ContainerModule((bind: any) => {
@@ -89,6 +96,7 @@ const databaseModule = new ContainerModule((bind: any) => {
   bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
   bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
+  bind(TYPES.NebulaQueryBuilder).to(NebulaQueryBuilder).inSingletonScope();
 });
 
 const embedderModule = new ContainerModule((bind: any) => {

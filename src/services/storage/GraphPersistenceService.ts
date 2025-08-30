@@ -6,12 +6,22 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
 import { NebulaService } from '../../database/NebulaService';
+import { NebulaQueryBuilder, BatchVertex } from '../../database/nebula/NebulaQueryBuilder';
+import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler';
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
 
 export interface GraphPersistenceOptions {
   projectId?: string;
   overwriteExisting?: boolean;
   createRelationships?: boolean;
   batchSize?: number;
+  useCache?: boolean;
+  cacheTTL?: number;
 }
 
 export interface GraphPersistenceResult {
@@ -50,6 +60,8 @@ export class GraphPersistenceService {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
+  private queryBuilder: NebulaQueryBuilder;
+  private graphErrorHandler: GraphDatabaseErrorHandler;
   private isInitialized: boolean = false;
   
   // Batch processing configuration
@@ -61,21 +73,51 @@ export class GraphPersistenceService {
   private retryAttempts: number = 3;
   private retryDelay: number = 1000;
   private adaptiveBatchingEnabled: boolean = true;
+  
+  // Caching system
+  private queryCache: Map<string, CacheEntry<any>> = new Map();
+  private nodeExistenceCache: Map<string, CacheEntry<boolean>> = new Map();
+  private graphStatsCache: CacheEntry<{
+    nodeCount: number;
+    relationshipCount: number;
+    nodeTypes: Record<string, number>;
+    relationshipTypes: Record<string, number>;
+  }> | null = null;
+  private defaultCacheTTL: number = 300000; // 5 minutes
+  private maxCacheSize: number = 1000;
+  
+  // Performance monitoring
+  private performanceMetrics: {
+    queryExecutionTimes: number[];
+    cacheHitRate: number;
+    averageBatchSize: number;
+    connectionPoolStatus: string;
+  } = {
+    queryExecutionTimes: [],
+    cacheHitRate: 0,
+    averageBatchSize: 0,
+    connectionPoolStatus: 'unknown'
+  };
 
   constructor(
     @inject(NebulaService) nebulaService: NebulaService,
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics
+    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(NebulaQueryBuilder) queryBuilder: NebulaQueryBuilder,
+    @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler
   ) {
     this.nebulaService = nebulaService;
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.configService = configService;
     this.batchMetrics = batchMetrics;
+    this.queryBuilder = queryBuilder;
+    this.graphErrorHandler = graphErrorHandler;
     
     this.initializeBatchProcessingConfig();
+    this.initializeCachingSystem();
   }
 
   async initialize(): Promise<boolean> {
@@ -87,18 +129,29 @@ export class GraphPersistenceService {
         }
       }
 
-      // NebulaGraph使用不同的约束机制，这里需要调整
-      // await this.ensureConstraints();
+      // Initialize connection pool monitoring
+      await this.initializeConnectionPoolMonitoring();
+      
       this.isInitialized = true;
       
       this.logger.info('Graph persistence service initialized');
       return true;
     } catch (error) {
-      const report = this.errorHandler.handleError(
+      const errorContext = {
+        component: 'GraphPersistenceService',
+        operation: 'initialize',
+        retryCount: 0
+      };
+      
+      const result = await this.graphErrorHandler.handleError(
         new Error(`Failed to initialize graph persistence: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'GraphPersistenceService', operation: 'initialize' }
+        errorContext
       );
-      this.logger.error('Failed to initialize graph persistence', { errorId: report.id });
+      
+      this.logger.error('Failed to initialize graph persistence', { 
+        errorType: result.action,
+        suggestions: result.suggestions 
+      });
       return false;
     }
   }
@@ -111,6 +164,8 @@ export class GraphPersistenceService {
     const startTime = Date.now();
     const operationId = `storeParsedFiles_${options.projectId || 'unknown'}_${Date.now()}`;
     const batchSize = options.batchSize || this.calculateOptimalBatchSize(files.length);
+    const useCache = options.useCache !== false;
+    const cacheTTL = options.cacheTTL || this.defaultCacheTTL;
     
     // Start batch operation metrics
     const batchMetrics = this.batchMetrics.startBatchOperation(
@@ -134,46 +189,13 @@ export class GraphPersistenceService {
         throw new Error('Insufficient memory available for batch processing');
       }
 
-      const queries: GraphQuery[] = [];
+      // Use enhanced batch processing with NebulaQueryBuilder
+      const batchResult = await this.processFilesWithEnhancedBatching(files, options, batchSize, useCache, cacheTTL);
       
-      if (options.projectId) {
-        const projectQuery = this.createProjectNode(options.projectId);
-        queries.push(projectQuery);
-      }
-
-      for (const file of files) {
-        const fileQueries = this.createFileQueries(file, options);
-        queries.push(...fileQueries);
-      }
-
-      if (options.createRelationships !== false) {
-        const relationshipQueries = this.createRelationshipQueries(files, options);
-        queries.push(...relationshipQueries);
-      }
-
-      const results: GraphPersistenceResult[] = [];
-
-      // Process queries in optimized batches with retry logic
-      for (let i = 0; i < queries.length; i += batchSize) {
-        const batch = queries.slice(i, i + batchSize);
-        
-        // Check memory usage before processing each batch
-        if (!this.checkMemoryUsage()) {
-          throw new Error('Insufficient memory available for batch processing');
-        }
-        
-        const batchResult = await this.processWithTimeout(
-          () => this.retryOperation(() => this.executeBatch(batch)),
-          this.processingTimeout
-        );
-        
-        results.push(batchResult);
-      }
-
-      result.success = results.every(r => r.success);
-      result.nodesCreated = results.reduce((sum, r) => sum + r.nodesCreated, 0);
-      result.relationshipsCreated = results.reduce((sum, r) => sum + r.relationshipsCreated, 0);
-      result.nodesUpdated = results.reduce((sum, r) => sum + r.nodesUpdated, 0);
+      result.success = batchResult.success;
+      result.nodesCreated = batchResult.nodesCreated;
+      result.relationshipsCreated = batchResult.relationshipsCreated;
+      result.nodesUpdated = batchResult.nodesUpdated;
       result.processingTime = Date.now() - startTime;
 
       // Update batch metrics
@@ -183,22 +205,38 @@ export class GraphPersistenceService {
         errorCount: result.success ? 0 : files.length
       });
 
+      // Update performance metrics
+      this.performanceMetrics.averageBatchSize = batchSize;
+
       if (result.success) {
         this.logger.info('Files stored in graph successfully', {
           fileCount: files.length,
           nodesCreated: result.nodesCreated,
           relationshipsCreated: result.relationshipsCreated,
           processingTime: result.processingTime,
-          batchSize
+          batchSize,
+          cacheEnabled: useCache,
+          cacheHitRate: this.performanceMetrics.cacheHitRate
         });
       }
     } catch (error) {
-      const report = this.errorHandler.handleError(
-        new Error(`Failed to store parsed files: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'GraphPersistenceService', operation: 'storeParsedFiles' }
+      const errorContext = {
+        component: 'GraphPersistenceService',
+        operation: 'storeParsedFiles',
+        fileCount: files.length,
+        duration: Date.now() - startTime
+      };
+      
+      const errorResult = await this.graphErrorHandler.handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        errorContext
       );
-      result.errors.push(`Storage failed: ${report.id}`);
-      this.logger.error('Failed to store parsed files', { errorId: report.id });
+      
+      result.errors.push(`Storage failed: ${errorResult.action}`);
+      this.logger.error('Failed to store parsed files', { 
+        errorType: errorResult.action,
+        suggestions: errorResult.suggestions
+      });
       
       // Update batch metrics with error
       this.batchMetrics.updateBatchOperation(operationId, {
@@ -398,52 +436,51 @@ export class GraphPersistenceService {
       await this.initialize();
     }
 
+    // Check cache first
+    const cacheKey = 'graph_stats';
+    const cachedStats = this.getFromCache<{
+      nodeCount: number;
+      relationshipCount: number;
+      nodeTypes: Record<string, number>;
+      relationshipTypes: Record<string, number>;
+    }>(cacheKey);
+    if (cachedStats) {
+      this.performanceMetrics.cacheHitRate = (this.performanceMetrics.cacheHitRate * 0.9) + 0.1;
+      return cachedStats;
+    }
+
     try {
-      // NebulaGraph使用nGQL而不是Cypher
-      // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
-      // For NebulaGraph, we need to use different queries to get stats
-      // Since NebulaGraph doesn't have direct equivalent queries, we'll use SHOW commands
+      // Get enhanced stats using NebulaQueryBuilder
+      const stats = await this.getEnhancedGraphStats();
       
-      // Get basic stats using NebulaGraph's SHOW commands
-      const nodeCountResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
-      const relationshipCountResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
-      
-      // For more detailed stats, we would need to query each tag/edge type separately
-      // This is a simplified implementation
-      
-      const nodeTypes: Record<string, number> = {};
-      const relationshipTypes: Record<string, number> = {};
-      
-      // Extract tag information
-      if (nodeCountResult && Array.isArray(nodeCountResult)) {
-        nodeCountResult.forEach((record: any) => {
-          const tagName = record.Name || record.name || 'Unknown';
-          // In a real implementation, we would count vertices for each tag
-          nodeTypes[tagName] = 0; // Placeholder value
-        });
-      }
-      
-      // Extract edge information
-      if (relationshipCountResult && Array.isArray(relationshipCountResult)) {
-        relationshipCountResult.forEach((record: any) => {
-          const edgeName = record.Name || record.name || 'Unknown';
-          // In a real implementation, we would count edges for each type
-          relationshipTypes[edgeName] = 0; // Placeholder value
-        });
-      }
-      
-      return {
-        nodeCount: Object.keys(nodeTypes).length,
-        relationshipCount: Object.keys(relationshipTypes).length,
-        nodeTypes,
-        relationshipTypes
+      // Cache the result
+      this.setCache(cacheKey, stats, this.defaultCacheTTL);
+      this.graphStatsCache = {
+        data: stats,
+        timestamp: Date.now(),
+        ttl: this.defaultCacheTTL
       };
+      
+      this.performanceMetrics.cacheHitRate = this.performanceMetrics.cacheHitRate * 0.9;
+      
+      return stats;
     } catch (error) {
-      const report = this.errorHandler.handleError(
-        new Error(`Failed to get graph stats: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'GraphPersistenceService', operation: 'getGraphStats' }
+      const errorContext = {
+        component: 'GraphPersistenceService',
+        operation: 'getGraphStats',
+        query: 'SHOW TAGS; SHOW EDGES'
+      };
+      
+      const result = await this.graphErrorHandler.handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        errorContext
       );
-      this.logger.error('Failed to get graph stats', { errorId: report.id });
+      
+      this.logger.error('Failed to get graph stats', { 
+        errorType: result.action,
+        suggestions: result.suggestions
+      });
+      
       return {
         nodeCount: 0,
         relationshipCount: 0,
@@ -703,14 +740,28 @@ export class GraphPersistenceService {
   }
 
   private async executeBatch(queries: GraphQuery[]): Promise<GraphPersistenceResult> {
+    const startTime = Date.now();
+    
     try {
+      // Use enhanced error handling for batch operations
+      const result = await this.graphErrorHandler.handleError(
+        new Error('Batch execution'),
+        {
+          component: 'GraphPersistenceService',
+          operation: 'executeBatch',
+          queryCount: queries.length,
+          duration: 0
+        }
+      );
+      
+      // Execute the batch transaction
       const results = await this.nebulaService.executeTransaction(queries);
       
       let nodesCreated = 0;
       let relationshipsCreated = 0;
       let nodesUpdated = 0;
 
-      // For NebulaGraph, we'll use a simpler approach to count operations
+      // Enhanced operation counting
       for (const query of queries) {
         if (query.nGQL.includes('INSERT VERTEX')) {
           nodesCreated++;
@@ -720,23 +771,43 @@ export class GraphPersistenceService {
           nodesUpdated++;
         }
       }
-
+      
+      const processingTime = Date.now() - startTime;
+      
+      // Update performance metrics
+      this.performanceMetrics.queryExecutionTimes.push(processingTime);
+      if (this.performanceMetrics.queryExecutionTimes.length > 100) {
+        this.performanceMetrics.queryExecutionTimes = this.performanceMetrics.queryExecutionTimes.slice(-100);
+      }
+      
       return {
         success: true,
         nodesCreated,
         relationshipsCreated,
         nodesUpdated,
-        processingTime: 0,
+        processingTime,
         errors: []
       };
     } catch (error) {
+      const errorContext = {
+        component: 'GraphPersistenceService',
+        operation: 'executeBatch',
+        retryCount: 0,
+        duration: Date.now() - startTime
+      };
+      
+      const result = await this.graphErrorHandler.handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        errorContext
+      );
+      
       return {
         success: false,
         nodesCreated: 0,
         relationshipsCreated: 0,
         nodesUpdated: 0,
-        processingTime: 0,
-        errors: [error instanceof Error ? error.message : String(error)]
+        processingTime: Date.now() - startTime,
+        errors: [result.action]
       };
     }
   }
@@ -792,6 +863,44 @@ export class GraphPersistenceService {
       processingTimeout: this.processingTimeout,
       adaptiveBatchingEnabled: this.adaptiveBatchingEnabled
     });
+  }
+
+  private initializeCachingSystem(): void {
+    const cacheConfig = this.configService.get('caching');
+    if (cacheConfig && typeof cacheConfig === 'object') {
+      const config = cacheConfig as any;
+      this.defaultCacheTTL = config.defaultTTL || this.defaultCacheTTL;
+      this.maxCacheSize = config.maxSize || this.maxCacheSize;
+    }
+    
+    // Start cache cleanup interval
+    setInterval(() => this.cleanupCache(), 60000); // Clean up every minute
+    
+    this.logger.info('Graph persistence caching system initialized', {
+      defaultCacheTTL: this.defaultCacheTTL,
+      maxCacheSize: this.maxCacheSize
+    });
+  }
+
+  private async initializeConnectionPoolMonitoring(): Promise<void> {
+    try {
+      // Monitor connection pool status
+      const stats = await this.nebulaService.getDatabaseStats();
+      this.performanceMetrics.connectionPoolStatus = 'healthy';
+      
+      // Set up periodic monitoring
+      setInterval(async () => {
+        try {
+          const currentStats = await this.nebulaService.getDatabaseStats();
+          this.performanceMetrics.connectionPoolStatus = 
+            currentStats.hosts && currentStats.hosts.length > 0 ? 'healthy' : 'degraded';
+        } catch (error) {
+          this.performanceMetrics.connectionPoolStatus = 'error';
+        }
+      }, 30000); // Check every 30 seconds
+    } catch (error) {
+      this.performanceMetrics.connectionPoolStatus = 'error';
+    }
   }
 
   private checkMemoryUsage(): boolean {
@@ -1023,56 +1132,354 @@ export class GraphPersistenceService {
 
     for (const chunk of chunks) {
       if (chunk.type === 'function') {
-        queries.push({
-          nGQL: `
-            UPDATE VERTEX Function
-            SET content = $content,
-                startLine = $startLine,
-                endLine = $endLine,
-                complexity = $complexity,
-                parameters = $parameters,
-                returnType = $returnType,
-                updatedAt = now()
-            WHERE id = $chunkId
-          `,
-          parameters: {
-            chunkId: chunk.id,
-            content: chunk.content,
-            startLine: chunk.startLine,
-            endLine: chunk.endLine,
-            complexity: chunk.metadata.complexity || 1,
-            parameters: chunk.metadata.parameters || [],
-            returnType: chunk.metadata.returnType || 'unknown'
-          }
+        const updateQuery = this.queryBuilder.updateVertex(chunk.id, 'Function', {
+          content: chunk.content,
+          startLine: chunk.startLine,
+          endLine: chunk.endLine,
+          complexity: chunk.metadata.complexity || 1,
+          parameters: chunk.metadata.parameters || [],
+          returnType: chunk.metadata.returnType || 'unknown',
+          updatedAt: new Date().toISOString()
         });
+        queries.push({ nGQL: updateQuery.query, parameters: updateQuery.params });
       }
 
       if (chunk.type === 'class') {
-        queries.push({
-          nGQL: `
-            UPDATE VERTEX Class
-            SET content = $content,
-                startLine = $startLine,
-                endLine = $endLine,
-                methods = $methods,
-                properties = $properties,
-                inheritance = $inheritance,
-                updatedAt = now()
-            WHERE id = $chunkId
-          `,
-          parameters: {
-            chunkId: chunk.id,
-            content: chunk.content,
-            startLine: chunk.startLine,
-            endLine: chunk.endLine,
-            methods: chunk.metadata.methods || 0,
-            properties: chunk.metadata.properties || 0,
-            inheritance: chunk.metadata.inheritance || []
-          }
+        const updateQuery = this.queryBuilder.updateVertex(chunk.id, 'Class', {
+          content: chunk.content,
+          startLine: chunk.startLine,
+          endLine: chunk.endLine,
+          methods: chunk.metadata.methods || 0,
+          properties: chunk.metadata.properties || 0,
+          inheritance: chunk.metadata.inheritance || [],
+          updatedAt: new Date().toISOString()
         });
+        queries.push({ nGQL: updateQuery.query, parameters: updateQuery.params });
       }
     }
 
     return queries;
+  }
+
+  // Enhanced batch processing using NebulaQueryBuilder
+  private async processFilesWithEnhancedBatching(
+    files: ParsedFile[], 
+    options: GraphPersistenceOptions, 
+    batchSize: number,
+    useCache: boolean,
+    cacheTTL: number
+  ): Promise<GraphPersistenceResult> {
+    const startTime = Date.now();
+    const result: GraphPersistenceResult = {
+      success: false,
+      nodesCreated: 0,
+      relationshipsCreated: 0,
+      nodesUpdated: 0,
+      processingTime: 0,
+      errors: []
+    };
+
+    try {
+      // Prepare vertices for batch insertion
+      const vertices: BatchVertex[] = [];
+      const edges: Array<{
+        type: string;
+        srcId: string;
+        dstId: string;
+        properties: Record<string, any>;
+      }> = [];
+
+      // Process files into vertices and edges
+      for (const file of files) {
+        // Add file vertex
+        vertices.push({
+          tag: 'File',
+          id: file.id,
+          properties: {
+            path: file.filePath,
+            relativePath: file.relativePath,
+            name: file.filePath.split('/').pop() || 'unknown',
+            language: file.language,
+            size: file.size,
+            hash: file.hash,
+            linesOfCode: file.metadata.linesOfCode,
+            functions: file.metadata.functions,
+            classes: file.metadata.classes,
+            lastModified: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        });
+
+        // Add project relationship if specified
+        if (options.projectId) {
+          edges.push({
+            type: 'BELONGS_TO',
+            srcId: file.id,
+            dstId: options.projectId,
+            properties: {}
+          });
+        }
+
+        // Process chunks
+        for (const chunk of file.chunks) {
+          if (chunk.type === 'function') {
+            vertices.push({
+              tag: 'Function',
+              id: chunk.id,
+              properties: {
+                name: chunk.functionName || 'anonymous',
+                content: chunk.content,
+                startLine: chunk.startLine,
+                endLine: chunk.endLine,
+                complexity: chunk.metadata.complexity || 1,
+                parameters: chunk.metadata.parameters || [],
+                returnType: chunk.metadata.returnType || 'unknown',
+                language: chunk.metadata.language || 'unknown',
+                updatedAt: new Date().toISOString()
+              }
+            });
+
+            // Add contains relationship
+            edges.push({
+              type: 'CONTAINS',
+              srcId: file.id,
+              dstId: chunk.id,
+              properties: {}
+            });
+          }
+
+          if (chunk.type === 'class') {
+            vertices.push({
+              tag: 'Class',
+              id: chunk.id,
+              properties: {
+                name: chunk.className || 'anonymous',
+                content: chunk.content,
+                startLine: chunk.startLine,
+                endLine: chunk.endLine,
+                methods: chunk.metadata.methods || 0,
+                properties: chunk.metadata.properties || 0,
+                inheritance: chunk.metadata.inheritance || [],
+                language: chunk.metadata.language || 'unknown',
+                updatedAt: new Date().toISOString()
+              }
+            });
+
+            // Add contains relationship
+            edges.push({
+              type: 'CONTAINS',
+              srcId: file.id,
+              dstId: chunk.id,
+              properties: {}
+            });
+          }
+        }
+
+        // Process imports
+        for (const importName of file.metadata.imports) {
+          const importId = `import_${file.id}_${importName}`;
+          vertices.push({
+            tag: 'Import',
+            id: importId,
+            properties: {
+              module: importName,
+              updatedAt: new Date().toISOString()
+            }
+          });
+
+          edges.push({
+            type: 'IMPORTS',
+            srcId: file.id,
+            dstId: importId,
+            properties: {}
+          });
+        }
+      }
+
+      // Add project vertex if specified
+      if (options.projectId) {
+        vertices.push({
+          tag: 'Project',
+          id: options.projectId,
+          properties: {
+            name: options.projectId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        });
+      }
+
+      // Process in batches
+      const vertexBatches = this.chunkArray(vertices, batchSize);
+      const edgeBatches = this.chunkArray(edges, batchSize);
+      
+      let totalNodesCreated = 0;
+      let totalRelationshipsCreated = 0;
+      
+      // Process vertex batches
+      for (const vertexBatch of vertexBatches) {
+        const cacheKey = `vertices_${vertexBatch.map(v => v.id).sort().join('_')}`;
+        
+        if (useCache) {
+          const cached = this.getFromCache<number>(cacheKey);
+          if (cached && typeof cached === 'number') {
+            totalNodesCreated += cached;
+            continue;
+          }
+        }
+        
+        const batchResult = await this.queryBuilder.batchInsertVertices(vertexBatch);
+        const executionResult = await this.executeBatch([{ nGQL: batchResult.query, parameters: batchResult.params }]);
+        
+        if (executionResult.success) {
+          totalNodesCreated += vertexBatch.length;
+          if (useCache) {
+            this.setCache(cacheKey, vertexBatch.length, cacheTTL);
+          }
+        } else {
+          result.errors.push(...executionResult.errors);
+        }
+      }
+      
+      // Process edge batches
+      for (const edgeBatch of edgeBatches) {
+        const batchResult = await this.queryBuilder.batchInsertEdges(edgeBatch);
+        const executionResult = await this.executeBatch([{ nGQL: batchResult.query, parameters: batchResult.params }]);
+        
+        if (executionResult.success) {
+          totalRelationshipsCreated += edgeBatch.length;
+        } else {
+          result.errors.push(...executionResult.errors);
+        }
+      }
+      
+      result.success = result.errors.length === 0;
+      result.nodesCreated = totalNodesCreated;
+      result.relationshipsCreated = totalRelationshipsCreated;
+      result.processingTime = Date.now() - startTime;
+      
+      return result;
+    } catch (error) {
+      result.success = false;
+      result.errors.push(error instanceof Error ? error.message : String(error));
+      result.processingTime = Date.now() - startTime;
+      return result;
+    }
+  }
+
+  // Enhanced graph statistics using NebulaQueryBuilder
+  private async getEnhancedGraphStats(): Promise<{
+    nodeCount: number;
+    relationshipCount: number;
+    nodeTypes: Record<string, number>;
+    relationshipTypes: Record<string, number>;
+  }> {
+    try {
+      // Use NebulaQueryBuilder to build count queries
+      const tagResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
+      const edgeResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
+      
+      const nodeTypes: Record<string, number> = {};
+      const relationshipTypes: Record<string, number> = {};
+      
+      // Count nodes for each tag
+      if (tagResult && Array.isArray(tagResult)) {
+        for (const tag of tagResult) {
+          const tagName = tag.Name || tag.name || 'Unknown';
+          const countQuery = this.queryBuilder.buildCountQuery(tagName);
+          const countResult = await this.nebulaService.executeReadQuery(countQuery.query, countQuery.params);
+          
+          if (countResult && Array.isArray(countResult) && countResult.length > 0) {
+            nodeTypes[tagName] = countResult[0].total || 0;
+          }
+        }
+      }
+      
+      // Count relationships for each edge type
+      if (edgeResult && Array.isArray(edgeResult)) {
+        for (const edge of edgeResult) {
+          const edgeName = edge.Name || edge.name || 'Unknown';
+          // For edge counting, we would need to use MATCH queries
+          // This is a simplified implementation
+          relationshipTypes[edgeName] = 0;
+        }
+      }
+      
+      const totalNodes = Object.values(nodeTypes).reduce((sum, count) => sum + count, 0);
+      const totalRelationships = Object.values(relationshipTypes).reduce((sum, count) => sum + count, 0);
+      
+      return {
+        nodeCount: totalNodes,
+        relationshipCount: totalRelationships,
+        nodeTypes,
+        relationshipTypes
+      };
+    } catch (error) {
+      // Fallback to basic implementation
+      return {
+        nodeCount: 0,
+        relationshipCount: 0,
+        nodeTypes: {},
+        relationshipTypes: {}
+      } as const;
+    }
+  }
+
+  // Caching helper methods
+  private getFromCache<T>(key: string): T | null {
+    const entry = this.queryCache.get(key);
+    if (!entry) return null;
+    
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.queryCache.delete(key);
+      return null;
+    }
+    
+    return entry.data;
+  }
+
+  private setCache<T>(key: string, data: T, ttl: number): void {
+    if (this.queryCache.size >= this.maxCacheSize) {
+      this.cleanupCache();
+    }
+    
+    this.queryCache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    });
+  }
+
+  private cleanupCache(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.queryCache.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        this.queryCache.delete(key);
+      }
+    }
+  }
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  // Performance monitoring methods
+  getPerformanceMetrics() {
+    const avgQueryTime = this.performanceMetrics.queryExecutionTimes.length > 0
+      ? this.performanceMetrics.queryExecutionTimes.reduce((a, b) => a + b, 0) / this.performanceMetrics.queryExecutionTimes.length
+      : 0;
+    
+    return {
+      averageQueryTime: avgQueryTime,
+      cacheHitRate: this.performanceMetrics.cacheHitRate,
+      averageBatchSize: this.performanceMetrics.averageBatchSize,
+      connectionPoolStatus: this.performanceMetrics.connectionPoolStatus,
+      cacheSize: this.queryCache.size,
+      totalQueriesExecuted: this.performanceMetrics.queryExecutionTimes.length
+    };
   }
 }

@@ -21,13 +21,19 @@ export class MistralEmbedder extends BaseEmbedder implements Embedder {
     this.model = config.mistral.model || 'mistral-embed';
   }
 
+  private getBaseUrl(): string {
+    const config = this.configService.get('embedding');
+    return config.mistral.baseUrl || 'https://api.mistral.ai';
+  }
+
   async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
     const inputs = Array.isArray(input) ? input : [input];
     
     try {
       const { result, time } = await this.measureTime(async () => {
         // Prepare the API request
-        const url = 'https://api.mistral.ai/v1/embeddings';
+        const baseUrl = this.getBaseUrl();
+        const url = `${baseUrl}/v1/embeddings`;
         const headers = {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
@@ -89,7 +95,8 @@ export class MistralEmbedder extends BaseEmbedder implements Embedder {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const url = 'https://api.mistral.ai/v1/models';
+      const baseUrl = this.getBaseUrl();
+      const url = `${baseUrl}/v1/models`;
       const headers = {
         'Authorization': `Bearer ${this.apiKey}`
       };

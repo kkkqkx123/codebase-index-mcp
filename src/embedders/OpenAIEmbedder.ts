@@ -21,13 +21,19 @@ export class OpenAIEmbedder extends BaseEmbedder implements Embedder {
     this.model = config.openai.model || 'text-embedding-ada-002';
   }
 
+  private getBaseUrl(): string {
+    const config = this.configService.get('embedding');
+    return config.openai.baseUrl || 'https://api.openai.com';
+  }
+
   async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
     const inputs = Array.isArray(input) ? input : [input];
     
     try {
       const { result, time } = await this.measureTime(async () => {
         // Prepare the API request
-        const url = 'https://api.openai.com/v1/embeddings';
+        const baseUrl = this.getBaseUrl();
+        const url = `${baseUrl}/v1/embeddings`;
         const headers = {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
@@ -87,7 +93,8 @@ export class OpenAIEmbedder extends BaseEmbedder implements Embedder {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const url = 'https://api.openai.com/v1/models';
+      const baseUrl = this.getBaseUrl();
+      const url = `${baseUrl}/v1/models`;
       const headers = {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'

@@ -25,6 +25,7 @@ const configSchema = Joi.object({
     provider: Joi.string().valid('openai', 'ollama', 'gemini', 'mistral').default('openai'),
     openai: Joi.object({
       apiKey: Joi.string().required(),
+      baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('text-embedding-ada-002')
     }),
     ollama: Joi.object({
@@ -33,10 +34,12 @@ const configSchema = Joi.object({
     }),
     gemini: Joi.object({
       apiKey: Joi.string().required(),
+      baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('embedding-001')
     }),
     mistral: Joi.object({
       apiKey: Joi.string().required(),
+      baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('mistral-embed')
     }),
     dimensionRules: Joi.object().pattern(Joi.string(), Joi.number()).optional(),
@@ -127,6 +130,7 @@ export interface Config {
     provider: string;
     openai: {
       apiKey: string;
+      baseUrl?: string;
       model: string;
     };
     ollama: {
@@ -135,10 +139,12 @@ export interface Config {
     };
     gemini: {
       apiKey: string;
+      baseUrl?: string;
       model: string;
     };
     mistral: {
       apiKey: string;
+      baseUrl?: string;
       model: string;
     };
     dimensionRules?: { [key: string]: number };
@@ -223,6 +229,7 @@ export class ConfigService {
         provider: process.env.EMBEDDING_PROVIDER,
         openai: {
           apiKey: process.env.OPENAI_API_KEY,
+          baseUrl: process.env.OPENAI_BASE_URL,
           model: process.env.OPENAI_MODEL
         },
         ollama: {
@@ -231,10 +238,12 @@ export class ConfigService {
         },
         gemini: {
           apiKey: process.env.GEMINI_API_KEY,
+          baseUrl: process.env.GEMINI_BASE_URL,
           model: process.env.GEMINI_MODEL
         },
         mistral: {
           apiKey: process.env.MISTRAL_API_KEY,
+          baseUrl: process.env.MISTRAL_BASE_URL,
           model: process.env.MISTRAL_MODEL
         },
         qualityWeight: process.env.QUALITY_WEIGHT ? parseFloat(process.env.QUALITY_WEIGHT) : undefined,

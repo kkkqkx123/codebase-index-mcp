@@ -21,13 +21,19 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
     this.model = config.gemini.model || 'embedding-001';
   }
 
+  private getBaseUrl(): string {
+    const config = this.configService.get('embedding');
+    return config.gemini.baseUrl || 'https://generativelanguage.googleapis.com';
+  }
+
   async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
     const inputs = Array.isArray(input) ? input : [input];
     
     try {
       const { result, time } = await this.measureTime(async () => {
         // Prepare the API request
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:embedContent?key=${this.apiKey}`;
+        const baseUrl = this.getBaseUrl();
+        const url = `${baseUrl}/v1beta/models/${this.model}:embedContent?key=${this.apiKey}`;
         const headers = {
           'Content-Type': 'application/json'
         };
@@ -89,7 +95,8 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`;
+      const baseUrl = this.getBaseUrl();
+      const url = `${baseUrl}/v1beta/models?key=${this.apiKey}`;
       const response = await fetch(url, {
         method: 'GET'
       });
