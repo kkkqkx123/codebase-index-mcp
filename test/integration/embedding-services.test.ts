@@ -29,7 +29,7 @@ describe('Embedding Services Integration Tests', () => {
     configService = container.get(ConfigService);
     embedderFactory = container.get(EmbedderFactory);
     dimensionAdapter = container.get(DimensionAdapterService);
-  });
+ });
 
   afterAll(async () => {
     // Clean up resources
@@ -117,10 +117,14 @@ describe('Embedding Services Integration Tests', () => {
         const result = await openAIEmbedder.embed(input);
         
         expect(result).toBeDefined();
-        expect(result.vector).toBeInstanceOf(Array);
-        expect(result.dimensions).toBe(1536);
-        expect(result.model).toBeDefined();
-        expect(result.processingTime).toBeGreaterThan(0);
+        if (Array.isArray(result)) {
+          fail('Expected single EmbeddingResult, but got array');
+        } else {
+          expect(result.vector).toBeInstanceOf(Array);
+          expect(result.dimensions).toBe(1536);
+          expect(result.model).toBeDefined();
+          expect(result.processingTime).toBeGreaterThan(0);
+        }
       });
 
       it('should generate embeddings for multiple inputs', async () => {
@@ -132,14 +136,17 @@ describe('Embedding Services Integration Tests', () => {
 
         const results = await openAIEmbedder.embed(inputs);
         
-        expect(Array.isArray(results)).toBe(true);
-        expect(results.length).toBe(3);
-        
-        results.forEach(result => {
-          expect(result.vector).toBeInstanceOf(Array);
-          expect(result.dimensions).toBe(1536);
-          expect(result.model).toBeDefined();
-        });
+        if (!Array.isArray(results)) {
+          fail('Expected array of EmbeddingResults, but got single result');
+        } else {
+          expect(results.length).toBe(3);
+          
+          results.forEach(result => {
+            expect(result.vector).toBeInstanceOf(Array);
+            expect(result.dimensions).toBe(1536);
+            expect(result.model).toBeDefined();
+          });
+        }
       });
 
       it('should check availability based on API key', async () => {
@@ -163,8 +170,12 @@ describe('Embedding Services Integration Tests', () => {
         const result = await ollamaEmbedder.embed(input);
         
         expect(result).toBeDefined();
-        expect(result.vector).toBeInstanceOf(Array);
-        expect(result.model).toContain('ollama');
+        if (Array.isArray(result)) {
+          fail('Expected single EmbeddingResult, but got array');
+        } else {
+          expect(result.vector).toBeInstanceOf(Array);
+          expect(result.model).toContain('ollama');
+        }
       });
 
       it('should handle local service availability', async () => {
@@ -183,8 +194,12 @@ describe('Embedding Services Integration Tests', () => {
         const result = await geminiEmbedder.embed(input);
         
         expect(result).toBeDefined();
-        expect(result.vector).toBeInstanceOf(Array);
-        expect(result.model).toContain('gemini');
+        if (Array.isArray(result)) {
+          fail('Expected single EmbeddingResult, but got array');
+        } else {
+          expect(result.vector).toBeInstanceOf(Array);
+          expect(result.model).toContain('gemini');
+        }
       });
 
       it('should check API key availability', async () => {
@@ -203,8 +218,12 @@ describe('Embedding Services Integration Tests', () => {
         const result = await mistralEmbedder.embed(input);
         
         expect(result).toBeDefined();
-        expect(result.vector).toBeInstanceOf(Array);
-        expect(result.model).toContain('mistral');
+        if (Array.isArray(result)) {
+          fail('Expected single EmbeddingResult, but got array');
+        } else {
+          expect(result.vector).toBeInstanceOf(Array);
+          expect(result.model).toContain('mistral');
+        }
       });
 
       it('should check API configuration', async () => {
@@ -322,8 +341,12 @@ describe('Embedding Services Integration Tests', () => {
           const result = await embedder.embed(input);
           
           expect(result).toBeDefined();
-          expect(result.vector).toBeInstanceOf(Array);
-          expect(result.dimensions).toBeGreaterThan(0);
+          if (!Array.isArray(result)) {
+            expect(result.vector).toBeInstanceOf(Array);
+            expect(result.dimensions).toBeGreaterThan(0);
+          } else {
+            fail('Expected single EmbeddingResult, but got array');
+          }
         } catch (error) {
           // Provider may not be available in test environment
           expect(error.message).toContain('not available');
@@ -384,8 +407,11 @@ describe('Embedding Services Integration Tests', () => {
       const results = await embedderFactory.embed(inputs, 'openai');
       const endTime = Date.now();
 
-      expect(Array.isArray(results)).toBe(true);
-      expect(results.length).toBe(batchSize);
+      if (!Array.isArray(results)) {
+        fail('Expected array of EmbeddingResults, but got single result');
+      } else {
+        expect(results.length).toBe(batchSize);
+      }
       
       // Performance check - should complete in reasonable time
       const processingTime = endTime - startTime;
@@ -402,10 +428,13 @@ describe('Embedding Services Integration Tests', () => {
 
       const results = await Promise.all(promises);
       
-      expect(results.length).toBe(concurrentRequests);
       results.forEach(result => {
         expect(result).toBeDefined();
-        expect((result as EmbeddingResult).vector).toBeInstanceOf(Array);
+        if (!Array.isArray(result)) {
+          expect((result as EmbeddingResult).vector).toBeInstanceOf(Array);
+        } else {
+          fail('Expected single EmbeddingResult, but got array');
+        }
       });
     });
 
@@ -418,8 +447,12 @@ describe('Embedding Services Integration Tests', () => {
       const result = await embedderFactory.embed(largeInput, 'openai');
       
       expect(result).toBeDefined();
-      expect((result as EmbeddingResult).vector).toBeInstanceOf(Array);
-      expect((result as EmbeddingResult).dimensions).toBeGreaterThan(0);
+      if (!Array.isArray(result)) {
+        expect((result as EmbeddingResult).vector).toBeInstanceOf(Array);
+        expect((result as EmbeddingResult).dimensions).toBeGreaterThan(0);
+      } else {
+        fail('Expected single EmbeddingResult, but got array');
+      }
     });
   });
 

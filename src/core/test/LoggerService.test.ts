@@ -24,7 +24,7 @@ describe('LoggerService', () => {
 
     // Import modules after mocking
     winston = require('winston');
-    LoggerService = require('../../src/core/LoggerService').LoggerService;
+    LoggerService = require('../LoggerService').LoggerService;
 
     // Create mock logger instance
     mockLogger = {

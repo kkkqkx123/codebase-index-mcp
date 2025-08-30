@@ -7,7 +7,7 @@ import {
 import { LoggerService } from '../LoggerService';
 
 // Mock LoggerService
-jest.mock('../../src/core/LoggerService');
+jest.mock('../LoggerService');
 const MockedLoggerService = LoggerService as jest.MockedClass<typeof LoggerService>;
 
 describe('ErrorHandlerService', () => {
