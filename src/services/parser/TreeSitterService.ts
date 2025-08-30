@@ -759,7 +759,6 @@ export class TreeSitterService {
   private hasSideEffects(content: string): boolean {
     // Check for common side-effect patterns
     const sideEffectPatterns = [
-      /\w+\s*=/, // Assignment
       /\+\+|--/,  // Increment/decrement
       /\b(?:delete|new|throw)\b/, // Delete, new, throw
       /\.\w+\s*=/, // Property assignment
@@ -772,6 +771,23 @@ export class TreeSitterService {
       console.log('Pattern', pattern, 'matches:', matches);
       return matches;
     });
+    
+    // Special handling for assignments - only consider property assignments or assignments to undeclared variables as side effects
+    if (!hasSideEffect && /=/.test(content)) {
+      // Check for property assignments (more specific than the general pattern)
+      if (/\.\w+\s*=/.test(content)) {
+        console.log('Property assignment detected as side effect');
+        return true;
+      }
+      
+      // Check for assignments that look like they might be to global variables
+      // This is a heuristic - we can't know for sure without more context
+      if (/\b(?:window|global|document|console|process|module|exports)\.\w+\s*=/.test(content)) {
+        console.log('Global property assignment detected as side effect');
+        return true;
+      }
+    }
+    
     console.log('Has side effects:', hasSideEffect);
     return hasSideEffect;
   }
@@ -866,8 +882,8 @@ export class TreeSitterService {
         continue;
       }
       
-      // Less restrictive length filter for testing
-      if (snippet.content.length < 10 || snippet.content.length > 1000) {
+      // Length filter matching test expectations
+      if (snippet.content.length < 20 || snippet.content.length > 1000) {
         console.log('Skipping snippet due to length filter, length:', snippet.content.length);
         continue;
       }

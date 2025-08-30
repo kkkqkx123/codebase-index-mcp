@@ -76,91 +76,120 @@ function createMockAST(code: string): any {
   const lines = code.split('\n');
   const nodes: any[] = [];
   
-  // Create mock nodes based on code patterns
-  lines.forEach((line, index) => {
-    if (line.includes('if') || line.includes('for') || line.includes('while')) {
-      nodes.push(createMockSyntaxNode(
-        line.includes('if') ? 'if_statement' : line.includes('for') ? 'for_statement' : 'while_statement',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length
-      ));
-    }
-    
-    if (line.includes('try') || line.includes('catch') || line.includes('finally')) {
-      // Create a proper try-catch-finally structure
-      if (line.includes('try')) {
-        // Find the end of the entire try-catch-finally block by counting braces
-        let braceCount = 0;
-        let searchIndex = code.indexOf(line);
-        let endIndex = searchIndex + line.length;
-        
-        // Find the opening brace of the try block
-        while (searchIndex < code.length && code[searchIndex] !== '{') {
-          searchIndex++;
-        }
-        
-        // Count braces to find the end of the entire block
-        if (searchIndex < code.length && code[searchIndex] === '{') {
-          braceCount = 1;
-          searchIndex++;
-          
-          while (searchIndex < code.length && braceCount > 0) {
-            if (code[searchIndex] === '{') {
-              braceCount++;
-            } else if (code[searchIndex] === '}') {
-              braceCount--;
-            }
-            searchIndex++;
-          }
-          
-          if (braceCount === 0) {
-            endIndex = searchIndex;
-          }
-        }
-        
-        const tryNode = createMockSyntaxNode(
-          'try_statement',
-          code.substring(code.indexOf(line), endIndex),
-          { row: index, column: 0 },
-          { row: index, column: line.length },
-          code.indexOf(line),
-          endIndex,
-          []
-        );
-        nodes.push(tryNode);
-        console.log('Created try node with content:', tryNode.text);
-      }
-    }
-    
-    if (line.includes('function') || line.includes('=>')) {
-      const funcNode = createMockSyntaxNode(
-        'function_definition',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length,
-        []
-      );
-      nodes.push(funcNode);
-    }
-    
-    if (line.includes('class')) {
-      const classNode = createMockSyntaxNode(
-        'class_definition',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length,
-        []
-      );
-      nodes.push(classNode);
-    }
-  });
+   // Create mock nodes based on code patterns
+   lines.forEach((line, index) => {
+     const trimmedLine = line.trim();
+     
+     if (trimmedLine.includes('if') || trimmedLine.includes('for') || trimmedLine.includes('while')) {
+       nodes.push(createMockSyntaxNode(
+         trimmedLine.includes('if') ? 'if_statement' : trimmedLine.includes('for') ? 'for_statement' : 'while_statement',
+         trimmedLine,
+         { row: index, column: line.length - line.trimStart().length },
+         { row: index, column: line.length },
+         code.indexOf(trimmedLine),
+         code.indexOf(trimmedLine) + trimmedLine.length
+       ));
+     }
+     
+     if (trimmedLine.includes('try') || trimmedLine.includes('catch') || trimmedLine.includes('finally')) {
+       // Create a proper try-catch-finally structure
+       if (trimmedLine.includes('try')) {
+         // Find the end of the entire try-catch-finally block by counting braces
+         let braceCount = 0;
+         let searchIndex = code.indexOf(trimmedLine);
+         let endIndex = searchIndex + trimmedLine.length;
+         
+         // Find the opening brace of the try block
+         while (searchIndex < code.length && code[searchIndex] !== '{') {
+           searchIndex++;
+         }
+         
+         // Count braces to find the end of the entire block
+         if (searchIndex < code.length && code[searchIndex] === '{') {
+           braceCount = 1;
+           searchIndex++;
+           
+           while (searchIndex < code.length && braceCount > 0) {
+             if (code[searchIndex] === '{') {
+               braceCount++;
+             } else if (code[searchIndex] === '}') {
+               braceCount--;
+             }
+             searchIndex++;
+           }
+           
+           if (braceCount === 0) {
+             endIndex = searchIndex;
+           }
+         }
+         
+         const tryNode = createMockSyntaxNode(
+           'try_statement',
+           code.substring(code.indexOf(trimmedLine), endIndex),
+           { row: index, column: line.length - line.trimStart().length },
+           { row: index, column: line.length },
+           code.indexOf(trimmedLine),
+           endIndex,
+           []
+         );
+         nodes.push(tryNode);
+         console.log('Created try node with content:', tryNode.text);
+       }
+     }
+     
+     if (trimmedLine.includes('function') || trimmedLine.includes('=>')) {
+       const funcNode = createMockSyntaxNode(
+         'function_definition',
+         trimmedLine,
+         { row: index, column: line.length - line.trimStart().length },
+         { row: index, column: line.length },
+         code.indexOf(trimmedLine),
+         code.indexOf(trimmedLine) + trimmedLine.length,
+         []
+       );
+       nodes.push(funcNode);
+     }
+     
+     if (trimmedLine.includes('class')) {
+       const classNode = createMockSyntaxNode(
+         'class_definition',
+         trimmedLine,
+         { row: index, column: line.length - line.trimStart().length },
+         { row: index, column: line.length },
+         code.indexOf(trimmedLine),
+         code.indexOf(trimmedLine) + trimmedLine.length,
+         []
+       );
+       nodes.push(classNode);
+     }
+     
+     // Create expression_statement nodes for lines that might contain side effects
+     if (trimmedLine.length > 0 &&
+         !trimmedLine.startsWith('//') &&
+         !trimmedLine.startsWith('/*') &&
+         !trimmedLine.includes('if') &&
+         !trimmedLine.includes('for') &&
+         !trimmedLine.includes('while') &&
+         !trimmedLine.includes('try') &&
+         !trimmedLine.includes('catch') &&
+         !trimmedLine.includes('finally') &&
+         !trimmedLine.includes('function') &&
+         !trimmedLine.includes('class') &&
+         !trimmedLine.includes('import') &&
+         !trimmedLine.includes('export') &&
+         trimmedLine.includes(';')) {
+       const exprNode = createMockSyntaxNode(
+         'expression_statement',
+         trimmedLine,
+         { row: index, column: line.length - line.trimStart().length },
+         { row: index, column: line.length },
+         code.indexOf(trimmedLine),
+         code.indexOf(trimmedLine) + trimmedLine.length,
+         []
+       );
+       nodes.push(exprNode);
+     }
+   });
   
   // Create root node with all the created nodes as children
   const rootNode = createMockSyntaxNode(
