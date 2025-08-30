@@ -84,6 +84,11 @@ describe('IndexCoordinator', () => {
     errorHandlerService = container.get(ErrorHandlerService);
     configService = container.get(ConfigService);
 
+    // Create SearchCoordinator mock
+    const searchCoordinator = {
+      search: jest.fn()
+    } as any;
+
     // Create IndexCoordinator instance
     indexCoordinator = new IndexCoordinator(
       loggerService,
@@ -95,7 +100,8 @@ describe('IndexCoordinator', () => {
       fileSystemTraversal,
       asyncPipeline,
       batchProcessor,
-      memoryManager
+      memoryManager,
+      searchCoordinator
     );
   });
 

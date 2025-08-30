@@ -1,4 +1,4 @@
-import { injectable } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 import chokidar, { FSWatcher, ChokidarOptions } from 'chokidar';
 import path from 'path';
 import fs from 'fs/promises';
@@ -58,10 +58,10 @@ export class FileWatcherService {
   private testMode: boolean = false;
 
   constructor(
-    logger: LoggerService,
-    errorHandler: ErrorHandlerService,
-    fileSystemTraversal: FileSystemTraversal,
-    traversalOptions?: TraversalOptions
+    @inject(LoggerService) logger: LoggerService,
+    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
+    @inject('TraversalOptions') @optional() traversalOptions?: TraversalOptions
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

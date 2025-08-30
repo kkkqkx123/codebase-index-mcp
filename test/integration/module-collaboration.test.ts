@@ -44,48 +44,81 @@ describe('Module Collaboration Integration Tests', () => {
 
     // Create mock implementations for services that need DI
     changeDetectionService = {
-      detectChanges: jest.fn(),
-      startWatching: jest.fn(),
-      stopWatching: jest.fn()
+      initialize: jest.fn() as any,
+      stop: jest.fn() as any,
+      getFileHash: jest.fn() as any,
+      getFileHistory: jest.fn() as any,
+      getAllFileHashes: jest.fn() as any,
+      isFileTracked: jest.fn() as any,
+      getTrackedFilesCount: jest.fn() as any,
+      isServiceRunning: jest.fn() as any,
+      getStats: jest.fn() as any,
+      resetStats: jest.fn() as any,
+      isTestMode: jest.fn() as any,
+      waitForFileProcessing: jest.fn() as any,
+      waitForAllProcessing: jest.fn() as any,
+      flushPendingChanges: jest.fn() as any
     } as any;
 
     parserService = {
-      parseFiles: jest.fn(),
-      parseFile: jest.fn(),
-      getSupportedLanguages: jest.fn()
+      parseFile: jest.fn() as any,
+      parseFiles: jest.fn() as any,
+      extractFunctions: jest.fn() as any,
+      extractClasses: jest.fn() as any,
+      extractImports: jest.fn() as any,
+      getLanguageStats: jest.fn() as any,
+      getSupportedLanguages: jest.fn() as any,
+      validateSyntax: jest.fn() as any
     } as any;
 
     fileSystemTraversal = {
-      traverseDirectory: jest.fn(),
-      getFileStats: jest.fn()
+      traverseDirectory: jest.fn() as any,
+      findChangedFiles: jest.fn() as any,
+      getFileContent: jest.fn() as any,
+      getDirectoryStats: jest.fn() as any
     } as any;
 
     vectorStorage = {
-      storeChunks: jest.fn(),
-      deleteChunks: jest.fn(),
-      search: jest.fn(),
-      getChunkById: jest.fn(),
-      getChunksByFile: jest.fn(),
-      getProjectStats: jest.fn()
+      initialize: jest.fn() as any,
+      storeChunks: jest.fn() as any,
+      searchVectors: jest.fn() as any,
+      deleteChunks: jest.fn() as any,
+      clearCollection: jest.fn() as any,
+      getCollectionStats: jest.fn() as any,
+      updateConfig: jest.fn() as any,
+      updateChunks: jest.fn() as any,
+      deleteChunksByFiles: jest.fn() as any,
+      processChunksAsync: jest.fn() as any,
+      search: jest.fn() as any
     } as any;
 
     graphStorage = {
-      storeChunks: jest.fn(),
-      deleteNodes: jest.fn(),
-      search: jest.fn(),
-      getNodeById: jest.fn(),
-      getNodesByFile: jest.fn(),
-      getRelationships: jest.fn(),
-      getProjectStats: jest.fn()
+      initialize: jest.fn() as any,
+      storeParsedFiles: jest.fn() as any,
+      storeChunks: jest.fn() as any,
+      findRelatedNodes: jest.fn() as any,
+      findPath: jest.fn() as any,
+      getGraphStats: jest.fn() as any,
+      deleteNodes: jest.fn() as any,
+      clearGraph: jest.fn() as any,
+      updateChunks: jest.fn() as any,
+      deleteNodesByFiles: jest.fn() as any,
+      getPerformanceMetrics: jest.fn() as any,
+      search: jest.fn() as any
     } as any;
 
     transactionCoordinator = {
-      beginTransaction: jest.fn(),
-      commitTransaction: jest.fn(),
-      rollbackTransaction: jest.fn(),
-      addVectorOperation: jest.fn(),
-      addGraphOperation: jest.fn(),
-      getStatus: jest.fn()
+      executeTransaction: jest.fn() as any,
+      getTransaction: jest.fn() as any,
+      getActiveTransactions: jest.fn() as any,
+      getTransactionHistory: jest.fn() as any,
+      cancelTransaction: jest.fn() as any,
+      beginTransaction: jest.fn() as any,
+      commitTransaction: jest.fn() as any,
+      rollbackTransaction: jest.fn() as any,
+      addVectorOperation: jest.fn() as any,
+      addGraphOperation: jest.fn() as any,
+      getStats: jest.fn() as any
     } as any;
 
     // Create actual instances of performance components
@@ -136,12 +169,13 @@ describe('Module Collaboration Integration Tests', () => {
       fileSystemTraversal,
       asyncPipeline,
       batchProcessor,
-      memoryManager
+      memoryManager,
+      {} as any // SearchCoordinator placeholder
     );
   });
 
   afterEach(() => {
-    if (memoryManager.isMonitoring()) {
+    if ((memoryManager as any).intervalId) {
       memoryManager.stopMonitoring();
     }
     objectPool.clear();
@@ -154,7 +188,12 @@ describe('Module Collaboration Integration Tests', () => {
 
     beforeEach(() => {
       // Setup common mocks
-      jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue({ hash: mockProjectId });
+      jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue({
+        path: mockProjectPath,
+        hash: mockProjectId,
+        fileCount: 3,
+        files: []
+      });
 
       const mockTraversalResult = {
         files: [
@@ -165,19 +204,19 @@ describe('Module Collaboration Integration Tests', () => {
         directories: [],
         errors: []
       };
-      fileSystemTraversal.traverseDirectory.mockResolvedValue(mockTraversalResult);
+      (fileSystemTraversal.traverseDirectory as jest.Mock).mockResolvedValue(mockTraversalResult);
 
       const mockParseResults = [
         { filePath: '/test/project/file1.ts', language: 'typescript', metadata: { size: 1000 } },
         { filePath: '/test/project/file2.ts', language: 'typescript', metadata: { size: 1500 } },
         { filePath: '/test/project/file3.ts', language: 'javascript', metadata: { size: 800 } }
       ];
-      parserService.parseFiles.mockResolvedValue(mockParseResults);
+      (parserService.parseFiles as jest.Mock).mockResolvedValue(mockParseResults);
 
-      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
-      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
-      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
-      transactionCoordinator.commitTransaction.mockResolvedValue(true);
+      (transactionCoordinator.beginTransaction as jest.Mock).mockResolvedValue(undefined);
+      (transactionCoordinator.addVectorOperation as jest.Mock).mockResolvedValue(undefined);
+      (transactionCoordinator.addGraphOperation as jest.Mock).mockResolvedValue(undefined);
+      (transactionCoordinator.commitTransaction as jest.Mock).mockResolvedValue(true);
     });
 
     it('should successfully complete full indexing workflow with all components', async () => {
@@ -202,7 +241,7 @@ describe('Module Collaboration Integration Tests', () => {
           { success: true, error: null }
         ]
       };
-      asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
+      (asyncPipeline.execute as jest.Mock).mockResolvedValue(mockPipelineResult);
 
       const result = await indexCoordinator.createIndex(mockProjectPath, {
         recursive: true,
@@ -241,7 +280,7 @@ describe('Module Collaboration Integration Tests', () => {
           { success: false, error: 'Insufficient memory for indexing operation' }
         ]
       };
-      asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
+      (asyncPipeline.execute as jest.Mock).mockResolvedValue(mockPipelineResult);
 
       const result = await indexCoordinator.createIndex(mockProjectPath);
 
@@ -259,7 +298,7 @@ describe('Module Collaboration Integration Tests', () => {
         size: 1000 + i
       }));
 
-      fileSystemTraversal.traverseDirectory.mockResolvedValue({
+      (fileSystemTraversal.traverseDirectory as jest.Mock).mockResolvedValue({
         files: largeFileSet,
         directories: [],
         errors: []
@@ -271,7 +310,7 @@ describe('Module Collaboration Integration Tests', () => {
         language: 'typescript',
         metadata: { size: file.size }
       }));
-      parserService.parseFiles.mockResolvedValue(mockParseResults);
+      (parserService.parseFiles as jest.Mock).mockResolvedValue(mockParseResults);
 
       const mockPipelineResult = {
         success: true,
@@ -287,12 +326,12 @@ describe('Module Collaboration Integration Tests', () => {
           { success: true, error: null }
         ]
       };
-      asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
+      (asyncPipeline.execute as jest.Mock).mockResolvedValue(mockPipelineResult);
 
       const result = await indexCoordinator.createIndex(mockProjectPath, {
         batchSize: 20,
         maxConcurrency: 3
-      });
+      } as any);
 
       expect(result.success).toBe(true);
       expect(result.filesProcessed).toBe(100);
@@ -357,7 +396,7 @@ describe('Module Collaboration Integration Tests', () => {
     });
 
     it('should handle transaction rollback on storage failure', async () => {
-      transactionCoordinator.addGraphOperation.mockRejectedValue(new Error('Graph storage failed'));
+      (transactionCoordinator.addGraphOperation as jest.Mock).mockRejectedValue(new Error('Graph storage failed'));
 
       await storageCoordinator.store(mockFiles, 'test_project');
 
@@ -486,7 +525,7 @@ describe('Module Collaboration Integration Tests', () => {
   describe('Error Handling Integration', () => {
     it('should propagate errors through the entire indexing pipeline', async () => {
       // Simulate parser failure
-      parserService.parseFiles.mockRejectedValue(new Error('Parser timeout'));
+      (parserService.parseFiles as jest.Mock).mockRejectedValue(new Error('Parser timeout'));
 
       const mockPipelineResult = {
         success: false,
@@ -500,7 +539,7 @@ describe('Module Collaboration Integration Tests', () => {
           { success: false, error: 'Pipeline step failed: batch-parsing' }
         ]
       };
-      asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
+      (asyncPipeline.execute as jest.Mock).mockResolvedValue(mockPipelineResult);
 
       const result = await indexCoordinator.createIndex('/test/project');
 
@@ -534,8 +573,8 @@ describe('Module Collaboration Integration Tests', () => {
     });
 
     it('should coordinate transaction rollback on multiple failures', async () => {
-      transactionCoordinator.addVectorOperation.mockRejectedValue(new Error('Vector storage unavailable'));
-      transactionCoordinator.addGraphOperation.mockRejectedValue(new Error('Graph storage unavailable'));
+      (transactionCoordinator.addVectorOperation as jest.Mock).mockRejectedValue(new Error('Vector storage unavailable'));
+      (transactionCoordinator.addGraphOperation as jest.Mock).mockRejectedValue(new Error('Graph storage unavailable'));
 
       await storageCoordinator.store([{
         filePath: '/test/project/file1.ts',
@@ -569,19 +608,24 @@ describe('Module Collaboration Integration Tests', () => {
 
       // Now test that IndexCoordinator can use this
       const mockProjectId = { hash: 'test_project' };
-      jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
+      jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue({
+        path: '/test/project',
+        hash: 'test_project',
+        fileCount: 1,
+        files: []
+      });
 
       const mockTraversalResult = {
         files: [{ path: '/test/project/file1.ts', size: 1000 }],
         directories: [],
         errors: []
       };
-      fileSystemTraversal.traverseDirectory.mockResolvedValue(mockTraversalResult);
+      (fileSystemTraversal.traverseDirectory as jest.Mock).mockResolvedValue(mockTraversalResult);
 
       const mockParseResults = [
         { filePath: '/test/project/file1.ts', language: 'typescript', metadata: {} }
       ];
-      parserService.parseFiles.mockResolvedValue(mockParseResults);
+      (parserService.parseFiles as jest.Mock).mockResolvedValue(mockParseResults);
 
       const mockPipelineResult = {
         success: true,
@@ -592,7 +636,7 @@ describe('Module Collaboration Integration Tests', () => {
         totalTime: 1500,
         steps: [{ success: true, error: null }]
       };
-      asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
+      (asyncPipeline.execute as jest.Mock).mockResolvedValue(mockPipelineResult);
 
       await indexCoordinator.createIndex('/test/project');
 

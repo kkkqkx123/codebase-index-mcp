@@ -1,4 +1,4 @@
-import { injectable } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 
 export interface PoolOptions<T> {
   initialSize?: number;
@@ -31,7 +31,10 @@ export class ObjectPool<T> {
   private stats: PoolStats;
   private logger?: any;
 
-  constructor(options: PoolOptions<T>, logger?: any) {
+  constructor(
+    @inject('PoolOptions') options: PoolOptions<T>,
+    @inject('LoggerService') @optional() logger?: any
+  ) {
     this.options = {
       initialSize: 10,
       maxSize: 100,

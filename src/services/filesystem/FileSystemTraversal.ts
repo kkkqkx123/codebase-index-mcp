@@ -1,4 +1,4 @@
-import { injectable } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -38,7 +38,7 @@ export interface TraversalResult {
 export class FileSystemTraversal {
   private defaultOptions: Required<TraversalOptions>;
 
-  constructor(options?: TraversalOptions) {
+  constructor(@inject('TraversalOptions') @optional() options?: TraversalOptions) {
     this.defaultOptions = {
       includePatterns: options?.includePatterns ?? [],
       excludePatterns: options?.excludePatterns ?? ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],

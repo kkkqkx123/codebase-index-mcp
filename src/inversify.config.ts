@@ -8,6 +8,11 @@ import { HashUtils } from './utils/HashUtils';
 import { PathUtils } from './utils/PathUtils';
 import { ChangeDetectionService, ChangeDetectionOptions } from './services/filesystem/ChangeDetectionService';
 import { EventQueueService, EventQueueOptions } from './services/EventQueueService';
+import { MemoryManagerOptions } from './services/processing/MemoryManager';
+import { PoolOptions } from './services/infrastructure/ObjectPool';
+import { TraversalOptions } from './services/filesystem/FileSystemTraversal';
+import { ChunkingOptions } from './services/parser/SmartCodeParser';
+import { FileWatcherService } from './services/filesystem/FileWatcherService';
 import { VectorStorageService } from './services/storage/VectorStorageService';
 import { GraphPersistenceService } from './services/storage/GraphPersistenceService';
 import { ParserService } from './services/parser/ParserService';
@@ -68,6 +73,7 @@ container.bind<ParserService>(ParserService).toSelf().inSingletonScope();
 container.bind<TransactionCoordinator>(TransactionCoordinator).toSelf().inSingletonScope();
 container.bind<IndexService>(IndexService).toSelf().inSingletonScope();
 container.bind<EventQueueService>(EventQueueService).toSelf().inSingletonScope();
+container.bind<FileWatcherService>(FileWatcherService).toSelf().inSingletonScope();
 
 // Bind new refactored services
 container.bind<IndexCoordinator>(IndexCoordinator).toSelf().inSingletonScope();
@@ -79,7 +85,19 @@ container.bind<PerformanceMonitor>(PerformanceMonitor).toSelf().inSingletonScope
 container.bind<HealthChecker>(HealthChecker).toSelf().inSingletonScope();
 container.bind<ConfigManager>(ConfigManager).toSelf().inSingletonScope();
 container.bind<AsyncPipeline>(AsyncPipeline).toSelf().inSingletonScope();
+// Create a default pool options for ObjectPool
+const defaultPoolOptions: PoolOptions<any> = {
+  initialSize: 10,
+  maxSize: 100,
+  creator: () => ({}),
+  resetter: (obj: any) => {},
+  validator: (obj: any) => true,
+  destroy: (obj: any) => {},
+  evictionPolicy: 'lru'
+};
+
 container.bind<ObjectPool<any>>(ObjectPool).toSelf().inSingletonScope();
+container.bind<PoolOptions<any>>('PoolOptions').toConstantValue(defaultPoolOptions);
 
 // Bind remaining search services
 container.bind<SemanticSearchService>(SemanticSearchService).toSelf().inSingletonScope();
@@ -101,6 +119,9 @@ container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
 // Bind configuration objects
 container.bind<ChangeDetectionOptions>('ChangeDetectionOptions').toConstantValue({});
 container.bind<EventQueueOptions>('EventQueueOptions').toConstantValue({});
+container.bind<MemoryManagerOptions>('MemoryManagerOptions').toConstantValue({});
+container.bind<TraversalOptions>('TraversalOptions').toConstantValue({});
+container.bind<ChunkingOptions>('ChunkingOptions').toConstantValue({});
 
 // Export the container
 export { container };

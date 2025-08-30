@@ -66,6 +66,9 @@ describe('IndexService', () => {
       updateIndex: jest.fn(),
       deleteIndex: jest.fn(),
       getIndexStatus: jest.fn(),
+      getStatus: jest.fn(),
+      search: jest.fn(),
+      getActiveIndexing: jest.fn(),
     } as unknown as jest.Mocked<IndexCoordinator>;
     
     mockSearchCoordinator = {
@@ -85,9 +88,7 @@ describe('IndexService', () => {
       mockLogger,
       mockErrorHandler,
       mockConfigService,
-      mockIndexCoordinator,
-      mockBatchMetrics,
-      mockSearchCoordinator
+      mockIndexCoordinator
     );
   });
 
@@ -116,31 +117,24 @@ describe('IndexService', () => {
 
   describe('search', () => {
     it('should return search results', async () => {
-      // Mock the SearchCoordinator response
-      mockSearchCoordinator.search.mockResolvedValue({
-        results: [
-          {
-            id: 'result_1',
-            score: 0.95,
-            finalScore: 0.95,
-            filePath: '/src/components/Button.tsx',
-            content: 'export function Button({ onClick, children }: ButtonProps) {',
-            startLine: 15,
-            endLine: 25,
-            language: 'typescript',
-            chunkType: 'function',
-            metadata: { functionName: 'Button', component: true },
-            rankingFeatures: {
-              semanticScore: 0.95
-            }
+      // Mock the IndexCoordinator response
+      mockIndexCoordinator.search.mockResolvedValue([
+        {
+          id: 'result_1',
+          score: 0.95,
+          finalScore: 0.95,
+          filePath: '/src/components/Button.tsx',
+          content: 'export function Button({ onClick, children }: ButtonProps) {',
+          startLine: 15,
+          endLine: 25,
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: { functionName: 'Button', component: true },
+          rankingFeatures: {
+            semanticScore: 0.95
           }
-        ],
-        totalResults: 1,
-        queryTime: 100,
-        searchStrategy: 'semantic',
-        filters: {},
-        options: {}
-      });
+        }
+      ]);
 
       // Act
       const query = 'test query';
@@ -161,7 +155,9 @@ describe('IndexService', () => {
   describe('getStatus', () => {
     it('should return index status', async () => {
       // Mock the IndexCoordinator response
-      mockIndexCoordinator.getIndexStatus.mockResolvedValue({
+      mockIndexCoordinator.getStatus.mockResolvedValue({
+        projectId: 'test-hash-12345',
+        isIndexing: false,
         lastIndexed: new Date(),
         fileCount: 150,
         chunkCount: 450,

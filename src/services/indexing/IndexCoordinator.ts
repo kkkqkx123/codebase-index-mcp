@@ -11,6 +11,7 @@ import { AsyncPipeline, PipelineStep, PipelineOptions } from '../infrastructure/
 import { BatchProcessor, BatchOptions } from '../processing/BatchProcessor';
 import { MemoryManager, MemoryManagerOptions } from '../processing/MemoryManager';
 import { ObjectPool, PoolOptions } from '../infrastructure/ObjectPool';
+import { SearchCoordinator, SearchQuery } from '../search/SearchCoordinator';
 
 export interface IndexOptions {
   recursive?: boolean;
@@ -43,6 +44,8 @@ export class IndexCoordinator {
   private batchProcessor: BatchProcessor;
   private memoryManager: MemoryManager;
   private filePool: ObjectPool<string>;
+  private searchCoordinator: SearchCoordinator;
+  private currentIndexing: Map<string, boolean> = new Map();
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
@@ -54,7 +57,8 @@ export class IndexCoordinator {
     @inject(FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
     @inject(AsyncPipeline) asyncPipeline: AsyncPipeline,
     @inject(BatchProcessor) batchProcessor: BatchProcessor,
-    @inject(MemoryManager) memoryManager: MemoryManager
+    @inject(MemoryManager) memoryManager: MemoryManager,
+    @inject(SearchCoordinator) searchCoordinator: SearchCoordinator
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
@@ -66,6 +70,7 @@ export class IndexCoordinator {
     this.asyncPipeline = asyncPipeline;
     this.batchProcessor = batchProcessor;
     this.memoryManager = memoryManager;
+    this.searchCoordinator = searchCoordinator;
     
     // Initialize file pool
     this.filePool = new ObjectPool<string>({
@@ -456,5 +461,57 @@ export class IndexCoordinator {
       chunkCount: 450,
       status: 'completed'
     };
+  }
+
+  async getStatus(projectPath: string): Promise<{
+    projectId: string;
+    isIndexing: boolean;
+    lastIndexed?: Date;
+    fileCount: number;
+    chunkCount: number;
+    status: 'idle' | 'indexing' | 'error' | 'completed';
+  }> {
+    const projectId = await HashUtils.calculateDirectoryHash(projectPath);
+    const indexStatus = await this.getIndexStatus(projectId.hash);
+    
+    return {
+      projectId: projectId.hash,
+      isIndexing: this.currentIndexing.get(projectId.hash) || false,
+      lastIndexed: indexStatus.lastIndexed,
+      fileCount: indexStatus.fileCount,
+      chunkCount: indexStatus.chunkCount,
+      status: indexStatus.status
+    };
+  }
+
+  async search(query: string, options: any = {}): Promise<any[]> {
+    try {
+      // Delegate to SearchCoordinator
+      const searchQuery: SearchQuery = {
+        text: query,
+        options: {
+          limit: options.limit,
+          threshold: options.threshold,
+          includeGraph: options.includeGraph,
+          useHybrid: false,
+          useReranking: true
+        }
+      };
+
+      const searchResponse = await this.searchCoordinator.search(searchQuery);
+      return searchResponse.results;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Search failed: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'IndexCoordinator', operation: 'search' }
+      );
+      throw error;
+    }
+  }
+
+  getActiveIndexing(): string[] {
+    return Array.from(this.currentIndexing.entries())
+      .filter(([_, isActive]) => isActive)
+      .map(([projectId, _]) => projectId);
   }
 }
