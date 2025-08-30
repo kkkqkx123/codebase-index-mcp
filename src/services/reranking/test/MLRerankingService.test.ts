@@ -1,4 +1,4 @@
-import { MLRerankingService } from '../../../../src/services/reranking/MLRerankingService';
+import { MLRerankingService } from '../MLRerankingService';
 
 // Mock dependencies
 const mockConfigService = {
@@ -37,7 +37,7 @@ describe('MLRerankingService', () => {
   describe('initializeModel', () => {
     it('should initialize the ML model', async () => {
       await mlRerankingService.initializeModel();
-      
+
       // Verify that the model was initialized
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         'ML model initialized successfully'
@@ -52,9 +52,9 @@ describe('MLRerankingService', () => {
         graphScore: 0.6,
         contextualScore: 0.4
       };
-      
+
       const prediction = await mlRerankingService.predict(features);
-      
+
       expect(prediction).toBeGreaterThanOrEqual(0);
       expect(prediction).toBeLessThanOrEqual(1);
     });
@@ -64,12 +64,12 @@ describe('MLRerankingService', () => {
         semanticScore: 0.8,
         graphScore: 0.6
       };
-      
+
       // Mock that model is not initialized
       (mlRerankingService as any).model = null;
-      
+
       const prediction = await mlRerankingService.predict(features);
-      
+
       expect(prediction).toBeGreaterThanOrEqual(0);
       expect(prediction).toBeLessThanOrEqual(1);
       expect(mockLoggerService.info).toHaveBeenCalledWith(
@@ -87,9 +87,9 @@ describe('MLRerankingService', () => {
         query: 'test query',
         documentId: 'doc1'
       };
-      
+
       mlRerankingService.addTrainingData(trainingData);
-      
+
       // Verify data was added (we can't directly access private field in test,
       // but we can check that no error was thrown)
       expect(mockErrorHandlerService.handleError).not.toHaveBeenCalled();
@@ -104,22 +104,22 @@ describe('MLRerankingService', () => {
           trainingEnabled: false
         })
       };
-      
+
       const service = new MLRerankingService(
         disabledConfigService as any,
         mockLoggerService as any,
         mockErrorHandlerService as any
       );
-      
+
       const trainingData = {
         features: { semanticScore: 0.8, graphScore: 0.6 },
         label: 0.7,
         query: 'test query',
         documentId: 'doc1'
       };
-      
+
       service.addTrainingData(trainingData);
-      
+
       // Should not throw any errors
       expect(mockErrorHandlerService.handleError).not.toHaveBeenCalled();
     });
@@ -134,11 +134,11 @@ describe('MLRerankingService', () => {
         query: 'test query',
         documentId: 'doc1'
       };
-      
+
       mlRerankingService.addTrainingData(trainingData);
-      
+
       await mlRerankingService.trainModel();
-      
+
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         'Model training completed',
         expect.any(Object)
@@ -147,7 +147,7 @@ describe('MLRerankingService', () => {
 
     it('should skip training when no data is available', async () => {
       await mlRerankingService.trainModel();
-      
+
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         'Model training skipped',
         expect.any(Object)
@@ -158,7 +158,7 @@ describe('MLRerankingService', () => {
   describe('evaluateModel', () => {
     it('should return model performance metrics', async () => {
       const performance = await mlRerankingService.evaluateModel();
-      
+
       expect(performance).toHaveProperty('accuracy');
       expect(performance).toHaveProperty('precision');
       expect(performance).toHaveProperty('recall');
@@ -170,7 +170,7 @@ describe('MLRerankingService', () => {
   describe('AB Testing', () => {
     it('should enable A/B testing', () => {
       mlRerankingService.enableABTesting();
-      
+
       // We can't directly check private field, but we can verify no errors
       expect(mockErrorHandlerService.handleError).not.toHaveBeenCalled();
     });
@@ -179,7 +179,7 @@ describe('MLRerankingService', () => {
       mlRerankingService.enableABTesting();
       mlRerankingService.recordUserInteraction('A', true);
       mlRerankingService.recordUserInteraction('B', false);
-      
+
       // Verify no errors
       expect(mockErrorHandlerService.handleError).not.toHaveBeenCalled();
     });
@@ -189,9 +189,9 @@ describe('MLRerankingService', () => {
       mlRerankingService.recordUserInteraction('A', true);
       mlRerankingService.recordUserInteraction('A', false);
       mlRerankingService.recordUserInteraction('B', true);
-      
+
       const results = mlRerankingService.getABTestResults();
-      
+
       expect(results).toHaveProperty('variantA');
       expect(results).toHaveProperty('variantB');
       expect(results.variantA).toHaveProperty('ctr');
@@ -202,13 +202,13 @@ describe('MLRerankingService', () => {
   describe('Model Persistence', () => {
     it('should save the model', async () => {
       await mlRerankingService.saveModel();
-      
+
       expect(mockLoggerService.info).toHaveBeenCalledWith('Model saved successfully');
     });
 
     it('should load the model', async () => {
       await mlRerankingService.loadModel();
-      
+
       expect(mockLoggerService.info).toHaveBeenCalledWith('Model loaded successfully');
     });
   });
@@ -216,7 +216,7 @@ describe('MLRerankingService', () => {
   describe('Performance Monitoring', () => {
     it('should return performance monitoring data', () => {
       const monitoringData = mlRerankingService.getPerformanceMonitoring();
-      
+
       expect(monitoringData).toHaveProperty('modelPerformance');
       expect(monitoringData).toHaveProperty('trainingDataCount');
       expect(monitoringData).toHaveProperty('abTestResults');

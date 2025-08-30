@@ -1,9 +1,9 @@
-import { TransactionCoordinator } from '../../src/services/sync/TransactionCoordinator';
-import { EntityMappingService } from '../../src/services/sync/EntityMappingService';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
-import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
-import { createMockTransaction, createMockSyncOperation } from '../setup';
+import { TransactionCoordinator } from '../TransactionCoordinator';
+import { EntityMappingService } from '../EntityMappingService';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
+import { createMockTransaction, createMockSyncOperation } from '../../../../test/setup';
 
 // Mock dependencies
 jest.mock('../../src/core/LoggerService');

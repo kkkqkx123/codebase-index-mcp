@@ -1,4 +1,4 @@
-import { FileSystemTraversal, FileInfo, TraversalOptions, TraversalResult } from '../../src/services/filesystem/FileSystemTraversal';
+import { FileSystemTraversal, FileInfo, TraversalOptions, TraversalResult } from '../FileSystemTraversal';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -57,7 +57,7 @@ describe('FileSystemTraversal', () => {
       update: jest.fn().mockReturnThis(),
       digest: jest.fn().mockReturnValue('test-hash'),
     };
-    mockCrypto.mockReturnValue(mockHash);
+    (mockCrypto as jest.Mock).mockReturnValue(mockHash);
 
     // Mock createReadStream
     mockFsSync.createReadStream = jest.fn().mockReturnValue({

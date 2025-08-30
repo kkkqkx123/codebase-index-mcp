@@ -1,4 +1,4 @@
-import { RealTimeLearningService } from '../../../../src/services/reranking/RealTimeLearningService';
+import { RealTimeLearningService } from '../RealTimeLearningService';
 
 // Mock dependencies
 const mockConfigService = {
@@ -38,9 +38,9 @@ describe('RealTimeLearningService', () => {
         relevanceScore: 0.8,
         timestamp: new Date()
       };
-      
+
       realTimeLearningService.collectFeedback(feedback);
-      
+
       // Verify no errors
       expect(mockErrorHandlerService.handleError).not.toHaveBeenCalled();
       expect(mockLoggerService.debug).toHaveBeenCalledWith(
@@ -58,10 +58,10 @@ describe('RealTimeLearningService', () => {
           relevanceScore: 0.8,
           timestamp: new Date()
         };
-        
+
         realTimeLearningService.collectFeedback(feedback);
       }
-      
+
       // Verify that batch processing was triggered
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         'Processing feedback batch',
@@ -73,7 +73,7 @@ describe('RealTimeLearningService', () => {
   describe('getAdaptiveWeights', () => {
     it('should return current adaptive weights', () => {
       const weights = realTimeLearningService.getAdaptiveWeights();
-      
+
       expect(weights).toBeDefined();
       expect(Object.keys(weights).length).toBeGreaterThan(0);
     });
@@ -82,22 +82,22 @@ describe('RealTimeLearningService', () => {
   describe('getAdaptiveAlgorithms', () => {
     it('should return adaptive algorithms', () => {
       const algorithms = realTimeLearningService.getAdaptiveAlgorithms();
-      
+
       expect(algorithms).toHaveProperty('exponentialMovingAverage');
       expect(algorithms).toHaveProperty('confidenceWeightedAverage');
       expect(algorithms).toHaveProperty('regretBasedAdjustment');
-      
+
       // Test exponential moving average
       const ema = algorithms.exponentialMovingAverage(0.5, 0.8, 0.3);
       expect(ema).toBeCloseTo(0.59, 4);
-      
+
       // Test confidence weighted average
       const cwa = algorithms.confidenceWeightedAverage([
         { value: 0.5, confidence: 0.8 },
         { value: 0.7, confidence: 0.6 }
       ]);
       expect(cwa).toBeGreaterThan(0);
-      
+
       // Test regret based adjustment
       const regret = algorithms.regretBasedAdjustment(0.5, 0.8, 0.1);
       expect(regret).toBeLessThan(0.5);
@@ -107,7 +107,7 @@ describe('RealTimeLearningService', () => {
   describe('Model Persistence', () => {
     it('should save the learning model', async () => {
       await realTimeLearningService.saveModel();
-      
+
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         'Learning model saved successfully',
         expect.any(Object)
@@ -116,7 +116,7 @@ describe('RealTimeLearningService', () => {
 
     it('should load the learning model', async () => {
       await realTimeLearningService.loadModel();
-      
+
       expect(mockLoggerService.info).toHaveBeenCalledWith('Learning model loaded successfully');
     });
   });
@@ -125,10 +125,10 @@ describe('RealTimeLearningService', () => {
     it('should rollback to a previous model version', async () => {
       // First, save current model to history
       await realTimeLearningService.saveModel();
-      
+
       // Try to rollback (will fail because we don't have a real version)
       const success = await realTimeLearningService.rollbackToVersion('1.0.0');
-      
+
       // Should return false because version doesn't exist
       expect(success).toBe(false);
     });
@@ -137,7 +137,7 @@ describe('RealTimeLearningService', () => {
   describe('Performance Monitoring', () => {
     it('should return performance monitoring data', () => {
       const monitoringData = realTimeLearningService.getPerformanceMonitoring();
-      
+
       expect(monitoringData).toHaveProperty('totalFeedback');
       expect(monitoringData).toHaveProperty('positiveFeedback');
       expect(monitoringData).toHaveProperty('negativeFeedback');
@@ -155,12 +155,12 @@ describe('RealTimeLearningService', () => {
         relevanceScore: 0.8,
         timestamp: new Date()
       };
-      
+
       realTimeLearningService.collectFeedback(feedback);
-      
+
       // Flush the buffer
       await realTimeLearningService.flushFeedbackBuffer();
-      
+
       // Verify processing occurred
       expect(mockLoggerService.info).toHaveBeenCalledWith('Feedback batch processed successfully');
     });

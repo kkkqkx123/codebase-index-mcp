@@ -1,4 +1,4 @@
-import { ConfigService, Config } from '../../src/config/ConfigService';
+import { ConfigService, Config } from '../ConfigService';
 
 // Mock dotenv
 jest.mock('dotenv', () => ({
@@ -11,19 +11,19 @@ describe('ConfigService', () => {
   beforeEach(() => {
     // Store original environment variables
     originalEnv = { ...process.env };
-    
+
     // Set required environment variables for tests
     process.env.OPENAI_API_KEY = 'test-api-key';
     process.env.MISTRAL_API_KEY = 'test-mistral-key';
     process.env.NODE_ENV = 'development';
-    
+
     // Clear test environment variables
     Object.keys(process.env).forEach(key => {
       if (key.startsWith('TEST_')) {
         delete process.env[key];
       }
     });
-    
+
     // Reset the singleton instance
     (ConfigService as any).instance = undefined;
   });
@@ -43,7 +43,7 @@ describe('ConfigService', () => {
 
     it('should create only one instance even when called concurrently', () => {
       const instances: ConfigService[] = [];
-      
+
       // Create multiple instances in quick succession
       for (let i = 0; i < 10; i++) {
         instances.push(ConfigService.getInstance());
@@ -57,7 +57,7 @@ describe('ConfigService', () => {
   describe('Configuration Validation', () => {
     it('should use default values when environment variables are not set', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('nodeEnv')).toBe('development');
       expect(configService.get('port')).toBe(3000);
       expect(configService.get('logging').level).toBe('error'); // Set by test environment
@@ -71,7 +71,7 @@ describe('ConfigService', () => {
       process.env.LOG_FORMAT = 'text';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('nodeEnv')).toBe('production');
       expect(configService.get('port')).toBe(8080);
       expect(configService.get('logging').level).toBe('debug');
@@ -105,7 +105,7 @@ describe('ConfigService', () => {
     it('should require API key for selected embedding provider', () => {
       // Reset the singleton to test validation
       (ConfigService as any).instance = undefined;
-      
+
       const originalOpenAIKey = process.env.OPENAI_API_KEY;
       process.env.EMBEDDING_PROVIDER = 'openai';
       delete process.env.OPENAI_API_KEY;
@@ -114,7 +114,7 @@ describe('ConfigService', () => {
       expect(() => {
         ConfigService.getInstance();
       }).toThrow('Configuration validation error');
-      
+
       // Restore the API key
       process.env.OPENAI_API_KEY = originalOpenAIKey;
       (ConfigService as any).instance = undefined;
@@ -126,7 +126,7 @@ describe('ConfigService', () => {
       process.env.CHUNK_SIZE = '1500';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('fileProcessing').maxFileSize).toBe(20971520);
       expect(configService.get('fileProcessing').indexBatchSize).toBe(200);
       expect(configService.get('fileProcessing').chunkSize).toBe(1500);
@@ -137,7 +137,7 @@ describe('ConfigService', () => {
       process.env.BATCH_PROCESSING_ENABLED = 'false';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('monitoring').enabled).toBe(true);
       expect(configService.get('batchProcessing').enabled).toBe(false);
     });
@@ -147,7 +147,7 @@ describe('ConfigService', () => {
       process.env.ADJUSTMENT_FACTOR = '1.5';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('batchProcessing').monitoring.alertThresholds.highErrorRate).toBe(0.15);
       expect(configService.get('batchProcessing').adaptiveBatching.adjustmentFactor).toBe(1.5);
     });
@@ -156,11 +156,11 @@ describe('ConfigService', () => {
   describe('Database Configuration', () => {
     it('should use default database settings', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('qdrant').host).toBe('localhost');
       expect(configService.get('qdrant').port).toBe(6333);
       expect(configService.get('qdrant').collection).toBe('code-snippets');
-      
+
       expect(configService.get('nebula').host).toBe('localhost');
       expect(configService.get('nebula').port).toBe(9669);
       expect(configService.get('nebula').username).toBe('root');
@@ -172,7 +172,7 @@ describe('ConfigService', () => {
       process.env.QDRANT_HOST = 'qdrant.example.com';
       process.env.QDRANT_PORT = '6334';
       process.env.QDRANT_COLLECTION = 'custom-collection';
-      
+
       process.env.NEBULA_HOST = 'nebula.example.com';
       process.env.NEBULA_PORT = '9670';
       process.env.NEBULA_USERNAME = 'admin';
@@ -180,11 +180,11 @@ describe('ConfigService', () => {
       process.env.NEBULA_SPACE = 'custom-space';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('qdrant').host).toBe('qdrant.example.com');
       expect(configService.get('qdrant').port).toBe(6334);
       expect(configService.get('qdrant').collection).toBe('custom-collection');
-      
+
       expect(configService.get('nebula').host).toBe('nebula.example.com');
       expect(configService.get('nebula').port).toBe(9670);
       expect(configService.get('nebula').username).toBe('admin');
@@ -196,7 +196,7 @@ describe('ConfigService', () => {
   describe('Embedding Configuration', () => {
     it('should use default embedding settings', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('embedding').provider).toBe('openai');
       expect(configService.get('embedding').openai.model).toBe('text-embedding-ada-002');
       expect(configService.get('embedding').ollama.baseUrl).toBe('http://localhost:11434');
@@ -215,7 +215,7 @@ describe('ConfigService', () => {
       process.env.PERFORMANCE_WEIGHT = '0.2';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('embedding').provider).toBe('ollama');
       expect(configService.get('embedding').ollama.baseUrl).toBe('http://localhost:11435');
       expect(configService.get('embedding').ollama.model).toBe('custom-model');
@@ -225,14 +225,14 @@ describe('ConfigService', () => {
 
     it('should allow dimension rules to be optional', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('embedding').dimensionRules).toBeUndefined();
     });
 
     it('should validate weight ranges', () => {
       // Reset the singleton to test validation
       (ConfigService as any).instance = undefined;
-      
+
       const originalQualityWeight = process.env.QUALITY_WEIGHT;
       const originalPerformanceWeight = process.env.PERFORMANCE_WEIGHT;
       process.env.QUALITY_WEIGHT = '1.5'; // Above 1
@@ -241,7 +241,7 @@ describe('ConfigService', () => {
       expect(() => {
         ConfigService.getInstance();
       }).toThrow('Configuration validation error');
-      
+
       // Restore the original values
       if (originalQualityWeight) {
         process.env.QUALITY_WEIGHT = originalQualityWeight;
@@ -260,7 +260,7 @@ describe('ConfigService', () => {
   describe('Batch Processing Configuration', () => {
     it('should use default batch processing settings', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('batchProcessing').enabled).toBe(true);
       expect(configService.get('batchProcessing').maxConcurrentOperations).toBe(5);
       expect(configService.get('batchProcessing').defaultBatchSize).toBe(50);
@@ -284,7 +284,7 @@ describe('ConfigService', () => {
       process.env.CONTINUE_ON_ERROR = 'false';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('batchProcessing').enabled).toBe(false);
       expect(configService.get('batchProcessing').maxConcurrentOperations).toBe(10);
       expect(configService.get('batchProcessing').defaultBatchSize).toBe(100);
@@ -308,7 +308,7 @@ describe('ConfigService', () => {
   describe('Adaptive Batching Configuration', () => {
     it('should use default adaptive batching settings', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('batchProcessing').adaptiveBatching.enabled).toBe(true);
       expect(configService.get('batchProcessing').adaptiveBatching.minBatchSize).toBe(10);
       expect(configService.get('batchProcessing').adaptiveBatching.maxBatchSize).toBe(200);
@@ -324,7 +324,7 @@ describe('ConfigService', () => {
       process.env.ADJUSTMENT_FACTOR = '1.5';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('batchProcessing').adaptiveBatching.enabled).toBe(false);
       expect(configService.get('batchProcessing').adaptiveBatching.minBatchSize).toBe(20);
       expect(configService.get('batchProcessing').adaptiveBatching.maxBatchSize).toBe(300);
@@ -336,13 +336,13 @@ describe('ConfigService', () => {
   describe('Monitoring Configuration', () => {
     it('should use default monitoring settings', () => {
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('monitoring').enabled).toBe(false); // Default is false since ENABLE_METRICS is not set
       expect(configService.get('monitoring').port).toBe(9090);
-      
+
       expect(configService.get('batchProcessing').monitoring.enabled).toBe(true);
       expect(configService.get('batchProcessing').monitoring.metricsInterval).toBe(60000);
-      
+
       const thresholds = configService.get('batchProcessing').monitoring.alertThresholds;
       expect(thresholds.highLatency).toBe(5000);
       expect(thresholds.lowThroughput).toBe(10);
@@ -367,12 +367,12 @@ describe('ConfigService', () => {
       process.env.CRITICAL_CPU_USAGE_THRESHOLD = '90';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('monitoring').enabled).toBe(true);
       expect(configService.get('monitoring').port).toBe(9091);
       expect(configService.get('batchProcessing').monitoring.enabled).toBe(false);
       expect(configService.get('batchProcessing').monitoring.metricsInterval).toBe(120000);
-      
+
       const thresholds = configService.get('batchProcessing').monitoring.alertThresholds;
       expect(thresholds.highLatency).toBe(10000);
       expect(thresholds.lowThroughput).toBe(5);
@@ -395,12 +395,12 @@ describe('ConfigService', () => {
 
     it('should be type-safe', () => {
       const configService = ConfigService.getInstance();
-      
+
       // These should compile without TypeScript errors
       const port: number = configService.get('port');
       const nodeEnv: string = configService.get('nodeEnv');
       const monitoringEnabled: boolean = configService.get('monitoring').enabled;
-      
+
       expect(typeof port).toBe('number');
       expect(typeof nodeEnv).toBe('string');
       expect(typeof monitoringEnabled).toBe('boolean');
@@ -411,9 +411,9 @@ describe('ConfigService', () => {
     it('should return a copy of the entire configuration', () => {
       process.env.PORT = '8080';
       const configService = ConfigService.getInstance();
-      
+
       const config = configService.getAll();
-      
+
       expect(config.port).toBe(8080);
       expect(config.nodeEnv).toBe('development');
       expect(config.qdrant.host).toBe('localhost');
@@ -423,10 +423,10 @@ describe('ConfigService', () => {
       const configService = ConfigService.getInstance();
       const config1 = configService.getAll();
       const config2 = configService.getAll();
-      
+
       // Should be different objects
       expect(config1).not.toBe(config2);
-      
+
       // But with same values
       expect(config1).toEqual(config2);
     });
@@ -436,7 +436,7 @@ describe('ConfigService', () => {
     it('should handle undefined environment variables gracefully', () => {
       // Don't set any environment variables
       const configService = ConfigService.getInstance();
-      
+
       // Should use defaults for all values
       expect(configService.get('nodeEnv')).toBe('development');
       expect(configService.get('port')).toBe(3000);
@@ -454,18 +454,18 @@ describe('ConfigService', () => {
     it('should handle whitespace in environment variables', () => {
       // Reset the singleton to test validation
       (ConfigService as any).instance = undefined;
-      
+
       const originalPort = process.env.PORT;
       const originalNodeEnv = process.env.NODE_ENV;
-      
+
       process.env.PORT = ' 8080 ';
       process.env.NODE_ENV = ' development ';
 
       const configService = ConfigService.getInstance();
-      
+
       expect(configService.get('port')).toBe(8080);
       expect(configService.get('nodeEnv')).toBe('development');
-      
+
       // Restore original values
       if (originalPort) {
         process.env.PORT = originalPort;

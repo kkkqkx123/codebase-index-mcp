@@ -1,9 +1,9 @@
-import { ConsistencyChecker } from '../../src/services/sync/ConsistencyChecker';
-import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
-import { CodebaseIndexError } from '../../src/core/ErrorHandlerService';
-import { createMockEntityMapping, createMockConsistencyIssue } from '../setup';
+import { ConsistencyChecker } from '../ConsistencyChecker';
+import { EntityIdManager, EntityMapping } from '../EntityIdManager';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
+import { createMockEntityMapping, createMockConsistencyIssue } from '../../../../test/setup';
 
 // Mock dependencies
 jest.mock('../../src/core/LoggerService');

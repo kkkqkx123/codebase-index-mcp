@@ -3,8 +3,8 @@ import {
   CodebaseIndexError, 
   ErrorContext, 
   ErrorReport 
-} from '../../src/core/ErrorHandlerService';
-import { LoggerService } from '../../src/core/LoggerService';
+} from '../ErrorHandlerService';
+import { LoggerService } from '../LoggerService';
 
 // Mock LoggerService
 jest.mock('../../src/core/LoggerService');

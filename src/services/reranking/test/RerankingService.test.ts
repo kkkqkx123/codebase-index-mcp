@@ -1,5 +1,5 @@
-import { RerankingService } from '../../../../src/services/reranking/RerankingService';
-import { QueryResult } from '../../../../src/services/query/QueryCoordinationService';
+import { RerankingService } from '../RerankingService';
+import { QueryResult } from '../../query/QueryCoordinationService';
 
 // Mock dependencies
 const mockConfigService = {
@@ -69,7 +69,7 @@ describe('RerankingService', () => {
 
     it('should rerank results using hybrid strategy by default', async () => {
       const reranked = await rerankingService.rerank(mockResults, 'test query');
-      
+
       expect(reranked).toHaveLength(2);
       expect(reranked[0]).toHaveProperty('rerankingMetrics');
       expect(reranked[0].rerankingMetrics.finalScore).toBeGreaterThanOrEqual(0);
@@ -78,34 +78,34 @@ describe('RerankingService', () => {
 
     it('should rerank results using semantic strategy', async () => {
       const reranked = await rerankingService.rerank(mockResults, 'test query', { strategy: 'semantic' });
-      
+
       expect(reranked).toHaveLength(2);
       expect(reranked[0]).toHaveProperty('rerankingMetrics');
     });
 
     it('should rerank results using graph strategy', async () => {
       const reranked = await rerankingService.rerank(mockResults, 'test query', { strategy: 'graph' });
-      
+
       expect(reranked).toHaveLength(2);
       expect(reranked[0]).toHaveProperty('rerankingMetrics');
     });
 
     it('should rerank results using ml strategy', async () => {
       const reranked = await rerankingService.rerank(mockResults, 'test query', { strategy: 'ml' });
-      
+
       expect(reranked).toHaveLength(2);
       expect(reranked[0]).toHaveProperty('rerankingMetrics');
     });
 
     it('should apply limit to results', async () => {
       const reranked = await rerankingService.rerank(mockResults, 'test query', { limit: 1 });
-      
+
       expect(reranked).toHaveLength(1);
     });
 
     it('should apply threshold to results', async () => {
       const reranked = await rerankingService.rerank(mockResults, 'test query', { threshold: 0.9 });
-      
+
       // All results should be filtered out as they're below the threshold
       expect(reranked).toHaveLength(0);
     });
@@ -125,11 +125,11 @@ describe('RerankingService', () => {
         chunkType: 'function',
         metadata: {}
       }];
-      
+
       await rerankingService.rerank(mockResults, 'test query');
-      
+
       const stats = await rerankingService.getRerankingStats();
-      
+
       expect(stats.totalRerankings).toBeGreaterThan(0);
       expect(stats.strategyDistribution).toBeDefined();
     });
