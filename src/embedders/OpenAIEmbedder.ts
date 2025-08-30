@@ -49,7 +49,7 @@ export class OpenAIEmbedder extends BaseEmbedder implements Embedder {
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.apiKey && this.apiKey.length > 0;
+    return !!this.apiKey && this.apiKey.trim().length > 0;
   }
 
   private generateMockEmbedding(input: EmbeddingInput): EmbeddingResult {
