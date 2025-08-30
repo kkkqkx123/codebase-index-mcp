@@ -28,7 +28,8 @@ import { EntityMappingService } from '../services/sync/EntityMappingService';
 import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
 import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
 import { EventQueueService } from '../services/EventQueueService';
-import { GraphDatabaseErrorHandler, ErrorClassifier } from '../core/GraphDatabaseErrorHandler';
+import { GraphDatabaseErrorHandler } from '../core/GraphDatabaseErrorHandler';
+import { ErrorClassifier } from '../core/ErrorClassifier';
 import { NebulaQueryBuilder } from '../database/nebula/NebulaQueryBuilder';
 
 // Monitoring services

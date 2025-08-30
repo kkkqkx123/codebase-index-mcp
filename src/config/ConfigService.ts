@@ -135,7 +135,12 @@ const configSchema = Joi.object({
   caching: Joi.object({
     defaultTTL: Joi.number().positive().default(300), // 5 minutes
     maxSize: Joi.number().positive().default(1000)
-  }).optional()
+  }).optional(),
+  
+  indexing: Joi.object({
+    batchSize: Joi.number().positive().default(50),
+    maxConcurrency: Joi.number().positive().default(3)
+  })
 });
 
 export interface Config {
@@ -252,9 +257,13 @@ export interface Config {
     features: string[];
     trainingEnabled: boolean;
   };
-  caching?: {
+  caching: {
     defaultTTL: number;
     maxSize: number;
+  };
+  indexing: {
+    batchSize: number;
+    maxConcurrency: number;
   };
   performance?: {
     cleanupInterval?: number;
@@ -385,15 +394,16 @@ export class ConfigService {
             criticalCpuUsage: parseInt(process.env.CRITICAL_CPU_USAGE_THRESHOLD || '85')
           }
         }
-      }
-    };
-    
-    caching: process.env.CACHE_DEFAULT_TTL || process.env.CACHE_MAX_SIZE ? {
-      defaultTTL: parseInt(process.env.CACHE_DEFAULT_TTL || '300'),
-      maxSize: parseInt(process.env.CACHE_MAX_SIZE || '1000')
-    } : undefined;
-    
-    mlReranking: process.env.ML_RERANKING_MODEL_PATH || process.env.ML_RERANKING_MODEL_TYPE || process.env.ML_RERANKING_FEATURES || process.env.ML_RERANKING_TRAINING_ENABLED ? {
+      },
+      caching: process.env.CACHE_DEFAULT_TTL || process.env.CACHE_MAX_SIZE ? {
+        defaultTTL: parseInt(process.env.CACHE_DEFAULT_TTL || '300'),
+        maxSize: parseInt(process.env.CACHE_MAX_SIZE || '1000')
+      } : undefined,
+      indexing: {
+        batchSize: parseInt(process.env.INDEXING_BATCH_SIZE || '50'),
+        maxConcurrency: parseInt(process.env.INDEXING_MAX_CONCURRENCY || '3')
+      },
+      mlReranking: process.env.ML_RERANKING_MODEL_PATH || process.env.ML_RERANKING_MODEL_TYPE || process.env.ML_RERANKING_FEATURES || process.env.ML_RERANKING_TRAINING_ENABLED ? {
       modelPath: process.env.ML_RERANKING_MODEL_PATH || undefined,
       modelType: (process.env.ML_RERANKING_MODEL_TYPE as 'linear' | 'neural' | 'ensemble') || 'linear',
       features: process.env.ML_RERANKING_FEATURES ? process.env.ML_RERANKING_FEATURES.split(',') : [
@@ -405,7 +415,8 @@ export class ConfigService {
         'originalScore'
       ],
       trainingEnabled: process.env.ML_RERANKING_TRAINING_ENABLED !== 'false'
-    } : undefined;
+    } : undefined
+    };
 
     const { error, value } = configSchema.validate(rawConfig, { allowUnknown: false });
     

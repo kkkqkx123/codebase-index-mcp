@@ -45,7 +45,8 @@ This is an MCP (Model Context Protocol) service for intelligent codebase indexin
 - Sync module: Cross-database synchronization
 
 **Key Services**:
-- `IndexService` - Main indexing orchestrator
+- `IndexService` - Main indexing orchestrator (refactored to use IndexCoordinator)
+- `IndexCoordinator` - Coordinates indexing operations across multiple services
 - `GraphService` - Code relationship analysis
 - `ParserService` - Tree-sitter based code parsing
 - `EmbedderFactory` - Multi-provider embedding (OpenAI, Ollama, Gemini, Mistral)
@@ -64,6 +65,11 @@ The service exposes MCP tools:
 - `codebase.index.search` - Search indexed codebase
 - `codebase.graph.analyze` - Analyze code structure and relationships
 - `codebase.status.get` - Get indexing status
+
+The indexing functionality has been refactored to use a coordinator pattern:
+- `IndexService` acts as the main interface for indexing operations
+- `IndexCoordinator` handles the coordination of complex indexing workflows
+- This separation of concerns improves maintainability and testability
 
 ### Code Parsing Strategy
 

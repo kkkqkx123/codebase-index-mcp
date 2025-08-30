@@ -314,6 +314,9 @@ export class VectorStorageService {
         try {
           const vector = await this.generateEmbedding(chunk.content);
 
+          // Check if this is a SnippetChunk
+          const isSnippet = chunk.type === 'snippet' && 'snippetMetadata' in chunk;
+
           const vectorPoint: VectorPoint = {
             id: chunk.id,
             vector,
@@ -327,6 +330,7 @@ export class VectorStorageService {
               ...(chunk.functionName && { functionName: chunk.functionName }),
               ...(chunk.className && { className: chunk.className }),
               ...(options.projectId && { projectId: options.projectId }),
+              ...(isSnippet && { snippetMetadata: (chunk as any).snippetMetadata }),
               metadata: {
                 ...chunk.metadata,
                 imports: chunk.imports || [],
@@ -725,6 +729,9 @@ export class VectorStorageService {
       try {
         const vector = await this.generateEmbedding(chunk.content);
 
+        // Check if this is a SnippetChunk
+        const isSnippet = chunk.type === 'snippet' && 'snippetMetadata' in chunk;
+
         const vectorPoint: VectorPoint = {
           id: chunk.id,
           vector,
@@ -738,6 +745,7 @@ export class VectorStorageService {
             ...(chunk.functionName && { functionName: chunk.functionName }),
             ...(chunk.className && { className: chunk.className }),
             ...(options.projectId && { projectId: options.projectId }),
+            ...(isSnippet && { snippetMetadata: (chunk as any).snippetMetadata }),
             metadata: {
               ...chunk.metadata,
               imports: chunk.imports || [],
@@ -856,6 +864,131 @@ export class VectorStorageService {
       });
       
       throw new Error(`Failed to search vectors: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Process chunks asynchronously with batching and concurrency control
+   * @param chunks Array of CodeChunk objects to process
+   * @param options Indexing options
+   * @param concurrency Maximum number of concurrent batch operations
+   * @returns Promise that resolves when all chunks are processed
+   */
+  async processChunksAsync(
+    chunks: CodeChunk[],
+    options: IndexingOptions = {},
+    concurrency: number = this.maxConcurrentOperations
+  ): Promise<IndexingResult> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    const startTime = Date.now();
+    const operationId = `processChunksAsync_${options.projectId || 'unknown'}_${Date.now()}`;
+    const batchSize = options.batchSize || this.calculateOptimalBatchSize(chunks.length);
+    
+    // Start batch operation metrics
+      const batchMetrics = this.batchMetrics.startBatchOperation(
+        operationId,
+        'vector',
+        batchSize
+      );
+
+    const result: IndexingResult = {
+      success: false,
+      processedFiles: 0,
+      totalChunks: chunks.length,
+      uniqueChunks: 0,
+      duplicatesRemoved: 0,
+      processingTime: 0,
+      errors: []
+    };
+
+    try {
+      // Split chunks into batches
+      const batches: CodeChunk[][] = [];
+      for (let i = 0; i < chunks.length; i += batchSize) {
+        batches.push(chunks.slice(i, i + batchSize));
+      }
+
+      // Process batches with controlled concurrency
+      let processedCount = 0;
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Process batches in concurrent groups
+      for (let i = 0; i < batches.length; i += concurrency) {
+        const batchGroup = batches.slice(i, i + concurrency);
+        const batchPromises = batchGroup.map(async (batch, index) => {
+          try {
+            const batchResult = await this.processChunksInBatches(batch, options, batchSize, 'create');
+            processedCount += batch.length;
+            if (batchResult.success) {
+              successCount += batchResult.uniqueChunks;
+              result.duplicatesRemoved += batchResult.duplicatesRemoved;
+            } else {
+              errorCount += batch.length;
+              result.errors.push(...batchResult.errors);
+            }
+            return batchResult;
+          } catch (error) {
+            errorCount += batch.length;
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            result.errors.push(`Batch ${i + index} failed: ${errorMessage}`);
+            this.logger.error(`Failed to process batch ${i + index}`, {
+              batchIndex: i + index,
+              batchSize: batch.length,
+              error: errorMessage
+            });
+            return null;
+          }
+        });
+
+        // Wait for all batches in this group to complete
+        await Promise.all(batchPromises);
+        
+        // Update batch metrics
+        this.batchMetrics.updateBatchOperation(operationId, {
+          processedCount,
+          successCount,
+          errorCount
+        });
+      }
+
+      result.success = errorCount === 0;
+      result.processedFiles = this.extractUniqueFileCount(chunks);
+      result.uniqueChunks = successCount;
+      result.processingTime = Date.now() - startTime;
+
+      this.logger.info('Chunks processed asynchronously', {
+        totalChunks: chunks.length,
+        processedFiles: result.processedFiles,
+        uniqueChunks: result.uniqueChunks,
+        duplicatesRemoved: result.duplicatesRemoved,
+        processingTime: result.processingTime,
+        errors: result.errors.length
+      });
+
+      return result;
+    } catch (error) {
+      const report = this.errorHandler.handleError(
+        new Error(`Failed to process chunks asynchronously: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'VectorStorageService', operation: 'processChunksAsync' }
+      );
+      result.errors.push(`Async processing failed: ${report.id}`);
+      this.logger.error('Failed to process chunks asynchronously', { errorId: report.id });
+
+      // Update batch metrics with error
+      this.batchMetrics.updateBatchOperation(operationId, {
+        processedCount: 0,
+        successCount: 0,
+        errorCount: chunks.length
+      });
+
+      return result;
+    } finally {
+      // End batch operation metrics
+      this.batchMetrics.endBatchOperation(operationId, result.success);
     }
   }
 }

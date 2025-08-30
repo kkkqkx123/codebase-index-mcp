@@ -24,6 +24,7 @@ export interface VectorPoint {
     endLine: number;
     functionName?: string;
     className?: string;
+    snippetMetadata?: any;
     metadata: Record<string, any>;
     timestamp: Date;
     projectId?: string;
@@ -48,6 +49,7 @@ export interface SearchOptions {
     chunkType?: string[];
     filePath?: string[];
     projectId?: string;
+    snippetType?: string[];
   };
   withPayload?: boolean;
   withVector?: boolean;
@@ -140,6 +142,7 @@ export class QdrantClientWrapper {
       await this.createPayloadIndex(collectionName, 'chunkType');
       await this.createPayloadIndex(collectionName, 'filePath');
       await this.createPayloadIndex(collectionName, 'projectId');
+      await this.createPayloadIndex(collectionName, 'snippetMetadata.snippetType');
 
       this.logger.info(`Created collection ${collectionName}`, {
         vectorSize,
@@ -416,6 +419,15 @@ export class QdrantClientWrapper {
         key: 'projectId',
         match: {
           value: filter.projectId
+        }
+      });
+    }
+
+    if (filter.snippetType) {
+      must.push({
+        key: 'snippetMetadata.snippetType',
+        match: {
+          any: filter.snippetType
         }
       });
     }

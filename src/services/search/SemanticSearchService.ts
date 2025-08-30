@@ -16,6 +16,7 @@ export interface SemanticSearchParams {
     fileType?: string[];
     path?: string[];
     chunkType?: string[];
+    snippetType?: string[];
   };
   boostFactors?: {
     recency?: number;
@@ -34,6 +35,7 @@ export interface SemanticSearchResult {
   endLine: number;
   language: string;
   chunkType: string;
+  snippetMetadata?: any;
   metadata: Record<string, any>;
   rankingFactors: {
     semanticScore: number;
@@ -62,6 +64,8 @@ export class SemanticSearchService {
   private configService: ConfigService;
   private embedderFactory: EmbedderFactory;
   private vectorStorage: VectorStorageService;
+  private searchCache: Map<string, { results: SemanticSearchResult[]; timestamp: number }> = new Map();
+  private cacheExpiryTime: number = 5 * 60 * 1000; // 5 minutes
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
@@ -75,6 +79,9 @@ export class SemanticSearchService {
     this.errorHandler = errorHandler;
     this.embedderFactory = embedderFactory;
     this.vectorStorage = vectorStorage;
+    
+    // Clean up expired cache entries periodically
+    setInterval(() => this.cleanupCache(), 60 * 1000); // Every minute
   }
 
   async search(params: SemanticSearchParams): Promise<{
@@ -239,6 +246,68 @@ export class SemanticSearchService {
     }
   }
 
+  async searchSnippets(params: {
+    query: string;
+    projectId: string;
+    limit?: number;
+    threshold?: number;
+    snippetType?: string[];
+  }): Promise<SemanticSearchResult[]> {
+    this.logger.info('Searching snippets', {
+      query: params.query,
+      projectId: params.projectId,
+      limit: params.limit,
+      snippetType: params.snippetType
+    });
+
+    try {
+      // Generate query embedding
+      const queryEmbedding = await this.generateQueryEmbedding(params.query);
+
+      // Prepare filters
+      const filters: any = {
+        chunkType: ['snippet'],
+        projectId: params.projectId
+      };
+
+      if (params.snippetType && params.snippetType.length > 0) {
+        filters.snippetType = params.snippetType;
+      }
+
+      // Perform vector search
+      const vectorResults = await this.vectorStorage.searchVectors(
+        queryEmbedding.vector,
+        {
+          limit: params.limit || 10,
+          withPayload: true,
+          scoreThreshold: params.threshold || 0.7,
+          filter: filters
+        }
+      );
+
+      // Enhance results
+      const enhancedResults = await this.enhanceResults(vectorResults, {
+        query: params.query,
+        projectId: params.projectId,
+        limit: params.limit,
+        threshold: params.threshold
+      });
+
+      return this.sortAndFilterResults(enhancedResults, {
+        query: params.query,
+        projectId: params.projectId,
+        limit: params.limit,
+        threshold: params.threshold
+      });
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Snippet search failed: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'SemanticSearchService', operation: 'searchSnippets' }
+      );
+      throw error;
+    }
+  }
+
   async getSearchSuggestions(query: string, params: {
     projectId: string;
     limit?: number;
@@ -333,6 +402,7 @@ export class SemanticSearchService {
       endLine: result.endLine,
       language: result.language,
       chunkType: result.chunkType,
+      snippetMetadata: result.snippetMetadata,
       metadata: result.metadata || {},
       rankingFactors: {
         semanticScore,
@@ -347,6 +417,11 @@ export class SemanticSearchService {
   private calculateSemanticScore(result: any, query: string): number {
     // Base similarity score from vector search
     const baseScore = result.score || 0.5;
+
+    // If this is a snippet, use the specialized snippet scoring
+    if (result.chunkType === 'snippet' && result.snippetMetadata) {
+      return this.calculateSnippetScore(result, query);
+    }
 
     // Boost for exact keyword matches
     const queryTerms = query.toLowerCase().split(/\s+/);
@@ -438,6 +513,66 @@ export class SemanticSearchService {
     );
   }
 
+  private calculateSnippetScore(result: any, query: string): number {
+    // Start with the base semantic score
+    let score = result.score || 0.5;
+
+    // Boost based on snippet type relevance
+    if (result.snippetMetadata?.snippetType) {
+      const snippetType = result.snippetMetadata.snippetType;
+      const queryLower = query.toLowerCase();
+      
+      // Boost for specific snippet types based on query keywords
+      if (snippetType === 'control_structure' &&
+          (queryLower.includes('if') || queryLower.includes('loop') || queryLower.includes('switch'))) {
+        score += 0.2;
+      } else if (snippetType === 'error_handling' &&
+                 (queryLower.includes('error') || queryLower.includes('exception') || queryLower.includes('try'))) {
+        score += 0.2;
+      } else if (snippetType === 'function_call_chain' &&
+                 (queryLower.includes('function') || queryLower.includes('call') || queryLower.includes('method'))) {
+        score += 0.15;
+      } else if (snippetType === 'comment_marked' && queryLower.includes('example')) {
+        score += 0.25;
+      } else if (snippetType === 'logic_block' && queryLower.includes('block')) {
+        score += 0.15;
+      }
+    }
+
+    // Boost based on snippet complexity for certain queries
+    if (result.snippetMetadata?.complexity) {
+      const complexity = result.snippetMetadata.complexity;
+      const queryLower = query.toLowerCase();
+      
+      // For "complex" queries, boost complex snippets
+      if (queryLower.includes('complex') && complexity > 5) {
+        score += 0.1 * (complexity / 10); // Normalize complexity boost
+      }
+      
+      // For "simple" queries, boost simple snippets
+      if (queryLower.includes('simple') && complexity <= 3) {
+        score += 0.15;
+      }
+    }
+
+    // Boost based on language features
+    if (result.snippetMetadata?.languageFeatures) {
+      const features = result.snippetMetadata.languageFeatures;
+      let featureBonus = 0;
+      
+      if (features.usesAsync) featureBonus += 0.1;
+      if (features.usesGenerators) featureBonus += 0.1;
+      if (features.usesDestructuring) featureBonus += 0.05;
+      if (features.usesSpread) featureBonus += 0.05;
+      if (features.usesTemplateLiterals) featureBonus += 0.05;
+      
+      score += featureBonus;
+    }
+
+    // Ensure score is between 0 and 1
+    return Math.min(score, 1);
+  }
+
   private sortAndFilterResults(results: SemanticSearchResult[], params: SemanticSearchParams): SemanticSearchResult[] {
     // Sort by final score descending
     const sorted = results.sort((a, b) => b.score - a.score);
@@ -470,6 +605,10 @@ export class SemanticSearchService {
 
     if (filters.chunkType) {
       normalized.chunkType = Array.isArray(filters.chunkType) ? filters.chunkType : [filters.chunkType];
+    }
+
+    if (filters.snippetType) {
+      normalized.snippetType = Array.isArray(filters.snippetType) ? filters.snippetType : [filters.snippetType];
     }
 
     return normalized;
@@ -559,6 +698,48 @@ export class SemanticSearchService {
       hash = hash & hash;
     }
     return Math.abs(hash).toString(16);
+  }
+
+  private cleanupCache(): void {
+    const now = Date.now();
+    for (const [key, value] of this.searchCache.entries()) {
+      if (now - value.timestamp > this.cacheExpiryTime) {
+        this.searchCache.delete(key);
+      }
+    }
+  }
+
+  private getCacheKey(params: any): string {
+    // Create a cache key based on the search parameters
+    const keyParts = [
+      params.query,
+      params.projectId,
+      params.limit,
+      params.threshold,
+      JSON.stringify(params.filters || {})
+    ];
+    return keyParts.join('|');
+  }
+
+  private getCachedResults(params: any): SemanticSearchResult[] | null {
+    const cacheKey = this.getCacheKey(params);
+    const cached = this.searchCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < this.cacheExpiryTime) {
+      this.logger.debug('Returning cached search results', { cacheKey });
+      return cached.results;
+    }
+    
+    return null;
+  }
+
+  private cacheResults(params: any, results: SemanticSearchResult[]): void {
+    const cacheKey = this.getCacheKey(params);
+    this.searchCache.set(cacheKey, {
+      results: [...results], // Create a copy to avoid mutation
+      timestamp: Date.now()
+    });
+    this.logger.debug('Cached search results', { cacheKey, resultCount: results.length });
   }
 
   async getSemanticSearchStats(): Promise<{

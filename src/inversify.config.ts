@@ -77,6 +77,7 @@ container.bind<PerformanceMonitor>(PerformanceMonitor).toSelf().inSingletonScope
 container.bind<HealthChecker>(HealthChecker).toSelf().inSingletonScope();
 container.bind<ConfigManager>(ConfigManager).toSelf().inSingletonScope();
 container.bind<AsyncPipeline>(AsyncPipeline).toSelf().inSingletonScope();
+container.bind<ObjectPool<any>>(ObjectPool).toSelf().inSingletonScope();
 
 // Bind remaining search services
 container.bind<SemanticSearchService>(SemanticSearchService).toSelf().inSingletonScope();
