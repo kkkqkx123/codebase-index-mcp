@@ -30,7 +30,7 @@ jest.mock('../TreeSitterService', () => {
           const extractionTime = Math.max(1, content.length / 20000);
           
           // Return mock snippets based on content size
-          const snippetCount = Math.min(100, Math.floor(content.length / 500));
+          const snippetCount = Math.min(100, Math.floor(content.length / 50));
           const snippets = [];
           
           for (let i = 0; i < snippetCount; i++) {
@@ -46,7 +46,7 @@ jest.mock('../TreeSitterService', () => {
               exports: [],
               metadata: {},
               snippetMetadata: {
-                snippetType: i % 3 === 0 ? 'control_structure' : 
+                snippetType: i % 3 === 0 ? 'control_structure' :
                              i % 3 === 1 ? 'error_handling' : 'comment_marked',
                 contextInfo: { nestingLevel: i % 3 },
                 languageFeatures: {},

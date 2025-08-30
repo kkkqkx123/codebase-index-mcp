@@ -11,20 +11,35 @@ jest.mock('tree-sitter', () => {
           return {
             rootNode: createMockAST(code)
           };
-        })
+        }),
+        setLanguage: jest.fn()
       };
     })
   };
 });
 
 // Mock tree-sitter language parsers
-jest.mock('tree-sitter-typescript', () => jest.fn());
-jest.mock('tree-sitter-javascript', () => jest.fn());
-jest.mock('tree-sitter-python', () => jest.fn());
-jest.mock('tree-sitter-java', () => jest.fn());
-jest.mock('tree-sitter-go', () => jest.fn());
-jest.mock('tree-sitter-rust', () => jest.fn());
-jest.mock('tree-sitter-cpp', () => jest.fn());
+jest.mock('tree-sitter-typescript', () => ({
+  name: 'typescript'
+}));
+jest.mock('tree-sitter-javascript', () => ({
+  name: 'javascript'
+}));
+jest.mock('tree-sitter-python', () => ({
+  name: 'python'
+}));
+jest.mock('tree-sitter-java', () => ({
+  name: 'java'
+}));
+jest.mock('tree-sitter-go', () => ({
+  name: 'go'
+}));
+jest.mock('tree-sitter-rust', () => ({
+  name: 'rust'
+}));
+jest.mock('tree-sitter-cpp', () => ({
+  name: 'cpp'
+}));
 
 // Helper function to create mock AST nodes
 function createMockSyntaxNode(
