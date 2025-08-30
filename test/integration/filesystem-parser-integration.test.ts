@@ -4,6 +4,7 @@ import { LoggerService } from '../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
 import { createTestContainer } from '../setup';
+import { FileWatchingTestUtils } from '../utils/FileWatchingTestUtils';
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
 import fs from 'fs/promises';
 import path from 'path';
@@ -17,6 +18,7 @@ describe('File System and Parser Integration Tests', () => {
   let fileWatcherService: FileWatcherService;
   let testDir: string;
   let tempDir: string;
+  let testHelper: ReturnType<typeof FileWatchingTestUtils.createHelper>;
 
   beforeAll(async () => {
     // Create test container with real services
@@ -43,6 +45,9 @@ describe('File System and Parser Integration Tests', () => {
       errorHandlerService,
       fileSystemTraversal
     );
+    
+    // Create test helper for reliable file watching
+    testHelper = FileWatchingTestUtils.createHelper(fileWatcherService);
   });
 
   afterAll(async () => {
@@ -270,8 +275,9 @@ describe('File System and Parser Integration Tests', () => {
       const testFile = path.join(testDir, 'new.ts');
       await fs.writeFile(testFile, 'export function newFile() { return true; }');
       
-      // Wait for file system events
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for file system events using helper
+      await testHelper.waitForFileEvents();
+      await testHelper.flushEvents();
       
       // Stop watching
       await fileWatcherService.stopWatching();
@@ -311,8 +317,9 @@ describe('File System and Parser Integration Tests', () => {
       // Modify the file
       await fs.writeFile(testFile, 'export function test() { return false; }');
       
-      // Wait for file system events (longer wait for reliable detection)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for file system events using helper
+      await testHelper.waitForProcessing();
+      await testHelper.flushEvents();
       
       // Stop watching
       await fileWatcherService.stopWatching();
@@ -359,8 +366,9 @@ describe('File System and Parser Integration Tests', () => {
       // Delete the file
       await fs.unlink(testFile);
       
-      // Wait for file system events (longer wait for reliable detection)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for file system events using helper
+      await testHelper.waitForProcessing();
+      await testHelper.flushEvents();
       
       // Stop watching
       await fileWatcherService.stopWatching();
@@ -449,8 +457,9 @@ describe('File System and Parser Integration Tests', () => {
       await fs.writeFile(path.join(testDir, 'test.ignored.ts'), 'export function test() { return true; }');
       await fs.writeFile(path.join(testDir, 'test.ts'), 'export function test() { return true; }');
       
-      // Wait for file system events
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for file system events using helper
+      await testHelper.waitForFileEvents();
+      await testHelper.flushEvents();
       
       // Stop watching
       await fileWatcherService.stopWatching();
@@ -545,8 +554,9 @@ describe('File System and Parser Integration Tests', () => {
       
       await Promise.all(operations);
       
-      // Wait for file system events
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait for file system events using helper
+      await testHelper.waitForFileEvents();
+      await testHelper.flushEvents();
       
       // Stop watching
       await fileWatcherService.stopWatching();
@@ -610,11 +620,12 @@ describe('File System and Parser Integration Tests', () => {
       // Make rapid changes
       for (let i = 2; i <= 10; i++) {
         await fs.writeFile(testFile, `export function test() { return ${i}; }`);
-        await new Promise(resolve => setTimeout(resolve, 20));
+        await testHelper.waitForFileEvents(50); // Short wait for rapid changes
       }
       
-      // Wait for file system events to settle
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait for file system events to settle using helper
+      await testHelper.waitForProcessing();
+      await testHelper.flushEvents();
       
       // Stop watching
       await fileWatcherService.stopWatching();

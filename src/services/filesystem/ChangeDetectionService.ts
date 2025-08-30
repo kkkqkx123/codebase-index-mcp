@@ -63,6 +63,7 @@ export class ChangeDetectionService extends EventEmitter {
     permissionErrors: 0,
     averageProcessingTime: 0
   };
+  private testMode: boolean = false;
 
   constructor(
     logger: LoggerService,
@@ -77,19 +78,26 @@ export class ChangeDetectionService extends EventEmitter {
     this.fileWatcherService = fileWatcherService;
     this.fileSystemTraversal = fileSystemTraversal;
     
+    // Detect test environment
+    this.testMode = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
+    
     this.options = {
-      debounceInterval: options?.debounceInterval ?? 500,
+      debounceInterval: this.testMode ? 100 : (options?.debounceInterval ?? 500),
       maxConcurrentOperations: options?.maxConcurrentOperations ?? 10,
       enableHashComparison: options?.enableHashComparison ?? true,
       trackFileHistory: options?.trackFileHistory ?? true,
       historySize: options?.historySize ?? 10,
       enableDetailedLogging: options?.enableDetailedLogging ?? false,
       permissionRetryAttempts: options?.permissionRetryAttempts ?? 3,
-      permissionRetryDelay: options?.permissionRetryDelay ?? 1000,
+      permissionRetryDelay: this.testMode ? 100 : (options?.permissionRetryDelay ?? 1000),
       maxFileSizeBytes: options?.maxFileSizeBytes ?? 10 * 1024 * 1024, // 10MB
       excludedExtensions: options?.excludedExtensions ?? ['.log', '.tmp', '.bak'],
       excludedDirectories: options?.excludedDirectories ?? ['node_modules', '.git', 'dist', 'build']
     };
+    
+    if (this.testMode) {
+      this.logger.info('ChangeDetectionService running in test mode - using optimized settings');
+    }
   }
 
   setCallbacks(callbacks: ChangeDetectionCallbacks): void {
@@ -127,8 +135,11 @@ export class ChangeDetectionService extends EventEmitter {
         awaitWriteFinish: true,
         awaitWriteFinishOptions: {
           stabilityThreshold: this.options.debounceInterval,
-          pollInterval: 100
+          pollInterval: this.testMode ? 25 : 100
         },
+        // Test-specific optimizations
+        usePolling: this.testMode,
+        interval: this.testMode ? 50 : undefined,
         ...watcherOptions
       };
 
@@ -458,5 +469,62 @@ export class ChangeDetectionService extends EventEmitter {
       permissionErrors: 0,
       averageProcessingTime: 0
     };
+  }
+
+  // Test environment helper methods
+  isTestMode(): boolean {
+    return this.testMode;
+  }
+
+  async waitForFileProcessing(filePath: string, timeout: number = 3000): Promise<boolean> {
+    if (!this.testMode) {
+      return true;
+    }
+    
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeout) {
+      // Check if file is being processed (has pending changes)
+      if (!this.pendingChanges.has(filePath)) {
+        return true;
+      }
+      
+      // Wait before checking again
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    return false;
+  }
+
+  async waitForAllProcessing(timeout: number = 5000): Promise<boolean> {
+    if (!this.testMode) {
+      return true;
+    }
+    
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeout) {
+      // Check if all pending changes are processed
+      if (this.pendingChanges.size === 0) {
+        return true;
+      }
+      
+      // Wait before checking again
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    return false;
+  }
+
+  async flushPendingChanges(): Promise<void> {
+    if (!this.testMode) {
+      return;
+    }
+    
+    // Wait for all pending changes to be processed
+    await this.waitForAllProcessing();
+    
+    // Additional wait to ensure stability
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 }

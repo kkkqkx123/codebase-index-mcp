@@ -109,6 +109,23 @@ describe('FileSystemTraversal', () => {
     const rootPath = '/test/root';
 
     it('should traverse directory successfully', async () => {
+      // Reset all mocks before this test
+      jest.clearAllMocks();
+      
+      // Set up the default mocks again
+      mockFs.stat.mockResolvedValue({
+        isDirectory: () => false,
+        isFile: () => true,
+        size: 1024,
+        mtime: new Date('2023-01-01'),
+      } as any);
+
+      mockFs.readdir.mockResolvedValue([
+        { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+        { name: Buffer.from('file2.js'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+        { name: Buffer.from('subdir'), isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+      ]);
+
       const result = await fileSystemTraversal.traverseDirectory(rootPath);
 
       expect(result).toEqual({
@@ -995,28 +1012,64 @@ describe('FileSystemTraversal', () => {
     });
 
     it('should handle file read errors gracefully', async () => {
+      // Reset all mocks before this test
+      jest.clearAllMocks();
+      
+      // Create a fresh instance for this test
+      const testFileSystemTraversal = new FileSystemTraversal();
+      
+      // Set up the default mocks
+      mockFs.stat.mockResolvedValue({
+        isDirectory: () => false,
+        isFile: () => true,
+        size: 1024,
+        mtime: new Date('2023-01-01'),
+      } as any);
+
+      mockFs.readdir.mockResolvedValue([
+        { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+      ]);
+      
       // Mock isBinaryFile to return false so we get to the readFile call
-      jest.spyOn(fileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
+      jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
       
       // Mock readFile to throw an error
       mockFs.readFile.mockRejectedValue(new Error('Read failed'));
 
-      const result = await fileSystemTraversal.traverseDirectory('/test/root');
+      const result = await testFileSystemTraversal.traverseDirectory('/test/root');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0]).toContain('Error processing file');
     });
 
     it('should handle hash calculation errors gracefully', async () => {
+      // Reset all mocks before this test
+      jest.clearAllMocks();
+      
+      // Create a fresh instance for this test
+      const testFileSystemTraversal = new FileSystemTraversal();
+      
+      // Set up the default mocks
+      mockFs.stat.mockResolvedValue({
+        isDirectory: () => false,
+        isFile: () => true,
+        size: 1024,
+        mtime: new Date('2023-01-01'),
+      } as any);
+
+      mockFs.readdir.mockResolvedValue([
+        { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+      ]);
+      
       // Mock isBinaryFile to return false so we get to the hash calculation
-      jest.spyOn(fileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
+      jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
       
       // Mock createReadStream to throw an error
       mockFsSync.createReadStream.mockImplementation(() => {
         throw new Error('Stream error');
       });
 
-      const result = await fileSystemTraversal.traverseDirectory('/test/root');
+      const result = await testFileSystemTraversal.traverseDirectory('/test/root');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0]).toContain('Error processing file');
@@ -1025,6 +1078,12 @@ describe('FileSystemTraversal', () => {
 
   describe('Performance Considerations', () => {
     it('should handle large directories efficiently', async () => {
+      // Reset all mocks before this test
+      jest.clearAllMocks();
+      
+      // Create a fresh instance for this test
+      const testFileSystemTraversal = new FileSystemTraversal();
+      
       // Mock a large directory with many files
       const manyFiles = Array.from({ length: 100 }, (_, i) => ({
         name: Buffer.from(`file${i}.ts`),
@@ -1038,19 +1097,28 @@ describe('FileSystemTraversal', () => {
         parentPath: '/test/large',
       }));
 
+      mockFs.stat.mockResolvedValue({
+        isDirectory: () => false,
+        isFile: () => true,
+        size: 1024,
+        mtime: new Date('2023-01-01'),
+      } as any);
+
       mockFs.readdir.mockResolvedValue(manyFiles);
       mockFs.readFile.mockResolvedValue(Buffer.from('content'));
 
-      const result = await fileSystemTraversal.traverseDirectory('/test/large');
+      const result = await testFileSystemTraversal.traverseDirectory('/test/large');
 
       expect(result.files).toHaveLength(100);
       expect(result.processingTime).toBeGreaterThan(0);
     });
 
     it('should handle deep directory structures', async () => {
-      // Save original mock implementations
-      const originalReaddir = mockFs.readdir;
-      const originalStat = mockFs.stat;
+      // Reset all mocks before this test
+      jest.clearAllMocks();
+      
+      // Create a fresh instance for this test
+      const testFileSystemTraversal = new FileSystemTraversal();
       
       // Mock a deep directory structure
       mockFs.readdir.mockImplementation((path) => {
@@ -1065,7 +1133,7 @@ describe('FileSystemTraversal', () => {
         return Promise.resolve([]);
       });
 
-      // Mock stat for level1
+      // Mock stat for all paths
       mockFs.stat.mockImplementation((path) => {
         if (path === '/test/deep/level1') {
           return Promise.resolve({
@@ -1075,17 +1143,18 @@ describe('FileSystemTraversal', () => {
             mtime: new Date('2023-01-01'),
           } as any);
         }
-        return originalStat(path);
+        return Promise.resolve({
+          isDirectory: () => false,
+          isFile: () => true,
+          size: 1024,
+          mtime: new Date('2023-01-01'),
+        } as any);
       });
 
-      const result = await fileSystemTraversal.traverseDirectory('/test/deep');
+      const result = await testFileSystemTraversal.traverseDirectory('/test/deep');
 
       expect(result.directories).toContain('level1');
       expect(mockFs.readdir).toHaveBeenCalledTimes(2); // Root + level1
-      
-      // Restore original mock implementations
-      mockFs.readdir.mockImplementation(originalReaddir);
-      mockFs.stat.mockImplementation(originalStat);
     });
   });
 });
