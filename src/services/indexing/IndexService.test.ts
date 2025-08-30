@@ -6,6 +6,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
+import { HashUtils } from '../../utils/HashUtils';
 
 // Mock the dependencies
 jest.mock('../../core/LoggerService');
@@ -13,6 +14,7 @@ jest.mock('../../core/ErrorHandlerService');
 jest.mock('./IndexCoordinator');
 jest.mock('../../config/ConfigService');
 jest.mock('../monitoring/BatchProcessingMetrics');
+jest.mock('../../utils/HashUtils');
 
 describe('IndexService', () => {
   let indexService: IndexService;
@@ -62,6 +64,14 @@ describe('IndexService', () => {
       deleteIndex: jest.fn(),
     } as unknown as jest.Mocked<IndexCoordinator>;
 
+    // Mock HashUtils
+    (HashUtils.calculateDirectoryHash as jest.Mock) = jest.fn().mockResolvedValue({
+      path: '/test/project',
+      hash: 'test-hash-12345',
+      fileCount: 5,
+      files: []
+    });
+
     // Create IndexService instance with mocked dependencies
     indexService = new IndexService(
       mockLogger,
@@ -74,7 +84,7 @@ describe('IndexService', () => {
 
   describe('createIndex', () => {
     it('should call IndexCoordinator.createIndex with correct parameters', async () => {
-      const projectPath = 'D:\\ide与cli\\tool\\codebase-index\\test-temp';
+      const projectPath = '/test/project';
       const options = { includePatterns: ['**/*.ts'], excludePatterns: ['node_modules/**'] };
       
       // Mock the IndexCoordinator response
