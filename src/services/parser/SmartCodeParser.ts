@@ -1,4 +1,4 @@
-import { TreeSitterService, CodeChunk, ParseResult } from './TreeSitterService';
+import { TreeSitterService, CodeChunk, ParseResult, SnippetChunk } from './TreeSitterService';
 import { createHash } from 'crypto';
 import path from 'path';
 
@@ -18,6 +18,7 @@ export interface ParsedFile {
     imports: string[];
     exports: string[];
     linesOfCode: number;
+    snippets: number;
   };
 }
 
@@ -28,6 +29,7 @@ export interface ChunkingOptions {
   preserveClassBoundaries?: boolean;
   includeComments?: boolean;
   minChunkSize?: number;
+  extractSnippets?: boolean;
 }
 
 export class SmartCodeParser {
@@ -42,26 +44,56 @@ export class SmartCodeParser {
       preserveFunctionBoundaries: options?.preserveFunctionBoundaries ?? true,
       preserveClassBoundaries: options?.preserveClassBoundaries ?? true,
       includeComments: options?.includeComments ?? false,
-      minChunkSize: options?.minChunkSize ?? 100
+      minChunkSize: options?.minChunkSize ?? 100,
+      extractSnippets: options?.extractSnippets ?? true
     };
   }
 
   async parseFile(filePath: string, content: string, options?: ChunkingOptions): Promise<ParsedFile> {
     const startTime = Date.now();
     const hash = this.generateHash(content);
-    
-    // For now, we'll create a simplified version that doesn't rely on TreeSitterService
-    // since it's not properly initialized
+    const mergedOptions = { ...this.defaultOptions, ...options };
     
     const chunks: CodeChunk[] = [];
     const lines = content.split('\n');
     const linesOfCode = lines.filter(line => line.trim().length > 0).length;
+    
+    let language = 'unknown';
+    let snippetCount = 0;
+    
+    // Try to parse with TreeSitterService if available
+    try {
+      const parseResult = await this.treeSitterService.parseFile(filePath, content);
+      language = parseResult.language.name.toLowerCase();
+      
+      if (parseResult.success) {
+        // Extract syntax-aware chunks
+        const syntaxAwareChunks = await this.createSyntaxAwareChunks(content, parseResult, mergedOptions);
+        chunks.push(...syntaxAwareChunks);
+        
+        // Extract snippets if enabled
+        if (mergedOptions.extractSnippets) {
+          const snippets = this.treeSitterService.extractSnippets(parseResult.ast, content);
+          chunks.push(...snippets);
+          snippetCount = snippets.length;
+        }
+      }
+    } catch (error) {
+      // Fall back to generic chunking if TreeSitterService fails
+      console.warn('TreeSitterService failed, falling back to generic chunking:', error);
+    }
+    
+    // If no chunks were created, use generic chunking
+    if (chunks.length === 0) {
+      const genericChunks = this.createGenericChunks(content, mergedOptions);
+      chunks.push(...genericChunks);
+    }
 
     const parsedFile: ParsedFile = {
       id: this.generateFileId(filePath, hash),
       filePath,
       relativePath: path.relative(process.cwd(), filePath),
-      language: 'unknown',
+      language,
       content,
       chunks,
       hash,
@@ -72,7 +104,8 @@ export class SmartCodeParser {
         classes: 0,
         imports: [],
         exports: [],
-        linesOfCode
+        linesOfCode,
+        snippets: snippetCount
       }
     };
 
@@ -82,20 +115,88 @@ export class SmartCodeParser {
   private async createSyntaxAwareChunks(
     content: string,
     parseResult: ParseResult,
-    options?: ChunkingOptions
+    options: Required<ChunkingOptions>
   ): Promise<CodeChunk[]> {
-    // For now, return empty array as we're not implementing TreeSitterService properly
-    return [];
+    const chunks: CodeChunk[] = [];
+    
+    // Extract function chunks
+    if (options.preserveFunctionBoundaries) {
+      const functionChunks = this.createFunctionChunks(content, parseResult, options);
+      chunks.push(...functionChunks);
+    }
+    
+    // Extract class chunks
+    if (options.preserveClassBoundaries) {
+      const classChunks = this.createClassChunks(content, parseResult, options);
+      chunks.push(...classChunks);
+    }
+    
+    return chunks;
   }
 
   private createFunctionChunks(content: string, parseResult: ParseResult, options: Required<ChunkingOptions>): CodeChunk[] {
-    // For now, return empty array as we're not implementing TreeSitterService properly
-    return [];
+    const chunks: CodeChunk[] = [];
+    const functions = this.treeSitterService.extractFunctions(parseResult.ast);
+    
+    for (const funcNode of functions) {
+      const funcContent = this.treeSitterService.getNodeText(funcNode, content);
+      const location = this.treeSitterService.getNodeLocation(funcNode);
+      
+      const chunk: CodeChunk = {
+        id: this.generateChunkId(funcContent, location.startLine),
+        content: funcContent,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: funcNode.startIndex,
+        endByte: funcNode.endIndex,
+        type: 'function',
+        functionName: this.extractFunctionName(funcNode, content),
+        imports: [],
+        exports: [],
+        metadata: {
+          parameters: this.extractParameters(funcNode, content),
+          returnType: this.extractReturnType(funcNode, content),
+          complexity: this.calculateComplexity(funcContent)
+        }
+      };
+      
+      chunks.push(chunk);
+    }
+    
+    return chunks;
   }
 
   private createClassChunks(content: string, parseResult: ParseResult, options: Required<ChunkingOptions>): CodeChunk[] {
-    // For now, return empty array as we're not implementing TreeSitterService properly
-    return [];
+    const chunks: CodeChunk[] = [];
+    const classes = this.treeSitterService.extractClasses(parseResult.ast);
+    
+    for (const classNode of classes) {
+      const classContent = this.treeSitterService.getNodeText(classNode, content);
+      const location = this.treeSitterService.getNodeLocation(classNode);
+      
+      const chunk: CodeChunk = {
+        id: this.generateChunkId(classContent, location.startLine),
+        content: classContent,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: classNode.startIndex,
+        endByte: classNode.endIndex,
+        type: 'class',
+        className: this.extractClassName(classNode, content),
+        imports: [],
+        exports: [],
+        metadata: {
+          methods: this.extractMethods(classNode, content).length,
+          properties: this.extractProperties(classNode, content).length,
+          inheritance: this.extractInheritance(classNode, content),
+          complexity: this.calculateComplexity(classContent)
+        }
+      };
+      
+      chunks.push(chunk);
+    }
+    
+    return chunks;
   }
 
   private createGenericChunks(content: string, options: Required<ChunkingOptions>): CodeChunk[] {
@@ -123,7 +224,8 @@ export class SmartCodeParser {
             imports: [],
             exports: [],
             metadata: {
-              lineCount: currentChunk.length
+              lineCount: currentChunk.length,
+              complexity: this.calculateComplexity(chunkContent)
             }
           };
           
@@ -139,8 +241,18 @@ export class SmartCodeParser {
   }
 
   private enrichChunks(chunks: CodeChunk[], parseResult: ParseResult): CodeChunk[] {
-    // For now, return chunks as-is since we're not implementing TreeSitterService properly
-    return chunks;
+    // Enrich chunks with additional metadata from the parse result
+    return chunks.map(chunk => {
+      // Add imports and exports if available
+      if (chunk.type === 'function' || chunk.type === 'class') {
+        return {
+          ...chunk,
+          imports: this.treeSitterService.extractImports(parseResult.ast),
+          exports: this.treeSitterService.extractExports(parseResult.ast)
+        };
+      }
+      return chunk;
+    });
   }
 
   private extractFunctionName(node: any, content: string): string {

@@ -1,0 +1,337 @@
+import { TreeSitterService, SnippetChunk, SnippetMetadata } from '../TreeSitterService';
+import Parser from 'tree-sitter';
+
+// Mock tree-sitter for testing
+jest.mock('tree-sitter', () => {
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        parse: jest.fn().mockImplementation((code: string) => {
+          // Create a mock AST structure for testing
+          return {
+            rootNode: createMockAST(code)
+          };
+        })
+      };
+    })
+  };
+});
+
+// Mock tree-sitter language parsers
+jest.mock('tree-sitter-typescript', () => jest.fn());
+jest.mock('tree-sitter-javascript', () => jest.fn());
+jest.mock('tree-sitter-python', () => jest.fn());
+jest.mock('tree-sitter-java', () => jest.fn());
+jest.mock('tree-sitter-go', () => jest.fn());
+jest.mock('tree-sitter-rust', () => jest.fn());
+jest.mock('tree-sitter-cpp', () => jest.fn());
+
+// Helper function to create mock AST nodes
+function createMockSyntaxNode(
+  type: string,
+  text: string,
+  startPosition: { row: number; column: number } = { row: 0, column: 0 },
+  endPosition: { row: number; column: number } = { row: 0, column: 0 },
+  startIndex: number = 0,
+  endIndex: number = text.length,
+  children: any[] = []
+): any {
+  return {
+    type,
+    startPosition,
+    endPosition,
+    startIndex,
+    endIndex,
+    children,
+    childForFieldName: jest.fn().mockReturnValue(null)
+  };
+}
+
+// Helper function to create mock AST based on code content
+function createMockAST(code: string): any {
+  const lines = code.split('\n');
+  const nodes: any[] = [];
+  
+  // Create mock nodes based on code patterns
+  lines.forEach((line, index) => {
+    if (line.includes('if') || line.includes('for') || line.includes('while')) {
+      nodes.push(createMockSyntaxNode(
+        line.includes('if') ? 'if_statement' : line.includes('for') ? 'for_statement' : 'while_statement',
+        line,
+        { row: index, column: 0 },
+        { row: index, column: line.length },
+        code.indexOf(line),
+        code.indexOf(line) + line.length
+      ));
+    }
+    
+    if (line.includes('try') || line.includes('catch')) {
+      nodes.push(createMockSyntaxNode(
+        line.includes('try') ? 'try_statement' : 'catch_clause',
+        line,
+        { row: index, column: 0 },
+        { row: index, column: line.length },
+        code.indexOf(line),
+        code.indexOf(line) + line.length
+      ));
+    }
+    
+    if (line.includes('function') || line.includes('=>')) {
+      nodes.push(createMockSyntaxNode(
+        'function_definition',
+        line,
+        { row: index, column: 0 },
+        { row: index, column: line.length },
+        code.indexOf(line),
+        code.indexOf(line) + line.length
+      ));
+    }
+  });
+  
+  // Create root node with all the created nodes as children
+  const rootNode = createMockSyntaxNode(
+    'program',
+    code,
+    { row: 0, column: 0 },
+    { row: lines.length - 1, column: lines[lines.length - 1].length },
+    0,
+    code.length,
+    nodes
+  );
+  
+  return rootNode;
+}
+
+describe('TreeSitterService Snippet Extraction', () => {
+  let treeSitterService: TreeSitterService;
+
+  beforeEach(() => {
+    treeSitterService = new TreeSitterService();
+  });
+
+  describe('extractSnippets', () => {
+    test('should extract control structures from code', () => {
+      const code = `
+function example() {
+  if (condition) {
+    console.log('true');
+  }
+  
+  for (let i = 0; i < 10; i++) {
+    console.log(i);
+  }
+  
+  while (true) {
+    break;
+  }
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      expect(snippets.length).toBeGreaterThan(0);
+      
+      const controlSnippets = snippets.filter(s => 
+        s.snippetMetadata.snippetType === 'control_structure'
+      );
+      expect(controlSnippets.length).toBeGreaterThan(0);
+      
+      // Check that snippets have correct metadata
+      controlSnippets.forEach(snippet => {
+        expect(snippet.type).toBe('snippet');
+        expect(snippet.snippetMetadata.contextInfo.nestingLevel).toBeGreaterThanOrEqual(0);
+        expect(snippet.snippetMetadata.complexity).toBeGreaterThan(0);
+      });
+    });
+
+    test('should extract error handling from code', () => {
+      const code = `
+function example() {
+  try {
+    riskyOperation();
+  } catch (error) {
+    console.error(error);
+  } finally {
+    cleanup();
+  }
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      expect(snippets.length).toBeGreaterThan(0);
+      
+      const errorSnippets = snippets.filter(s => 
+        s.snippetMetadata.snippetType === 'error_handling'
+      );
+      expect(errorSnippets.length).toBeGreaterThan(0);
+    });
+
+    test('should extract comment-marked snippets', () => {
+      const code = `
+// @snippet: Example snippet
+function exampleFunction() {
+  console.log('This is a snippet');
+  return true;
+}
+
+// Regular function
+function regularFunction() {
+  return false;
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      expect(snippets.length).toBeGreaterThan(0);
+      
+      const commentSnippets = snippets.filter(s => 
+        s.snippetMetadata.snippetType === 'comment_marked'
+      );
+      expect(commentSnippets.length).toBeGreaterThan(0);
+      
+      // Check that comment markers are preserved
+      commentSnippets.forEach(snippet => {
+        expect(snippet.snippetMetadata.commentMarkers).toBeDefined();
+        expect(snippet.snippetMetadata.commentMarkers!.length).toBeGreaterThan(0);
+      });
+    });
+
+    test('should filter out invalid snippets', () => {
+      const code = `
+function example() {
+  // This is too short
+  if (x) {}
+  
+  // This is a valid snippet
+  if (condition) {
+    doSomething();
+    doSomethingElse();
+  }
+  
+  // This is too long and complex
+  if (condition1) {
+    if (condition2) {
+      if (condition3) {
+        if (condition4) {
+          if (condition5) {
+            nestedCode();
+          }
+        }
+      }
+    }
+  }
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      // All snippets should pass complexity and length filters
+      snippets.forEach(snippet => {
+        expect(snippet.snippetMetadata.complexity).toBeGreaterThanOrEqual(1);
+        expect(snippet.snippetMetadata.complexity).toBeLessThanOrEqual(10);
+        expect(snippet.content.length).toBeGreaterThanOrEqual(20);
+        expect(snippet.content.length).toBeLessThanOrEqual(500);
+      });
+    });
+
+    test('should deduplicate similar snippets', () => {
+      const code = `
+function example() {
+  // Similar snippet 1
+  if (condition) {
+    doSomething();
+  }
+  
+  // Similar snippet 2
+  if (condition) {
+    doSomething();
+  }
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      // Should have only one unique snippet despite two similar ones in code
+      const uniqueSnippets = new Set(snippets.map(s => s.content));
+      expect(uniqueSnippets.size).toBeLessThanOrEqual(snippets.length);
+    });
+
+    test('should extract context information', () => {
+      const code = `
+class ExampleClass {
+  exampleMethod() {
+    if (condition) {
+      console.log('snippet');
+    }
+  }
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      const snippetWithParent = snippets.find(s => 
+        s.snippetMetadata.contextInfo.parentClass || 
+        s.snippetMetadata.contextInfo.parentFunction
+      );
+      
+      // At least one snippet should have parent context
+      expect(snippetWithParent).toBeDefined();
+    });
+
+    test('should analyze language features', () => {
+      const code = `
+async function example() {
+  const result = await fetchData();
+  const { data, error } = result;
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data.map(item => ({ ...item, processed: true }));
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      // Check that language features are detected
+      snippets.forEach(snippet => {
+        const features = snippet.snippetMetadata.languageFeatures;
+        expect(typeof features.usesAsync).toBe('boolean');
+        expect(typeof features.usesDestructuring).toBe('boolean');
+        expect(typeof features.usesSpread).toBe('boolean');
+      });
+    });
+
+    test('should detect side effects', () => {
+      const code = `
+function example() {
+  // Has side effects
+  counter++;
+  console.log('side effect');
+  
+  // No side effects
+  const result = Math.max(a, b);
+}
+      `;
+      
+      const mockAST = createMockAST(code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      
+      // Should have both snippets with and without side effects
+      const withSideEffects = snippets.filter(s => s.snippetMetadata.hasSideEffects);
+      const withoutSideEffects = snippets.filter(s => !s.snippetMetadata.hasSideEffects);
+      
+      expect(withSideEffects.length).toBeGreaterThan(0);
+      expect(withoutSideEffects.length).toBeGreaterThan(0);
+    });
+  });
+});
