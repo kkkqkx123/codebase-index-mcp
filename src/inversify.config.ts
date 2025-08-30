@@ -17,9 +17,24 @@ import { VectorStorageService } from './services/storage/VectorStorageService';
 import { GraphPersistenceService } from './services/storage/GraphPersistenceService';
 import { ParserService } from './services/parser/ParserService';
 import { TransactionCoordinator } from './services/sync/TransactionCoordinator';
+import { EntityMappingService } from './services/sync/EntityMappingService';
+import { EntityIdManager } from './services/sync/EntityIdManager';
 import { IndexService } from './services/indexing/IndexService';
 import { NebulaConnectionManager } from './database/nebula/NebulaConnectionManager';
 import { QdrantClientWrapper } from './database/qdrant/QdrantClientWrapper';
+import { NebulaService } from './database/NebulaService';
+import { NebulaQueryBuilder } from './database/nebula/NebulaQueryBuilder';
+import { GraphDatabaseErrorHandler } from './core/GraphDatabaseErrorHandler';
+import { ErrorClassifier } from './core/ErrorClassifier';
+import { EmbedderFactory } from './embedders/EmbedderFactory';
+import { OpenAIEmbedder } from './embedders/OpenAIEmbedder';
+import { OllamaEmbedder } from './embedders/OllamaEmbedder';
+import { GeminiEmbedder } from './embedders/GeminiEmbedder';
+import { MistralEmbedder } from './embedders/MistralEmbedder';
+import { SiliconFlowEmbedder } from './embedders/SiliconFlowEmbedder';
+import { Custom1Embedder } from './embedders/Custom1Embedder';
+import { Custom2Embedder } from './embedders/Custom2Embedder';
+import { Custom3Embedder } from './embedders/Custom3Embedder';
 
 // New refactored services
 import { IndexCoordinator } from './services/indexing/IndexCoordinator';
@@ -47,6 +62,33 @@ import { BatchErrorRecoveryService } from './services/recovery/BatchErrorRecover
 import { BatchProcessingMetrics } from './services/monitoring/BatchProcessingMetrics';
 import { FileSystemTraversal } from './services/filesystem/FileSystemTraversal';
 import { SmartCodeParser } from './services/parser/SmartCodeParser';
+import { TreeSitterService } from './services/parser/TreeSitterService';
+
+// Additional services
+import { HashBasedDeduplicator } from './services/deduplication/HashBasedDeduplicator';
+import { GraphService } from './services/graph/GraphService';
+import { IGraphService } from './services/graph/IGraphService';
+import { HealthCheckService } from './services/monitoring/HealthCheckService';
+import { PerformanceAnalysisService } from './services/monitoring/PerformanceAnalysisService';
+import { PrometheusMetricsService } from './services/monitoring/PrometheusMetricsService';
+import { QueryCache } from './services/query/QueryCache';
+import { QueryCoordinationService } from './services/query/QueryCoordinationService';
+import { QueryOptimizer } from './services/query/QueryOptimizer';
+import { ResultFusionEngine } from './services/query/ResultFusionEngine';
+import { IRerankingService } from './services/reranking/IRerankingService';
+import { MLRerankingService } from './services/reranking/MLRerankingService';
+import { RealTimeLearningService } from './services/reranking/RealTimeLearningService';
+import { SimilarityAlgorithms } from './services/reranking/SimilarityAlgorithms';
+import { ConsistencyChecker } from './services/sync/ConsistencyChecker';
+import { DimensionAdapterService } from './embedders/DimensionAdapterService';
+import { HttpServer } from './api/HttpServer';
+import { MonitoringRoutes } from './api/routes/MonitoringRoutes';
+import { SnippetRoutes } from './api/routes/SnippetRoutes';
+import { MonitoringController } from './controllers/MonitoringController';
+import { SnippetController } from './controllers/SnippetController';
+import { MCPServer } from './mcp/MCPServer';
+import { DIContainer } from './core/DIContainer';
+import { QdrantService } from './database/QdrantService';
 
 // Create a new container
 const container = new Container();
@@ -64,6 +106,19 @@ container.bind<PathUtils>(PathUtils).toSelf().inSingletonScope();
 // Bind database clients
 container.bind<NebulaConnectionManager>(NebulaConnectionManager).toSelf().inSingletonScope();
 container.bind<QdrantClientWrapper>(QdrantClientWrapper).toSelf().inSingletonScope();
+container.bind<NebulaService>(NebulaService).toSelf().inSingletonScope();
+container.bind<NebulaQueryBuilder>(NebulaQueryBuilder).toSelf().inSingletonScope();
+container.bind<GraphDatabaseErrorHandler>(GraphDatabaseErrorHandler).toSelf().inSingletonScope();
+container.bind<ErrorClassifier>(ErrorClassifier).toSelf().inSingletonScope();
+container.bind<EmbedderFactory>(EmbedderFactory).toSelf().inSingletonScope();
+container.bind<OpenAIEmbedder>(OpenAIEmbedder).toSelf().inSingletonScope();
+container.bind<OllamaEmbedder>(OllamaEmbedder).toSelf().inSingletonScope();
+container.bind<GeminiEmbedder>(GeminiEmbedder).toSelf().inSingletonScope();
+container.bind<MistralEmbedder>(MistralEmbedder).toSelf().inSingletonScope();
+container.bind<SiliconFlowEmbedder>(SiliconFlowEmbedder).toSelf().inSingletonScope();
+container.bind<Custom1Embedder>(Custom1Embedder).toSelf().inSingletonScope();
+container.bind<Custom2Embedder>(Custom2Embedder).toSelf().inSingletonScope();
+container.bind<Custom3Embedder>(Custom3Embedder).toSelf().inSingletonScope();
 
 // Bind services
 container.bind<ChangeDetectionService>(ChangeDetectionService).toSelf().inSingletonScope();
@@ -71,6 +126,8 @@ container.bind<VectorStorageService>(VectorStorageService).toSelf().inSingletonS
 container.bind<GraphPersistenceService>(GraphPersistenceService).toSelf().inSingletonScope();
 container.bind<ParserService>(ParserService).toSelf().inSingletonScope();
 container.bind<TransactionCoordinator>(TransactionCoordinator).toSelf().inSingletonScope();
+container.bind<EntityMappingService>(EntityMappingService).toSelf().inSingletonScope();
+container.bind<EntityIdManager>(EntityIdManager).toSelf().inSingletonScope();
 container.bind<IndexService>(IndexService).toSelf().inSingletonScope();
 container.bind<EventQueueService>(EventQueueService).toSelf().inSingletonScope();
 container.bind<FileWatcherService>(FileWatcherService).toSelf().inSingletonScope();
@@ -90,9 +147,9 @@ const defaultPoolOptions: PoolOptions<any> = {
   initialSize: 10,
   maxSize: 100,
   creator: () => ({}),
-  resetter: (obj: any) => {},
+  resetter: (obj: any) => { },
   validator: (obj: any) => true,
-  destroy: (obj: any) => {},
+  destroy: (obj: any) => { },
   evictionPolicy: 'lru'
 };
 
@@ -115,6 +172,55 @@ container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().in
 // Bind additional services
 container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
 container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
+container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope();
+
+// Bind deduplication services
+container.bind<HashBasedDeduplicator>(HashBasedDeduplicator).toSelf().inSingletonScope();
+
+// Bind graph services
+container.bind<GraphService>(GraphService).toSelf().inSingletonScope();
+container.bind<IGraphService>('IGraphService').toService(GraphService);
+
+// Bind additional monitoring services
+container.bind<HealthCheckService>(HealthCheckService).toSelf().inSingletonScope();
+container.bind<PerformanceAnalysisService>(PerformanceAnalysisService).toSelf().inSingletonScope();
+container.bind<PrometheusMetricsService>(PrometheusMetricsService).toSelf().inSingletonScope();
+
+// Bind query services
+container.bind<QueryCache>(QueryCache).toSelf().inSingletonScope();
+container.bind<QueryCoordinationService>(QueryCoordinationService).toSelf().inSingletonScope();
+container.bind<QueryOptimizer>(QueryOptimizer).toSelf().inSingletonScope();
+container.bind<ResultFusionEngine>(ResultFusionEngine).toSelf().inSingletonScope();
+
+// Bind reranking services
+container.bind<IRerankingService>('IRerankingService').to(RerankingService).inSingletonScope();
+container.bind<MLRerankingService>(MLRerankingService).toSelf().inSingletonScope();
+container.bind<RealTimeLearningService>(RealTimeLearningService).toSelf().inSingletonScope();
+container.bind<SimilarityAlgorithms>(SimilarityAlgorithms).toSelf().inSingletonScope();
+
+// Bind additional sync services
+container.bind<ConsistencyChecker>(ConsistencyChecker).toSelf().inSingletonScope();
+
+// Bind additional embedder services
+container.bind<DimensionAdapterService>(DimensionAdapterService).toSelf().inSingletonScope();
+
+// Bind API services
+container.bind<HttpServer>(HttpServer).toSelf().inSingletonScope();
+container.bind<MonitoringRoutes>(MonitoringRoutes).toSelf().inSingletonScope();
+container.bind<SnippetRoutes>(SnippetRoutes).toSelf().inSingletonScope();
+
+// Bind controller services
+container.bind<MonitoringController>(MonitoringController).toSelf().inSingletonScope();
+container.bind<SnippetController>(SnippetController).toSelf().inSingletonScope();
+
+// Bind MCP services
+container.bind<MCPServer>(MCPServer).toSelf().inSingletonScope();
+
+// Bind core services
+container.bind<DIContainer>(DIContainer).toSelf().inSingletonScope();
+
+// Bind database services
+container.bind<QdrantService>(QdrantService).toSelf().inSingletonScope();
 
 // Bind configuration objects
 container.bind<ChangeDetectionOptions>('ChangeDetectionOptions').toConstantValue({});

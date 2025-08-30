@@ -90,13 +90,13 @@ export class HttpServer {
         error: 'Not Found',
         message: `Cannot ${req.method} ${req.path}`
       });
+    });
     
     // Global error handler
     this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
       this.errorHandler.handleError(error, {
         component: 'HttpServer',
         operation: 'globalErrorHandler',
-        path: req.path,
         method: req.method
       });
       
