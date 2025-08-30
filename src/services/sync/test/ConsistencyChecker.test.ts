@@ -3,7 +3,7 @@ import { EntityIdManager, EntityMapping } from '../EntityIdManager';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
-import { createMockEntityMapping, createMockConsistencyIssue } from '../../../../test/setup';
+import { createMockEntityMapping, createMockConsistencyIssue } from '@test/setup';
 
 // Mock dependencies
 jest.mock('../../src/core/LoggerService');

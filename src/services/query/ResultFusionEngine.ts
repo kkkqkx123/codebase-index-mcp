@@ -167,9 +167,17 @@ export class ResultFusionEngine {
 
     // Normalize weights to sum to 1
     const total = Object.values(baseWeights).reduce((sum, weight) => sum + weight, 0);
-    return Object.fromEntries(
+    const normalizedWeights = Object.fromEntries(
       Object.entries(baseWeights).map(([key, value]) => [key, value / total])
-    ) as FusionWeights;
+    );
+    
+    return {
+      vector: normalizedWeights.vector || 0,
+      graph: normalizedWeights.graph || 0,
+      contextual: normalizedWeights.contextual || 0,
+      recency: normalizedWeights.recency || 0,
+      popularity: normalizedWeights.popularity || 0
+    };
   }
 
   private analyzeQuery(query: string): {

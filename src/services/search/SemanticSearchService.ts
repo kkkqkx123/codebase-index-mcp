@@ -2,8 +2,9 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { EmbedderFactory } from '../embedders/EmbedderFactory';
+import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { VectorStorageService } from '../storage/VectorStorageService';
+import { SearchResult } from '../../database/qdrant/QdrantClientWrapper';
 
 export interface SemanticSearchParams {
   query: string;
@@ -98,12 +99,15 @@ export class SemanticSearchService {
 
       // Perform vector search
       const searchStartTime = Date.now();
-      const vectorResults = await this.vectorStorage.search({
-        vector: queryEmbedding.vector,
-        limit: params.limit || 10,
-        threshold: params.threshold || 0.7,
-        filters: this.normalizeFilters(params.filters)
-      });
+      const vectorResults = await this.vectorStorage.searchVectors(
+          queryEmbedding.vector,
+          {
+            limit: params.limit || 10,
+            withPayload: true,
+            scoreThreshold: params.threshold || 0.7,
+            filter: params.filters ? this.normalizeFilters(params.filters) : undefined
+          }
+        );
       const searchTime = Date.now() - searchStartTime;
 
       // Rank and enhance results
@@ -139,7 +143,7 @@ export class SemanticSearchService {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Semantic search failed: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SemanticSearchService', operation: 'search', queryId }
+        { component: 'SemanticSearchService', operation: 'search' }
       );
       throw error;
     }
@@ -162,16 +166,19 @@ export class SemanticSearchService {
       const contentEmbedding = await this.generateQueryEmbedding(content);
 
       // Search for similar content
-      const vectorResults = await this.vectorStorage.search({
-        vector: contentEmbedding.vector,
-        limit: params.limit || 10,
-        threshold: params.threshold || 0.8,
-        filters: { projectId: params.projectId }
-      });
+      const vectorResults = await this.vectorStorage.searchVectors(
+        contentEmbedding.vector,
+        {
+          limit: params.limit || 10,
+          withPayload: true,
+          scoreThreshold: params.threshold || 0.8,
+          filter: { projectId: params.projectId }
+        }
+      );
 
       // Filter out excluded IDs
       const filteredResults = params.excludeIds 
-        ? vectorResults.filter(result => !params.excludeIds!.includes(result.id))
+        ? vectorResults.filter((result: SearchResult) => !params.excludeIds!.includes(result.id))
         : vectorResults;
 
       // Enhance results
@@ -183,6 +190,8 @@ export class SemanticSearchService {
       });
 
       return this.sortAndFilterResults(enhancedResults, {
+        query: content,
+        projectId: params.projectId,
         limit: params.limit,
         threshold: params.threshold
       });
@@ -271,10 +280,13 @@ export class SemanticSearchService {
     const embedder = await this.embedderFactory.getEmbedder();
     const embeddingResult = await embedder.embed({ text: query });
     
+    // Handle case where embeddingResult might be an array
+    const result = Array.isArray(embeddingResult) ? embeddingResult[0] : embeddingResult;
+    
     return {
-      vector: embeddingResult.vector,
-      dimensions: embeddingResult.dimensions,
-      model: embeddingResult.model
+      vector: result.vector,
+      dimensions: result.dimensions,
+      model: result.model
     };
   }
 

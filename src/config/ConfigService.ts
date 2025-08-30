@@ -130,6 +130,11 @@ const configSchema = Joi.object({
       'originalScore'
     ]),
     trainingEnabled: Joi.boolean().default(true)
+  }).optional(),
+  
+  caching: Joi.object({
+    defaultTTL: Joi.number().positive().default(300), // 5 minutes
+    maxSize: Joi.number().positive().default(1000)
   }).optional()
 });
 
@@ -247,6 +252,10 @@ export interface Config {
     features: string[];
     trainingEnabled: boolean;
   };
+  caching?: {
+    defaultTTL: number;
+    maxSize: number;
+  };
 }
 
 export class ConfigService {
@@ -362,6 +371,12 @@ export class ConfigService {
         }
       }
     };
+    
+    caching: process.env.CACHE_DEFAULT_TTL || process.env.CACHE_MAX_SIZE ? {
+      defaultTTL: parseInt(process.env.CACHE_DEFAULT_TTL || '300'),
+      maxSize: parseInt(process.env.CACHE_MAX_SIZE || '1000')
+    } : undefined;
+    
     mlReranking: process.env.ML_RERANKING_MODEL_PATH || process.env.ML_RERANKING_MODEL_TYPE || process.env.ML_RERANKING_FEATURES || process.env.ML_RERANKING_TRAINING_ENABLED ? {
       modelPath: process.env.ML_RERANKING_MODEL_PATH || undefined,
       modelType: (process.env.ML_RERANKING_MODEL_TYPE as 'linear' | 'neural' | 'ensemble') || 'linear',

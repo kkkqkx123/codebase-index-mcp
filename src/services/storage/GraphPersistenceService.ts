@@ -749,7 +749,7 @@ export class GraphPersistenceService {
         {
           component: 'GraphPersistenceService',
           operation: 'executeBatch',
-          queryCount: queries.length,
+          retryCount: queries.length,
           duration: 0
         }
       );

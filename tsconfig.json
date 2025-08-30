@@ -6,7 +6,11 @@
       "ES2022"
     ],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@test/setup": ["test/setup.ts"]
+    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -30,11 +34,11 @@
     "useDefineForClassFields": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "test/setup.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "test"
+    "dist"
   ]
 }
