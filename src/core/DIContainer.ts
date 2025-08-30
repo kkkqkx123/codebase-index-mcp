@@ -3,7 +3,7 @@ import { Container, ContainerModule } from 'inversify';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
-import { IndexService } from '../services/index/IndexService';
+import { IndexService } from '../services/indexing/IndexService';
 import { GraphService } from '../services/graph/GraphService';
 import { ParserService } from '../services/parser/ParserService';
 import { QdrantService } from '../database/QdrantService';

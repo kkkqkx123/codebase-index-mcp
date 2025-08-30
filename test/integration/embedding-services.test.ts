@@ -503,19 +503,19 @@ describe('Embedding Services Integration Tests', () => {
     it('should handle malformed embedding responses', async () => {
       const input: EmbeddingInput = { text: 'malformed test' };
       
-      // Mock malformed response
+      // Mock malformed response that throws an error
       const mockEmbedder: Partial<Embedder> = {
-        embed: jest.fn<(input: EmbeddingInput) => Promise<EmbeddingResult>>().mockResolvedValue({
-          vector: 'not an array' as any,
-          dimensions: 1536,
-          model: 'test',
-          processingTime: 100
-        } as EmbeddingResult)
+        embed: jest.fn<(input: EmbeddingInput) => Promise<EmbeddingResult>>().mockRejectedValue(
+          new Error('Invalid embedding response: vector must be an array')
+        ),
+        isAvailable: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+        getModelName: jest.fn<() => string>().mockReturnValue('test-model'),
+        getDimensions: jest.fn<() => number>().mockReturnValue(1536)
       };
 
       jest.spyOn(embedderFactory, 'getEmbedder').mockResolvedValue(mockEmbedder as Embedder);
 
-      await expect(embedderFactory.embed(input)).rejects.toThrow();
+      await expect(embedderFactory.embed(input)).rejects.toThrow('Invalid embedding response');
     });
   });
 });

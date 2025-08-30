@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { DIContainer, TYPES } from '../core/DIContainer';
 import { LoggerService } from '../core/LoggerService';
-import { IndexService } from '../services/index/IndexService';
+import { IndexService } from '../services/indexing/IndexService';
 import { GraphService } from '../services/graph/GraphService';
 
 export class MCPServer {

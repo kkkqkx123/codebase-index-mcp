@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
 import { ConfigService } from './config/ConfigService';
+import { ConfigFactory } from './config/ConfigFactory';
 import { LoggerService } from './core/LoggerService';
 import { ErrorHandlerService } from './core/ErrorHandlerService';
 import { HashUtils } from './utils/HashUtils';
@@ -10,24 +11,42 @@ import { VectorStorageService } from './services/storage/VectorStorageService';
 import { GraphPersistenceService } from './services/storage/GraphPersistenceService';
 import { ParserService } from './services/parser/ParserService';
 import { TransactionCoordinator } from './services/sync/TransactionCoordinator';
-import { IndexService } from './services/index/IndexService';
+import { IndexService } from './services/indexing/IndexService';
 import { EventQueueService } from './services/EventQueueService';
 import { NebulaConnectionManager } from './database/nebula/NebulaConnectionManager';
 import { QdrantClientWrapper } from './database/qdrant/QdrantClientWrapper';
 
-// Batch processing services
-import { BatchProcessingMetrics } from './services/monitoring/BatchProcessingMetrics';
+// New refactored services
+import { IndexCoordinator } from './services/indexing/IndexCoordinator';
+import { StorageCoordinator } from './services/storage/StorageCoordinator';
+import { BatchProcessor } from './services/processing/BatchProcessor';
+import { MemoryManager } from './services/processing/MemoryManager';
+import { SearchCoordinator } from './services/search/SearchCoordinator';
+import { PerformanceMonitor } from './services/monitoring/PerformanceMonitor';
+import { HealthChecker } from './services/monitoring/HealthChecker';
+import { ConfigManager } from './services/infrastructure/ConfigManager';
+import { AsyncPipeline } from './services/infrastructure/AsyncPipeline';
+import { ObjectPool } from './services/infrastructure/ObjectPool';
+
+// Existing services that remain
+import { SemanticSearchService } from './services/search/SemanticSearchService';
+import { HybridSearchService } from './services/search/HybridSearchService';
+import { RerankingService } from './services/reranking/RerankingService';
+
+// Existing batch processing services
 import { ConcurrentProcessingService } from './services/processing/ConcurrentProcessingService';
 import { MemoryOptimizationService } from './services/optimization/MemoryOptimizationService';
 import { BatchPerformanceMonitor } from './services/monitoring/BatchPerformanceMonitor';
 import { BatchSizeConfigManager } from './services/configuration/BatchSizeConfigManager';
 import { BatchErrorRecoveryService } from './services/recovery/BatchErrorRecoveryService';
+import { BatchProcessingMetrics } from './services/monitoring/BatchProcessingMetrics';
 
 // Create a new container
 const container = new Container();
 
 // Bind core services
 container.bind<ConfigService>(ConfigService).toSelf().inSingletonScope();
+container.bind<ConfigFactory>(ConfigFactory).toSelf().inSingletonScope();
 container.bind<LoggerService>(LoggerService).toSelf().inSingletonScope();
 container.bind<ErrorHandlerService>(ErrorHandlerService).toSelf().inSingletonScope();
 
@@ -47,6 +66,22 @@ container.bind<ParserService>(ParserService).toSelf().inSingletonScope();
 container.bind<TransactionCoordinator>(TransactionCoordinator).toSelf().inSingletonScope();
 container.bind<IndexService>(IndexService).toSelf().inSingletonScope();
 container.bind<EventQueueService>(EventQueueService).toSelf().inSingletonScope();
+
+// Bind new refactored services
+container.bind<IndexCoordinator>(IndexCoordinator).toSelf().inSingletonScope();
+container.bind<StorageCoordinator>(StorageCoordinator).toSelf().inSingletonScope();
+container.bind<BatchProcessor>(BatchProcessor).toSelf().inSingletonScope();
+container.bind<MemoryManager>(MemoryManager).toSelf().inSingletonScope();
+container.bind<SearchCoordinator>(SearchCoordinator).toSelf().inSingletonScope();
+container.bind<PerformanceMonitor>(PerformanceMonitor).toSelf().inSingletonScope();
+container.bind<HealthChecker>(HealthChecker).toSelf().inSingletonScope();
+container.bind<ConfigManager>(ConfigManager).toSelf().inSingletonScope();
+container.bind<AsyncPipeline>(AsyncPipeline).toSelf().inSingletonScope();
+
+// Bind remaining search services
+container.bind<SemanticSearchService>(SemanticSearchService).toSelf().inSingletonScope();
+container.bind<HybridSearchService>(HybridSearchService).toSelf().inSingletonScope();
+container.bind<RerankingService>(RerankingService).toSelf().inSingletonScope();
 
 // Bind batch processing services
 container.bind<BatchProcessingMetrics>(BatchProcessingMetrics).toSelf().inSingletonScope();

@@ -1482,4 +1482,39 @@ export class GraphPersistenceService {
       totalQueriesExecuted: this.performanceMetrics.queryExecutionTimes.length
     };
   }
+
+  async search(query: string, options: any = {}): Promise<any[]> {
+    try {
+      // This is a placeholder implementation for graph search
+      // In a real implementation, this would execute graph queries based on the search terms
+      
+      const limit = options.limit || 10;
+      const queryType = options.type || 'semantic'; // 'semantic', 'relationship', 'path'
+      
+      // For now, return empty results as this is a placeholder
+      // In a real implementation, this would:
+      // 1. Parse the query to understand search intent
+      // 2. Execute appropriate graph queries (e.g., find nodes, relationships, paths)
+      // 3. Return structured results with graph metadata
+      
+      this.logger.info('Graph search executed', {
+        query,
+        queryType,
+        limit,
+        options
+      });
+      
+      return [];
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('Failed to search graph', {
+        query,
+        options,
+        error: errorMessage
+      });
+      
+      throw new Error(`Failed to search graph: ${errorMessage}`);
+    }
+  }
 }

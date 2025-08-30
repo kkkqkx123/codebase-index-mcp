@@ -825,4 +825,37 @@ export class VectorStorageService {
 
     return result;
   }
+
+  async search(query: string, options: any = {}): Promise<any[]> {
+    try {
+      // Generate embedding for the query
+      const queryVector = await this.generateEmbedding(query);
+      
+      // Use the existing searchVectors method
+      const searchOptions: SearchOptions = {
+        limit: options.limit || 10,
+        scoreThreshold: options.threshold || 0.5,
+        ...options
+      };
+      
+      const results = await this.searchVectors(queryVector, searchOptions);
+      
+      // Transform results to match expected format
+      return results.map(result => ({
+        id: result.id,
+        score: result.score,
+        payload: result.payload
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('Failed to search vectors', {
+        query,
+        options,
+        error: errorMessage
+      });
+      
+      throw new Error(`Failed to search vectors: ${errorMessage}`);
+    }
+  }
 }

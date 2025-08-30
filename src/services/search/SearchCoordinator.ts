@@ -1,0 +1,322 @@
+import { injectable, inject } from 'inversify';
+import { SemanticSearchService } from '../search/SemanticSearchService';
+import { HybridSearchService } from '../search/HybridSearchService';
+import { RerankingService } from '../reranking/RerankingService';
+import { StorageCoordinator } from '../storage/StorageCoordinator';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { ConfigService } from '../../config/ConfigService';
+import { ConfigFactory } from '../../config/ConfigFactory';
+import { SearchConfig } from '../../config/ConfigTypes';
+
+export interface SearchQuery {
+  text: string;
+  filters?: SearchFilters;
+  options?: SearchOptions;
+}
+
+export interface SearchFilters {
+  projectId?: string;
+  language?: string[];
+  fileType?: string[];
+  path?: string[];
+  chunkType?: string[];
+  dateRange?: {
+    start?: Date;
+    end?: Date;
+  };
+}
+
+export interface SearchOptions {
+  limit?: number;
+  threshold?: number;
+  includeGraph?: boolean;
+  useHybrid?: boolean;
+  useReranking?: boolean;
+  weights?: {
+    semantic?: number;
+    keyword?: number;
+    graph?: number;
+  };
+}
+
+export interface SearchResult {
+  id: string;
+  score: number;
+  finalScore: number;
+  filePath: string;
+  content: string;
+  startLine: number;
+  endLine: number;
+  language: string;
+  chunkType: string;
+  metadata: Record<string, any>;
+  rankingFeatures?: {
+    semanticScore?: number;
+    keywordScore?: number;
+    graphScore?: number;
+  };
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  totalResults: number;
+  queryTime: number;
+  searchStrategy: string;
+  filters: SearchFilters;
+  options: SearchOptions;
+}
+
+@injectable()
+export class SearchCoordinator {
+  private logger: LoggerService;
+  private errorHandler: ErrorHandlerService;
+  private configService: ConfigService;
+  private configFactory: ConfigFactory;
+  private semanticSearch: SemanticSearchService;
+  private hybridSearch: HybridSearchService;
+  private rerankingService: RerankingService;
+  private storageCoordinator: StorageCoordinator;
+
+  constructor(
+    @inject(LoggerService) logger: LoggerService,
+    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(ConfigService) configService: ConfigService,
+    @inject(ConfigFactory) configFactory: ConfigFactory,
+    @inject(SemanticSearchService) semanticSearch: SemanticSearchService,
+    @inject(HybridSearchService) hybridSearch: HybridSearchService,
+    @inject(RerankingService) rerankingService: RerankingService,
+    @inject(StorageCoordinator) storageCoordinator: StorageCoordinator
+  ) {
+    this.logger = logger;
+    this.errorHandler = errorHandler;
+    this.configService = configService;
+    this.configFactory = configFactory;
+    this.semanticSearch = semanticSearch;
+    this.hybridSearch = hybridSearch;
+    this.rerankingService = rerankingService;
+    this.storageCoordinator = storageCoordinator;
+  }
+
+  async search(query: SearchQuery): Promise<SearchResponse> {
+    const startTime = Date.now();
+    
+    this.logger.info('Starting search', {
+      query: query.text,
+      filters: query.filters,
+      options: query.options
+    });
+
+    try {
+      const options = this.normalizeSearchOptions(query.options);
+      let results: SearchResult[] = [];
+      let searchStrategy = 'semantic';
+
+      // Choose search strategy based on options
+      if (options.useHybrid) {
+        searchStrategy = 'hybrid';
+        const searchResponse = await this.performHybridSearch(query.text, options);
+        results = searchResponse.results;
+      } else {
+        searchStrategy = 'semantic';
+        const searchResponse = await this.performSemanticSearch(query.text, options);
+        results = searchResponse.results;
+      }
+
+      // Apply reranking if enabled
+      if (options.useReranking && results.length > 0) {
+        results = await this.applyReranking(results, query.text);
+        searchStrategy += '+reranking';
+      }
+
+      // Apply final filtering and sorting
+      results = this.postProcessResults(results, options);
+
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.info('Search completed', {
+        query: query.text,
+        resultsCount: results.length,
+        queryTime,
+        searchStrategy
+      });
+
+      return {
+        results,
+        totalResults: results.length,
+        queryTime,
+        searchStrategy,
+        filters: query.filters || {},
+        options
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.error('Search failed', {
+        query: query.text,
+        error: errorMessage,
+        queryTime
+      });
+
+      throw new Error(`Search failed: ${errorMessage}`);
+    }
+  }
+
+  async performSemanticSearch(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
+    const searchQuery: SearchQuery = {
+      text: query,
+      options: {
+        ...options,
+        useHybrid: false,
+        useReranking: false
+      }
+    };
+
+    return this.search(searchQuery);
+  }
+
+  async performHybridSearch(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
+    const searchQuery: SearchQuery = {
+      text: query,
+      options: {
+        ...options,
+        useHybrid: true,
+        useReranking: false
+      }
+    };
+
+    return this.search(searchQuery);
+  }
+
+  async graphSearch(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
+    const startTime = Date.now();
+    
+    this.logger.info('Starting graph search', { query, options });
+
+    try {
+      // Use storage coordinator to search graph
+      const graphResults = await this.storageCoordinator.searchGraph(query, options);
+      
+      // Convert graph results to SearchResult format
+      const results: SearchResult[] = graphResults.map((result: any) => ({
+        id: result.id || `graph_${Date.now()}_${Math.random()}`,
+        score: result.score || 0.5,
+        finalScore: result.score || 0.5,
+        filePath: result.filePath || '',
+        content: result.content || '',
+        startLine: result.startLine || 0,
+        endLine: result.endLine || 0,
+        language: result.language || 'unknown',
+        chunkType: result.chunkType || 'unknown',
+        metadata: result.metadata || {},
+        rankingFeatures: {
+          graphScore: result.score || 0.5
+        }
+      }));
+
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.info('Graph search completed', {
+        query,
+        resultsCount: results.length,
+        queryTime
+      });
+
+      return {
+        results,
+        totalResults: results.length,
+        queryTime,
+        searchStrategy: 'graph',
+        filters: {},
+        options
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.error('Graph search failed', {
+        query,
+        error: errorMessage,
+        queryTime
+      });
+
+      throw new Error(`Graph search failed: ${errorMessage}`);
+    }
+  }
+
+  
+  private async applyReranking(results: SearchResult[], query: string): Promise<SearchResult[]> {
+    try {
+      // Prepare results for reranking
+      const rerankInput = results.map(result => ({
+        id: result.id,
+        score: result.score,
+        filePath: result.filePath,
+        content: result.content,
+        startLine: result.startLine,
+        endLine: result.endLine,
+        language: result.language,
+        chunkType: result.chunkType,
+        metadata: result.metadata
+      }));
+
+      // Apply reranking
+      const rerankedResults = await this.rerankingService.rerank(rerankInput, query);
+
+      // Merge reranking results back
+      return results.map(result => {
+        const reranked = rerankedResults.find(r => r.id === result.id);
+        if (reranked) {
+          return {
+            ...result,
+            finalScore: reranked.score,
+            rankingFeatures: {
+              ...result.rankingFeatures,
+              rerankingScore: reranked.score
+            }
+          };
+        }
+        return result;
+      });
+    } catch (error) {
+      this.logger.error('Reranking failed', { query, error: error instanceof Error ? error.message : String(error) });
+      // Return original results if reranking fails
+      return results;
+    }
+  }
+
+  private postProcessResults(results: SearchResult[], options: SearchOptions): SearchResult[] {
+    // Apply threshold
+    if (options.threshold) {
+      results = results.filter(r => r.finalScore >= options.threshold!);
+    }
+
+    // Sort by final score
+    results.sort((a, b) => b.finalScore - a.finalScore);
+
+    // Apply limit
+    if (options.limit) {
+      results = results.slice(0, options.limit);
+    }
+
+    return results;
+  }
+
+  private normalizeSearchOptions(options: SearchOptions = {}): SearchOptions {
+    const config = this.configFactory.getConfig<SearchConfig>('services.search');
+    
+    return {
+      limit: options.limit || config.defaultLimit || 10,
+      threshold: options.threshold || config.defaultThreshold || 0.5,
+      includeGraph: options.includeGraph ?? config.includeGraph ?? false,
+      useHybrid: options.useHybrid ?? config.useHybrid ?? false,
+      useReranking: options.useReranking ?? config.useReranking ?? true,
+      weights: {
+        semantic: options.weights?.semantic ?? config.weights?.semantic ?? 0.6,
+        keyword: options.weights?.keyword ?? config.weights?.keyword ?? 0.3,
+        graph: options.weights?.graph ?? config.weights?.graph ?? 0.1
+      }
+    };
+  }
+}

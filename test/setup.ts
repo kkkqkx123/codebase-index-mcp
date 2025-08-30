@@ -13,6 +13,7 @@ import { Custom2Embedder } from '../src/embedders/Custom2Embedder';
 import { Custom3Embedder } from '../src/embedders/Custom3Embedder';
 import { EmbedderFactory } from '../src/embedders/EmbedderFactory';
 import { DimensionAdapterService } from '../src/embedders/DimensionAdapterService';
+import { BaseEmbedder, EmbeddingInput, EmbeddingResult } from '../src/embedders/BaseEmbedder';
 
 // Set up test environment
 beforeAll(() => {
@@ -113,33 +114,41 @@ export const createTestContainer = () => {
   container.bind<ConfigService>(ConfigService).toConstantValue(mockConfig as any);
   
   // Create mock embedders
-  const createMockEmbedder = (name: string, available: boolean = true) => ({
-    embed: jest.fn().mockImplementation((input: any) => {
-      // If the embedder is not available, throw an error
-      if (!available) {
-        throw new Error(`${name} embedder is not available`);
+  
+  // Create simple mock embedder objects that properly implement the Embedder interface
+  const createMockEmbedder = (name: string) => {
+    const embedder = {
+      async embed(input: any) {
+        if (Array.isArray(input)) {
+          return input.map((_, index) => ({
+            vector: [0.1, 0.2, 0.3],
+            dimensions: 1536,
+            model: `${name}-test-model`,
+            processingTime: 10 + index
+          }));
+        } else {
+          return {
+            vector: [0.1, 0.2, 0.3],
+            dimensions: 1536,
+            model: `${name}-test-model`,
+            processingTime: 10
+          };
+        }
+      },
+      async isAvailable() {
+        return true;
+      },
+      getModelName() {
+        return `${name}-test-model`;
+      },
+      getDimensions() {
+        return 1536;
       }
-      
-      if (Array.isArray(input)) {
-        return input.map((_, index) => ({
-          vector: [0.1, 0.2, 0.3],
-          dimensions: 1536,
-          model: `${name}-test-model`,
-          processingTime: 10 + index
-        }));
-      } else {
-        return {
-          vector: [0.1, 0.2, 0.3],
-          dimensions: 1536,
-          model: `${name}-test-model`,
-          processingTime: 10
-        };
-      }
-    }),
-    isAvailable: jest.fn().mockResolvedValue(available),
-    getModelName: jest.fn().mockReturnValue(`${name}-test-model`),
-    getDimensions: jest.fn().mockReturnValue(1536)
-  });
+    };
+    
+    // Explicitly cast to Embedder interface
+    return embedder as any;
+  };
   
   // Bind mock embedders
   container.bind<OpenAIEmbedder>(OpenAIEmbedder).toConstantValue(createMockEmbedder('openai') as any);
