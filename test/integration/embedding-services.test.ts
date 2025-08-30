@@ -1,5 +1,5 @@
 import { EmbedderFactory } from '../../src/embedders/EmbedderFactory';
-import { BaseEmbedder, EmbeddingInput, EmbeddingResult } from '../../src/embedders/BaseEmbedder';
+import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from '../../src/embedders/BaseEmbedder';
 import { OpenAIEmbedder } from '../../src/embedders/OpenAIEmbedder';
 import { OllamaEmbedder } from '../../src/embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../../src/embedders/GeminiEmbedder';
@@ -77,13 +77,13 @@ describe('Embedding Services Integration Tests', () => {
     });
 
     it('should get provider information', async () => {
-      const mockEmbedder = {
-        isAvailable: jest.fn().mockResolvedValue(true),
-        getModelName: jest.fn().mockReturnValue('test-model'),
-        getDimensions: jest.fn().mockReturnValue(1536)
+      const mockEmbedder: Partial<Embedder> = {
+        isAvailable: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+        getModelName: jest.fn<() => string>().mockReturnValue('test-model'),
+        getDimensions: jest.fn<() => number>().mockReturnValue(1536)
       };
 
-      jest.spyOn(embedderFactory, 'getEmbedder').mockResolvedValue(mockEmbedder as any);
+      jest.spyOn(embedderFactory, 'getEmbedder').mockResolvedValue(mockEmbedder as Embedder);
 
       const providerInfo = await embedderFactory.getProviderInfo('openai');
       
@@ -456,16 +456,16 @@ describe('Embedding Services Integration Tests', () => {
       const input: EmbeddingInput = { text: 'malformed test' };
       
       // Mock malformed response
-      const mockEmbedder = {
-        embed: jest.fn().mockResolvedValue({
-          vector: 'not an array',
+      const mockEmbedder: Partial<Embedder> = {
+        embed: jest.fn<(input: EmbeddingInput) => Promise<EmbeddingResult>>().mockResolvedValue({
+          vector: 'not an array' as any,
           dimensions: 1536,
           model: 'test',
           processingTime: 100
-        })
+        } as EmbeddingResult)
       };
 
-      jest.spyOn(embedderFactory, 'getEmbedder').mockResolvedValue(mockEmbedder as any);
+      jest.spyOn(embedderFactory, 'getEmbedder').mockResolvedValue(mockEmbedder as Embedder);
 
       await expect(embedderFactory.embed(input)).rejects.toThrow();
     });
