@@ -283,8 +283,8 @@ export function test() {
 
     it('should parse multiple files efficiently', async () => {
       // Create multiple test files
-      const files = [];
-      const fileContents = [];
+      const files: string[] = [];
+      const fileContents: string[] = [];
       
       for (let i = 0; i < 10; i++) {
         const filePath = path.join(testDir, `test${i}.ts`);
@@ -663,7 +663,7 @@ export function function${i}(): number {
 
     it('should handle concurrent parsing', async () => {
       // Create multiple files
-      const files = [];
+      const files: string[] = [];
       const fileCount = 20;
       
       for (let i = 0; i < fileCount; i++) {

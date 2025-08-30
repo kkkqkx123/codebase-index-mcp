@@ -492,7 +492,7 @@ describe('File System and Parser Integration Tests', () => {
     it('should handle large directories efficiently', async () => {
       // Create many test files
       const fileCount = 100;
-      const filePromises = [];
+      const filePromises: Promise<void>[] = [];
       
       for (let i = 0; i < fileCount; i++) {
         const filePath = path.join(testDir, `test${i}.ts`);
@@ -544,7 +544,7 @@ describe('File System and Parser Integration Tests', () => {
       
       // Perform concurrent file operations
       const operationCount = 50;
-      const operations = [];
+      const operations: Promise<void>[] = [];
       
       for (let i = 0; i < operationCount; i++) {
         operations.push(
