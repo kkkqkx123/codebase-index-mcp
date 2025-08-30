@@ -7,6 +7,7 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
 import { HashUtils } from '../../utils/HashUtils';
+import { SearchCoordinator } from '../search/SearchCoordinator';
 
 // Mock the dependencies
 jest.mock('../../core/LoggerService');
@@ -15,6 +16,7 @@ jest.mock('./IndexCoordinator');
 jest.mock('../../config/ConfigService');
 jest.mock('../monitoring/BatchProcessingMetrics');
 jest.mock('../../utils/HashUtils');
+jest.mock('../search/SearchCoordinator');
 
 describe('IndexService', () => {
   let indexService: IndexService;
@@ -23,6 +25,7 @@ describe('IndexService', () => {
   let mockIndexCoordinator: jest.Mocked<IndexCoordinator>;
   let mockConfigService: jest.Mocked<ConfigService>;
   let mockBatchMetrics: jest.Mocked<BatchProcessingMetrics>;
+  let mockSearchCoordinator: jest.Mocked<SearchCoordinator>;
 
   beforeEach(() => {
     // Reset mocks
@@ -62,7 +65,12 @@ describe('IndexService', () => {
       createIndex: jest.fn(),
       updateIndex: jest.fn(),
       deleteIndex: jest.fn(),
+      getIndexStatus: jest.fn(),
     } as unknown as jest.Mocked<IndexCoordinator>;
+    
+    mockSearchCoordinator = {
+      search: jest.fn(),
+    } as unknown as jest.Mocked<SearchCoordinator>;
 
     // Mock HashUtils
     (HashUtils.calculateDirectoryHash as jest.Mock) = jest.fn().mockResolvedValue({
@@ -78,7 +86,8 @@ describe('IndexService', () => {
       mockErrorHandler,
       mockConfigService,
       mockIndexCoordinator,
-      mockBatchMetrics
+      mockBatchMetrics,
+      mockSearchCoordinator
     );
   });
 
@@ -107,6 +116,32 @@ describe('IndexService', () => {
 
   describe('search', () => {
     it('should return search results', async () => {
+      // Mock the SearchCoordinator response
+      mockSearchCoordinator.search.mockResolvedValue({
+        results: [
+          {
+            id: 'result_1',
+            score: 0.95,
+            finalScore: 0.95,
+            filePath: '/src/components/Button.tsx',
+            content: 'export function Button({ onClick, children }: ButtonProps) {',
+            startLine: 15,
+            endLine: 25,
+            language: 'typescript',
+            chunkType: 'function',
+            metadata: { functionName: 'Button', component: true },
+            rankingFeatures: {
+              semanticScore: 0.95
+            }
+          }
+        ],
+        totalResults: 1,
+        queryTime: 100,
+        searchStrategy: 'semantic',
+        filters: {},
+        options: {}
+      });
+
       // Act
       const query = 'test query';
       const options = { limit: 10 };
@@ -120,6 +155,30 @@ describe('IndexService', () => {
       expect(results[0]).toHaveProperty('id');
       expect(results[0]).toHaveProperty('score');
       expect(results[0]).toHaveProperty('filePath');
+    });
+  });
+
+  describe('getStatus', () => {
+    it('should return index status', async () => {
+      // Mock the IndexCoordinator response
+      mockIndexCoordinator.getIndexStatus.mockResolvedValue({
+        lastIndexed: new Date(),
+        fileCount: 150,
+        chunkCount: 450,
+        status: 'completed'
+      });
+
+      // Act
+      const projectPath = '/test/project';
+      const status = await indexService.getStatus(projectPath);
+      
+      // Assert
+      expect(status).toHaveProperty('projectId');
+      expect(status).toHaveProperty('isIndexing');
+      expect(status).toHaveProperty('lastIndexed');
+      expect(status).toHaveProperty('fileCount');
+      expect(status).toHaveProperty('chunkCount');
+      expect(status).toHaveProperty('status');
     });
   });
 });

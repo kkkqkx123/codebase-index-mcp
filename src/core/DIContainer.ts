@@ -39,6 +39,7 @@ import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAn
 
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
+import { SnippetController } from '../controllers/SnippetController';
 
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
@@ -49,7 +50,7 @@ export const TYPES = {
   ParserService: Symbol.for('ParserService'),
   QdrantService: Symbol.for('QdrantService'),
   Neo4jService: Symbol.for('Neo4jService'),
-  NebulaService: Symbol.for('NebulaService'),
+ NebulaService: Symbol.for('NebulaService'),
   NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
@@ -68,7 +69,7 @@ export const TYPES = {
   GraphPersistenceService: Symbol.for('GraphPersistenceService'),
   EntityIdManager: Symbol.for('EntityIdManager'),
   EntityMappingService: Symbol.for('EntityMappingService'),
-  TransactionCoordinator: Symbol.for('TransactionCoordinator'),
+ TransactionCoordinator: Symbol.for('TransactionCoordinator'),
   ConsistencyChecker: Symbol.for('ConsistencyChecker'),
   EventQueueService: Symbol.for('EventQueueService'),
 
@@ -79,6 +80,7 @@ export const TYPES = {
 
   // Controllers
   MonitoringController: Symbol.for('MonitoringController'),
+  SnippetController: Symbol.for('SnippetController'),
   GraphDatabaseErrorHandler: Symbol.for('GraphDatabaseErrorHandler'),
   ErrorClassifier: Symbol.for('ErrorClassifier'),
   NebulaQueryBuilder: Symbol.for('NebulaQueryBuilder')
@@ -93,7 +95,7 @@ const coreModule = new ContainerModule((bind: any) => {
 });
 
 const databaseModule = new ContainerModule((bind: any) => {
-  bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
+ bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
   bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
@@ -109,7 +111,7 @@ const embedderModule = new ContainerModule((bind: any) => {
 });
 
 const serviceModule = new ContainerModule((bind: any) => {
-  bind(TYPES.IndexService).to(IndexService).inSingletonScope();
+ bind(TYPES.IndexService).to(IndexService).inSingletonScope();
   bind(TYPES.GraphService).to(GraphService).inSingletonScope();
   bind(TYPES.ParserService).to(ParserService).inSingletonScope();
   bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
@@ -141,6 +143,7 @@ const monitoringModule = new ContainerModule((bind: any) => {
 
 const controllerModule = new ContainerModule((bind: any) => {
   bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
+  bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
 });
 
 export class DIContainer {

@@ -16,8 +16,8 @@ export interface ParsedFile {
 export interface Chunk {
   id: string;
   content: string;
-  filePath: string;
-  startLine: number;
+ filePath: string;
+ startLine: number;
   endLine: number;
   language: string;
   chunkType: string;
@@ -374,6 +374,59 @@ export class StorageCoordinator {
       });
       throw error;
     }
+  }
+
+  // Add snippet statistics method
+  async getSnippetStatistics(projectId: string): Promise<{
+    totalSnippets: number;
+    processedSnippets: number;
+    duplicateSnippets: number;
+    processingRate: number;
+  }> {
+    // In a real implementation, this would query the storage for snippet statistics
+    // For now, we'll return mock data
+    return {
+      totalSnippets: 150,
+      processedSnippets: 142,
+      duplicateSnippets: 8,
+      processingRate: 45.2
+    };
+  }
+
+  // Add method to find snippet by hash
+  async findSnippetByHash(contentHash: string, projectId: string): Promise<any> {
+    // In a real implementation, this would query the storage for a snippet with the given hash
+    // For now, we'll return mock data
+    return null;
+  }
+
+  // Add method to find snippet references
+  async findSnippetReferences(snippetId: string, projectId: string): Promise<string[]> {
+    // In a real implementation, this would query the storage for references to the given snippet
+    // For now, we'll return mock data
+    return [`ref_${snippetId}_1`, `ref_${snippetId}_2`];
+  }
+
+  // Add method to analyze snippet dependencies
+  async analyzeSnippetDependencies(snippetId: string, projectId: string): Promise<{
+    dependsOn: string[];
+    usedBy: string[];
+    complexity: number;
+  }> {
+    // In a real implementation, this would analyze code dependencies
+    // For now, we'll return mock data
+    return {
+      dependsOn: [`dep_${snippetId}_1`, `dep_${snippetId}_2`],
+      usedBy: [`user_${snippetId}_1`],
+      complexity: Math.floor(Math.random() * 10) + 1
+    };
+  }
+
+  // Add method to find snippet overlaps
+  async findSnippetOverlaps(snippetId: string, projectId: string): Promise<string[]> {
+    // In a real implementation, this would detect overlapping code segments
+    // For now, we'll return mock data
+    return [`overlap_${snippetId}_1`];
   }
 
   private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {

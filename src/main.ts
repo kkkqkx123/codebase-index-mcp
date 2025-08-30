@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { DIContainer, TYPES } from './core/DIContainer'; // 添加 TYPES 导入
 import { MCPServer } from './mcp/MCPServer';
+import { HttpServer } from './api/HttpServer';
 import { ConfigService } from './config/ConfigService';
 import { LoggerService } from './core/LoggerService';
 import { ErrorHandlerService } from './core/ErrorHandlerService';
@@ -12,11 +13,15 @@ async function main(): Promise<void> {
     const logger = container.get<LoggerService>(TYPES.LoggerService); // 改为直接使用 TYPES
     const errorHandler = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService); // 改为直接使用 TYPES
 
-    logger.info('Starting Codebase Index MCP Service', {
+    logger.info('Starting Codebase Index Service', {
       version: '1.0.0',
       environment: config.get('nodeEnv'),
       port: config.get('port')
     });
+
+    // Start HTTP server
+    const httpServer = new HttpServer();
+    await httpServer.start();
 
     const server = new MCPServer();
 
@@ -50,15 +55,15 @@ async function main(): Promise<void> {
     });
 
     await server.start();
-    logger.info('Codebase Index MCP Service started successfully');
+    logger.info('Codebase Index Service started successfully');
 
   } catch (error) {
-    console.error('Failed to start Codebase Index MCP Service:', error);
+    console.error('Failed to start Codebase Index Service:', error);
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.error('Fatal error:', error);
+ console.error('Fatal error:', error);
   process.exit(1);
 });

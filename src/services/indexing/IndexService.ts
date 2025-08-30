@@ -5,6 +5,7 @@ import { IndexCoordinator } from './IndexCoordinator';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
 import { HashUtils } from '../../utils/HashUtils';
+import { SearchCoordinator, SearchQuery } from '../search/SearchCoordinator';
 
 export interface IndexOptions {
   recursive?: boolean;
@@ -27,24 +28,33 @@ export interface IndexResult {
 export interface SearchOptions {
   limit?: number;
   threshold?: number;
-  includeGraph?: boolean;
+ includeGraph?: boolean;
   filters?: {
     language?: string[];
     fileType?: string[];
     path?: string[];
+    chunkType?: string[];
+    snippetType?: string[];
   };
+  searchType?: 'semantic' | 'keyword' | 'hybrid' | 'snippet';
 }
 
 export interface SearchResult {
   id: string;
   score: number;
-  filePath: string;
-  content: string;
+  finalScore: number;
+ filePath: string;
+ content: string;
   startLine: number;
   endLine: number;
   language: string;
   chunkType: string;
   metadata: Record<string, any>;
+  rankingFeatures?: {
+    semanticScore?: number;
+    keywordScore?: number;
+    graphScore?: number;
+  };
 }
 
 export interface IndexStatus {
@@ -63,6 +73,7 @@ export class IndexService {
   private configService: ConfigService;
   private indexCoordinator: IndexCoordinator;
   private batchMetrics: BatchProcessingMetrics;
+  private searchCoordinator: SearchCoordinator;
   
   private currentIndexing: Map<string, boolean> = new Map();
   private activeBatchOperations: Map<string, BatchOperationMetrics> = new Map();
@@ -72,13 +83,15 @@ export class IndexService {
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService,
     @inject(IndexCoordinator) indexCoordinator: IndexCoordinator,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics
+    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(SearchCoordinator) searchCoordinator: SearchCoordinator
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.configService = configService;
     this.indexCoordinator = indexCoordinator;
     this.batchMetrics = batchMetrics;
+    this.searchCoordinator = searchCoordinator;
   }
 
   async createIndex(projectPath: string, options: IndexOptions = {}): Promise<IndexResult> {
@@ -157,36 +170,25 @@ export class IndexService {
     this.logger.info('Performing search', { query, options });
 
     try {
-      // Simulate search process - in real implementation, this would delegate to search services
-      await this.simulateSearch(query, options);
+      // Check if this is a snippet search
+      if (options.searchType === 'snippet') {
+        return await this.searchSnippets(query, options);
+      }
 
-      // Mock search results
-      const mockResults: SearchResult[] = [
-        {
-          id: 'result_1',
-          score: 0.95,
-          filePath: '/src/components/Button.tsx',
-          content: 'export function Button({ onClick, children }: ButtonProps) {',
-          startLine: 15,
-          endLine: 25,
-          language: 'typescript',
-          chunkType: 'function',
-          metadata: { functionName: 'Button', component: true }
-        },
-        {
-          id: 'result_2',
-          score: 0.87,
-          filePath: '/src/hooks/useAuth.ts',
-          content: 'export function useAuth() {',
-          startLine: 8,
-          endLine: 20,
-          language: 'typescript',
-          chunkType: 'function',
-          metadata: { functionName: 'useAuth', hook: true }
+      // Delegate to SearchCoordinator for semantic search
+      const searchQuery: SearchQuery = {
+        text: query,
+        options: {
+          limit: options.limit,
+          threshold: options.threshold,
+          includeGraph: options.includeGraph,
+          useHybrid: false,
+          useReranking: true
         }
-      ];
+      };
 
-      return mockResults.slice(0, options.limit || 10);
+      const searchResponse = await this.searchCoordinator.search(searchQuery);
+      return searchResponse.results;
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Search failed: ${error instanceof Error ? error.message : String(error)}`),
@@ -196,18 +198,48 @@ export class IndexService {
     }
   }
 
+  private async searchSnippets(query: string, options: SearchOptions): Promise<SearchResult[]> {
+    this.logger.info('Performing snippet search', { query, options });
+
+    try {
+      // Delegate to SearchCoordinator for snippet search
+      const searchQuery: SearchQuery = {
+        text: query,
+        filters: options.filters,
+        options: {
+          limit: options.limit,
+          threshold: options.threshold,
+          useHybrid: false,
+          useReranking: true
+        }
+      };
+
+      const searchResponse = await this.searchCoordinator.search(searchQuery);
+      return searchResponse.results;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Snippet search failed: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'IndexService', operation: 'searchSnippets' }
+      );
+      throw error;
+    }
+  }
+
   async getStatus(projectPath: string): Promise<IndexStatus> {
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
+    
+    // Get actual status from IndexCoordinator
+    const indexStatus = await this.indexCoordinator.getIndexStatus(projectId.hash);
     
     return {
       projectId: projectId.hash,
       isIndexing: this.currentIndexing.get(projectId.hash) || false,
-      lastIndexed: new Date(), // Mock data
-      fileCount: 150,
-      chunkCount: 450,
-      status: 'completed'
+      lastIndexed: indexStatus.lastIndexed,
+      fileCount: indexStatus.fileCount,
+      chunkCount: indexStatus.chunkCount,
+      status: indexStatus.status
     };
-  }
+ }
 
   async updateIndex(projectPath: string, changedFiles: string[]): Promise<IndexResult> {
     const startTime = Date.now();
@@ -326,10 +358,5 @@ export class IndexService {
     return Array.from(this.currentIndexing.entries())
       .filter(([_, isActive]) => isActive)
       .map(([projectId, _]) => projectId);
-  }
-
-  private async simulateSearch(query: string, options: SearchOptions): Promise<void> {
-    // Simulate search time
-    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
   }
 }

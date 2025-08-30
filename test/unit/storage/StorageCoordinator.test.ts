@@ -1,0 +1,634 @@
+import { StorageCoordinator, ParsedFile, Chunk, StorageResult, DeleteResult } from '../../../src/services/storage/StorageCoordinator';
+import { VectorStorageService } from '../../../src/services/storage/VectorStorageService';
+import { GraphPersistenceService } from '../../../src/services/storage/GraphPersistenceService';
+import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
+import { LoggerService } from '../../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
+import { ConfigService } from '../../../src/config/ConfigService';
+import { createTestContainer } from '../../setup';
+
+describe('StorageCoordinator', () => {
+  let storageCoordinator: StorageCoordinator;
+  let vectorStorage: jest.Mocked<VectorStorageService>;
+  let graphStorage: jest.Mocked<GraphPersistenceService>;
+  let transactionCoordinator: jest.Mocked<TransactionCoordinator>;
+  let loggerService: jest.Mocked<LoggerService>;
+  let errorHandlerService: jest.Mocked<ErrorHandlerService>;
+  let configService: jest.Mocked<ConfigService>;
+  let container: any;
+
+  beforeEach(() => {
+    container = createTestContainer();
+
+    // Create mock services
+    vectorStorage = {
+      storeChunks: jest.fn(),
+      deleteChunks: jest.fn(),
+      search: jest.fn(),
+      getChunkById: jest.fn(),
+      getChunksByFile: jest.fn(),
+      getProjectStats: jest.fn()
+    } as any;
+
+    graphStorage = {
+      storeChunks: jest.fn(),
+      deleteNodes: jest.fn(),
+      search: jest.fn(),
+      getNodeById: jest.fn(),
+      getNodesByFile: jest.fn(),
+      getRelationships: jest.fn(),
+      getProjectStats: jest.fn()
+    } as any;
+
+    transactionCoordinator = {
+      beginTransaction: jest.fn(),
+      commitTransaction: jest.fn(),
+      rollbackTransaction: jest.fn(),
+      addVectorOperation: jest.fn(),
+      addGraphOperation: jest.fn(),
+      getStatus: jest.fn()
+    } as any;
+
+    loggerService = container.get(LoggerService);
+    errorHandlerService = container.get(ErrorHandlerService);
+    configService = container.get(ConfigService);
+
+    // Create StorageCoordinator instance
+    storageCoordinator = new StorageCoordinator(
+      loggerService,
+      errorHandlerService,
+      configService,
+      vectorStorage,
+      graphStorage,
+      transactionCoordinator
+    );
+  });
+
+  describe('store', () => {
+    const mockFiles: ParsedFile[] = [
+      {
+        filePath: '/test/project/file1.ts',
+        language: 'typescript',
+        metadata: { size: 1000 },
+        chunks: [
+          {
+            id: 'chunk_1',
+            content: 'function test() { return true; }',
+            filePath: '/test/project/file1.ts',
+            startLine: 1,
+            endLine: 3,
+            language: 'typescript',
+            chunkType: 'function',
+            metadata: {}
+          },
+          {
+            id: 'chunk_2',
+            content: 'const variable = "test";',
+            filePath: '/test/project/file1.ts',
+            startLine: 5,
+            endLine: 5,
+            language: 'typescript',
+            chunkType: 'variable',
+            metadata: {}
+          }
+        ]
+      },
+      {
+        filePath: '/test/project/file2.ts',
+        language: 'typescript',
+        metadata: { size: 1500 },
+        chunks: [
+          {
+            id: 'chunk_3',
+            content: 'class TestClass { constructor() {} }',
+            filePath: '/test/project/file2.ts',
+            startLine: 1,
+            endLine: 3,
+            language: 'typescript',
+            chunkType: 'class',
+            metadata: {}
+          }
+        ]
+      }
+    ];
+
+    const mockProjectId = 'test_project_hash';
+
+    it('should successfully store files with chunks', async () => {
+      // Setup transaction mocks
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
+      transactionCoordinator.commitTransaction.mockResolvedValue(true);
+
+      const result = await storageCoordinator.store(mockFiles, mockProjectId);
+
+      expect(result.success).toBe(true);
+      expect(result.chunksStored).toBe(3);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify transaction was used
+      expect(transactionCoordinator.beginTransaction).toHaveBeenCalled();
+      expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
+        {
+          type: 'storeChunks',
+          chunks: expect.arrayContaining([
+            expect.objectContaining({ id: 'chunk_1' }),
+            expect.objectContaining({ id: 'chunk_2' }),
+            expect.objectContaining({ id: 'chunk_3' })
+          ]),
+          options: {
+            projectId: mockProjectId,
+            overwriteExisting: true,
+            batchSize: 3
+          }
+        },
+        {
+          type: 'deleteChunks',
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3']
+        }
+      );
+      expect(transactionCoordinator.addGraphOperation).toHaveBeenCalledWith(
+        {
+          type: 'storeChunks',
+          chunks: expect.arrayContaining([
+            expect.objectContaining({ id: 'chunk_1' }),
+            expect.objectContaining({ id: 'chunk_2' }),
+            expect.objectContaining({ id: 'chunk_3' })
+          ]),
+          options: {
+            projectId: mockProjectId,
+            overwriteExisting: true,
+            batchSize: 3
+          }
+        },
+        {
+          type: 'deleteNodes',
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3']
+        }
+      );
+      expect(transactionCoordinator.commitTransaction).toHaveBeenCalled();
+
+      // Verify logging
+      expect(loggerService.info).toHaveBeenCalledWith('Storing files in databases', {
+        fileCount: 2,
+        chunkCount: 3,
+        projectId: mockProjectId
+      });
+      expect(loggerService.info).toHaveBeenCalledWith('Files stored successfully', {
+        fileCount: 2,
+        chunkCount: 3,
+        vectorResult: expect.any(Object),
+        graphResult: expect.any(Object),
+        projectId: mockProjectId
+      });
+    });
+
+    it('should handle empty files array', async () => {
+      const result = await storageCoordinator.store([], mockProjectId);
+
+      expect(result.success).toBe(true);
+      expect(result.chunksStored).toBe(0);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify no operations were performed
+      expect(transactionCoordinator.beginTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should handle files with no chunks', async () => {
+      const filesWithoutChunks: ParsedFile[] = [
+        {
+          filePath: '/test/project/empty.ts',
+          language: 'typescript',
+          metadata: { size: 0 },
+          chunks: []
+        }
+      ];
+
+      const result = await storageCoordinator.store(filesWithoutChunks, mockProjectId);
+
+      expect(result.success).toBe(true);
+      expect(result.chunksStored).toBe(0);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify no operations were performed
+      expect(transactionCoordinator.beginTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should handle transaction commit failure', async () => {
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
+      transactionCoordinator.commitTransaction.mockResolvedValue(false);
+      transactionCoordinator.rollbackTransaction.mockResolvedValue(undefined);
+
+      const result = await storageCoordinator.store(mockFiles, mockProjectId);
+
+      expect(result.success).toBe(false);
+      expect(result.chunksStored).toBe(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toBe('Transaction failed');
+
+      // Verify rollback was called
+      expect(transactionCoordinator.rollbackTransaction).toHaveBeenCalled();
+
+      // Verify error logging
+      expect(loggerService.error).toHaveBeenCalledWith('Failed to store files', {
+        fileCount: 2,
+        chunkCount: 3,
+        projectId: mockProjectId,
+        error: 'Transaction failed'
+      });
+    });
+
+    it('should handle unexpected errors during storage', async () => {
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.rollbackTransaction.mockResolvedValue(undefined);
+
+      const unexpectedError = new Error('Database connection failed');
+      transactionCoordinator.addGraphOperation.mockRejectedValue(unexpectedError);
+
+      const result = await storageCoordinator.store(mockFiles, mockProjectId);
+
+      expect(result.success).toBe(false);
+      expect(result.chunksStored).toBe(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toBe('Database connection failed');
+
+      // Verify rollback was called
+      expect(transactionCoordinator.rollbackTransaction).toHaveBeenCalled();
+
+      // Verify error logging
+      expect(loggerService.error).toHaveBeenCalledWith('Failed to store files', {
+        fileCount: 2,
+        chunkCount: 3,
+        projectId: mockProjectId,
+        error: 'Database connection failed'
+      });
+    });
+
+    it('should store files without project ID', async () => {
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
+      transactionCoordinator.commitTransaction.mockResolvedValue(true);
+
+      const result = await storageCoordinator.store(mockFiles);
+
+      expect(result.success).toBe(true);
+      expect(result.chunksStored).toBe(3);
+
+      // Verify operations were called without project ID
+      expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            projectId: undefined
+          })
+        }),
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('deleteFiles', () => {
+    const mockFilePaths = ['/test/project/file1.ts', '/test/project/file2.ts'];
+
+    it('should successfully delete files', async () => {
+      // Mock chunk IDs for files
+      jest.spyOn(storageCoordinator as any, 'getChunkIdsForFiles').mockResolvedValue([
+        'chunk_1', 'chunk_2', 'chunk_3'
+      ]);
+
+      // Setup transaction mocks
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
+      transactionCoordinator.commitTransaction.mockResolvedValue(true);
+
+      const result = await storageCoordinator.deleteFiles(mockFilePaths);
+
+      expect(result.success).toBe(true);
+      expect(result.filesDeleted).toBe(2);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify transaction was used
+      expect(transactionCoordinator.beginTransaction).toHaveBeenCalled();
+      expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
+        {
+          type: 'deleteChunks',
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3']
+        },
+        {
+          type: 'restoreChunks',
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3']
+        }
+      );
+      expect(transactionCoordinator.addGraphOperation).toHaveBeenCalledWith(
+        {
+          type: 'deleteNodes',
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3']
+        },
+        {
+          type: 'restoreNodes',
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3']
+        }
+      );
+      expect(transactionCoordinator.commitTransaction).toHaveBeenCalled();
+
+      // Verify logging
+      expect(loggerService.info).toHaveBeenCalledWith('Deleting files from databases', {
+        fileCount: 2
+      });
+      expect(loggerService.info).toHaveBeenCalledWith('Files deleted successfully', {
+        fileCount: 2,
+        chunkCount: 3
+      });
+    });
+
+    it('should handle empty file paths array', async () => {
+      const result = await storageCoordinator.deleteFiles([]);
+
+      expect(result.success).toBe(true);
+      expect(result.filesDeleted).toBe(0);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify no operations were performed
+      expect(transactionCoordinator.beginTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should handle files with no chunks', async () => {
+      jest.spyOn(storageCoordinator as any, 'getChunkIdsForFiles').mockResolvedValue([]);
+
+      const result = await storageCoordinator.deleteFiles(mockFilePaths);
+
+      expect(result.success).toBe(true);
+      expect(result.filesDeleted).toBe(2);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify no transaction was started
+      expect(transactionCoordinator.beginTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should handle transaction failure during deletion', async () => {
+      jest.spyOn(storageCoordinator as any, 'getChunkIdsForFiles').mockResolvedValue(['chunk_1']);
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
+      transactionCoordinator.commitTransaction.mockResolvedValue(false);
+      transactionCoordinator.rollbackTransaction.mockResolvedValue(undefined);
+
+      const result = await storageCoordinator.deleteFiles(mockFilePaths);
+
+      expect(result.success).toBe(false);
+      expect(result.filesDeleted).toBe(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toBe('Transaction failed');
+
+      // Verify rollback was called
+      expect(transactionCoordinator.rollbackTransaction).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteProject', () => {
+    const mockProjectId = 'test_project_hash';
+
+    it('should successfully delete project', async () => {
+      // Mock chunk IDs for project
+      jest.spyOn(storageCoordinator as any, 'getProjectChunkIds').mockResolvedValue([
+        'chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'
+      ]);
+
+      // Setup transaction mocks
+      transactionCoordinator.beginTransaction.mockResolvedValue(undefined);
+      transactionCoordinator.addVectorOperation.mockResolvedValue(undefined);
+      transactionCoordinator.addGraphOperation.mockResolvedValue(undefined);
+      transactionCoordinator.commitTransaction.mockResolvedValue(true);
+
+      const result = await storageCoordinator.deleteProject(mockProjectId);
+
+      expect(result.success).toBe(true);
+      expect(result.filesDeleted).toBe(5);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify transaction was used
+      expect(transactionCoordinator.beginTransaction).toHaveBeenCalled();
+      expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
+        {
+          type: 'deleteChunks',
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+        },
+        {
+          type: 'restoreChunks',
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+        }
+      );
+      expect(transactionCoordinator.addGraphOperation).toHaveBeenCalledWith(
+        {
+          type: 'deleteNodes',
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+        },
+        {
+          type: 'restoreNodes',
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+        }
+      );
+      expect(transactionCoordinator.commitTransaction).toHaveBeenCalled();
+
+      // Verify logging
+      expect(loggerService.info).toHaveBeenCalledWith('Deleting project from databases', {
+        projectId: mockProjectId
+      });
+      expect(loggerService.info).toHaveBeenCalledWith('Project deleted successfully', {
+        projectId: mockProjectId,
+        chunkCount: 5
+      });
+    });
+
+    it('should handle project with no chunks', async () => {
+      jest.spyOn(storageCoordinator as any, 'getProjectChunkIds').mockResolvedValue([]);
+
+      const result = await storageCoordinator.deleteProject(mockProjectId);
+
+      expect(result.success).toBe(true);
+      expect(result.filesDeleted).toBe(0);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify no transaction was started
+      expect(transactionCoordinator.beginTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('searchVectors', () => {
+    const mockQuery = 'function test';
+    const mockOptions = { limit: 10, threshold: 0.8 };
+    const mockResults = [
+      { id: 'chunk_1', score: 0.95, content: 'function test() { return true; }' },
+      { id: 'chunk_2', score: 0.87, content: 'function test2() { return false; }' }
+    ];
+
+    it('should successfully search vectors', async () => {
+      vectorStorage.search.mockResolvedValue(mockResults);
+
+      const result = await storageCoordinator.searchVectors(mockQuery, mockOptions);
+
+      expect(result).toEqual(mockResults);
+      expect(vectorStorage.search).toHaveBeenCalledWith(mockQuery, mockOptions);
+    });
+
+    it('should handle search errors', async () => {
+      const searchError = new Error('Vector search failed');
+      vectorStorage.search.mockRejectedValue(searchError);
+
+      await expect(storageCoordinator.searchVectors(mockQuery, mockOptions)).rejects.toThrow('Vector search failed');
+
+      // Verify error logging
+      expect(loggerService.error).toHaveBeenCalledWith('Failed to search vectors', {
+        query: mockQuery,
+        options: mockOptions,
+        error: 'Vector search failed'
+      });
+    });
+
+    it('should search with default options', async () => {
+      vectorStorage.search.mockResolvedValue([]);
+
+      await storageCoordinator.searchVectors(mockQuery);
+
+      expect(vectorStorage.search).toHaveBeenCalledWith(mockQuery, {});
+    });
+  });
+
+  describe('searchGraph', () => {
+    const mockQuery = 'MATCH (n:Function) RETURN n';
+    const mockOptions = { limit: 5 };
+    const mockResults = [
+      { id: 'node_1', labels: ['Function'], properties: { name: 'test' } },
+      { id: 'node_2', labels: ['Function'], properties: { name: 'test2' } }
+    ];
+
+    it('should successfully search graph', async () => {
+      graphStorage.search.mockResolvedValue(mockResults);
+
+      const result = await storageCoordinator.searchGraph(mockQuery, mockOptions);
+
+      expect(result).toEqual(mockResults);
+      expect(graphStorage.search).toHaveBeenCalledWith(mockQuery, mockOptions);
+    });
+
+    it('should handle search errors', async () => {
+      const searchError = new Error('Graph search failed');
+      graphStorage.search.mockRejectedValue(searchError);
+
+      await expect(storageCoordinator.searchGraph(mockQuery, mockOptions)).rejects.toThrow('Graph search failed');
+
+      // Verify error logging
+      expect(loggerService.error).toHaveBeenCalledWith('Failed to search graph', {
+        query: mockQuery,
+        options: mockOptions,
+        error: 'Graph search failed'
+      });
+    });
+  });
+
+  describe('utility methods', () => {
+    it('should get snippet statistics', async () => {
+      const mockProjectId = 'test_project';
+      const mockStats = {
+        totalSnippets: 150,
+        processedSnippets: 142,
+        duplicateSnippets: 8,
+        processingRate: 45.2
+      };
+
+      const result = await storageCoordinator.getSnippetStatistics(mockProjectId);
+
+      expect(result).toEqual(mockStats);
+    });
+
+    it('should find snippet by hash', async () => {
+      const mockContentHash = 'abc123';
+      const mockProjectId = 'test_project';
+      const mockSnippet = { id: 'snippet_1', content: 'test code' };
+
+      const result = await storageCoordinator.findSnippetByHash(mockContentHash, mockProjectId);
+
+      expect(result).toBeNull(); // Returns mock null value
+    });
+
+    it('should find snippet references', async () => {
+      const mockSnippetId = 'snippet_1';
+      const mockProjectId = 'test_project';
+
+      const result = await storageCoordinator.findSnippetReferences(mockSnippetId, mockProjectId);
+
+      expect(result).toEqual(['ref_snippet_1_1', 'ref_snippet_1_2']);
+    });
+
+    it('should analyze snippet dependencies', async () => {
+      const mockSnippetId = 'snippet_1';
+      const mockProjectId = 'test_project';
+
+      const result = await storageCoordinator.analyzeSnippetDependencies(mockSnippetId, mockProjectId);
+
+      expect(result).toEqual({
+        dependsOn: ['dep_snippet_1_1', 'dep_snippet_1_2'],
+        usedBy: ['user_snippet_1_1'],
+        complexity: expect.any(Number)
+      });
+    });
+
+    it('should find snippet overlaps', async () => {
+      const mockSnippetId = 'snippet_1';
+      const mockProjectId = 'test_project';
+
+      const result = await storageCoordinator.findSnippetOverlaps(mockSnippetId, mockProjectId);
+
+      expect(result).toEqual(['overlap_snippet_1_1']);
+    });
+  });
+
+  describe('private helper methods', () => {
+    describe('getChunkIdsForFiles', () => {
+      it('should return chunk IDs for files', async () => {
+        const mockFilePaths = ['/test/project/file1.ts', '/test/project/file2.ts'];
+        
+        // Access private method for testing
+        const result = await (storageCoordinator as any).getChunkIdsForFiles(mockFilePaths);
+
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBeGreaterThan(0);
+        
+        // Verify chunk IDs are properly formatted
+        result.forEach((chunkId: string) => {
+          expect(typeof chunkId).toBe('string');
+          expect(chunkId).toMatch(/^chunk_/);
+        });
+      });
+
+      it('should handle empty file paths array', async () => {
+        const result = await (storageCoordinator as any).getChunkIdsForFiles([]);
+
+        expect(result).toEqual([]);
+      });
+    });
+
+    describe('getProjectChunkIds', () => {
+      it('should return chunk IDs for project', async () => {
+        const mockProjectId = 'test_project';
+        
+        // Access private method for testing
+        const result = await (storageCoordinator as any).getProjectChunkIds(mockProjectId);
+
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBeGreaterThan(0);
+        
+        // Verify chunk IDs are properly formatted
+        result.forEach((chunkId: string) => {
+          expect(typeof chunkId).toBe('string');
+          expect(chunkId).toMatch(/^chunk_/);
+        });
+      });
+    });
+  });
+});

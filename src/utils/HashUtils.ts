@@ -73,6 +73,10 @@ export class HashUtils {
     };
   }
 
+  static calculateStringHash(content: string): string {
+    return crypto.createHash('sha256').update(content).digest('hex');
+  }
+
   static generateId(prefix: string = 'id'): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 9);
@@ -94,5 +98,5 @@ export class HashUtils {
     const extensions = allowedExtensions.length > 0 ? allowedExtensions : defaultExtensions;
     
     return extensions.includes(extension);
-  }
+ }
 }

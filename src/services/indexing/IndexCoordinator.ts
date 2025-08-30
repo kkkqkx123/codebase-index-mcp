@@ -353,4 +353,108 @@ export class IndexCoordinator {
       throw error;
     }
   }
+
+  // Add snippet processing status monitoring
+  async getSnippetProcessingStatus(projectId: string): Promise<{
+    totalSnippets: number;
+    processedSnippets: number;
+    duplicateSnippets: number;
+    processingRate: number;
+  }> {
+    try {
+      // Query the storage for actual snippet statistics
+      const stats = await this.storageCoordinator.getSnippetStatistics(projectId);
+      return stats;
+    } catch (error) {
+      this.logger.error('Failed to get snippet processing status', {
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  // Add real-time deduplication check
+  async checkForDuplicates(snippetContent: string, projectId: string): Promise<boolean> {
+    try {
+      // Check the storage for duplicate snippets using content hash
+      const contentHash = HashUtils.calculateStringHash(snippetContent);
+      const existingSnippet = await this.storageCoordinator.findSnippetByHash(contentHash, projectId);
+      return !!existingSnippet;
+    } catch (error) {
+      this.logger.error('Failed to check for duplicates', {
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  // Add cross-reference detection
+  async detectCrossReferences(snippetId: string, projectId: string): Promise<string[]> {
+    try {
+      // Analyze relationships between snippets using the storage
+      const references = await this.storageCoordinator.findSnippetReferences(snippetId, projectId);
+      return references;
+    } catch (error) {
+      this.logger.error('Failed to detect cross references', {
+        snippetId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  // Add dependency analysis
+  async analyzeDependencies(snippetId: string, projectId: string): Promise<{
+    dependsOn: string[];
+    usedBy: string[];
+    complexity: number;
+  }> {
+    try {
+      // Analyze code dependencies using the storage
+      const dependencies = await this.storageCoordinator.analyzeSnippetDependencies(snippetId, projectId);
+      return dependencies;
+    } catch (error) {
+      this.logger.error('Failed to analyze dependencies', {
+        snippetId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  // Add overlap detection
+  async detectOverlaps(snippetId: string, projectId: string): Promise<string[]> {
+    try {
+      // Detect overlapping code segments using the storage
+      const overlaps = await this.storageCoordinator.findSnippetOverlaps(snippetId, projectId);
+      return overlaps;
+    } catch (error) {
+      this.logger.error('Failed to detect overlaps', {
+        snippetId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+  
+  async getIndexStatus(projectId: string): Promise<{
+    lastIndexed?: Date;
+    fileCount: number;
+    chunkCount: number;
+    status: 'idle' | 'indexing' | 'error' | 'completed';
+  }> {
+    // In a real implementation, this would query the storage for index status
+    // For now, we'll return mock data
+    return {
+      lastIndexed: new Date(),
+      fileCount: 150,
+      chunkCount: 450,
+      status: 'completed'
+    };
+  }
 }

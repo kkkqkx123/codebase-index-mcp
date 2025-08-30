@@ -1,0 +1,5 @@
+Grafana 对 Qdrant 和 Nebula 的支持情况如下：
+
+对于 Qdrant，存在一个 Grafana 插件，允许在配置用户界面中配置 Qdrant API 密钥 。此外，还有一个专门用于 Qdrant Cloud 的 Grafana 仪表板，用于可视化 Qdrant 数据库集群的性能和状态 。Qdrant 可以通过 Prometheus 和 Grafana 轻松配置集成以进行监控 。
+
+对于 Nebula，GitHub 上存在一个名为 "nebula-dds-grafana-plugin" 的数据源插件，允许在 Grafana 中可视化发布在数据分发服务（DDS）数据总线上的数据 。另外，有信息提到一个名为 "nebula-datasource" 的插件，并且讨论了其使用问题 。同时，Nebula 公司也专注于帮助企业利用 Grafana 等数据驱动技术 。
