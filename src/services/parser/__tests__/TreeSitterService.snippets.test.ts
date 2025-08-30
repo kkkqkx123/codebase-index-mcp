@@ -49,17 +49,26 @@ function createMockSyntaxNode(
   endPosition: { row: number; column: number } = { row: 0, column: 0 },
   startIndex: number = 0,
   endIndex: number = text.length,
-  children: any[] = []
+  children: any[] = [],
+  parent: any = null
 ): any {
-  return {
+  const node = {
     type,
     startPosition,
     endPosition,
     startIndex,
     endIndex,
     children,
+    parent,
     childForFieldName: jest.fn().mockReturnValue(null)
   };
+  
+  // Set parent relationship for children
+  children.forEach(child => {
+    child.parent = node;
+  });
+  
+  return node;
 }
 
 // Helper function to create mock AST based on code content
@@ -81,25 +90,75 @@ function createMockAST(code: string): any {
     }
     
     if (line.includes('try') || line.includes('catch') || line.includes('finally')) {
-      nodes.push(createMockSyntaxNode(
-        line.includes('try') ? 'try_statement' : line.includes('catch') ? 'catch_clause' : 'finally_clause',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length
-      ));
+      // Create a proper try-catch-finally structure
+      if (line.includes('try')) {
+        // Find the end of the entire try-catch-finally block by counting braces
+        let braceCount = 0;
+        let searchIndex = code.indexOf(line);
+        let endIndex = searchIndex + line.length;
+        
+        // Find the opening brace of the try block
+        while (searchIndex < code.length && code[searchIndex] !== '{') {
+          searchIndex++;
+        }
+        
+        // Count braces to find the end of the entire block
+        if (searchIndex < code.length && code[searchIndex] === '{') {
+          braceCount = 1;
+          searchIndex++;
+          
+          while (searchIndex < code.length && braceCount > 0) {
+            if (code[searchIndex] === '{') {
+              braceCount++;
+            } else if (code[searchIndex] === '}') {
+              braceCount--;
+            }
+            searchIndex++;
+          }
+          
+          if (braceCount === 0) {
+            endIndex = searchIndex;
+          }
+        }
+        
+        const tryNode = createMockSyntaxNode(
+          'try_statement',
+          code.substring(code.indexOf(line), endIndex),
+          { row: index, column: 0 },
+          { row: index, column: line.length },
+          code.indexOf(line),
+          endIndex,
+          []
+        );
+        nodes.push(tryNode);
+        console.log('Created try node with content:', tryNode.text);
+      }
     }
     
     if (line.includes('function') || line.includes('=>')) {
-      nodes.push(createMockSyntaxNode(
+      const funcNode = createMockSyntaxNode(
         'function_definition',
         line,
         { row: index, column: 0 },
         { row: index, column: line.length },
         code.indexOf(line),
-        code.indexOf(line) + line.length
-      ));
+        code.indexOf(line) + line.length,
+        []
+      );
+      nodes.push(funcNode);
+    }
+    
+    if (line.includes('class')) {
+      const classNode = createMockSyntaxNode(
+        'class_definition',
+        line,
+        { row: index, column: 0 },
+        { row: index, column: line.length },
+        code.indexOf(line),
+        code.indexOf(line) + line.length,
+        []
+      );
+      nodes.push(classNode);
     }
   });
   
@@ -178,6 +237,7 @@ function example() {
       
       // Debug: Log all snippet types
       console.log('All snippet types:', snippets.map(s => s.snippetMetadata.snippetType));
+      // console.log('AST structure:', JSON.stringify(mockAST, null, 2));
       
       expect(snippets.length).toBeGreaterThan(0);
       
@@ -290,12 +350,86 @@ class ExampleClass {
   }
 }
       `;
+      // Create a proper mock AST for this test
+      const classNode = createMockSyntaxNode(
+        'class_definition',
+        'class ExampleClass {\n  exampleMethod() {\n    if (condition) {\n      console.log(\'snippet\');\n    }\n  }\n}',
+        { row: 0, column: 0 },
+        { row: 6, column: 1 },
+        0,
+        code.length,
+        []
+      );
+      // Mock the childForFieldName method to return a name node
+      classNode.childForFieldName = jest.fn().mockImplementation((fieldName) => {
+        if (fieldName === 'name') {
+          return createMockSyntaxNode(
+            'identifier',
+            'ExampleClass',
+            { row: 0, column: 6 },
+            { row: 0, column: 17 },
+            code.indexOf('ExampleClass'),
+            code.indexOf('ExampleClass') + 'ExampleClass'.length,
+            []
+          );
+        }
+        return null;
+      });
       
-      const mockAST = createMockAST(code);
-      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      const methodNode = createMockSyntaxNode(
+        'function_definition',
+        'exampleMethod() {\n    if (condition) {\n      console.log(\'snippet\');\n    }\n  }',
+        { row: 1, column: 2 },
+        { row: 5, column: 3 },
+        code.indexOf('exampleMethod'),
+        code.length - 2,
+        []
+      );
+      // Mock the childForFieldName method to return a name node
+      methodNode.childForFieldName = jest.fn().mockImplementation((fieldName) => {
+        if (fieldName === 'name') {
+          return createMockSyntaxNode(
+            'identifier',
+            'exampleMethod',
+            { row: 1, column: 2 },
+            { row: 1, column: 14 },
+            code.indexOf('exampleMethod'),
+            code.indexOf('exampleMethod') + 'exampleMethod'.length,
+            []
+          );
+        }
+        return null;
+      });
+      methodNode.parent = classNode;
       
-      const snippetWithParent = snippets.find(s => 
-        s.snippetMetadata.contextInfo.parentClass || 
+      const ifNode = createMockSyntaxNode(
+        'if_statement',
+        'if (condition) {\n      console.log(\'snippet\');\n    }',
+        { row: 2, column: 4 },
+        { row: 4, column: 5 },
+        code.indexOf('if (condition)'),
+        code.indexOf('}') + 1,
+        []
+      );
+      ifNode.parent = methodNode;
+      
+      classNode.children = [methodNode];
+      methodNode.children = [ifNode];
+      
+      const customMockAST = createMockSyntaxNode(
+        'program',
+        code,
+        { row: 0, column: 0 },
+        { row: 6, column: 1 },
+        0,
+        code.length,
+        [classNode]
+      );
+      
+      const snippets = treeSitterService.extractSnippets(customMockAST, code);
+      
+      const snippetWithParent = snippets.find(s =>
+        s.snippetMetadata.contextInfo.parentClass ||
         s.snippetMetadata.contextInfo.parentFunction
       );
       

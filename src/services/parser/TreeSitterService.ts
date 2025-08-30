@@ -400,17 +400,24 @@ export class TreeSitterService {
 
   private extractErrorHandling(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
     const snippets: SnippetChunk[] = [];
-    const errorHandlingTypes = new Set(['try_statement', 'catch_clause', 'finally_clause', 'throw_statement']);
+    const errorHandlingTypes = new Set(['try_statement', 'throw_statement']);
 
     const findErrorHandling = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
       // Limit traversal depth to prevent excessive recursion
       if (depth > 50) return;
 
       if (errorHandlingTypes.has(node.type)) {
+        console.log('Found error handling node of type:', node.type);
+        console.log('Node content:', this.getNodeText(node, sourceCode));
         const snippet = this.createSnippetFromNode(node, sourceCode, 'error_handling', nestingLevel);
         if (snippet) {
+          console.log('Created error handling snippet:', snippet.content);
           snippets.push(snippet);
         }
+      } else if (node.type === 'catch_clause' || node.type === 'finally_clause') {
+        // For catch and finally clauses, we want to include the parent try statement
+        // but we don't want to process them individually
+        return;
       }
 
       for (const child of node.children) {
@@ -669,11 +676,15 @@ export class TreeSitterService {
     // Find parent function
     let parent = node.parent;
     while (parent) {
-      if (parent.type === 'function_declaration' || parent.type === 'function_definition' || 
+      console.log('Checking parent node of type:', parent.type);
+      if (parent.type === 'function_declaration' || parent.type === 'function_definition' ||
           parent.type === 'method_definition' || parent.type === 'arrow_function') {
+        console.log('Parent node has childForFieldName method:', typeof parent.childForFieldName);
         const nameNode = parent.childForFieldName('name');
+        console.log('Name node:', nameNode);
         if (nameNode) {
           contextInfo.parentFunction = this.getNodeText(nameNode, sourceCode);
+          console.log('Found parent function:', contextInfo.parentFunction);
           break;
         }
       }
@@ -683,10 +694,12 @@ export class TreeSitterService {
     // Find parent class
     parent = node.parent;
     while (parent) {
+      console.log('Checking parent node of type for class:', parent.type);
       if (parent.type === 'class_declaration' || parent.type === 'class_definition') {
         const nameNode = parent.childForFieldName('name');
         if (nameNode) {
           contextInfo.parentClass = this.getNodeText(nameNode, sourceCode);
+          console.log('Found parent class:', contextInfo.parentClass);
           break;
         }
       }
@@ -753,7 +766,14 @@ export class TreeSitterService {
       /\b(?:console\.log|process\.exit|process\.kill)\b/ // External calls
     ];
     
-    return sideEffectPatterns.some(pattern => pattern.test(content));
+    console.log('Checking for side effects in content:', content);
+    const hasSideEffect = sideEffectPatterns.some(pattern => {
+      const matches = pattern.test(content);
+      console.log('Pattern', pattern, 'matches:', matches);
+      return matches;
+    });
+    console.log('Has side effects:', hasSideEffect);
+    return hasSideEffect;
   }
 
   private isMeaningfulFunctionCallChain(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -836,13 +856,19 @@ export class TreeSitterService {
     const seen = new Set<string>();
     
     for (const snippet of snippets) {
+      console.log('Processing snippet:', snippet.content);
+      console.log('Snippet type:', snippet.snippetMetadata.snippetType);
+      console.log('Snippet complexity:', snippet.snippetMetadata.complexity);
+      console.log('Snippet length:', snippet.content.length);
       // Less restrictive complexity filter for testing
       if (snippet.snippetMetadata.complexity < 1 || snippet.snippetMetadata.complexity > 15) {
+        console.log('Skipping snippet due to complexity filter');
         continue;
       }
       
       // Less restrictive length filter for testing
-      if (snippet.content.length < 20 || snippet.content.length > 1000) {
+      if (snippet.content.length < 10 || snippet.content.length > 1000) {
+        console.log('Skipping snippet due to length filter, length:', snippet.content.length);
         continue;
       }
       
