@@ -12,7 +12,7 @@ This document outlines the implementation plan for testing the Codebase Index MC
 **Objectives:**
 - Implement unit tests for ConfigService, LoggerService, ErrorHandlerService
 
-#### [ ] Embedding and File System Services
+#### [x] Embedding and File System Services
 **Objectives:**
 - Implement unit tests for EmbedderFactory and BaseEmbedder
 - Implement unit tests for provider-specific embedders
