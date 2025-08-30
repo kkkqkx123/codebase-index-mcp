@@ -349,7 +349,12 @@ describe('Embedding Services Integration Tests', () => {
           }
         } catch (error) {
           // Provider may not be available in test environment
-          expect(error.message).toContain('not available');
+          if (error instanceof Error) {
+            expect(error.message).toContain('not available');
+          } else {
+            // If it's not an Error object, rethrow or handle accordingly
+            throw error;
+          }
         }
       }
     });
@@ -377,6 +382,11 @@ describe('Embedding Services Integration Tests', () => {
         results.push(openaiResult as EmbeddingResult);
       } catch (error) {
         // Provider may not be available
+        // Type guard to ensure we're working with an Error object
+        if (!(error instanceof Error)) {
+          // If it's not an Error object, rethrow
+          throw error;
+        }
       }
 
       try {
@@ -384,6 +394,11 @@ describe('Embedding Services Integration Tests', () => {
         results.push(ollamaResult as EmbeddingResult);
       } catch (error) {
         // Provider may not be available
+        // Type guard to ensure we're working with an Error object
+        if (!(error instanceof Error)) {
+          // If it's not an Error object, rethrow
+          throw error;
+        }
       }
 
       // All results should be valid embeddings
