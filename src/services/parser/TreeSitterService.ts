@@ -766,9 +766,12 @@ export class TreeSitterService {
     }
     
     // Clear cache periodically to prevent memory leaks
-    if (this.snippetHashCache.size > 10000) {
+    if (this.snippetHashCache.size > 5000) {  // Reduced cache size to save memory
       this.snippetHashCache.clear();
     }
+    
+    // Clear the seen set to free memory
+    seen.clear();
     
     return filtered;
   }
