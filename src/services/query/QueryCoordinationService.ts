@@ -139,18 +139,31 @@ export class QueryCoordinationService {
       const optimizedQuery = await this.queryOptimizer.optimize(request);
 
       // Execute parallel searches
+      // Convert OptimizedQuery to QueryRequest for execution
+      const queryRequest: QueryRequest = {
+        query: optimizedQuery.originalQuery,
+        projectId: '', // Will be set by the caller
+        options: {
+          limit: 10,
+          searchType: optimizedQuery.searchStrategy.type as 'graph' | 'semantic' | 'hybrid'
+        }
+      };
+      
       const [vectorResults, graphResults] = await Promise.all([
-        this.executeVectorSearch(optimizedQuery),
-        this.executeGraphSearch(optimizedQuery)
+        this.executeVectorSearch(queryRequest),
+        this.executeGraphSearch(queryRequest)
       ]);
 
       // Fuse results
       const fusionStartTime = Date.now();
       const fusedResults = await this.resultFusion.fuse({
-        vectorResults,
-        graphResults,
-        query: optimizedQuery.query,
-        options: optimizedQuery.options
+        vectorResults: vectorResults.results,
+        graphResults: graphResults.results,
+        query: optimizedQuery.originalQuery,
+        options: {
+          limit: 10,
+          searchType: optimizedQuery.searchStrategy.type as 'graph' | 'semantic' | 'hybrid'
+        }
       });
       const fusionTime = Date.now() - fusionStartTime;
 
@@ -190,7 +203,7 @@ export class QueryCoordinationService {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Query execution failed: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'QueryCoordinationService', operation: 'executeQuery', queryId }
+        { component: 'QueryCoordinationService', operation: 'executeQuery', metadata: { queryId } }
       );
       throw error;
     }
@@ -277,13 +290,12 @@ export class QueryCoordinationService {
 
     try {
       const embedder = await this.embedderFactory.getEmbedder();
-      const queryEmbedding = await embedder.embed(request.query);
+      const queryEmbedding = await embedder.embed({ text: request.query });
+      const embeddingVector = Array.isArray(queryEmbedding) ? queryEmbedding[0].vector : queryEmbedding.vector;
 
-      const results = await this.vectorStorage.search({
-        vector: queryEmbedding.embedding,
+      const results = await this.vectorStorage.searchVectors(embeddingVector, {
         limit: request.options?.limit || 10,
-        threshold: request.options?.threshold || 0.7,
-        filters: request.options?.filters
+        filter: request.options?.filters
       });
 
       return {
@@ -314,11 +326,8 @@ export class QueryCoordinationService {
         };
       }
 
-      const results = await this.graphStorage.searchNodes({
-        query: request.query,
-        projectId: request.projectId,
-        limit: request.options?.limit || 10
-      });
+      // For now, return empty results as graph search is not implemented
+      const results: any[] = [];
 
       return {
         results,

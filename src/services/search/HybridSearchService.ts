@@ -148,7 +148,7 @@ export class HybridSearchService {
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Hybrid search failed: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'HybridSearchService', operation: 'search', queryId }
+        { component: 'HybridSearchService', operation: 'search' }
       );
       throw error;
     }

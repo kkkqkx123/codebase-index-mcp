@@ -256,6 +256,22 @@ export interface Config {
     defaultTTL: number;
     maxSize: number;
   };
+  performance?: {
+    cleanupInterval?: number;
+    retentionPeriod?: number;
+  };
+  cache?: {
+    ttl?: number;
+    maxEntries?: number;
+    cleanupInterval?: number;
+  };
+  fusion?: {
+    vectorWeight?: number;
+    graphWeight?: number;
+    contextualWeight?: number;
+    recencyWeight?: number;
+    popularityWeight?: number;
+  };
 }
 
 export class ConfigService {

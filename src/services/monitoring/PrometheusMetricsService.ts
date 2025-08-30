@@ -267,8 +267,8 @@ export class PrometheusMetricsService {
 
   async collectDatabaseMetrics(): Promise<DatabaseMetrics> {
     try {
-      const qdrantConnected = this.qdrantService.isConnectedToDatabase();
-      const nebulaConnected = this.nebulaService.isConnectedToDatabase();
+      const qdrantConnected = this.qdrantService.isConnected();
+      const nebulaConnected = this.nebulaService.isConnected();
 
       // Mock data - in real implementation, these would come from actual database queries
       const qdrantPointCount = qdrantConnected ? Math.floor(Math.random() * 1000000) : 0;

@@ -50,6 +50,7 @@ export interface QueryAnalysis {
   intent: 'search' | 'analysis' | 'navigation' | 'debugging';
   complexity: number;
   keywords: string[];
+  queryExpansion: string[];
   entities: Array<{
     type: 'file' | 'function' | 'class' | 'variable' | 'concept';
     value: string;
@@ -156,6 +157,7 @@ export class QueryOptimizer {
       intent,
       complexity,
       keywords,
+      queryExpansion: [],
       entities,
       context
     };
