@@ -397,19 +397,28 @@ export class ConfigFactory implements ConfigFactory {
     const serviceConfig = this.getServicesConfig();
     const parts = section.split('.');
     
-    if (parts.length !== 3) {
+    if (parts.length < 2 || parts.length > 3) {
       throw new Error(`Invalid service configuration section: ${section}`);
     }
     
     const [, serviceName, subServiceName] = parts;
-    const service = (serviceConfig as any)[serviceName];
     
+    // If only service name is provided (e.g., 'services.search'), return the entire service config
+    if (parts.length === 2) {
+      const service = (serviceConfig as any)[serviceName];
+      if (!service) {
+        throw new Error(`Service configuration not found: ${serviceName}`);
+      }
+      return service;
+    }
+    
+    // If both service and sub-service names are provided (e.g., 'services.database.vector')
+    const service = (serviceConfig as any)[serviceName];
     if (!service) {
       throw new Error(`Service configuration not found: ${serviceName}`);
     }
     
     const subService = service[subServiceName];
-    
     if (!subService) {
       throw new Error(`Sub-service configuration not found: ${subServiceName}`);
     }

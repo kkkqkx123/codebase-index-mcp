@@ -164,29 +164,129 @@ export class SearchCoordinator {
   }
 
   async performSemanticSearch(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
-    const searchQuery: SearchQuery = {
-      text: query,
-      options: {
-        ...options,
-        useHybrid: false,
-        useReranking: false
-      }
-    };
-
-    return this.search(searchQuery);
+    const startTime = Date.now();
+    
+    try {
+      // Call the semantic search service directly
+      const searchParams = {
+        query,
+        projectId: 'default', // Default project ID for testing
+        limit: options.limit,
+        threshold: options.threshold
+      };
+      
+      const semanticResults = await this.semanticSearch.search(searchParams);
+      
+      // Convert SemanticSearchResult to SearchResult
+      const results: SearchResult[] = semanticResults.results.map(result => ({
+        id: result.id,
+        score: result.score,
+        finalScore: result.score,
+        filePath: result.filePath,
+        content: result.content,
+        startLine: result.startLine,
+        endLine: result.endLine,
+        language: result.language,
+        chunkType: result.chunkType,
+        metadata: result.metadata,
+        rankingFeatures: {
+          semanticScore: result.rankingFactors.semanticScore,
+          keywordScore: 0,
+          graphScore: 0
+        }
+      }));
+      
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.info('Semantic search completed', {
+        query,
+        resultsCount: results.length,
+        queryTime
+      });
+      
+      return {
+        results,
+        totalResults: results.length,
+        queryTime,
+        searchStrategy: 'semantic',
+        filters: {},
+        options
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.error('Semantic search failed', {
+        query,
+        error: errorMessage,
+        queryTime
+      });
+      
+      throw new Error(`Semantic search failed: ${errorMessage}`);
+    }
   }
 
   async performHybridSearch(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
-    const searchQuery: SearchQuery = {
-      text: query,
-      options: {
-        ...options,
-        useHybrid: true,
-        useReranking: false
-      }
-    };
-
-    return this.search(searchQuery);
+    const startTime = Date.now();
+    
+    try {
+      // Call the hybrid search service directly
+      const searchParams: any = {
+        query,
+        projectId: 'default', // Default project ID for testing
+        limit: options.limit,
+        threshold: options.threshold
+      };
+      
+      const hybridResults = await this.hybridSearch.search(searchParams);
+      
+      // Convert HybridSearchResult to SearchResult
+      const results: SearchResult[] = hybridResults.results.map(result => ({
+        id: result.id,
+        score: result.score,
+        finalScore: result.score,
+        filePath: result.filePath,
+        content: result.content,
+        startLine: result.startLine,
+        endLine: result.endLine,
+        language: result.language,
+        chunkType: result.chunkType,
+        metadata: result.metadata,
+        rankingFeatures: {
+          semanticScore: result.searchScores.semanticScore || 0,
+          keywordScore: result.searchScores.keywordScore || 0,
+          graphScore: result.searchScores.structuralScore || 0
+        }
+      }));
+      
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.info('Hybrid search completed', {
+        query,
+        resultsCount: results.length,
+        queryTime
+      });
+      
+      return {
+        results,
+        totalResults: results.length,
+        queryTime,
+        searchStrategy: 'hybrid',
+        filters: {},
+        options
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const queryTime = Date.now() - startTime;
+      
+      this.logger.error('Hybrid search failed', {
+        query,
+        error: errorMessage,
+        queryTime
+      });
+      
+      throw new Error(`Hybrid search failed: ${errorMessage}`);
+    }
   }
 
   async graphSearch(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
