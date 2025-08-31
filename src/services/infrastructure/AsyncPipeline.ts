@@ -230,7 +230,7 @@ export class AsyncPipeline {
   clone(): AsyncPipeline {
     const pipeline = new AsyncPipeline(this.options, this.logger);
     pipeline.steps = [...this.steps];
-    pipeline.metrics = this.metrics;
+    // Don't copy metrics to maintain independent state
     return pipeline;
   }
 
