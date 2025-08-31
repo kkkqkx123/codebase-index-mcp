@@ -8,6 +8,8 @@ import { SnippetController } from '../../src/controllers/SnippetController';
 import { ConfigService } from '../../src/config/ConfigService';
 import { LoggerService } from '../../src/core/LoggerService';
 import { HashUtils } from '../../src/utils/HashUtils';
+import { QdrantClientWrapper } from '../../src/database/qdrant/QdrantClientWrapper';
+import { NebulaService } from '../../src/database/NebulaService';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -18,6 +20,8 @@ describe('Snippet Storage and Retrieval Integration', () => {
   let indexCoordinator: IndexCoordinator;
   let storageCoordinator: StorageCoordinator;
   let snippetController: SnippetController;
+  let qdrantClient: QdrantClientWrapper;
+  let nebulaService: NebulaService;
   let testProjectPath: string;
   let testFilePath: string;
 
@@ -30,6 +34,8 @@ describe('Snippet Storage and Retrieval Integration', () => {
     indexCoordinator = container.get<IndexCoordinator>(IndexCoordinator);
     storageCoordinator = container.get<StorageCoordinator>(StorageCoordinator);
     snippetController = container.get<SnippetController>(SnippetController);
+    qdrantClient = container.get<QdrantClientWrapper>(QdrantClientWrapper);
+    nebulaService = container.get<NebulaService>(NebulaService);
     
     // Create a temporary test project
     testProjectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'codebase-index-snippet-test-'));
@@ -77,6 +83,21 @@ describe('Snippet Storage and Retrieval Integration', () => {
       }
     } catch (error) {
       console.warn('Failed to clean up test project:', error);
+    }
+    
+    // Close database connections
+    try {
+      // Close Qdrant client connection
+      if (qdrantClient) {
+        await qdrantClient.close();
+      }
+      
+      // Close Nebula service connection
+      if (nebulaService) {
+        await nebulaService.close();
+      }
+    } catch (error) {
+      console.warn('Failed to close database connections:', error);
     }
   });
 
