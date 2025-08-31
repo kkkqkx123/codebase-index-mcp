@@ -3,11 +3,17 @@ import { EntityIdManager, EntityMapping } from '../EntityIdManager';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
+import { VectorStorageService } from '../../storage/VectorStorageService';
+import { GraphPersistenceService } from '../../storage/GraphPersistenceService';
+import { TransactionCoordinator } from '../TransactionCoordinator';
 import { createMockEntityMapping, createMockConsistencyIssue } from '@test/setup';
 
 // Mock dependencies
 jest.mock('../../../core/LoggerService');
 jest.mock('../EntityIdManager');
+jest.mock('../../storage/VectorStorageService');
+jest.mock('../../storage/GraphPersistenceService');
+jest.mock('../TransactionCoordinator');
 
 describe('ConsistencyChecker', () => {
   let consistencyChecker: ConsistencyChecker;
@@ -34,9 +40,23 @@ describe('ConsistencyChecker', () => {
 
     mockEntityIdManager = {
       getMappingsByProject: jest.fn(),
-      getMapping: jest.fn(),
+      getMapping: jest.fn().mockImplementation((entityId) => 
+        mockMappings.find(mapping => mapping.entityId === entityId)
+      ),
       updateMapping: jest.fn(),
       deleteMapping: jest.fn(),
+    } as any;
+
+    const mockVectorStorageService = {
+      storeChunks: jest.fn(),
+    } as any;
+
+    const mockGraphPersistenceService = {
+      storeParsedFiles: jest.fn(),
+    } as any;
+
+    const mockTransactionCoordinator = {
+      executeTransaction: jest.fn().mockResolvedValue({ success: true }),
     } as any;
 
     // Create test mappings
@@ -70,7 +90,10 @@ describe('ConsistencyChecker', () => {
     consistencyChecker = new ConsistencyChecker(
       mockLoggerService,
       mockErrorHandlerService,
-      mockEntityIdManager
+      mockEntityIdManager,
+      mockVectorStorageService,
+      mockGraphPersistenceService,
+      mockTransactionCoordinator
     );
   });
 
@@ -186,8 +209,8 @@ describe('ConsistencyChecker', () => {
       });
 
       expect(mockEntityIdManager.updateMapping).toHaveBeenCalledWith('entity_1', {
-        vectorId: 'vector_entity_1_repaired',
-        graphId: undefined,
+        vectorId: 'entity_1',
+        graphId: 'graph_1',
       });
 
       expect(mockLoggerService.info).toHaveBeenCalledWith('Repairing consistency issue', {
@@ -221,8 +244,8 @@ describe('ConsistencyChecker', () => {
       });
 
       expect(mockEntityIdManager.updateMapping).toHaveBeenCalledWith('entity_1', {
-        graphId: 'graph_entity_1_repaired',
-        vectorId: undefined,
+        graphId: 'entity_1',
+        vectorId: 'vector_1',
       });
     });
 

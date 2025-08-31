@@ -65,6 +65,8 @@ interface ProjectVectorConfig {
 project_{projectId}
 ```
 
+其中 `projectId` 为项目路径的 SHA256 哈希值的前16位。
+
 #### 实现方案
 修改图数据库相关服务，动态创建和管理项目空间：
 

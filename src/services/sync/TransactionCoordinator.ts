@@ -3,6 +3,8 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 import { EntityMappingService } from './EntityMappingService';
+import { VectorStorageService } from '../storage/VectorStorageService';
+import { GraphPersistenceService } from '../storage/GraphPersistenceService';
 
 export interface TransactionStep {
   id: string;
@@ -38,13 +40,19 @@ export class TransactionCoordinator {
   private activeTransactions: Map<string, Transaction> = new Map();
   private transactionHistory: Transaction[] = [];
   private currentTransaction: Transaction | null = null;
+  private vectorStorageService: VectorStorageService;
+  private graphPersistenceService: GraphPersistenceService;
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
-    @inject(EntityMappingService) _entityMappingService: EntityMappingService
+    @inject(EntityMappingService) _entityMappingService: EntityMappingService,
+    @inject(VectorStorageService) vectorStorageService: VectorStorageService,
+    @inject(GraphPersistenceService) graphPersistenceService: GraphPersistenceService
   ) {
     this.logger = logger;
+    this.vectorStorageService = vectorStorageService;
+    this.graphPersistenceService = graphPersistenceService;
   }
 
   async executeTransaction(
@@ -202,35 +210,42 @@ export class TransactionCoordinator {
   }
 
   private async executeVectorOperation(operation: any): Promise<void> {
-    // This would interact with the vector database service
     this.logger.debug('Executing vector operation', operation);
     
     try {
-      // In a real implementation, we would interact with the VectorStorageService here
-      // For now, we'll simulate the operation based on the operation type
-      
       switch (operation.type) {
         case 'storeChunks':
-          // Simulate storing chunks
-          this.logger.debug('Storing chunks in vector database', {
-            chunkCount: operation.chunks?.length || 0,
-            projectId: operation.options?.projectId
-          });
+          // Actually store chunks in vector database
+          if (operation.chunks && operation.chunks.length > 0) {
+            const result = await this.vectorStorageService.storeChunks(
+              operation.chunks.filter((chunk: any) => chunk !== undefined),
+              operation.options
+            );
+            
+            if (!result.success) {
+              throw new Error(`Failed to store chunks in vector database: ${result.errors.join(', ')}`);
+            }
+            
+            this.logger.debug('Successfully stored chunks in vector database', {
+              chunkCount: result.totalChunks,
+              uniqueChunks: result.uniqueChunks,
+              processingTime: result.processingTime
+            });
+          }
           break;
           
         case 'deleteChunks':
-          // Simulate deleting chunks
+          // In a real implementation, we would delete chunks from vector database
           this.logger.debug('Deleting chunks from vector database', {
             chunkCount: operation.chunkIds?.length || 0
           });
+          // For now, we'll just log the operation
           break;
           
         default:
           this.logger.warn('Unknown vector operation type', { type: operation.type });
+          throw new Error(`Unknown vector operation type: ${operation.type}`);
       }
-      
-      // Simulate some processing time
-      await new Promise(resolve => setTimeout(resolve, 10));
     } catch (error) {
       this.logger.error('Failed to execute vector operation', {
         operation,
@@ -241,35 +256,42 @@ export class TransactionCoordinator {
   }
 
   private async executeGraphOperation(operation: any): Promise<void> {
-    // This would interact with the graph database service
     this.logger.debug('Executing graph operation', operation);
     
     try {
-      // In a real implementation, we would interact with the GraphPersistenceService here
-      // For now, we'll simulate the operation based on the operation type
-      
       switch (operation.type) {
         case 'storeChunks':
-          // Simulate storing chunks
-          this.logger.debug('Storing chunks in graph database', {
-            chunkCount: operation.chunks?.length || 0,
-            projectId: operation.options?.projectId
-          });
+          // Actually store chunks in graph database
+          if (operation.chunks && operation.chunks.length > 0) {
+            const result = await this.graphPersistenceService.storeChunks(
+              operation.chunks.filter((chunk: any) => chunk !== undefined),
+              operation.options
+            );
+            
+            if (!result.success) {
+              throw new Error(`Failed to store chunks in graph database: ${result.errors.join(', ')}`);
+            }
+            
+            this.logger.debug('Successfully stored chunks in graph database', {
+              chunkCount: result.nodesCreated,
+              relationshipsCreated: result.relationshipsCreated,
+              processingTime: result.processingTime
+            });
+          }
           break;
           
         case 'deleteNodes':
-          // Simulate deleting nodes
+          // In a real implementation, we would delete nodes from graph database
           this.logger.debug('Deleting nodes from graph database', {
             nodeCount: operation.nodeIds?.length || 0
           });
+          // For now, we'll just log the operation
           break;
           
         default:
           this.logger.warn('Unknown graph operation type', { type: operation.type });
+          throw new Error(`Unknown graph operation type: ${operation.type}`);
       }
-      
-      // Simulate some processing time
-      await new Promise(resolve => setTimeout(resolve, 10));
     } catch (error) {
       this.logger.error('Failed to execute graph operation', {
         operation,

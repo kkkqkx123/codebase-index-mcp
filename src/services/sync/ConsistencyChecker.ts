@@ -3,6 +3,9 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 import { EntityIdManager, EntityMapping } from './EntityIdManager';
+import { VectorStorageService } from '../storage/VectorStorageService';
+import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { TransactionCoordinator } from './TransactionCoordinator';
 
 export interface ConsistencyIssue {
   id: string;
@@ -40,14 +43,23 @@ export class ConsistencyChecker {
   private entityIdManager: EntityIdManager;
   private consistencyIssues: Map<string, ConsistencyIssue> = new Map();
   private repairHistory: DataRepairResult[] = [];
+  private vectorStorageService: VectorStorageService;
+  private graphPersistenceService: GraphPersistenceService;
+  private transactionCoordinator: TransactionCoordinator;
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
-    @inject(EntityIdManager) entityIdManager: EntityIdManager
+    @inject(EntityIdManager) entityIdManager: EntityIdManager,
+    @inject(VectorStorageService) vectorStorageService: VectorStorageService,
+    @inject(GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
+    @inject(TransactionCoordinator) transactionCoordinator: TransactionCoordinator
   ) {
     this.logger = logger;
     this.entityIdManager = entityIdManager;
+    this.vectorStorageService = vectorStorageService;
+    this.graphPersistenceService = graphPersistenceService;
+    this.transactionCoordinator = transactionCoordinator;
   }
 
   async checkProjectConsistency(projectId: string): Promise<ConsistencyCheckResult> {
@@ -211,30 +223,56 @@ export class ConsistencyChecker {
   }
 
   private async repairMissingVector(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
-    // This would create the missing vector data
-    // For now, we'll simulate the repair
-    
     if (strategy === 'auto') {
-      // Simulate repair process
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // Get the current mapping
-      const currentMapping = this.entityIdManager.getMapping(issue.entityId);
-      if (currentMapping) {
-        // Update the mapping with vector ID
-        this.entityIdManager.updateMapping(issue.entityId, {
-          vectorId: `vector_${issue.entityId}_repaired`,
-          graphId: currentMapping.graphId
+      try {
+        // Get the entity mapping
+        const mapping = this.entityIdManager.getMapping(issue.entityId);
+        if (!mapping) {
+          throw new CodebaseIndexError(`Entity mapping not found: ${issue.entityId}`, { 
+            component: 'ConsistencyChecker', 
+            operation: 'repairMissingVector' 
+          });
+        }
+
+        // Create a transaction for vector repair
+        const operations = [{
+          type: 'vector' as const,
+          operation: {
+            type: 'storeChunks',
+            chunks: [mapping], // Using the entire mapping as the chunk data
+            options: { projectId: issue.projectId }
+          }
+        }];
+
+        const result = await this.transactionCoordinator.executeTransaction(issue.projectId, operations);
+        
+        if (result.success) {
+          // Get the current mapping to preserve the graphId
+          const currentMapping = this.entityIdManager.getMapping(issue.entityId);
+          // Update the mapping with vector ID
+          await this.entityIdManager.updateMapping(issue.entityId, {
+            vectorId: issue.entityId,
+            graphId: currentMapping?.graphId
+          });
+          
+          return {
+            issueId: issue.id,
+            success: true,
+            action: 'created_vector_data',
+            message: `Created missing vector data for entity ${issue.entityId}`,
+            timestamp: new Date()
+          };
+        } else {
+          throw new Error(result.error || 'Transaction failed');
+        }
+      } catch (error) {
+        this.logger.error('Failed to repair missing vector data', { 
+          entityId: issue.entityId, 
+          error: error instanceof Error ? error.message : String(error) 
         });
+        
+        throw error;
       }
-      
-      return {
-        issueId: issue.id,
-        success: true,
-        action: 'created_vector_data',
-        message: `Created missing vector data for entity ${issue.entityId}`,
-        timestamp: new Date()
-      };
     } else {
       throw new CodebaseIndexError('Manual repair not implemented', { 
         component: 'ConsistencyChecker', 
@@ -244,30 +282,56 @@ export class ConsistencyChecker {
   }
 
   private async repairMissingGraph(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
-    // This would create the missing graph data
-    // For now, we'll simulate the repair
-    
     if (strategy === 'auto') {
-      // Simulate repair process
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // Get the current mapping
-      const currentMapping = this.entityIdManager.getMapping(issue.entityId);
-      if (currentMapping) {
-        // Update the mapping with graph ID
-        this.entityIdManager.updateMapping(issue.entityId, {
-          vectorId: currentMapping.vectorId,
-          graphId: `graph_${issue.entityId}_repaired`
+      try {
+        // Get the entity mapping
+        const mapping = this.entityIdManager.getMapping(issue.entityId);
+        if (!mapping) {
+          throw new CodebaseIndexError(`Entity mapping not found: ${issue.entityId}`, { 
+            component: 'ConsistencyChecker', 
+            operation: 'repairMissingGraph' 
+          });
+        }
+
+        // Create a transaction for graph repair
+        const operations = [{
+          type: 'graph' as const,
+          operation: {
+            type: 'storeChunks',
+            chunks: [mapping], // Using the entire mapping as the chunk data
+            options: { projectId: issue.projectId }
+          }
+        }];
+
+        const result = await this.transactionCoordinator.executeTransaction(issue.projectId, operations);
+        
+        if (result.success) {
+          // Get the current mapping to preserve the vectorId
+          const currentMapping = this.entityIdManager.getMapping(issue.entityId);
+          // Update the mapping with graph ID
+          await this.entityIdManager.updateMapping(issue.entityId, {
+            vectorId: currentMapping?.vectorId,
+            graphId: issue.entityId
+          });
+          
+          return {
+            issueId: issue.id,
+            success: true,
+            action: 'created_graph_data',
+            message: `Created missing graph data for entity ${issue.entityId}`,
+            timestamp: new Date()
+          };
+        } else {
+          throw new Error(result.error || 'Transaction failed');
+        }
+      } catch (error) {
+        this.logger.error('Failed to repair missing graph data', { 
+          entityId: issue.entityId, 
+          error: error instanceof Error ? error.message : String(error) 
         });
+        
+        throw error;
       }
-      
-      return {
-        issueId: issue.id,
-        success: true,
-        action: 'created_graph_data',
-        message: `Created missing graph data for entity ${issue.entityId}`,
-        timestamp: new Date()
-      };
     } else {
       throw new CodebaseIndexError('Manual repair not implemented', { 
         component: 'ConsistencyChecker', 
