@@ -14,6 +14,7 @@ import { OllamaEmbedder } from '../embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../embedders/GeminiEmbedder';
 import { MistralEmbedder } from '../embedders/MistralEmbedder';
 import { EmbedderFactory } from '../embedders/EmbedderFactory';
+import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
 import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
@@ -51,10 +52,10 @@ export const TYPES = {
   GraphService: Symbol.for('GraphService'),
   ParserService: Symbol.for('ParserService'),
   QdrantService: Symbol.for('QdrantService'),
-  Neo4jService: Symbol.for('Neo4jService'),
   NebulaService: Symbol.for('NebulaService'),
   NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
+  EmbeddingCacheService: Symbol.for('EmbeddingCacheService'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
   OllamaEmbedder: Symbol.for('OllamaEmbedder'),
   GeminiEmbedder: Symbol.for('GeminiEmbedder'),
@@ -66,7 +67,6 @@ export const TYPES = {
   ChangeDetectionService: Symbol.for('ChangeDetectionService'),
   HashBasedDeduplicator: Symbol.for('HashBasedDeduplicator'),
   QdrantClientWrapper: Symbol.for('QdrantClientWrapper'),
-  Neo4jConnectionManager: Symbol.for('Neo4jConnectionManager'),
   VectorStorageService: Symbol.for('VectorStorageService'),
   GraphPersistenceService: Symbol.for('GraphPersistenceService'),
   EntityIdManager: Symbol.for('EntityIdManager'),
@@ -107,6 +107,7 @@ const databaseModule = new ContainerModule((bind: any) => {
 });
 
 const embedderModule = new ContainerModule((bind: any) => {
+  bind(TYPES.EmbeddingCacheService).to(EmbeddingCacheService).inSingletonScope();
   bind(TYPES.OpenAIEmbedder).to(OpenAIEmbedder).inSingletonScope();
   bind(TYPES.OllamaEmbedder).to(OllamaEmbedder).inSingletonScope();
   bind(TYPES.GeminiEmbedder).to(GeminiEmbedder).inSingletonScope();
@@ -156,12 +157,12 @@ export class DIContainer {
   private static instance: Container | null = null;
 
   static getInstance(): Container {
-      if (!DIContainer.instance) {
-        DIContainer.instance = new Container();
-        DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, queueModule, syncModule, monitoringModule, controllerModule);
-      }
-      return DIContainer.instance;
+    if (!DIContainer.instance) {
+      DIContainer.instance = new Container();
+      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, queueModule, syncModule, monitoringModule, controllerModule);
     }
+    return DIContainer.instance;
+  }
 
   static reset(): void {
     DIContainer.instance = null;
