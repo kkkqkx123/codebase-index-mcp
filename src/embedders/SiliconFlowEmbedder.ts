@@ -40,11 +40,11 @@ export class SiliconFlowEmbedder extends HttpEmbedder implements Embedder {
   }
 
   protected getEmbeddingEndpoint(): string {
-    return '/v1/embeddings';
+    return '/embeddings';
   }
 
   protected getAvailabilityEndpoint(): string {
-    return '/v1/models';
+    return '/models';
   }
 
   protected getComponentName(): string {
