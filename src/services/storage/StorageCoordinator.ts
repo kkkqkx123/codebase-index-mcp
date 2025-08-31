@@ -1,11 +1,12 @@
 import { injectable, inject } from 'inversify';
-import { VectorStorageService, IndexingResult } from '../storage/VectorStorageService';
-import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from '../storage/GraphPersistenceService';
-import { TransactionCoordinator } from '../sync/TransactionCoordinator';
-import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { ConfigService } from '../../config/ConfigService';
-import { QdrantClientWrapper, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
+ import { VectorStorageService, IndexingResult } from '../storage/VectorStorageService';
+ import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from '../storage/GraphPersistenceService';
+ import { TransactionCoordinator } from '../sync/TransactionCoordinator';
+ import { LoggerService } from '../../core/LoggerService';
+ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+ import { ConfigService } from '../../config/ConfigService';
+ import { QdrantClientWrapper, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
+ import { CodeChunk } from '../../services/parser/TreeSitterService';
 
 export interface ParsedFile {
   filePath: string;
@@ -14,16 +15,11 @@ export interface ParsedFile {
   metadata: Record<string, any>;
 }
 
-export interface Chunk {
-  id: string;
-  content: string;
- filePath: string;
- startLine: number;
-  endLine: number;
-  language: string;
-  chunkType: string;
-  metadata: Record<string, any>;
-}
+ export interface Chunk extends CodeChunk {
+   filePath: string;
+   language: string;
+   chunkType: string;
+ }
 
 export interface StorageResult {
   success: boolean;
@@ -47,20 +43,21 @@ export class StorageCoordinator {
   private transactionCoordinator: TransactionCoordinator;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(VectorStorageService) vectorStorage: VectorStorageService,
-    @inject(GraphPersistenceService) graphStorage: GraphPersistenceService,
-    @inject(TransactionCoordinator) transactionCoordinator: TransactionCoordinator
-  ) {
-    this.logger = logger;
-    this.errorHandler = errorHandler;
-    this.configService = configService;
-    this.vectorStorage = vectorStorage;
-    this.graphStorage = graphStorage;
-    this.transactionCoordinator = transactionCoordinator;
-  }
+   @inject(LoggerService) logger: LoggerService,
+   @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+   @inject(ConfigService) configService: ConfigService,
+   @inject(VectorStorageService) vectorStorage: VectorStorageService,
+   @inject(GraphPersistenceService) graphStorage: GraphPersistenceService,
+   @inject(TransactionCoordinator) transactionCoordinator: TransactionCoordinator,
+   @inject(QdrantClientWrapper) private qdrantClient: QdrantClientWrapper
+ ) {
+   this.logger = logger;
+   this.errorHandler = errorHandler;
+   this.configService = configService;
+   this.vectorStorage = vectorStorage;
+   this.graphStorage = graphStorage;
+   this.transactionCoordinator = transactionCoordinator;
+ }
 
   async store(files: ParsedFile[], projectId?: string): Promise<StorageResult> {
     if (files.length === 0) {
@@ -130,25 +127,19 @@ export class StorageCoordinator {
           throw new Error('Transaction failed');
         }
 
-        // Mock results for now - in real implementation, these would come from the services
-        vectorResult = {
-          success: true,
-          processedFiles: files.length,
-          totalChunks: allChunks.length,
-          uniqueChunks: allChunks.length,
-          duplicatesRemoved: 0,
-          processingTime: 0,
-          errors: []
-        };
+        // Store chunks in vector storage
+        vectorResult = await this.vectorStorage.storeChunks(allChunks, {
+          projectId,
+          overwriteExisting: true,
+          batchSize: allChunks.length
+        });
         
-        graphResult = {
-          success: true,
-          nodesCreated: allChunks.length,
-          relationshipsCreated: 0,
-          nodesUpdated: 0,
-          processingTime: 0,
-          errors: []
-        };
+        // Store chunks in graph storage
+        graphResult = await this.graphStorage.storeChunks(allChunks, {
+          projectId,
+          overwriteExisting: true,
+          batchSize: allChunks.length
+        });
 
         this.logger.info('Files stored successfully', {
           fileCount: files.length,
@@ -273,11 +264,14 @@ export class StorageCoordinator {
     this.logger.info('Deleting project from databases', { projectId });
 
     try {
-      // In a real implementation, this would query for all chunks belonging to the project
-      // For now, we'll use a mock implementation
-      const mockChunkIds = await this.getProjectChunkIds(projectId);
+      // Get all chunk IDs for the project from vector storage
+      // We need to get the collection name from the vector storage service config
+      const vectorChunkIds = await this.qdrantClient.getChunkIdsByFiles(
+        this.vectorStorage['config'].collectionName,
+        [projectId]
+      );
       
-      if (mockChunkIds.length === 0) {
+      if (vectorChunkIds.length === 0) {
         return {
           success: true,
           filesDeleted: 0,
@@ -292,19 +286,19 @@ export class StorageCoordinator {
         // Add vector deletion operation to transaction
         await this.transactionCoordinator.addVectorOperation({
           type: 'deleteChunks',
-          chunkIds: mockChunkIds
+          chunkIds: vectorChunkIds
         }, {
           type: 'restoreChunks',
-          chunkIds: mockChunkIds
+          chunkIds: vectorChunkIds
         });
         
         // Add graph deletion operation to transaction
         await this.transactionCoordinator.addGraphOperation({
           type: 'deleteNodes',
-          nodeIds: mockChunkIds
+          nodeIds: vectorChunkIds
         }, {
           type: 'restoreNodes',
-          nodeIds: mockChunkIds
+          nodeIds: vectorChunkIds
         });
         
         // Commit transaction
@@ -316,12 +310,12 @@ export class StorageCoordinator {
 
         this.logger.info('Project deleted successfully', {
           projectId,
-          chunkCount: mockChunkIds.length
+          chunkCount: vectorChunkIds.length
         });
 
         return {
           success: true,
-          filesDeleted: mockChunkIds.length,
+          filesDeleted: vectorChunkIds.length,
           errors: []
         };
       } catch (error) {
@@ -377,7 +371,7 @@ export class StorageCoordinator {
     }
   }
 
-  // Add snippet statistics method
+ // Add snippet statistics method
   async getSnippetStatistics(projectId: string): Promise<{
     totalSnippets: number;
     processedSnippets: number;
@@ -392,7 +386,6 @@ export class StorageCoordinator {
       const graphStats = await this.graphStorage.getGraphStats();
       
       // Calculate statistics based on storage data
-      // For now, we'll use a simplified calculation
       const totalSnippets = vectorStats.totalPoints;
       const processedSnippets = Math.floor(totalSnippets * 0.95); // Assume 95% are processed
       const duplicateSnippets = totalSnippets - processedSnippets;
@@ -424,9 +417,10 @@ export class StorageCoordinator {
   async findSnippetByHash(contentHash: string, projectId: string): Promise<any> {
     try {
       // Search in vector storage for a snippet with the given hash
-      // Generate a dummy vector for search - in real implementation this would be an embedding
-      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+      // In a real implementation, we would generate an embedding for search
+      // For now, we'll use a placeholder vector
+      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
         limit: 1,
         filter: {
           projectId: projectId,
@@ -472,9 +466,10 @@ export class StorageCoordinator {
   async findSnippetReferences(snippetId: string, projectId: string): Promise<string[]> {
     try {
       // Search in vector storage for references to the given snippet
-      // Generate a dummy vector for search - in real implementation this would be an embedding
-      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+      // In a real implementation, we would generate an embedding for search
+      // For now, we'll use a placeholder vector
+      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
         limit: 100,
         filter: {
           projectId: projectId
@@ -526,9 +521,10 @@ export class StorageCoordinator {
   }> {
     try {
       // Search in vector storage for dependencies of the given snippet
-      // Generate a dummy vector for search - in real implementation this would be an embedding
-      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+      // In a real implementation, we would generate an embedding for search
+      // For now, we'll use a placeholder vector
+      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
         limit: 100,
         filter: {
           projectId: projectId
@@ -606,9 +602,10 @@ export class StorageCoordinator {
   async findSnippetOverlaps(snippetId: string, projectId: string): Promise<string[]> {
     try {
       // Search in vector storage for the given snippet
-      // Generate a dummy vector for search - in real implementation this would be an embedding
-      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+      // In a real implementation, we would generate an embedding for search
+      // For now, we'll use a placeholder vector
+      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
         limit: 1,
         filter: {
           projectId: projectId
@@ -623,8 +620,8 @@ export class StorageCoordinator {
       
       // Search for similar snippets that might overlap
       // Note: SearchResult doesn't have a vector property, so we need to handle this differently
-      // For now, we'll use the dummy vector again
-      const similarSnippets = await this.vectorStorage.searchVectors(dummyVector, {
+      // For now, we'll use the placeholder vector again
+      const similarSnippets = await this.vectorStorage.searchVectors(placeholderVector, {
         limit: 20,
         filter: {
           projectId: projectId
@@ -664,31 +661,34 @@ export class StorageCoordinator {
   }
 
   private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {
-    // This would typically query the database to get chunk IDs for the specified files
-    // For now, we'll return a mock implementation
-    const chunkIds: string[] = [];
-    
-    for (const filePath of filePaths) {
-      // Generate mock chunk IDs based on file path
-      const mockChunkCount = Math.floor(Math.random() * 5) + 1;
-      for (let i = 0; i < mockChunkCount; i++) {
-        chunkIds.push(`chunk_${filePath.replace(/[^a-zA-Z0-9]/g, '_')}_${i}`);
-      }
+    try {
+      // Get chunk IDs for the specified files from vector storage
+      return await this.qdrantClient.getChunkIdsByFiles(
+        this.vectorStorage['config'].collectionName,
+        filePaths
+      );
+    } catch (error) {
+      this.logger.error('Failed to get chunk IDs for files', {
+        filePaths,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
     }
-    
-    return chunkIds;
   }
 
   private async getProjectChunkIds(projectId: string): Promise<string[]> {
-    // This would typically query the database to get all chunk IDs for the project
-    // For now, we'll return a mock implementation
-    const mockChunkCount = Math.floor(Math.random() * 100) + 50;
-    const chunkIds: string[] = [];
-    
-    for (let i = 0; i < mockChunkCount; i++) {
-      chunkIds.push(`chunk_${projectId}_${i}`);
+    try {
+      // Get all chunk IDs for the project from vector storage
+      return await this.qdrantClient.getChunkIdsByFiles(
+        this.vectorStorage['config'].collectionName,
+        [projectId]
+      );
+    } catch (error) {
+      this.logger.error('Failed to get chunk IDs for project', {
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
     }
-    
-    return chunkIds;
   }
 }

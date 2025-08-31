@@ -296,7 +296,7 @@ export class SearchCoordinator {
 
     try {
       // Use storage coordinator to search graph
-      const graphResults = await this.storageCoordinator.searchGraph(query, options);
+      const graphResults = await this.storageCoordinator.searchGraph(query, {});
       
       // Convert graph results to SearchResult format
       const results: SearchResult[] = graphResults.map((result: any) => ({

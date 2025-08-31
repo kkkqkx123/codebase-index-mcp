@@ -35,6 +35,7 @@ import { SiliconFlowEmbedder } from './embedders/SiliconFlowEmbedder';
 import { Custom1Embedder } from './embedders/Custom1Embedder';
 import { Custom2Embedder } from './embedders/Custom2Embedder';
 import { Custom3Embedder } from './embedders/Custom3Embedder';
+import { EmbeddingCacheService } from './embedders/EmbeddingCacheService';
 
 // New refactored services
 import { IndexCoordinator } from './services/indexing/IndexCoordinator';
@@ -119,6 +120,7 @@ container.bind<SiliconFlowEmbedder>(SiliconFlowEmbedder).toSelf().inSingletonSco
 container.bind<Custom1Embedder>(Custom1Embedder).toSelf().inSingletonScope();
 container.bind<Custom2Embedder>(Custom2Embedder).toSelf().inSingletonScope();
 container.bind<Custom3Embedder>(Custom3Embedder).toSelf().inSingletonScope();
+container.bind<EmbeddingCacheService>(EmbeddingCacheService).toSelf().inSingletonScope();
 
 // Bind services
 container.bind<ChangeDetectionService>(ChangeDetectionService).toSelf().inSingletonScope();

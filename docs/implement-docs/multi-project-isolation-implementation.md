@@ -317,13 +317,16 @@ class ProjectIdManager {
       spaceMap: Object.fromEntries(this.spaceMap)
     };
     
-    await fs.writeFile('/data/project-mapping.json', JSON.stringify(mapping, null, 2));
+    // 使用配置化的存储路径，支持不同环境
+    const storagePath = process.env.PROJECT_MAPPING_PATH || '/data/project-mapping.json';
+    await fs.writeFile(storagePath, JSON.stringify(mapping, null, 2));
   }
   
   // 加载映射关系
   async loadMapping(): Promise<void> {
     try {
-      const data = await fs.readFile('/data/project-mapping.json', 'utf8');
+      const storagePath = process.env.PROJECT_MAPPING_PATH || '/data/project-mapping.json';
+      const data = await fs.readFile(storagePath, 'utf8');
       const mapping = JSON.parse(data);
       
       this.projectIdMap = new Map(Object.entries(mapping.projectIdMap));
@@ -331,6 +334,10 @@ class ProjectIdManager {
       this.spaceMap = new Map(Object.entries(mapping.spaceMap));
     } catch (error) {
       console.warn('Failed to load project mapping:', error);
+      // 如果映射文件不存在，初始化空映射
+      this.projectIdMap = new Map();
+      this.collectionMap = new Map();
+      this.spaceMap = new Map();
     }
   }
 }
@@ -399,8 +406,14 @@ scrape_configs:
     file_sd_configs:
       - files:
           - '/etc/prometheus/qdrant-projects.json'
-    metrics_path: '/collections/*/points/count'  # 动态路径
+    metrics_path: '/metrics'  # Qdrant 的标准监控端点
     scrape_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__meta_filepath]
+        regex: '.*project-(.*)\.json'
+        target_label: project_id
 
  - job_name: 'nebula-projects'
     file_sd_configs:
@@ -511,14 +524,56 @@ multiProject:
 class ResourcePool {
   private vectorClients: Map<string, QdrantClient> = new Map();
   private graphClients: Map<string, NebulaClient> = new Map();
+  private cleanupInterval: NodeJS.Timeout;
+  
+  constructor() {
+    // 定期清理闲置连接（30分钟无活动）
+    this.cleanupInterval = setInterval(() => this.cleanupIdleConnections(), 30 * 60 * 1000);
+  }
   
   async getVectorClient(projectId: string): Promise<QdrantClient> {
     if (!this.vectorClients.has(projectId)) {
       const client = new QdrantClient(/* 配置 */);
-      this.vectorClients.set(projectId, client);
+      this.vectorClients.set(projectId, {
+        client,
+        lastUsed: Date.now()
+      });
+    } else {
+      // 更新最后使用时间
+      this.vectorClients.get(projectId)!.lastUsed = Date.now();
     }
     
-    return this.vectorClients.get(projectId)!;
+    return this.vectorClients.get(projectId)!.client;
+  }
+  
+  private cleanupIdleConnections(): void {
+    const now = Date.now();
+    const idleThreshold = 30 * 60 * 1000; // 30分钟
+    
+    // 清理闲置的向量数据库连接
+    for (const [projectId, entry] of this.vectorClients.entries()) {
+      if (now - entry.lastUsed > idleThreshold) {
+        entry.client.close();
+        this.vectorClients.delete(projectId);
+      }
+    }
+    
+    // 清理闲置的图数据库连接
+    for (const [projectId, entry] of this.graphClients.entries()) {
+      if (now - entry.lastUsed > idleThreshold) {
+        entry.client.close();
+        this.graphClients.delete(projectId);
+      }
+    }
+  }
+  
+  // 销毁时清理所有资源
+  destroy(): void {
+    clearInterval(this.cleanupInterval);
+    this.vectorClients.forEach(entry => entry.client.close());
+    this.graphClients.forEach(entry => entry.client.close());
+    this.vectorClients.clear();
+    this.graphClients.clear();
   }
 }
 ```
@@ -655,17 +710,26 @@ POST /api/projects/{projectId}/restore
 ## 测试策略
 
 ### 单元测试
-- 对每个新类和方法进行单元测试
-- 使用mock对象隔离外部依赖
+- 对每个新类和方法进行单元测试，覆盖率达到90%以上
+- 使用jest和ts-mockito进行mock对象隔离外部依赖
+- 重点测试错误处理、边界条件和并发场景
 
 ### 集成测试
-- 测试项目隔离功能的完整流程
-- 验证不同项目间的数据隔离性
-- 测试迁移工具的正确性
+- 测试项目隔离功能的完整流程，包括创建、查询、删除操作
+- 验证不同项目间的数据隔离性，确保项目A无法访问项目B的数据
+- 测试迁移工具的正确性，包括数据完整性和一致性验证
+- 使用测试容器（TestContainers）创建真实的Qdrant和Nebula Graph实例
 
 ### 性能测试
-- 测试大量项目同时访问时的性能表现
-- 验证资源池化和缓存机制的效果
+- 测试大量项目（100+）同时访问时的性能表现
+- 验证资源池化和缓存机制的效果，测量连接复用率和缓存命中率
+- 使用基准测试工具（如autocannon）模拟高并发场景
+- 监控内存使用、CPU占用和响应时间指标
+
+### 测试数据准备
+- 创建多样化的测试项目，包含不同大小的代码库
+- 准备边缘情况测试数据：空项目、超大项目、特殊字符项目路径
+- 使用faker.js生成随机但可重复的测试数据
 
 ## 风险评估和缓解措施
 
