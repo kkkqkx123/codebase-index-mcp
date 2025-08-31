@@ -1,6 +1,6 @@
-import { MemoryManager, MemoryManagerOptions } from '../../../src/services/processing/MemoryManager';
-import { LoggerService } from '../../../src/core/LoggerService';
-import { createTestContainer } from '../../setup';
+import { MemoryManager, MemoryManagerOptions } from './MemoryManager';
+import { LoggerService } from '../../core/LoggerService';
+import { createTestContainer } from '../../../test/setup';
 
 describe('MemoryManager', () => {
   let memoryManager: MemoryManager;

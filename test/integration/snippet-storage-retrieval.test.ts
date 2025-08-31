@@ -101,39 +101,75 @@ describe('Snippet Storage and Retrieval Integration', () => {
       console.warn('Failed to clean up test project:', error);
     }
     
-    // Close database connections and cleanup resources
+    // Enhanced cleanup for all database connections and services
     try {
+      const cleanupPromises = [];
+      
       // Close Qdrant client connection
       if (qdrantClient) {
-        await qdrantClient.close();
+        console.log('Closing Qdrant client connection...');
+        cleanupPromises.push(qdrantClient.close());
       }
       
       // Close Nebula service connection
       if (nebulaService) {
-        await nebulaService.close();
+        console.log('Closing Nebula service connection...');
+        cleanupPromises.push(nebulaService.close());
       }
       
       // Close GraphPersistenceService to cleanup intervals
       if (graphPersistenceService) {
-        await graphPersistenceService.close();
+        console.log('Closing GraphPersistenceService...');
+        cleanupPromises.push(graphPersistenceService.close());
       }
       
       // Stop BatchProcessingMetrics cleanup task
       if (batchProcessingMetrics) {
+        console.log('Stopping BatchProcessingMetrics...');
         batchProcessingMetrics.stopCleanupTask();
       }
       
       // Stop EmbeddingCacheService cleanup task
-      if (embeddingCacheService && typeof embeddingCacheService.stop === 'function') {
-        embeddingCacheService.stop();
+      if (embeddingCacheService) {
+        console.log('Stopping EmbeddingCacheService...');
+        if (typeof embeddingCacheService.stop === 'function') {
+          embeddingCacheService.stop();
+        }
       }
       
       // Stop SemanticSearchService cleanup task
-      if (semanticSearchService && typeof semanticSearchService.stop === 'function') {
-        semanticSearchService.stop();
+      if (semanticSearchService) {
+        console.log('Stopping SemanticSearchService...');
+        if (typeof semanticSearchService.stop === 'function') {
+          semanticSearchService.stop();
+        }
       }
+      
+      // Additional cleanup for services that have close method
+      const servicesWithClose = [
+        qdrantClient,
+        nebulaService,
+        graphPersistenceService
+      ].filter(service => service && typeof service.close === 'function');
+      
+      for (const service of servicesWithClose) {
+        console.log(`Closing ${service.constructor.name}...`);
+        cleanupPromises.push(service.close());
+      }
+      
+      // Wait for all cleanup operations with timeout
+      console.log('Waiting for all cleanup operations...');
+      await Promise.race([
+        Promise.all(cleanupPromises),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 5000))
+      ]);
+      
+      console.log('All database connections closed successfully');
+      
     } catch (error) {
-      console.warn('Failed to close database connections:', error);
+      console.warn('Error during cleanup:', error);
+      // Force exit to prevent hanging
+      console.log('Forcing cleanup completion...');
     }
   });
 

@@ -1,11 +1,12 @@
 import { StorageCoordinator, ParsedFile, Chunk, StorageResult, DeleteResult } from '../../../src/services/storage/StorageCoordinator';
 import { VectorStorageService } from '../../../src/services/storage/VectorStorageService';
-import { GraphPersistenceService } from '../../../src/services/storage/GraphPersistenceService';
+import { GraphPersistenceService, GraphPersistenceOptions } from '../../../src/services/storage/GraphPersistenceService';
 import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
 import { LoggerService } from '../../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { ConfigService } from '../../../src/config/ConfigService';
-import { createTestContainer } from '../../setup';
+import { QdrantClientWrapper } from '../../../src/database/qdrant/QdrantClientWrapper';
+import { createTestContainer } from '../../../test/setup';
 
 describe('StorageCoordinator', () => {
   let storageCoordinator: StorageCoordinator;
@@ -15,6 +16,7 @@ describe('StorageCoordinator', () => {
   let loggerService: jest.Mocked<LoggerService>;
   let errorHandlerService: jest.Mocked<ErrorHandlerService>;
   let configService: jest.Mocked<ConfigService>;
+  let qdrantClient: jest.Mocked<QdrantClientWrapper>;
   let container: any;
 
   beforeEach(() => {
@@ -25,19 +27,17 @@ describe('StorageCoordinator', () => {
       storeChunks: jest.fn(),
       deleteChunks: jest.fn(),
       search: jest.fn(),
-      getChunkById: jest.fn(),
-      getChunksByFile: jest.fn(),
-      getProjectStats: jest.fn()
+      searchVectors: jest.fn(),
+      deleteChunksByFiles: jest.fn(),
+      getCollectionStats: jest.fn()
     } as any;
 
     graphStorage = {
       storeChunks: jest.fn(),
       deleteNodes: jest.fn(),
       search: jest.fn(),
-      getNodeById: jest.fn(),
-      getNodesByFile: jest.fn(),
-      getRelationships: jest.fn(),
-      getProjectStats: jest.fn()
+      deleteNodesByFiles: jest.fn(),
+      getGraphStats: jest.fn()
     } as any;
 
     transactionCoordinator = {
@@ -45,22 +45,26 @@ describe('StorageCoordinator', () => {
       commitTransaction: jest.fn(),
       rollbackTransaction: jest.fn(),
       addVectorOperation: jest.fn(),
-      addGraphOperation: jest.fn(),
-      getStatus: jest.fn()
+      addGraphOperation: jest.fn()
+    } as any;
+
+    qdrantClient = {
+      getChunkIdsByFiles: jest.fn()
     } as any;
 
     loggerService = container.get(LoggerService);
     errorHandlerService = container.get(ErrorHandlerService);
     configService = container.get(ConfigService);
 
-    // Create StorageCoordinator instance
+    // Create StorageCoordinator instance with mocked QdrantClientWrapper
     storageCoordinator = new StorageCoordinator(
       loggerService,
       errorHandlerService,
       configService,
       vectorStorage,
       graphStorage,
-      transactionCoordinator
+      transactionCoordinator,
+      qdrantClient
     );
   });
 
@@ -79,7 +83,12 @@ describe('StorageCoordinator', () => {
             endLine: 3,
             language: 'typescript',
             chunkType: 'function',
-            metadata: {}
+            metadata: {},
+            startByte: 0,
+            endByte: 0,
+            type: '',
+            imports: [],
+            exports: []
           },
           {
             id: 'chunk_2',
@@ -89,7 +98,12 @@ describe('StorageCoordinator', () => {
             endLine: 5,
             language: 'typescript',
             chunkType: 'variable',
-            metadata: {}
+            metadata: {},
+            startByte: 0,
+            endByte: 0,
+            type: '',
+            imports: [],
+            exports: []
           }
         ]
       },
@@ -106,7 +120,12 @@ describe('StorageCoordinator', () => {
             endLine: 3,
             language: 'typescript',
             chunkType: 'class',
-            metadata: {}
+            metadata: {},
+            startByte: 0,
+            endByte: 0,
+            type: '',
+            imports: [],
+            exports: []
           }
         ]
       }
@@ -501,7 +520,12 @@ describe('StorageCoordinator', () => {
 
   describe('searchGraph', () => {
     const mockQuery = 'MATCH (n:Function) RETURN n';
-    const mockOptions = { limit: 5 };
+    const mockOptions: GraphPersistenceOptions = {
+      limit: 5,
+      projectId: 'test_project',
+      batchSize: 10,
+      type: 'semantic'
+    };
     const mockResults = [
       { id: 'node_1', labels: ['Function'], properties: { name: 'test' } },
       { id: 'node_2', labels: ['Function'], properties: { name: 'test2' } }
@@ -534,47 +558,76 @@ describe('StorageCoordinator', () => {
   describe('utility methods', () => {
     it('should get snippet statistics', async () => {
       const mockProjectId = 'test_project';
-      const mockStats = {
-        totalSnippets: 150,
-        processedSnippets: 142,
-        duplicateSnippets: 8,
-        processingRate: 45.2
-      };
+
+      // Mock the return values of the storage services
+      vectorStorage.getCollectionStats.mockResolvedValue({
+        totalPoints: 150,
+        collectionInfo: {}
+      });
+
+      graphStorage.getGraphStats.mockResolvedValue({
+        nodeCount: 100,
+        relationshipCount: 50,
+        nodeTypes: {},
+        relationshipTypes: {}
+      });
 
       const result = await storageCoordinator.getSnippetStatistics(mockProjectId);
 
-      expect(result).toEqual(mockStats);
+      expect(result).toEqual({
+        totalSnippets: 150,
+        processedSnippets: 142, // 150 * 0.95
+        duplicateSnippets: 8, // 150 - 142
+        processingRate: 45.2
+      });
     });
 
     it('should find snippet by hash', async () => {
       const mockContentHash = 'abc123';
       const mockProjectId = 'test_project';
-      const mockSnippet = { id: 'snippet_1', content: 'test code' };
+
+      // Mock vector storage search results
+      vectorStorage.searchVectors.mockResolvedValue([]);
+
+      // Mock graph storage search results
+      graphStorage.search.mockResolvedValue([]);
 
       const result = await storageCoordinator.findSnippetByHash(mockContentHash, mockProjectId);
 
-      expect(result).toBeNull(); // Returns mock null value
+      expect(result).toBeNull();
     });
 
     it('should find snippet references', async () => {
       const mockSnippetId = 'snippet_1';
       const mockProjectId = 'test_project';
 
+      // Mock vector storage search results
+      vectorStorage.searchVectors.mockResolvedValue([]);
+
+      // Mock graph storage search results
+      graphStorage.search.mockResolvedValue([]);
+
       const result = await storageCoordinator.findSnippetReferences(mockSnippetId, mockProjectId);
 
-      expect(result).toEqual(['ref_snippet_1_1', 'ref_snippet_1_2']);
+      expect(result).toEqual([]);
     });
 
     it('should analyze snippet dependencies', async () => {
       const mockSnippetId = 'snippet_1';
       const mockProjectId = 'test_project';
 
+      // Mock vector storage search results
+      vectorStorage.searchVectors.mockResolvedValue([]);
+
+      // Mock graph storage search results
+      graphStorage.search.mockResolvedValue([]);
+
       const result = await storageCoordinator.analyzeSnippetDependencies(mockSnippetId, mockProjectId);
 
       expect(result).toEqual({
-        dependsOn: ['dep_snippet_1_1', 'dep_snippet_1_2'],
-        usedBy: ['user_snippet_1_1'],
-        complexity: expect.any(Number)
+        dependsOn: [],
+        usedBy: [],
+        complexity: 1
       });
     });
 
@@ -582,9 +635,15 @@ describe('StorageCoordinator', () => {
       const mockSnippetId = 'snippet_1';
       const mockProjectId = 'test_project';
 
+      // Mock vector storage search results
+      vectorStorage.searchVectors.mockResolvedValue([]);
+
+      // Mock graph storage search results
+      graphStorage.search.mockResolvedValue([]);
+
       const result = await storageCoordinator.findSnippetOverlaps(mockSnippetId, mockProjectId);
 
-      expect(result).toEqual(['overlap_snippet_1_1']);
+      expect(result).toEqual([]);
     });
   });
 
@@ -592,23 +651,43 @@ describe('StorageCoordinator', () => {
     describe('getChunkIdsForFiles', () => {
       it('should return chunk IDs for files', async () => {
         const mockFilePaths = ['/test/project/file1.ts', '/test/project/file2.ts'];
-        
-        // Access private method for testing
-        const result = await (storageCoordinator as any).getChunkIdsForFiles(mockFilePaths);
+        const mockChunkIds = ['chunk_1', 'chunk_2', 'chunk_3'];
 
-        expect(Array.isArray(result)).toBe(true);
-        expect(result.length).toBeGreaterThan(0);
-        
-        // Verify chunk IDs are properly formatted
-        result.forEach((chunkId: string) => {
-          expect(typeof chunkId).toBe('string');
-          expect(chunkId).toMatch(/^chunk_/);
-        });
+        // Mock QdrantClientWrapper method
+        qdrantClient.getChunkIdsByFiles.mockResolvedValue(mockChunkIds);
+
+        // Mock the vectorStorage config to return a collection name
+        (vectorStorage as any).config = { collectionName: 'test_collection' };
+
+        // Call the private method directly using reflection
+        const getChunkIdsForFiles = (storageCoordinator as any)['getChunkIdsForFiles'];
+        const result = await getChunkIdsForFiles.call(storageCoordinator, mockFilePaths);
+
+        // Verify QdrantClientWrapper method was called correctly
+        expect(qdrantClient.getChunkIdsByFiles).toHaveBeenCalledWith(
+          'test_collection',
+          mockFilePaths
+        );
+
+        // Verify the result
+        expect(result).toEqual(mockChunkIds);
       });
 
       it('should handle empty file paths array', async () => {
-        const result = await (storageCoordinator as any).getChunkIdsForFiles([]);
+        // Mock the vectorStorage config to return a collection name
+        (vectorStorage as any).config = { collectionName: 'test_collection' };
 
+        // Call the private method directly using reflection
+        const getChunkIdsForFiles = (storageCoordinator as any)['getChunkIdsForFiles'];
+        const result = await getChunkIdsForFiles.call(storageCoordinator, []);
+
+        // Verify QdrantClientWrapper method was called with empty array
+        expect(qdrantClient.getChunkIdsByFiles).toHaveBeenCalledWith(
+          'test_collection',
+          []
+        );
+
+        // Verify the result
         expect(result).toEqual([]);
       });
     });
@@ -616,18 +695,26 @@ describe('StorageCoordinator', () => {
     describe('getProjectChunkIds', () => {
       it('should return chunk IDs for project', async () => {
         const mockProjectId = 'test_project';
-        
-        // Access private method for testing
-        const result = await (storageCoordinator as any).getProjectChunkIds(mockProjectId);
+        const mockChunkIds = ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'];
 
-        expect(Array.isArray(result)).toBe(true);
-        expect(result.length).toBeGreaterThan(0);
-        
-        // Verify chunk IDs are properly formatted
-        result.forEach((chunkId: string) => {
-          expect(typeof chunkId).toBe('string');
-          expect(chunkId).toMatch(/^chunk_/);
-        });
+        // Mock QdrantClientWrapper method
+        qdrantClient.getChunkIdsByFiles.mockResolvedValue(mockChunkIds);
+
+        // Mock the vectorStorage config to return a collection name
+        (vectorStorage as any).config = { collectionName: 'test_collection' };
+
+        // Call the private method directly using reflection
+        const getProjectChunkIds = (storageCoordinator as any)['getProjectChunkIds'];
+        const result = await getProjectChunkIds.call(storageCoordinator, mockProjectId);
+
+        // Verify QdrantClientWrapper method was called correctly
+        expect(qdrantClient.getChunkIdsByFiles).toHaveBeenCalledWith(
+          'test_collection',
+          [mockProjectId]
+        );
+
+        // Verify the result
+        expect(result).toEqual(mockChunkIds);
       });
     });
   });

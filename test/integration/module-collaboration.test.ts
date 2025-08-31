@@ -150,13 +150,23 @@ describe('Module Collaboration Integration Tests', () => {
     }, loggerService);
 
     // Create coordinators
+    const mockQdrantClient = {
+      upsert: jest.fn(),
+      search: jest.fn(),
+      delete: jest.fn(),
+      createCollection: jest.fn(),
+      collectionExists: jest.fn().mockResolvedValue(true),
+      close: jest.fn()
+    } as any;
+
     storageCoordinator = new StorageCoordinator(
       loggerService,
       errorHandlerService,
       configService,
       vectorStorage,
       graphStorage,
-      transactionCoordinator
+      transactionCoordinator,
+      mockQdrantClient
     );
 
     indexCoordinator = new IndexCoordinator(
@@ -345,21 +355,39 @@ describe('Module Collaboration Integration Tests', () => {
   describe('Storage Coordination Integration', () => {
     const mockFiles = [
       {
+        id: 'file1',
         filePath: '/test/project/file1.ts',
+        relativePath: 'file1.ts',
         language: 'typescript',
-        metadata: { size: 1000 },
+        content: 'function test() { return true; }',
         chunks: [
           {
             id: 'chunk_1',
             content: 'function test() { return true; }',
-            filePath: '/test/project/file1.ts',
             startLine: 1,
             endLine: 3,
+            startByte: 0,
+            endByte: 32,
+            type: 'function',
+            filePath: '/test/project/file1.ts',
             language: 'typescript',
             chunkType: 'function',
+            imports: [],
+            exports: [],
             metadata: {}
           }
-        ]
+        ],
+        hash: 'test-hash',
+        size: 1000,
+        parseTime: 100,
+        metadata: {
+          functions: 1,
+          classes: 0,
+          imports: [],
+          exports: [],
+          linesOfCode: 1,
+          snippets: 1
+        }
       }
     ];
 

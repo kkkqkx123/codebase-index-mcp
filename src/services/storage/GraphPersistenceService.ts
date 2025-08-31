@@ -22,6 +22,8 @@ export interface GraphPersistenceOptions {
   batchSize?: number;
   useCache?: boolean;
   cacheTTL?: number;
+  limit?: number;
+  type?: string;
 }
 
 export interface GraphPersistenceResult {
