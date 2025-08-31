@@ -1,4 +1,4 @@
-const { TreeSitterService } = require('./src/services/parser/TreeSitterService');
+const { TreeSitterService } = require('../../src/services/parser/TreeSitterService');
 
 // Create a simple test
 const treeSitterService = new TreeSitterService();
@@ -29,19 +29,19 @@ function createMockSyntaxNode(type, text, startPosition, endPosition, startIndex
     parent,
     childForFieldName: () => null
   };
-  
+
   // Set parent relationship for children
   children.forEach(child => {
     child.parent = node;
   });
-  
+
   return node;
 }
 
 function createMockAST(code) {
   const lines = code.split('\n');
   const nodes = [];
-  
+
   // Create nodes based on code patterns
   lines.forEach((line, index) => {
     if (line.includes('try') || line.includes('catch')) {
@@ -56,7 +56,7 @@ function createMockAST(code) {
       ));
     }
   });
-  
+
   // Create root node with all the created nodes as children
   const rootNode = createMockSyntaxNode(
     'program',
@@ -68,7 +68,7 @@ function createMockAST(code) {
     nodes,
     null
   );
-  
+
   return rootNode;
 }
 

@@ -13,7 +13,7 @@
 确保项目具有以下目录结构：
 
 ```
-project-root/
+/home/share/monitoring
 ├── docker-compose.monitoring.yml
 ├── monitoring/
 │   ├── prometheus.yml
@@ -38,6 +38,8 @@ project-root/
 #!/bin/bash
 
 # setup-monitoring.sh - 创建监控栈所需的目录结构
+cd /home/share
+mkdir monitoring && cd monitoring
 
 echo "Setting up monitoring directory structure..."
 
