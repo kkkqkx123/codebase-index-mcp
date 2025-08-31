@@ -600,8 +600,8 @@ export class TreeSitterService {
       // Limit traversal depth to prevent excessive recursion
       if (depth > 50) return;
 
-      // Look for block statements or statement lists that represent logical units
-      if (node.type === 'block' || node.type === 'statement_block') {
+      // Look for block statements, statement lists, or function definitions that represent logical units
+      if (node.type === 'block' || node.type === 'statement_block' || node.type === 'function_definition') {
         const snippet = this.createSnippetFromNode(node, sourceCode, 'logic_block', nestingLevel);
         if (snippet && this.isMeaningfulLogicBlock(node, sourceCode)) {
           snippets.push(snippet);
@@ -837,9 +837,9 @@ export class TreeSitterService {
 
   private isMeaningfulLogicBlock(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
-    // Should contain multiple statements or complex logic
+    // Should contain multiple statements or complex logic, or be a function definition
     const statements = content.split(';').filter(s => s.trim().length > 0);
-    return statements.length >= 2 || content.length > 50;
+    return statements.length >= 2 || content.length > 50 || /\bfunction\b/.test(content);
   }
 
   private extractCodeBlockAfterMarker(lines: string[], startLine: number): string[] {
@@ -943,7 +943,7 @@ export class TreeSitterService {
     }
     
     // Clear cache periodically to prevent memory leaks
-    if (this.snippetHashCache.size > 5000) {  // Reduced cache size to save memory
+    if (this.snippetHashCache.size > 1000) {  // Further reduced cache size to save memory
       this.snippetHashCache.clear();
     }
     

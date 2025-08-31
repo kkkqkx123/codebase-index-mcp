@@ -103,15 +103,52 @@ function createMockAST(code: string): any {
     }
     
     if (line.includes('function') || line.includes('=>')) {
-      nodes.push(createMockSyntaxNode(
-        'function_definition',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length,
-        []
-      ));
+      // Find the complete function block (multiple lines)
+      const functionStartIndex = code.indexOf(line);
+      let functionEndIndex = functionStartIndex + line.length;
+      let functionEndLine = index;
+      
+      // Look for the closing brace of the function
+      let braceCount = 0;
+      let currentIndex = functionStartIndex;
+      
+      while (currentIndex < code.length && braceCount >= 0) {
+        if (code[currentIndex] === '{') {
+          braceCount++;
+        } else if (code[currentIndex] === '}') {
+          braceCount--;
+        }
+        currentIndex++;
+      }
+      
+      if (braceCount < 0) {
+        // Found matching closing brace
+        functionEndIndex = currentIndex;
+        functionEndLine = index + code.substring(functionStartIndex, functionEndIndex).split('\n').length - 1;
+        
+        const functionContent = code.substring(functionStartIndex, functionEndIndex);
+        
+        nodes.push(createMockSyntaxNode(
+          'function_definition',
+          functionContent,
+          { row: index, column: 0 },
+          { row: functionEndLine, column: code.split('\n')[functionEndLine].length },
+          functionStartIndex,
+          functionEndIndex,
+          []
+        ));
+      } else {
+        // Fallback: single line function
+        nodes.push(createMockSyntaxNode(
+          'function_definition',
+          line,
+          { row: index, column: 0 },
+          { row: index, column: line.length },
+          code.indexOf(line),
+          code.indexOf(line) + line.length,
+          []
+        ));
+      }
     }
     
     // Create comment nodes for comment markers
