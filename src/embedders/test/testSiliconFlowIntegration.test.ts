@@ -2,6 +2,7 @@ import { ConfigService } from '../../config/ConfigService';
 import { SiliconFlowEmbedder } from '../SiliconFlowEmbedder';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { EmbeddingCacheService } from '../EmbeddingCacheService';
 
 // This is a simple test to verify that SiliconFlow embedder can be instantiated and configured
 // In a real application, this would be part of a proper test suite
@@ -14,9 +15,10 @@ function testSiliconFlowIntegration() {
     const configService = ConfigService.getInstance();
     const logger = new LoggerService;
     const errorHandler = new ErrorHandlerService(logger);
+    const cacheService = new EmbeddingCacheService(configService, logger);
 
     // Initialize SiliconFlow embedder
-    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler);
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
 
     // Test configuration
     const config = configService.get('embedding');

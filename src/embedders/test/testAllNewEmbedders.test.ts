@@ -5,6 +5,7 @@ import { Custom2Embedder } from '../Custom2Embedder';
 import { Custom3Embedder } from '../Custom3Embedder';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { EmbeddingCacheService } from '../EmbeddingCacheService';
 
 // This is a comprehensive test to verify that all new embedders can be instantiated and configured
 // In a real application, this would be part of a proper test suite
@@ -17,12 +18,13 @@ function testAllNewEmbedders() {
     const configService = ConfigService.getInstance();
     const logger = new LoggerService();
     const errorHandler = new ErrorHandlerService(logger);
+    const cacheService = new EmbeddingCacheService(configService, logger);
 
     // Initialize all new embedders
-    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler);
-    const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler);
-    const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler);
-    const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler);
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
+    const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
+    const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);
 
     // Test configuration
     const config = configService.get('embedding');

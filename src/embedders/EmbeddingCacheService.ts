@@ -23,9 +23,12 @@ export class EmbeddingCacheService {
     this.logger = logger;
     
     // Get cache configuration
-    const cacheConfig = configService.get('caching') || configService.get('cache');
-    this.maxSize = cacheConfig?.maxSize || cacheConfig?.maxEntries || 1000;
-    this.defaultTTL = (cacheConfig?.defaultTTL || cacheConfig?.ttl || 300) * 1000; // Convert to milliseconds
+    const cachingConfig = configService.get('caching');
+    const cacheConfig = configService.get('cache');
+    
+    // Get configuration values from either config structure
+    this.maxSize = cachingConfig?.maxSize || cacheConfig?.maxEntries || 1000;
+    this.defaultTTL = (cachingConfig?.defaultTTL || cacheConfig?.ttl || 300) * 1000; // Convert to milliseconds
     
     // Start cleanup interval
     const cleanupInterval = cacheConfig?.cleanupInterval ? cacheConfig.cleanupInterval * 1000 : 60000; // Default to 1 minute

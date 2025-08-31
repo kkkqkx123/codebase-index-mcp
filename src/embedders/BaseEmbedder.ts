@@ -56,12 +56,75 @@ export abstract class BaseEmbedder implements Embedder {
   abstract getModelName(): string;
   abstract isAvailable(): Promise<boolean>;
 
-  protected async measureTime<T>(operation: () => Promise<T>): Promise<{ result: T; time: number }> {
-      const startTime = Date.now();
-      const result = await operation();
-      const endTime = Date.now();
-      return { result, time: endTime - startTime };
+  /**
+   * Common embedding logic with cache checking and result combination
+   */
+  protected async embedWithCache(
+    input: EmbeddingInput | EmbeddingInput[],
+    processEmbeddings: (inputs: EmbeddingInput[]) => Promise<EmbeddingResult[]>
+  ): Promise<EmbeddingResult | EmbeddingResult[]> {
+    const inputs = Array.isArray(input) ? input : [input];
+    
+    // Check cache for existing embeddings
+    const cachedResults: EmbeddingResult[] = [];
+    const uncachedInputs: EmbeddingInput[] = [];
+    
+    for (const inp of inputs) {
+      const cached = this.cacheService.get(inp.text, this.getModelName());
+      if (cached) {
+        cachedResults.push(cached);
+      } else {
+        uncachedInputs.push(inp);
+      }
     }
+    
+    // If all inputs are cached, return cached results
+    if (uncachedInputs.length === 0) {
+      this.logger.debug('All embeddings found in cache', { count: cachedResults.length });
+      return Array.isArray(input) ? cachedResults : cachedResults[0];
+    }
+    
+    try {
+      // Wait for available request slot
+      await this.waitForAvailableSlot();
+      
+      const { result, time } = await this.executeWithTimeout(async () => {
+        return await this.measureTime(async () => {
+          return await processEmbeddings(uncachedInputs);
+        });
+      });
+      
+      // Release request slot
+      this.releaseSlot();
+      
+      // Update processingTime with the actual measured time
+      const apiResults = Array.isArray(result) ? result : [result];
+      apiResults.forEach(embedding => {
+        embedding.processingTime = time;
+      });
+      
+      // Cache the new results
+      apiResults.forEach((embedding, index) => {
+        this.cacheService.set(uncachedInputs[index].text, this.getModelName(), embedding);
+      });
+      
+      // Combine cached and new results
+      const finalResult = [...cachedResults, ...apiResults];
+      
+      return Array.isArray(input) ? finalResult : finalResult[0];
+    } catch (error) {
+      // Release request slot in case of error
+      this.releaseSlot();
+      throw error;
+    }
+  }
+
+  protected async measureTime<T>(operation: () => Promise<T>): Promise<{ result: T; time: number }> {
+    const startTime = Date.now();
+    const result = await operation();
+    const endTime = Date.now();
+    return { result, time: endTime - startTime };
+  }
   
     /**
      * Wait for available request slot based on concurrency limits

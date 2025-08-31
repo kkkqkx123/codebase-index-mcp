@@ -2,6 +2,7 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
+import { EmbeddingCacheService } from './EmbeddingCacheService';
 import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
 
 @injectable()
@@ -22,98 +23,45 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
       this.model = config.ollama.model || 'nomic-embed-text';
     }
 
-  async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
-      const inputs = Array.isArray(input) ? input : [input];
+  private async makeEmbeddingRequest(inputs: EmbeddingInput[]): Promise<EmbeddingResult[]> {
+    const url = `${this.baseUrl}/api/embeddings`;
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Process each input separately as Ollama API expects single input
+    const embeddings = [];
+    for (const inp of inputs) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: inp.text,
+          model: this.model
+        })
+      });
       
-      // Check cache for existing embeddings
-      const cachedResults: EmbeddingResult[] = [];
-      const uncachedInputs: EmbeddingInput[] = [];
-      
-      for (const inp of inputs) {
-        const cached = this.cacheService.get(inp.text, this.model);
-        if (cached) {
-          cachedResults.push(cached);
-        } else {
-          uncachedInputs.push(inp);
-        }
+      if (!response.ok) {
+        throw new Error(`Ollama API request failed with status ${response.status}: ${await response.text()}`);
       }
       
-      // If all inputs are cached, return cached results
-      if (uncachedInputs.length === 0) {
-        this.logger.debug('All embeddings found in cache', { count: cachedResults.length });
-        return Array.isArray(input) ? cachedResults : cachedResults[0];
-      }
-      
-      try {
-        // Wait for available request slot
-        await this.waitForAvailableSlot();
-        
-        const { result, time } = await this.executeWithTimeout(async () => {
-          return await this.measureTime(async () => {
-            // Prepare the API request
-            const url = `${this.baseUrl}/api/embeddings`;
-            const headers = {
-              'Content-Type': 'application/json'
-            };
-            
-            // Process each input separately as Ollama API expects single input
-            const embeddings = [];
-            for (const inp of uncachedInputs) {
-              const response = await fetch(url, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                  prompt: inp.text,
-                  model: this.model
-                })
-              });
-              
-              if (!response.ok) {
-                throw new Error(`Ollama API request failed with status ${response.status}: ${await response.text()}`);
-              }
-              
-              const data = await response.json() as { embedding: number[] };
-              embeddings.push({
-                vector: data.embedding,
-                dimensions: data.embedding.length,
-                model: this.model,
-                processingTime: 0 // Will be updated after timing
-              });
-            }
-            
-            return embeddings as EmbeddingResult[];
-          });
-        });
-        
-        // Release request slot
-        this.releaseSlot();
-        
-        // Update processingTime with the actual measured time
-        const apiResults = Array.isArray(result) ? result : [result];
-        apiResults.forEach(embedding => {
-          embedding.processingTime = time;
-        });
-        
-        // Cache the new results
-        apiResults.forEach((embedding, index) => {
-          this.cacheService.set(uncachedInputs[index].text, this.model, embedding);
-        });
-        
-        // Combine cached and new results
-        const finalResult = [...cachedResults, ...apiResults];
-        
-        return Array.isArray(input) ? finalResult : finalResult[0];
-      } catch (error) {
-        // Release request slot in case of error
-        this.releaseSlot();
-        
-        this.errorHandler.handleError(
-          new Error(`Ollama embedding failed: ${error instanceof Error ? error.message : String(error)}`),
-          { component: 'OllamaEmbedder', operation: 'embed' }
-        );
-        throw error;
-      }
+      const data = await response.json() as { embedding: number[] };
+      embeddings.push({
+        vector: data.embedding,
+        dimensions: data.embedding.length,
+        model: this.model,
+        processingTime: 0 // Will be updated after timing
+      });
     }
+    
+    return embeddings as EmbeddingResult[];
+  }
+
+  async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
+    return await this.embedWithCache(input, async (inputs) => {
+      return await this.makeEmbeddingRequest(inputs);
+    });
+  }
 
   getDimensions(): number {
     return 768; // nomic-embed-text dimensions
@@ -136,6 +84,4 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
       return false;
     }
   }
-
-
 }
