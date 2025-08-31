@@ -34,6 +34,14 @@ import { ErrorClassifier } from '../core/ErrorClassifier';
 import { NebulaQueryBuilder } from '../database/nebula/NebulaQueryBuilder';
 import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
 import { StorageCoordinator } from '../services/storage/StorageCoordinator';
+import { SemanticSearchService } from '../services/search/SemanticSearchService';
+import { SearchCoordinator } from '../services/search/SearchCoordinator';
+import { HybridSearchService } from '../services/search/HybridSearchService';
+import { RerankingService } from '../services/reranking/RerankingService';
+import { QueryCache } from '../services/query/QueryCache';
+import { QueryCoordinationService } from '../services/query/QueryCoordinationService';
+import { ResultFusionEngine } from '../services/query/ResultFusionEngine';
+import { QueryOptimizer } from '../services/query/QueryOptimizer';
 
 // Monitoring services
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
@@ -76,6 +84,14 @@ export const TYPES = {
   EventQueueService: Symbol.for('EventQueueService'),
   IndexCoordinator: Symbol.for('IndexCoordinator'),
   StorageCoordinator: Symbol.for('StorageCoordinator'),
+  SemanticSearchService: Symbol.for('SemanticSearchService'),
+  SearchCoordinator: Symbol.for('SearchCoordinator'),
+  HybridSearchService: Symbol.for('HybridSearchService'),
+  RerankingService: Symbol.for('RerankingService'),
+  QueryCache: Symbol.for('QueryCache'),
+  QueryCoordinationService: Symbol.for('QueryCoordinationService'),
+  ResultFusionEngine: Symbol.for('ResultFusionEngine'),
+  QueryOptimizer: Symbol.for('QueryOptimizer'),
 
   // Monitoring services
   PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
@@ -129,6 +145,14 @@ const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
   bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
   bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
+  bind(TYPES.SemanticSearchService).to(SemanticSearchService).inSingletonScope();
+  bind(TYPES.SearchCoordinator).to(SearchCoordinator).inSingletonScope();
+  bind(TYPES.HybridSearchService).to(HybridSearchService).inSingletonScope();
+  bind(TYPES.RerankingService).to(RerankingService).inSingletonScope();
+  bind(TYPES.QueryCache).to(QueryCache).inSingletonScope();
+  bind(TYPES.QueryCoordinationService).to(QueryCoordinationService).inSingletonScope();
+  bind(TYPES.ResultFusionEngine).to(ResultFusionEngine).inSingletonScope();
+  bind(TYPES.QueryOptimizer).to(QueryOptimizer).inSingletonScope();
 });
 
 const queueModule = new ContainerModule((bind: any) => {
