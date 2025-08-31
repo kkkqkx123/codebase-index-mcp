@@ -1,71 +1,60 @@
 import { Container } from 'inversify';
 import { IndexCoordinator } from './IndexCoordinator';
-import { VectorStorageService } from '../storage/VectorStorageService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
-import { SmartCodeParser } from '../parser/SmartCodeParser';
-import { BaseEmbedder } from '../../embedders/BaseEmbedder';
-import { EmbedderFactory } from '../../embedders/EmbedderFactory';
-import { FileSystemTraversal } from '../filesystem/FileSystemTraversal';
+import { ParserService } from '../parser/ParserService';
+import { StorageCoordinator } from '../storage/StorageCoordinator';
 import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
+import { FileSystemTraversal } from '../filesystem/FileSystemTraversal';
+import { AsyncPipeline } from '../infrastructure/AsyncPipeline';
+import { BatchProcessor } from '../processing/BatchProcessor';
+import { MemoryManager } from '../processing/MemoryManager';
+import { SearchCoordinator } from '../search/SearchCoordinator';
 import { TYPES } from '../../core/DIContainer';
+import { HashUtils } from '../../utils/HashUtils';
+
+// Mock HashUtils
+jest.mock('../../utils/HashUtils', () => ({
+  HashUtils: {
+    calculateDirectoryHash: jest.fn(),
+    calculateStringHash: jest.fn(),
+  },
+}));
 
 describe('IndexCoordinator', () => {
   let container: Container;
   let indexCoordinator: IndexCoordinator;
-  let mockVectorStorageService: jest.Mocked<VectorStorageService>;
-  let mockGraphPersistenceService: jest.Mocked<GraphPersistenceService>;
-  let mockSmartCodeParser: jest.Mocked<SmartCodeParser>;
-  let mockEmbedder: jest.Mocked<BaseEmbedder>;
-  let mockEmbedderFactory: jest.Mocked<EmbedderFactory>;
-  let mockFileSystemTraversal: jest.Mocked<FileSystemTraversal>;
+  let mockParserService: jest.Mocked<ParserService>;
+  let mockStorageCoordinator: jest.Mocked<StorageCoordinator>;
   let mockLoggerService: jest.Mocked<LoggerService>;
+  let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
+  let mockFileSystemTraversal: jest.Mocked<FileSystemTraversal>;
+  let mockAsyncPipeline: jest.Mocked<AsyncPipeline>;
+  let mockBatchProcessor: jest.Mocked<BatchProcessor>;
+  let mockMemoryManager: jest.Mocked<MemoryManager>;
+  let mockSearchCoordinator: jest.Mocked<SearchCoordinator>;
 
   beforeEach(() => {
     container = new Container();
 
-    // Create mocks
-    mockVectorStorageService = {
-      storeVector: jest.fn(),
-      storeBatch: jest.fn(),
-      updateVector: jest.fn(),
-      deleteVector: jest.fn(),
-      getStorageStats: jest.fn(),
-    } as any;
-
-    mockGraphPersistenceService = {
-      storeCodeEntity: jest.fn(),
-      storeRelationship: jest.fn(),
-      storeBatch: jest.fn(),
-      updateEntity: jest.fn(),
-      deleteEntity: jest.fn(),
-    } as any;
-
-    mockSmartCodeParser = {
+    // Create mocks for actual dependencies
+    mockParserService = {
       parseFile: jest.fn(),
-      extractFunctions: jest.fn(),
-      extractClasses: jest.fn(),
-      extractImports: jest.fn(),
-      analyzeCodeStructure: jest.fn(),
+      parseFiles: jest.fn(),
     } as any;
 
-    mockEmbedder = {
-      embed: jest.fn(),
-      embedBatch: jest.fn(),
-      getDimensions: jest.fn().mockReturnValue(384),
-      getModelName: jest.fn().mockReturnValue('test-model'),
-    } as any;
-
-    mockEmbedderFactory = {
-      createEmbedder: jest.fn().mockReturnValue(mockEmbedder),
-      getAvailableEmbedders: jest.fn(),
-    } as any;
-
-    mockFileSystemTraversal = {
-      traverseDirectory: jest.fn(),
-      getFileList: jest.fn(),
-      watchDirectory: jest.fn(),
+    mockStorageCoordinator = {
+      store: jest.fn(),
+      deleteFiles: jest.fn(),
+      deleteProject: jest.fn(),
+      searchVectors: jest.fn(),
+      searchGraph: jest.fn(),
+      getSnippetStatistics: jest.fn(),
+      findSnippetByHash: jest.fn(),
+      findSnippetReferences: jest.fn(),
+      analyzeSnippetDependencies: jest.fn(),
+      findSnippetOverlaps: jest.fn(),
     } as any;
 
     mockLoggerService = {
@@ -75,24 +64,52 @@ describe('IndexCoordinator', () => {
       debug: jest.fn(),
     } as any;
 
+    mockErrorHandlerService = {
+      handleError: jest.fn(),
+    } as any;
+
     mockConfigService = {
-      get: jest.fn(),
-      getIndexingConfig: jest.fn().mockReturnValue({
-        batchSize: 100,
+      get: jest.fn().mockReturnValue({
+        batchSize: 50,
         maxConcurrency: 5,
-        supportedExtensions: ['.ts', '.js', '.py'],
-        excludePatterns: ['node_modules', '.git'],
       }),
     } as any;
 
+    mockFileSystemTraversal = {
+      traverseDirectory: jest.fn(),
+    } as any;
+
+    mockAsyncPipeline = {
+      execute: jest.fn(),
+      addStep: jest.fn().mockReturnThis(),
+      clearSteps: jest.fn(),
+      getMetrics: jest.fn(),
+    } as any;
+
+    mockBatchProcessor = {
+      processInBatches: jest.fn(),
+    } as any;
+
+    mockMemoryManager = {
+      checkMemory: jest.fn(),
+      startMonitoring: jest.fn(),
+    } as any;
+
+    mockSearchCoordinator = {
+      search: jest.fn(),
+    } as any;
+
     // Bind mocks to container
-    container.bind(TYPES.VectorStorageService).toConstantValue(mockVectorStorageService);
-    container.bind(TYPES.GraphPersistenceService).toConstantValue(mockGraphPersistenceService);
-    container.bind(TYPES.SmartCodeParser).toConstantValue(mockSmartCodeParser);
-    container.bind(TYPES.EmbedderFactory).toConstantValue(mockEmbedderFactory);
-    container.bind(TYPES.FileSystemTraversal).toConstantValue(mockFileSystemTraversal);
     container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
+    container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
     container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
+    container.bind(TYPES.ParserService).toConstantValue(mockParserService);
+    container.bind(TYPES.StorageCoordinator).toConstantValue(mockStorageCoordinator);
+    container.bind(TYPES.FileSystemTraversal).toConstantValue(mockFileSystemTraversal);
+    container.bind(AsyncPipeline).toConstantValue(mockAsyncPipeline);
+    container.bind(BatchProcessor).toConstantValue(mockBatchProcessor);
+    container.bind(MemoryManager).toConstantValue(mockMemoryManager);
+    container.bind(TYPES.SearchCoordinator).toConstantValue(mockSearchCoordinator);
     container.bind(TYPES.IndexCoordinator).to(IndexCoordinator);
 
     indexCoordinator = container.get<IndexCoordinator>(TYPES.IndexCoordinator);
@@ -102,273 +119,375 @@ describe('IndexCoordinator', () => {
     jest.clearAllMocks();
   });
 
-  describe('indexDirectory', () => {
-    it('should index all files in a directory', async () => {
-      const directoryPath = '/src/project';
-      const files = [
-        '/src/project/auth.ts',
-        '/src/project/user.ts',
-        '/src/project/utils.js',
-      ];
-
-      const parsedFile = {
-        filePath: '/src/project/auth.ts',
-        functions: [
-          {
-            name: 'authenticate',
-            signature: 'authenticate(user: string, password: string): Promise<boolean>',
-            startLine: 10,
-            endLine: 25,
-            content: 'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
-          }
-        ],
-        classes: [],
-        imports: ['bcrypt'],
-        exports: ['authenticate'],
+  describe('createIndex', () => {
+    it('should create index for a project', async () => {
+      const projectPath = '/src/project';
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 3,
+        files: [],
+      };
+      
+      const mockPipelineResult = {
+        success: true,
+        data: {
+          traversalResult: {
+            files: [
+              { path: '/src/project/auth.ts' },
+              { path: '/src/project/user.ts' },
+              { path: '/src/project/utils.js' },
+            ],
+          },
+          storageResult: {
+            chunksStored: 150,
+            errors: [],
+          },
+          projectId: 'abc123',
+        },
+        steps: [],
+        totalTime: 100,
       };
 
-      const embedding = [0.1, 0.2, 0.3, 0.4];
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+      mockAsyncPipeline.execute.mockResolvedValue(mockPipelineResult);
 
-      mockFileSystemTraversal.getFileList.mockResolvedValue(files);
-      mockSmartCodeParser.parseFile.mockResolvedValue(parsedFile);
-      mockEmbedder.embed.mockResolvedValue(embedding);
-      mockVectorStorageService.storeVector.mockResolvedValue(undefined);
-      mockGraphPersistenceService.storeCodeEntity.mockResolvedValue(undefined);
-
-      const result = await indexCoordinator.indexDirectory(directoryPath);
-
-      expect(result.totalFiles).toBe(3);
-      expect(result.successCount).toBe(3);
-      expect(result.errorCount).toBe(0);
-      expect(mockFileSystemTraversal.getFileList).toHaveBeenCalledWith(directoryPath);
-      expect(mockSmartCodeParser.parseFile).toHaveBeenCalledTimes(3);
-      expect(mockVectorStorageService.storeVector).toHaveBeenCalled();
-      expect(mockGraphPersistenceService.storeCodeEntity).toHaveBeenCalled();
-    });
-
-    it('should handle parsing errors gracefully', async () => {
-      const directoryPath = '/src/project';
-      const files = ['/src/project/broken.ts', '/src/project/good.ts'];
-
-      mockFileSystemTraversal.getFileList.mockResolvedValue(files);
-      mockSmartCodeParser.parseFile
-        .mockRejectedValueOnce(new Error('Parse error'))
-        .mockResolvedValueOnce({
-          filePath: '/src/project/good.ts',
-          functions: [],
-          classes: [],
-          imports: [],
-          exports: [],
-        });
-
-      const result = await indexCoordinator.indexDirectory(directoryPath);
-
-      expect(result.totalFiles).toBe(2);
-      expect(result.successCount).toBe(1);
-      expect(result.errorCount).toBe(1);
-      expect(mockLoggerService.error).toHaveBeenCalledWith('Failed to index file', expect.any(Object));
-    });
-
-    it('should filter files by supported extensions', async () => {
-      const directoryPath = '/src/project';
-      const files = [
-        '/src/project/code.ts',
-        '/src/project/readme.md',
-        '/src/project/config.json',
-        '/src/project/script.js',
-      ];
-
-      mockFileSystemTraversal.getFileList.mockResolvedValue(files);
-      mockSmartCodeParser.parseFile.mockResolvedValue({
-        filePath: '',
-        functions: [],
-        classes: [],
-        imports: [],
-        exports: [],
-      });
-
-      await indexCoordinator.indexDirectory(directoryPath);
-
-      expect(mockSmartCodeParser.parseFile).toHaveBeenCalledTimes(2); // Only .ts and .js files
-    });
-  });
-
-  describe('indexFile', () => {
-    it('should index a single file completely', async () => {
-      const filePath = '/src/auth.ts';
-      const parsedFile = {
-        filePath,
-        functions: [
-          {
-            name: 'login',
-            signature: 'login(credentials: LoginCredentials): Promise<User>',
-            startLine: 5,
-            endLine: 20,
-            content: 'async function login(credentials) { const user = await authenticate(credentials); return user; }',
-          }
-        ],
-        classes: [
-          {
-            name: 'AuthService',
-            startLine: 25,
-            endLine: 100,
-            methods: ['login', 'logout', 'refresh'],
-            properties: ['users', 'tokens'],
-          }
-        ],
-        imports: ['User', 'LoginCredentials'],
-        exports: ['AuthService', 'login'],
-      };
-
-      const functionEmbedding = [0.1, 0.2, 0.3, 0.4];
-      const classEmbedding = [0.5, 0.6, 0.7, 0.8];
-
-      mockSmartCodeParser.parseFile.mockResolvedValue(parsedFile);
-      mockEmbedder.embed
-        .mockResolvedValueOnce(functionEmbedding)
-        .mockResolvedValueOnce(classEmbedding);
-
-      const result = await indexCoordinator.indexFile(filePath);
+      const result = await indexCoordinator.createIndex(projectPath);
 
       expect(result.success).toBe(true);
-      expect(result.entitiesIndexed).toBe(2); // 1 function + 1 class
-      expect(mockVectorStorageService.storeVector).toHaveBeenCalledTimes(2);
-      expect(mockGraphPersistenceService.storeCodeEntity).toHaveBeenCalledTimes(2);
+      expect(result.filesProcessed).toBe(3);
+      expect(result.chunksCreated).toBe(150);
+      expect(mockAsyncPipeline.execute).toHaveBeenCalledWith({
+        projectPath,
+        options: {},
+      });
     });
 
-    it('should handle unsupported file types', async () => {
-      const filePath = '/src/readme.md';
+    it('should handle indexing errors gracefully', async () => {
+      const projectPath = '/src/project';
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 0,
+        files: [],
+      };
+      
+      const mockPipelineResult = {
+        success: false,
+        data: null,
+        steps: [],
+        totalTime: 50,
+        error: 'Pipeline execution failed',
+      };
 
-      const result = await indexCoordinator.indexFile(filePath);
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+      mockAsyncPipeline.execute.mockResolvedValue(mockPipelineResult);
+
+      const result = await indexCoordinator.createIndex(projectPath);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Unsupported file type');
-      expect(mockSmartCodeParser.parseFile).not.toHaveBeenCalled();
+      expect(result.filesProcessed).toBe(0);
+      expect(result.errors).toContain('Pipeline execution failed');
     });
   });
 
   describe('updateIndex', () => {
     it('should update index for modified files', async () => {
-      const filePath = '/src/auth.ts';
-      const updatedContent = {
-        filePath,
-        functions: [
-          {
-            name: 'authenticate',
-            signature: 'authenticate(user: string, password: string, options?: AuthOptions): Promise<boolean>',
-            startLine: 10,
-            endLine: 30,
-            content: 'function authenticate(user, password, options = {}) { return bcrypt.compare(password, user.hash); }',
-          }
-        ],
-        classes: [],
-        imports: ['bcrypt', 'AuthOptions'],
-        exports: ['authenticate'],
+      const projectPath = '/src/project';
+      const changedFiles = ['/src/project/auth.ts', '/src/project/user.ts'];
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 2,
+        files: [],
+      };
+      
+      const mockParseResults = [
+        {
+          filePath: '/src/project/auth.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {},
+        },
+        {
+          filePath: '/src/project/user.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {},
+        },
+      ];
+
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+      mockParserService.parseFiles.mockResolvedValue(mockParseResults);
+      mockStorageCoordinator.store.mockResolvedValue({
+        success: true,
+        chunksStored: 50,
+        errors: [],
+      });
+
+      const result = await indexCoordinator.updateIndex(projectPath, changedFiles);
+
+      expect(result.success).toBe(true);
+      expect(result.filesProcessed).toBe(2);
+      expect(result.chunksCreated).toBe(50);
+      expect(mockParserService.parseFiles).toHaveBeenCalledWith(changedFiles);
+      expect(mockStorageCoordinator.store).toHaveBeenCalled();
+    });
+
+    it('should handle update errors gracefully', async () => {
+      const projectPath = '/src/project';
+      const changedFiles = ['/src/project/broken.ts'];
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 1,
+        files: [],
       };
 
-      const newEmbedding = [0.9, 0.8, 0.7, 0.6];
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+      mockParserService.parseFiles.mockRejectedValue(new Error('Parse error'));
 
-      mockSmartCodeParser.parseFile.mockResolvedValue(updatedContent);
-      mockEmbedder.embed.mockResolvedValue(newEmbedding);
+      const result = await indexCoordinator.updateIndex(projectPath, changedFiles);
 
-      const result = await indexCoordinator.updateIndex(filePath);
-
-      expect(result.success).toBe(true);
-      expect(result.entitiesUpdated).toBe(1);
-      expect(mockVectorStorageService.updateVector).toHaveBeenCalled();
-      expect(mockGraphPersistenceService.updateEntity).toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.filesProcessed).toBe(0);
+      expect(result.errors).toContain('Parse error');
     });
   });
 
-  describe('deleteFromIndex', () => {
-    it('should remove file from index', async () => {
-      const filePath = '/src/deleted.ts';
+  describe('deleteIndex', () => {
+    it('should delete index for a project', async () => {
+      const projectPath = '/src/project';
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 10,
+        files: [],
+      };
 
-      const result = await indexCoordinator.deleteFromIndex(filePath);
-
-      expect(result.success).toBe(true);
-      expect(mockVectorStorageService.deleteVector).toHaveBeenCalled();
-      expect(mockGraphPersistenceService.deleteEntity).toHaveBeenCalled();
-    });
-  });
-
-  describe('rebuildIndex', () => {
-    it('should rebuild entire index from scratch', async () => {
-      const directoryPath = '/src/project';
-      const files = ['/src/project/file1.ts', '/src/project/file2.ts'];
-
-      mockFileSystemTraversal.getFileList.mockResolvedValue(files);
-      mockSmartCodeParser.parseFile.mockResolvedValue({
-        filePath: '',
-        functions: [],
-        classes: [],
-        imports: [],
-        exports: [],
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+      mockStorageCoordinator.deleteProject.mockResolvedValue({
+        success: true,
+        filesDeleted: 10,
+        errors: [],
       });
 
-      const result = await indexCoordinator.rebuildIndex(directoryPath);
+      const result = await indexCoordinator.deleteIndex(projectPath);
 
-      expect(result.success).toBe(true);
-      expect(result.totalFiles).toBe(2);
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Starting index rebuild', { directory: directoryPath });
+      expect(result).toBe(true);
+      expect(mockStorageCoordinator.deleteProject).toHaveBeenCalledWith('abc123');
     });
-  });
 
-  describe('getIndexingStats', () => {
-    it('should return indexing statistics', async () => {
-      const stats = await indexCoordinator.getIndexingStats();
+    it('should handle delete errors gracefully', async () => {
+      const projectPath = '/src/project';
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 10,
+        files: [],
+      };
 
-      expect(stats.totalFilesIndexed).toBeDefined();
-      expect(stats.totalEntitiesIndexed).toBeDefined();
-      expect(stats.indexingErrors).toBeDefined();
-      expect(stats.lastIndexingTime).toBeDefined();
-      expect(stats.averageIndexingTime).toBeDefined();
-    });
-  });
-
-  describe('validateIndex', () => {
-    it('should validate index consistency', async () => {
-      mockVectorStorageService.getStorageStats.mockResolvedValue({
-        totalVectors: 100,
-        indexedVectors: 100,
-        vectorDimensions: 384,
-        distanceMetric: 'Cosine',
-        segmentCount: 2,
-        status: 'green',
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+      mockStorageCoordinator.deleteProject.mockResolvedValue({
+        success: false,
+        filesDeleted: 0,
+        errors: ['Delete failed'],
       });
 
-      const validation = await indexCoordinator.validateIndex();
+      const result = await indexCoordinator.deleteIndex(projectPath);
 
-      expect(validation.isValid).toBe(true);
-      expect(validation.vectorCount).toBe(100);
-      expect(validation.issues).toHaveLength(0);
-    });
-
-    it('should detect index inconsistencies', async () => {
-      mockVectorStorageService.getStorageStats.mockResolvedValue({
-        totalVectors: 100,
-        indexedVectors: 95, // Missing 5 vectors
-        vectorDimensions: 384,
-        distanceMetric: 'Cosine',
-        segmentCount: 2,
-        status: 'yellow',
-      });
-
-      const validation = await indexCoordinator.validateIndex();
-
-      expect(validation.isValid).toBe(false);
-      expect(validation.issues.length).toBeGreaterThan(0);
-      expect(validation.issues[0]).toContain('Missing vectors');
+      expect(result).toBe(false);
+      expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 
-  describe('optimizeIndex', () => {
-    it('should optimize index performance', async () => {
-      const result = await indexCoordinator.optimizeIndex();
+  describe('processIncrementalChanges', () => {
+    it('should process incremental file changes', async () => {
+      const changes = [
+        { type: 'created' as const, path: '/src/new.ts', relativePath: 'new.ts', timestamp: new Date() },
+        { type: 'modified' as const, path: '/src/modified.ts', relativePath: 'modified.ts', timestamp: new Date() },
+        { type: 'deleted' as const, path: '/src/deleted.ts', relativePath: 'deleted.ts', timestamp: new Date() },
+      ];
 
-      expect(result.success).toBe(true);
-      expect(result.optimizationsApplied).toBeInstanceOf(Array);
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Index optimization completed');
+      const mockParseResults = [
+        {
+          filePath: '/src/new.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {},
+        },
+        {
+          filePath: '/src/modified.ts',
+          language: 'typescript',
+          ast: {},
+          functions: [],
+          classes: [],
+          imports: [],
+          exports: [],
+          metadata: {},
+        },
+      ];
+
+      mockParserService.parseFiles.mockResolvedValue(mockParseResults);
+      mockStorageCoordinator.store.mockResolvedValue({
+        success: true,
+        chunksStored: 30,
+        errors: [],
+      });
+
+      await indexCoordinator.processIncrementalChanges(changes);
+
+      expect(mockStorageCoordinator.deleteFiles).toHaveBeenCalledWith(['deleted.ts']);
+      expect(mockParserService.parseFiles).toHaveBeenCalledWith(['new.ts', 'modified.ts']);
+      expect(mockStorageCoordinator.store).toHaveBeenCalled();
+    });
+
+    it('should handle empty changes', async () => {
+      const changes: any[] = [];
+
+      await indexCoordinator.processIncrementalChanges(changes);
+
+      expect(mockLoggerService.debug).toHaveBeenCalledWith('No changes to process');
+      expect(mockStorageCoordinator.deleteFiles).not.toHaveBeenCalled();
+      expect(mockParserService.parseFiles).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('search', () => {
+    it('should delegate search to SearchCoordinator', async () => {
+      const query = 'test function';
+      const mockSearchResponse = {
+        results: [
+          {
+            id: '1',
+            score: 0.95,
+            finalScore: 0.95,
+            filePath: '/src/test.ts',
+            content: 'function test() {}',
+            startLine: 1,
+            endLine: 1,
+            language: 'typescript',
+            chunkType: 'function',
+            metadata: {},
+          },
+        ],
+        totalResults: 1,
+        queryTime: 50,
+        searchStrategy: 'semantic',
+        filters: {},
+        options: {},
+      };
+
+      mockSearchCoordinator.search.mockResolvedValue(mockSearchResponse);
+
+      const result = await indexCoordinator.search(query);
+
+      expect(result).toEqual(mockSearchResponse.results);
+      expect(mockSearchCoordinator.search).toHaveBeenCalledWith({
+        text: query,
+        options: {
+          limit: undefined,
+          threshold: undefined,
+          includeGraph: undefined,
+          useHybrid: false,
+          useReranking: true,
+        },
+      });
+    });
+
+    it('should handle search errors', async () => {
+      const query = 'test function';
+      mockSearchCoordinator.search.mockRejectedValue(new Error('Search failed'));
+      mockErrorHandlerService.handleError.mockImplementation(() => undefined as any);
+
+      await expect(indexCoordinator.search(query)).rejects.toThrow('Search failed');
+      expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
+    });
+  });
+
+  describe('getStatus', () => {
+    it('should return index status', async () => {
+      const projectPath = '/src/project';
+      const mockHashResult = {
+        hash: 'abc123',
+        fileCount: 10,
+        files: [],
+      };
+
+      (HashUtils.calculateDirectoryHash as jest.Mock).mockResolvedValue(mockHashResult);
+
+      const mockIndexStatus = {
+        lastIndexed: new Date(),
+        fileCount: 150,
+        chunkCount: 450,
+        status: 'completed' as const,
+      };
+
+      // Mock the getIndexStatus method
+      const getIndexStatusSpy = jest.spyOn(indexCoordinator as any, 'getIndexStatus').mockResolvedValue(mockIndexStatus);
+
+      const result = await indexCoordinator.getStatus(projectPath);
+
+      expect(result.projectId).toBe('abc123');
+      expect(result.isIndexing).toBe(false);
+      expect(result.fileCount).toBe(150);
+      expect(result.chunkCount).toBe(450);
+      expect(result.status).toBe('completed');
+
+      getIndexStatusSpy.mockRestore();
+    });
+  });
+
+  describe('getSnippetProcessingStatus', () => {
+    it('should return snippet processing statistics', async () => {
+      const projectId = 'test-project';
+      const mockStats = {
+        totalSnippets: 150,
+        processedSnippets: 142,
+        duplicateSnippets: 8,
+        processingRate: 45.2,
+      };
+
+      mockStorageCoordinator.getSnippetStatistics.mockResolvedValue(mockStats);
+
+      const result = await indexCoordinator.getSnippetProcessingStatus(projectId);
+
+      expect(result).toEqual(mockStats);
+      expect(mockStorageCoordinator.getSnippetStatistics).toHaveBeenCalledWith(projectId);
+    });
+  });
+
+  describe('checkForDuplicates', () => {
+    it('should check for duplicate snippets', async () => {
+      const snippetContent = 'function test() { return true; }';
+      const projectId = 'test-project';
+      const mockExistingSnippet = { id: 'existing-123' };
+
+      (HashUtils.calculateStringHash as jest.Mock).mockReturnValue('content-hash');
+      mockStorageCoordinator.findSnippetByHash.mockResolvedValue(mockExistingSnippet);
+
+      const result = await indexCoordinator.checkForDuplicates(snippetContent, projectId);
+
+      expect(result).toBe(true);
+      expect(mockStorageCoordinator.findSnippetByHash).toHaveBeenCalledWith('content-hash', projectId);
+    });
+
+    it('should return false for non-duplicate snippets', async () => {
+      const snippetContent = 'function unique() { return true; }';
+      const projectId = 'test-project';
+
+      (HashUtils.calculateStringHash as jest.Mock).mockReturnValue('unique-hash');
+      mockStorageCoordinator.findSnippetByHash.mockResolvedValue(null);
+
+      const result = await indexCoordinator.checkForDuplicates(snippetContent, projectId);
+
+      expect(result).toBe(false);
     });
   });
 });

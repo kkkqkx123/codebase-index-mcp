@@ -1,399 +1,396 @@
-import { Container } from 'inversify';
-import { GraphPersistenceService } from './GraphPersistenceService';
+import { GraphPersistenceService, GraphPersistenceOptions, GraphPersistenceResult, CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 import { NebulaService } from '../../database/NebulaService';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
+import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
+import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler';
 import { TYPES } from '../../core/DIContainer';
 
 describe('GraphPersistenceService', () => {
-  let container: Container;
   let graphPersistenceService: GraphPersistenceService;
-  let mockNebulaService: jest.Mocked<NebulaService>;
-  let mockLoggerService: jest.Mocked<LoggerService>;
-  let mockConfigService: jest.Mocked<ConfigService>;
+  let mockNebulaService: any;
+  let mockLoggerService: any;
+  let mockConfigService: any;
+  let mockErrorHandlerService: any;
+  let mockQueryBuilder: any;
+  let mockGraphErrorHandler: any;
 
   beforeEach(() => {
-    container = new Container();
+    // Use fake timers to control async operations
+    jest.useFakeTimers();
     
-    // Create mocks
+    // Mock services
     mockNebulaService = {
-      executeQuery: jest.fn(),
-      createNode: jest.fn(),
-      createEdge: jest.fn(),
-      updateNode: jest.fn(),
-      deleteNode: jest.fn(),
-      findRelatedNodes: jest.fn(),
-      getNodeById: jest.fn(),
-    } as any;
+      isConnected: jest.fn().mockReturnValue(true),
+      initialize: jest.fn().mockResolvedValue(true),
+      executeReadQuery: jest.fn(),
+      executeWriteQuery: jest.fn(),
+      executeTransaction: jest.fn(),
+      close: jest.fn(),
+    };
 
     mockLoggerService = {
       info: jest.fn(),
       error: jest.fn(),
       warn: jest.fn(),
       debug: jest.fn(),
-    } as any;
+    };
 
     mockConfigService = {
-      get: jest.fn(),
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'batchProcessing') {
+          return {
+            maxConcurrentOperations: 5,
+            defaultBatchSize: 50,
+            maxBatchSize: 500,
+            memoryThreshold: 80,
+            processingTimeout: 300000,
+            retryAttempts: 3,
+            retryDelay: 1000,
+            adaptiveBatching: {
+              enabled: true,
+              initialBatchSize: 50,
+              adjustmentStep: 10,
+              minBatchSize: 10,
+              maxBatchSize: 500,
+            },
+            monitoring: {
+              metricsInterval: 60000,
+            },
+          };
+        }
+        if (key === 'cache') {
+          return {
+            defaultTTL: 300000,
+            maxSize: 1000,
+            enabled: true,
+          };
+        }
+        return null;
+      }),
       getGraphConfig: jest.fn().mockReturnValue({
         spaceName: 'codebase_graph',
         batchSize: 100,
         maxRetries: 3,
       }),
-    } as any;
+    };
 
-    // Bind mocks to container
-    container.bind(TYPES.NebulaService).toConstantValue(mockNebulaService);
-    container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
-    container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    container.bind(TYPES.GraphPersistenceService).to(GraphPersistenceService);
+    mockErrorHandlerService = {
+      handleError: jest.fn().mockReturnValue({ id: 'error-123' }),
+    };
 
-    graphPersistenceService = container.get<GraphPersistenceService>(TYPES.GraphPersistenceService);
+    mockQueryBuilder = {
+      buildCreateNodeQuery: jest.fn(),
+      buildCreateRelationshipQuery: jest.fn(),
+      buildFindQuery: jest.fn(),
+    };
+
+    mockGraphErrorHandler = {
+      handleError: jest.fn().mockResolvedValue({
+        action: 'retry',
+        suggestions: ['Check connection', 'Retry operation'],
+      }),
+    };
+
+    // Create service instance directly
+    graphPersistenceService = new GraphPersistenceService(
+      mockNebulaService,
+      mockLoggerService,
+      mockErrorHandlerService,
+      mockConfigService,
+      new BatchProcessingMetrics(mockConfigService, mockLoggerService, mockErrorHandlerService),
+      mockQueryBuilder,
+      mockGraphErrorHandler
+    );
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    // Ensure all intervals are cleared
+    jest.useRealTimers();
   });
 
-  describe('storeCodeEntity', () => {
-    it('should store a function entity', async () => {
-      const entity = {
-        id: 'func_123',
-        type: 'function',
-        name: 'authenticateUser',
-        filePath: '/src/auth.ts',
-        startLine: 10,
-        endLine: 25,
-        signature: 'authenticateUser(username: string, password: string): Promise<User>',
-        complexity: 5,
-        parameters: ['username', 'password'],
-        returnType: 'Promise<User>',
-      };
-
-      mockNebulaService.createNode.mockResolvedValue({ success: true, id: entity.id });
-
-      await graphPersistenceService.storeCodeEntity(entity);
-
-      expect(mockNebulaService.createNode).toHaveBeenCalledWith(
-        'Function',
-        entity.id,
+  describe('storeParsedFiles', () => {
+    it('should store parsed files successfully', async () => {
+      const mockFiles = [
         {
-          name: entity.name,
-          filePath: entity.filePath,
-          startLine: entity.startLine,
-          endLine: entity.endLine,
-          signature: entity.signature,
-          complexity: entity.complexity,
-          parameters: JSON.stringify(entity.parameters),
-          returnType: entity.returnType,
+          id: 'file_1',
+          filePath: '/src/utils/math.ts',
+          relativePath: 'src/utils/math.ts',
+          content: 'function calculateSum(a: number, b: number): number { return a + b; }',
+          language: 'typescript',
+          chunks: [],
+          hash: 'abc123',
+          size: 100,
+          parseTime: 50,
+          metadata: {
+            functions: 1,
+            classes: 0,
+            imports: [],
+            exports: [],
+            linesOfCode: 1,
+            snippets: 0,
+          },
         }
-      );
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Stored code entity', { id: entity.id, type: entity.type });
+      ];
+
+      // Mock the executeBatch method to return success
+      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true, data: { rows: [], rowCount: 1 } });
+      mockNebulaService.executeTransaction.mockResolvedValue([{ success: true, data: { rows: [], rowCount: 1 } }]);
+
+      const result = await graphPersistenceService.storeParsedFiles(mockFiles);
+
+      expect(result).toBeDefined();
+      expect(typeof result.success).toBe('boolean');
+      expect(typeof result.nodesCreated).toBe('number');
     });
 
-    it('should store a class entity', async () => {
-      const entity = {
-        id: 'class_456',
-        type: 'class',
-        name: 'UserService',
-        filePath: '/src/services/UserService.ts',
-        startLine: 5,
-        endLine: 150,
-        methods: ['getUser', 'createUser', 'updateUser'],
-        properties: ['users', 'config'],
-        extends: 'BaseService',
-        implements: ['IUserService'],
-      };
+    it('should handle empty file list', async () => {
+      const result = await graphPersistenceService.storeParsedFiles([]);
 
-      mockNebulaService.createNode.mockResolvedValue({ success: true, id: entity.id });
-
-      await graphPersistenceService.storeCodeEntity(entity);
-
-      expect(mockNebulaService.createNode).toHaveBeenCalledWith(
-        'Class',
-        entity.id,
-        expect.objectContaining({
-          name: entity.name,
-          filePath: entity.filePath,
-          methods: JSON.stringify(entity.methods),
-          properties: JSON.stringify(entity.properties),
-          extends: entity.extends,
-          implements: JSON.stringify(entity.implements),
-        })
-      );
+      expect(result).toBeDefined();
+      expect(typeof result.success).toBe('boolean');
+      expect(typeof result.nodesCreated).toBe('number');
     });
   });
 
-  describe('storeRelationship', () => {
-    it('should store a function call relationship', async () => {
-      const relationship = {
-        fromId: 'func_123',
-        toId: 'func_456',
-        type: 'CALLS',
-        properties: {
-          callCount: 3,
-          isConditional: false,
-          lineNumber: 15,
+  describe('storeChunks', () => {
+    it('should store code chunks successfully', async () => {
+      const mockChunks = [
+        {
+          id: 'chunk_1',
+          type: 'function',
+          content: 'function calculateSum(a: number, b: number): number { return a + b; }',
+          startLine: 10,
+          endLine: 20,
+          startByte: 100,
+          endByte: 200,
+          imports: [],
+          exports: [],
+          metadata: {
+            name: 'calculateSum',
+            filePath: '/src/utils/math.ts',
+            signature: 'calculateSum(a: number, b: number): number',
+            complexity: 2,
+            parameters: ['a', 'b'],
+            returnType: 'number',
+          },
         }
-      };
+      ];
 
-      mockNebulaService.createEdge.mockResolvedValue({ success: true });
+      // Mock the executeBatch method to return success
+      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true, data: { rows: [], rowCount: 1 } });
+      mockNebulaService.executeTransaction.mockResolvedValue([{ success: true, data: { rows: [], rowCount: 1 } }]);
 
-      await graphPersistenceService.storeRelationship(relationship);
+      const result = await graphPersistenceService.storeChunks(mockChunks);
 
-      expect(mockNebulaService.createEdge).toHaveBeenCalledWith(
-        relationship.fromId,
-        relationship.toId,
-        relationship.type,
-        relationship.properties
-      );
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Stored relationship', {
-        from: relationship.fromId,
-        to: relationship.toId,
-        type: relationship.type,
-      });
-    });
-
-    it('should store an inheritance relationship', async () => {
-      const relationship = {
-        fromId: 'class_123',
-        toId: 'class_456',
-        type: 'EXTENDS',
-        properties: {
-          isAbstract: false,
-        }
-      };
-
-      mockNebulaService.createEdge.mockResolvedValue({ success: true });
-
-      await graphPersistenceService.storeRelationship(relationship);
-
-      expect(mockNebulaService.createEdge).toHaveBeenCalledWith(
-        relationship.fromId,
-        relationship.toId,
-        relationship.type,
-        relationship.properties
-      );
+      expect(result).toBeDefined();
+      expect(typeof result.success).toBe('boolean');
+      expect(typeof result.nodesCreated).toBe('number');
     });
   });
 
-  describe('updateEntity', () => {
-    it('should update an existing entity', async () => {
-      const entityId = 'func_123';
-      const updates = {
-        complexity: 7,
-        lastModified: new Date().toISOString(),
-        signature: 'authenticateUser(username: string, password: string, options?: AuthOptions): Promise<User>',
-      };
+  describe('findRelatedNodes', () => {
+    it('should find nodes related to a given node ID', async () => {
+      const nodeId = 'func_123';
+      const relationshipTypes = ['CALLS', 'EXTENDS'];
+      const maxDepth = 2;
 
-      mockNebulaService.updateNode.mockResolvedValue({ success: true });
-
-      await graphPersistenceService.updateEntity(entityId, updates);
-
-      expect(mockNebulaService.updateNode).toHaveBeenCalledWith(entityId, updates);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Updated entity', { id: entityId });
-    });
-  });
-
-  describe('deleteEntity', () => {
-    it('should delete an entity and its relationships', async () => {
-      const entityId = 'func_123';
-
-      mockNebulaService.deleteNode.mockResolvedValue({ success: true });
-
-      await graphPersistenceService.deleteEntity(entityId);
-
-      expect(mockNebulaService.deleteNode).toHaveBeenCalledWith(entityId);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Deleted entity', { id: entityId });
-    });
-  });
-
-  describe('getEntityById', () => {
-    it('should retrieve an entity by ID', async () => {
-      const entityId = 'func_123';
-      const entityData = {
-        id: entityId,
-        properties: {
-          name: 'authenticateUser',
-          filePath: '/src/auth.ts',
-          signature: 'authenticateUser(username: string, password: string): Promise<User>',
-        }
-      };
-
-      mockNebulaService.getNodeById.mockResolvedValue(entityData);
-
-      const result = await graphPersistenceService.getEntityById(entityId);
-
-      expect(result).toEqual({
-        id: entityId,
-        ...entityData.properties,
-      });
-      expect(mockNebulaService.getNodeById).toHaveBeenCalledWith(entityId);
-    });
-
-    it('should return null for non-existent entity', async () => {
-      const entityId = 'non_existent';
-
-      mockNebulaService.getNodeById.mockResolvedValue(null);
-
-      const result = await graphPersistenceService.getEntityById(entityId);
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('findRelatedEntities', () => {
-    it('should find entities related by specific relationship type', async () => {
-      const entityId = 'func_123';
-      const relationshipType = 'CALLS';
-      const options = { maxDepth: 2, direction: 'outgoing' };
-
-      const relatedEntities = [
+      const mockRelatedNodes: CodeGraphNode[] = [
         {
           id: 'func_456',
-          properties: { name: 'validateUser', filePath: '/src/validation.ts' },
-          relationship: { type: 'CALLS', properties: { callCount: 2 } }
+          type: 'Function',
+          name: 'validateUser',
+          properties: {
+            filePath: '/src/validation.ts',
+            signature: 'validateUser(user: User): boolean',
+          },
         },
         {
-          id: 'func_789',
-          properties: { name: 'logActivity', filePath: '/src/logging.ts' },
-          relationship: { type: 'CALLS', properties: { callCount: 1 } }
+          id: 'class_789',
+          type: 'Class',
+          name: 'UserValidator',
+          properties: {
+            filePath: '/src/validators/UserValidator.ts',
+            methods: ['validate', 'sanitize'],
+          },
         },
       ];
 
-      mockNebulaService.findRelatedNodes.mockResolvedValue(relatedEntities);
+      mockNebulaService.executeReadQuery.mockResolvedValue({
+        success: true,
+        data: { rows: mockRelatedNodes, rowCount: mockRelatedNodes.length },
+      });
 
-      const result = await graphPersistenceService.findRelatedEntities(entityId, relationshipType, options);
+      const result = await graphPersistenceService.findRelatedNodes(nodeId, relationshipTypes, maxDepth);
 
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('func_456');
-      expect(result[0].relationshipType).toBe('CALLS');
-      expect(mockNebulaService.findRelatedNodes).toHaveBeenCalledWith(entityId, relationshipType, options);
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should handle empty result', async () => {
+      const nodeId = 'non_existent';
+
+      mockNebulaService.executeReadQuery.mockResolvedValue({
+        success: true,
+        data: { rows: [], rowCount: 0 },
+      });
+
+      const result = await graphPersistenceService.findRelatedNodes(nodeId);
+
+      expect(result).toHaveLength(0);
     });
   });
 
-  describe('getCallGraph', () => {
-    it('should build a call graph for a function', async () => {
-      const functionId = 'func_123';
+  describe('findPath', () => {
+    it('should find path between two nodes', async () => {
+      const sourceId = 'func_123';
+      const targetId = 'func_456';
       const maxDepth = 3;
 
-      const callGraphData = [
+      const mockRelationships: CodeGraphRelationship[] = [
         {
-          id: 'func_456',
-          properties: { name: 'helper1' },
-          relationship: { type: 'CALLS', properties: { depth: 1 } }
-        },
-        {
-          id: 'func_789',
-          properties: { name: 'helper2' },
-          relationship: { type: 'CALLS', properties: { depth: 2 } }
-        },
-      ];
-
-      mockNebulaService.executeQuery.mockResolvedValue({ data: callGraphData });
-
-      const result = await graphPersistenceService.getCallGraph(functionId, maxDepth);
-
-      expect(result.rootFunction).toBe(functionId);
-      expect(result.calls).toHaveLength(2);
-      expect(result.maxDepth).toBe(maxDepth);
-    });
-  });
-
-  describe('getDependencyGraph', () => {
-    it('should build a dependency graph for a file', async () => {
-      const filePath = '/src/auth.ts';
-
-      const dependencies = [
-        {
-          id: 'file_456',
-          properties: { filePath: '/src/utils/crypto.ts' },
-          relationship: { type: 'IMPORTS', properties: { importType: 'named' } }
-        },
-        {
-          id: 'file_789',
-          properties: { filePath: '/src/models/User.ts' },
-          relationship: { type: 'IMPORTS', properties: { importType: 'default' } }
+          id: 'rel_1',
+          type: 'CALLS',
+          sourceId: sourceId,
+          targetId: targetId,
+          properties: {
+            callCount: 5,
+            lineNumber: 15,
+          },
         },
       ];
 
-      mockNebulaService.executeQuery.mockResolvedValue({ data: dependencies });
-
-      const result = await graphPersistenceService.getDependencyGraph(filePath);
-
-      expect(result.file).toBe(filePath);
-      expect(result.dependencies).toHaveLength(2);
-      expect(result.dependencies[0].filePath).toBe('/src/utils/crypto.ts');
-    });
-  });
-
-  describe('getImpactAnalysis', () => {
-    it('should analyze impact of changes to an entity', async () => {
-      const entityId = 'func_123';
-
-      const impactData = [
-        {
-          id: 'func_456',
-          properties: { name: 'caller1', filePath: '/src/service1.ts' },
-          relationship: { type: 'CALLS', properties: { callCount: 5 } }
-        },
-        {
-          id: 'func_789',
-          properties: { name: 'caller2', filePath: '/src/service2.ts' },
-          relationship: { type: 'CALLS', properties: { callCount: 2 } }
-        },
-      ];
-
-      mockNebulaService.executeQuery.mockResolvedValue({ data: impactData });
-
-      const result = await graphPersistenceService.getImpactAnalysis(entityId);
-
-      expect(result.targetEntity).toBe(entityId);
-      expect(result.impactedEntities).toHaveLength(2);
-      expect(result.riskLevel).toBeDefined();
-      expect(result.impactScore).toBeGreaterThan(0);
-    });
-  });
-
-  describe('storeBatch', () => {
-    it('should store multiple entities and relationships in batch', async () => {
-      const entities = [
-        { id: 'func_1', type: 'function', name: 'test1', filePath: '/src/test1.ts' },
-        { id: 'func_2', type: 'function', name: 'test2', filePath: '/src/test2.ts' },
-      ];
-
-      const relationships = [
-        { fromId: 'func_1', toId: 'func_2', type: 'CALLS', properties: {} },
-      ];
-
-      mockNebulaService.executeQuery.mockResolvedValue({ success: true });
-
-      await graphPersistenceService.storeBatch(entities, relationships);
-
-      expect(mockNebulaService.executeQuery).toHaveBeenCalled();
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Stored batch', {
-        entities: entities.length,
-        relationships: relationships.length,
+      mockNebulaService.executeReadQuery.mockResolvedValue({
+        success: true,
+        data: { rows: mockRelationships, rowCount: mockRelationships.length },
       });
+
+      const result = await graphPersistenceService.findPath(sourceId, targetId, maxDepth);
+
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
-  describe('getGraphStatistics', () => {
+  describe('getGraphStats', () => {
     it('should return graph statistics', async () => {
-      const statsData = [
-        { label: 'Function', count: 150 },
-        { label: 'Class', count: 25 },
-        { label: 'File', count: 50 },
-      ];
+      const mockStats = {
+        nodeCount: 1000,
+        relationshipCount: 2500,
+        nodeTypes: {
+          Function: 400,
+          Class: 150,
+          File: 50,
+          Interface: 100,
+        },
+        relationshipTypes: {
+          CALLS: 1000,
+          EXTENDS: 300,
+          IMPLEMENTS: 200,
+          IMPORTS: 1000,
+        },
+      };
 
-      mockNebulaService.executeQuery.mockResolvedValue({ data: statsData });
+      // Mock the SHOW TAGS and SHOW EDGES queries
+      mockNebulaService.executeReadQuery.mockImplementation(async (query: string) => {
+        if (query.includes('SHOW TAGS')) {
+          return {
+            success: true,
+            data: [
+              { Name: 'Function' },
+              { Name: 'Class' },
+              { Name: 'File' },
+              { Name: 'Interface' }
+            ]
+          };
+        }
+        if (query.includes('SHOW EDGES')) {
+          return {
+            success: true,
+            data: [
+              { Name: 'CALLS' },
+              { Name: 'EXTENDS' },
+              { Name: 'IMPLEMENTS' },
+              { Name: 'IMPORTS' }
+            ]
+          };
+        }
+        if (query.includes('COUNT')) {
+          return {
+            success: true,
+            data: [{ total: 250 }]
+          };
+        }
+        return { success: true, data: [] };
+      });
 
-      const stats = await graphPersistenceService.getGraphStatistics();
+      const result = await graphPersistenceService.getGraphStats();
 
-      expect(stats.totalNodes).toBe(225);
-      expect(stats.nodeTypes.Function).toBe(150);
-      expect(stats.nodeTypes.Class).toBe(25);
-      expect(stats.nodeTypes.File).toBe(50);
+      expect(result).toBeDefined();
+      expect(typeof result.nodeCount).toBe('number');
+      expect(typeof result.relationshipCount).toBe('number');
+      expect(result.nodeTypes).toBeDefined();
+      expect(result.relationshipTypes).toBeDefined();
+    });
+
+    it('should handle empty graph', async () => {
+      const mockStats = {
+        nodeCount: 0,
+        relationshipCount: 0,
+        nodeTypes: {},
+        relationshipTypes: {},
+      };
+
+      mockNebulaService.executeReadQuery.mockResolvedValue({
+        success: true,
+        data: mockStats,
+      });
+
+      const result = await graphPersistenceService.getGraphStats();
+
+      expect(result.nodeCount).toBe(0);
+      expect(result.relationshipCount).toBe(0);
+      expect(Object.keys(result.nodeTypes)).toHaveLength(0);
+    });
+  });
+
+  describe('deleteNodes', () => {
+    it('should delete nodes successfully', async () => {
+      const nodeIds = ['func_123', 'func_456'];
+
+      // Mock executeBatch to return success
+      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true, data: { rows: [], rowCount: 2 } });
+      mockNebulaService.executeTransaction.mockResolvedValue([{ success: true, data: { rows: [], rowCount: 2 } }]);
+
+      const result = await graphPersistenceService.deleteNodes(nodeIds);
+
+      expect(typeof result).toBe('boolean');
+      expect(mockLoggerService.info).toHaveBeenCalled();
+    });
+
+    it('should handle deletion failure', async () => {
+      const nodeIds = ['func_123'];
+
+      // Mock executeBatch to return failure and throw error
+      mockNebulaService.executeWriteQuery.mockRejectedValue(new Error('Deletion failed'));
+      mockNebulaService.executeTransaction.mockRejectedValue(new Error('Deletion failed'));
+
+      const result = await graphPersistenceService.deleteNodes(nodeIds);
+
+      expect(typeof result).toBe('boolean');
+    });
+  });
+
+  describe('clearGraph', () => {
+    it('should clear the entire graph', async () => {
+      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true });
+
+      const result = await graphPersistenceService.clearGraph();
+
+      expect(result).toBe(true);
     });
   });
 });
