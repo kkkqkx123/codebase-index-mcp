@@ -7,10 +7,10 @@ mkdir monitoring && cd monitoring
 echo "Setting up monitoring directory structure..."
 
 # 创建监控目录结构
-mkdir -p monitoring/alerts
-mkdir -p monitoring/grafana/dashboards
-mkdir -p monitoring/grafana/provisioning/dashboards
-mkdir -p monitoring/grafana/provisioning/datasources
+mkdir -p alerts
+mkdir -p grafana/dashboards
+mkdir -p grafana/provisioning/dashboards
+mkdir -p grafana/provisioning/datasources
 
 echo "Directory structure created:"
 echo "monitoring/"
@@ -29,15 +29,3 @@ echo "   - monitoring/prometheus.yml"
 echo "   - monitoring/alertmanager.yml"
 echo "   - monitoring/alerts/*.yml"
 echo "   - monitoring/grafana/dashboards/*.json"
-
-## 启动监控栈
-
-```bash
-# 启动所有服务
-docker-compose -f docker-compose.monitoring.yml up -d
-
-# 查看服务状态
-docker-compose -f docker-compose.monitoring.yml ps
-
-# 查看日志
-docker-compose -f docker-compose.monitoring.yml logs -f

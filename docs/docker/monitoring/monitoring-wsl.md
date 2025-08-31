@@ -33,6 +33,11 @@
 ## 自动化设置脚本
 
 创建以下脚本来自动建立正确的目录结构：
+```bash
+cd /home/share
+touch setup-monitoring.sh
+vi setup-monitoring.sh
+```
 
 ```bash
 #!/bin/bash
@@ -66,6 +71,16 @@ echo "   - monitoring/prometheus.yml"
 echo "   - monitoring/alertmanager.yml"
 echo "   - monitoring/alerts/*.yml"
 echo "   - monitoring/grafana/dashboards/*.json"
+```
+
+```bash
+chmod 777 setup-monitoring.sh
+./setup-monitoring.sh
+cd monitoring
+touch docker-compose.monitoring.yml
+vi docker-compose.monitoring.yml
+docker-compose up -d
+```
 
 ## 启动监控栈
 
