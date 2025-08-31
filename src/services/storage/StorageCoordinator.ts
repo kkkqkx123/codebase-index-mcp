@@ -85,33 +85,80 @@ export class StorageCoordinator {
     });
 
     try {
-      // Store chunks in vector storage
-      const vectorResult = await this.vectorStorage.storeChunks(allChunks, {
-        projectId,
-        overwriteExisting: true,
-        batchSize: allChunks.length
-      });
+      // Start transaction for cross-database consistency
+      await this.transactionCoordinator.beginTransaction();
       
-      // Store chunks in graph storage
-      const graphResult = await this.graphStorage.storeChunks(allChunks, {
-        projectId,
-        overwriteExisting: true,
-        batchSize: allChunks.length
-      });
+      let vectorResult: IndexingResult | null = null;
+      let graphResult: GraphPersistenceResult | null = null;
 
-      this.logger.info('Files stored successfully', {
-        fileCount: files.length,
-        chunkCount: allChunks.length,
-        vectorResult,
-        graphResult,
-        projectId
-      });
+      try {
+        // Store chunks in vector storage
+        vectorResult = await this.vectorStorage.storeChunks(allChunks, {
+          projectId,
+          overwriteExisting: true,
+          batchSize: allChunks.length
+        });
+        
+        // Store chunks in graph storage
+        graphResult = await this.graphStorage.storeChunks(allChunks, {
+          projectId,
+          overwriteExisting: true,
+          batchSize: allChunks.length
+        });
 
-      return {
-        success: true,
-        chunksStored: allChunks.length,
-        errors: []
-      };
+        // Add vector operation to transaction
+        await this.transactionCoordinator.addVectorOperation({
+          type: 'storeChunks',
+          chunks: allChunks,
+          options: {
+            projectId,
+            overwriteExisting: true,
+            batchSize: allChunks.length
+          }
+        }, {
+          type: 'deleteChunks',
+          chunkIds: allChunks.map(c => c.id)
+        });
+        
+        // Add graph operation to transaction
+        await this.transactionCoordinator.addGraphOperation({
+          type: 'storeChunks',
+          chunks: allChunks,
+          options: {
+            projectId,
+            overwriteExisting: true,
+            batchSize: allChunks.length
+          }
+        }, {
+          type: 'deleteNodes',
+          nodeIds: allChunks.map(c => c.id)
+        });
+        
+        // Commit transaction
+        const transactionSuccess = await this.transactionCoordinator.commitTransaction();
+        
+        if (!transactionSuccess) {
+          throw new Error('Transaction failed');
+        }
+
+        this.logger.info('Files stored successfully', {
+          fileCount: files.length,
+          chunkCount: allChunks.length,
+          vectorResult,
+          graphResult,
+          projectId
+        });
+
+        return {
+          success: true,
+          chunksStored: allChunks.length,
+          errors: []
+        };
+      } catch (error) {
+        // Rollback transaction on error
+        await this.transactionCoordinator.rollbackTransaction();
+        throw error;
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
@@ -153,22 +200,50 @@ export class StorageCoordinator {
         };
       }
 
-      // Delete chunks from vector storage
-      await this.vectorStorage.deleteChunksByFiles(filePaths);
+      // Start transaction for cross-database consistency
+      await this.transactionCoordinator.beginTransaction();
       
-      // Delete nodes from graph storage
-      await this.graphStorage.deleteNodesByFiles(filePaths);
+      try {
+        // Add vector deletion operation to transaction
+        await this.transactionCoordinator.addVectorOperation({
+          type: 'deleteChunks',
+          chunkIds
+        }, {
+          type: 'restoreChunks',
+          chunkIds
+        });
+        
+        // Add graph deletion operation to transaction
+        await this.transactionCoordinator.addGraphOperation({
+          type: 'deleteNodes',
+          nodeIds: chunkIds
+        }, {
+          type: 'restoreNodes',
+          nodeIds: chunkIds
+        });
+        
+        // Commit transaction
+        const transactionSuccess = await this.transactionCoordinator.commitTransaction();
+        
+        if (!transactionSuccess) {
+          throw new Error('Transaction failed');
+        }
 
-      this.logger.info('Files deleted successfully', {
-        fileCount: filePaths.length,
-        chunkCount: chunkIds.length
-      });
+        this.logger.info('Files deleted successfully', {
+          fileCount: filePaths.length,
+          chunkCount: chunkIds.length
+        });
 
-      return {
-        success: true,
-        filesDeleted: filePaths.length,
-        errors: []
-      };
+        return {
+          success: true,
+          filesDeleted: filePaths.length,
+          errors: []
+        };
+      } catch (error) {
+        // Rollback transaction on error
+        await this.transactionCoordinator.rollbackTransaction();
+        throw error;
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
@@ -191,8 +266,9 @@ export class StorageCoordinator {
     try {
       // Get all chunk IDs for the project from vector storage
       // We need to get the collection name from the vector storage service config
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
       const vectorChunkIds = await this.qdrantClient.getChunkIdsByFiles(
-        this.vectorStorage['config'].collectionName,
+        collectionName,
         [projectId]
       );
       
@@ -204,22 +280,50 @@ export class StorageCoordinator {
         };
       }
 
-      // Delete chunks from vector storage
-      await this.vectorStorage.deleteChunksByFiles([projectId]);
+      // Start transaction for cross-database consistency
+      await this.transactionCoordinator.beginTransaction();
       
-      // Delete nodes from graph storage
-      await this.graphStorage.deleteNodesByFiles([projectId]);
+      try {
+        // Add vector deletion operation to transaction
+        await this.transactionCoordinator.addVectorOperation({
+          type: 'deleteChunks',
+          chunkIds: vectorChunkIds
+        }, {
+          type: 'restoreChunks',
+          chunkIds: vectorChunkIds
+        });
+        
+        // Add graph deletion operation to transaction
+        await this.transactionCoordinator.addGraphOperation({
+          type: 'deleteNodes',
+          nodeIds: vectorChunkIds
+        }, {
+          type: 'restoreNodes',
+          nodeIds: vectorChunkIds
+        });
+        
+        // Commit transaction
+        const transactionSuccess = await this.transactionCoordinator.commitTransaction();
+        
+        if (!transactionSuccess) {
+          throw new Error('Transaction failed');
+        }
 
-      this.logger.info('Project deleted successfully', {
-        projectId,
-        chunkCount: vectorChunkIds.length
-      });
+        this.logger.info('Project deleted successfully', {
+          projectId,
+          chunkCount: vectorChunkIds.length
+        });
 
-      return {
-        success: true,
-        filesDeleted: vectorChunkIds.length,
-        errors: []
-      };
+        return {
+          success: true,
+          filesDeleted: vectorChunkIds.length,
+          errors: []
+        };
+      } catch (error) {
+        // Rollback transaction on error
+        await this.transactionCoordinator.rollbackTransaction();
+        throw error;
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
@@ -495,6 +599,41 @@ export class StorageCoordinator {
     }
   }
 
+  // Private method to get chunk IDs for given file paths
+  private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {
+    try {
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
+      
+      if (filePaths.length === 0) {
+        return [];
+      }
+      
+      const chunkIds = await this.qdrantClient.getChunkIdsByFiles(collectionName, filePaths);
+      
+      // Remove duplicates
+      return [...new Set(chunkIds)];
+    } catch (error) {
+      this.logger.error('Failed to get chunk IDs for files', {
+        filePaths,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
+  }
+
+  private async getProjectChunkIds(projectId: string): Promise<string[]> {
+    try {
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
+      return await this.qdrantClient.getChunkIdsByFiles(collectionName, [projectId]);
+    } catch (error) {
+      this.logger.error('Failed to get chunk IDs for project', {
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
+  }
+
   // Add method to find snippet overlaps
   async findSnippetOverlaps(snippetId: string, projectId: string): Promise<string[]> {
     try {
@@ -557,40 +696,5 @@ export class StorageCoordinator {
     }
   }
 
-  private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {
-    // Return early if no file paths provided
-    if (filePaths.length === 0) {
-      return [];
-    }
-    
-    try {
-      // Get chunk IDs for the specified files from vector storage
-      return await this.qdrantClient.getChunkIdsByFiles(
-        this.vectorStorage['config'].collectionName,
-        filePaths
-      );
-    } catch (error) {
-      this.logger.error('Failed to get chunk IDs for files', {
-        filePaths,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return [];
-    }
-  }
 
-  private async getProjectChunkIds(projectId: string): Promise<string[]> {
-    try {
-      // Get all chunk IDs for the project from vector storage
-      return await this.qdrantClient.getChunkIdsByFiles(
-        this.vectorStorage['config'].collectionName,
-        [projectId]
-      );
-    } catch (error) {
-      this.logger.error('Failed to get chunk IDs for project', {
-        projectId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return [];
-    }
-  }
 }

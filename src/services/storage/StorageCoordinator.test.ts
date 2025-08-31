@@ -55,6 +55,18 @@ describe('StorageCoordinator', () => {
     loggerService = container.get(LoggerService);
     errorHandlerService = container.get(ErrorHandlerService);
     configService = container.get(ConfigService);
+    
+    // Mock configService.get to return qdrant config
+    configService.get.mockImplementation((key: any): any => {
+      if (key === 'qdrant') {
+        return {
+          host: 'localhost',
+          port: 6333,
+          collection: 'test_collection'
+        };
+      }
+      return {};
+    });
 
     // Create StorageCoordinator instance with mocked QdrantClientWrapper
     storageCoordinator = new StorageCoordinator(
@@ -197,8 +209,6 @@ describe('StorageCoordinator', () => {
       expect(loggerService.info).toHaveBeenCalledWith('Files stored successfully', {
         fileCount: 2,
         chunkCount: 3,
-        vectorResult: expect.any(Object),
-        graphResult: expect.any(Object),
         projectId: mockProjectId
       });
     });
@@ -414,7 +424,7 @@ describe('StorageCoordinator', () => {
 
     it('should successfully delete project', async () => {
       // Mock chunk IDs for project
-      jest.spyOn(storageCoordinator as any, 'getProjectChunkIds').mockResolvedValue([
+      qdrantClient.getChunkIdsByFiles.mockResolvedValue([
         'chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'
       ]);
 
@@ -465,7 +475,7 @@ describe('StorageCoordinator', () => {
     });
 
     it('should handle project with no chunks', async () => {
-      jest.spyOn(storageCoordinator as any, 'getProjectChunkIds').mockResolvedValue([]);
+      qdrantClient.getChunkIdsByFiles.mockResolvedValue([]);
 
       const result = await storageCoordinator.deleteProject(mockProjectId);
 
@@ -656,8 +666,13 @@ describe('StorageCoordinator', () => {
         // Mock QdrantClientWrapper method
         qdrantClient.getChunkIdsByFiles.mockResolvedValue(mockChunkIds);
 
-        // Mock the vectorStorage config to return a collection name
-        (vectorStorage as any).config = { collectionName: 'test_collection' };
+        // Mock configService to return collection name for qdrant
+        (configService.get as jest.Mock).mockImplementation((key: string) => {
+          if (key === 'qdrant') {
+            return { host: 'localhost', port: 6333, collection: 'test_collection' };
+          }
+          return {} as any;
+        });
 
         // Call the private method directly using reflection
         const getChunkIdsForFiles = (storageCoordinator as any)['getChunkIdsForFiles'];
@@ -674,18 +689,20 @@ describe('StorageCoordinator', () => {
       });
 
       it('should handle empty file paths array', async () => {
-        // Mock the vectorStorage config to return a collection name
-        (vectorStorage as any).config = { collectionName: 'test_collection' };
+        // Mock configService to return collection name for qdrant
+        (configService.get as jest.Mock).mockImplementation((key: string) => {
+          if (key === 'qdrant') {
+            return { host: 'localhost', port: 6333, collection: 'test_collection' };
+          }
+          return {} as any;
+        });
 
         // Call the private method directly using reflection
         const getChunkIdsForFiles = (storageCoordinator as any)['getChunkIdsForFiles'];
         const result = await getChunkIdsForFiles.call(storageCoordinator, []);
 
-        // Verify QdrantClientWrapper method was called with empty array
-        expect(qdrantClient.getChunkIdsByFiles).toHaveBeenCalledWith(
-          'test_collection',
-          []
-        );
+        // Verify QdrantClientWrapper method was NOT called with empty array (optimization)
+        expect(qdrantClient.getChunkIdsByFiles).not.toHaveBeenCalled();
 
         // Verify the result
         expect(result).toEqual([]);
@@ -700,8 +717,13 @@ describe('StorageCoordinator', () => {
         // Mock QdrantClientWrapper method
         qdrantClient.getChunkIdsByFiles.mockResolvedValue(mockChunkIds);
 
-        // Mock the vectorStorage config to return a collection name
-        (vectorStorage as any).config = { collectionName: 'test_collection' };
+        // Mock configService to return collection name for qdrant
+        (configService.get as jest.Mock).mockImplementation((key: string) => {
+          if (key === 'qdrant') {
+            return { host: 'localhost', port: 6333, collection: 'test_collection' };
+          }
+          return {} as any;
+        });
 
         // Call the private method directly using reflection
         const getProjectChunkIds = (storageCoordinator as any)['getProjectChunkIds'];

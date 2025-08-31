@@ -125,10 +125,25 @@ describe('Cross-Database Consistency Integration Tests', () => {
     entityIdManager = new EntityIdManager(loggerService, errorHandlerService);
     
     // Create service instances
+    const mockVectorStorage = {
+      storeChunks: jest.fn().mockResolvedValue({ success: true, totalChunks: 1, uniqueChunks: 1, processingTime: 100 }),
+      deleteChunks: jest.fn().mockResolvedValue({ success: true }),
+      search: jest.fn().mockResolvedValue([])
+    } as any;
+
+    const mockGraphStorage = {
+      storeChunks: jest.fn().mockResolvedValue({ success: true }),
+      deleteNodes: jest.fn().mockResolvedValue({ success: true }),
+      search: jest.fn().mockResolvedValue([])
+    } as any;
+
     consistencyChecker = new ConsistencyChecker(
       loggerService,
       errorHandlerService,
-      entityIdManager
+      entityIdManager,
+      mockVectorStorage,
+      mockGraphStorage,
+      transactionCoordinator
     );
     
     entityMappingService = new EntityMappingService(
@@ -140,7 +155,9 @@ describe('Cross-Database Consistency Integration Tests', () => {
     transactionCoordinator = new TransactionCoordinator(
       loggerService,
       errorHandlerService,
-      entityMappingService
+      entityMappingService,
+      mockVectorStorage,
+      mockGraphStorage
     );
 
     // Clear all storage
