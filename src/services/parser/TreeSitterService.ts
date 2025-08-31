@@ -239,10 +239,11 @@ export class TreeSitterService {
         functions.push(node);
       }
 
-      // Recursively traverse child nodes
-      const children = node.children || [];
-      for (const child of children) {
-        traverse(child, depth + 1);
+      // Recursively traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child, depth + 1);
+        }
       }
     };
 
@@ -269,10 +270,11 @@ export class TreeSitterService {
         classes.push(node);
       }
 
-      // Recursively traverse child nodes
-      const children = node.children || [];
-      for (const child of children) {
-        traverse(child, depth + 1);
+      // Recursively traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child, depth + 1);
+        }
       }
     };
 
@@ -305,10 +307,11 @@ export class TreeSitterService {
         }
       }
 
-      // Recursively traverse child nodes
-      const children = node.children || [];
-      for (const child of children) {
-        traverse(child, depth + 1);
+      // Recursively traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child, depth + 1);
+        }
       }
     };
 
@@ -342,10 +345,11 @@ export class TreeSitterService {
         }
       }
 
-      // Recursively traverse child nodes
-      const children = node.children || [];
-      for (const child of children) {
-        traverse(child, depth + 1);
+      // Recursively traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child, depth + 1);
+        }
       }
     };
 
@@ -388,9 +392,11 @@ export class TreeSitterService {
         }
       }
 
-      // Recursively search child nodes with depth tracking
-      for (const child of node.children) {
-        findControlStructures(child, nestingLevel + 1, depth + 1);
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findControlStructures(child, nestingLevel + 1, depth + 1);
+        }
       }
     };
 
@@ -407,11 +413,13 @@ export class TreeSitterService {
       if (depth > 50) return;
 
       if (errorHandlingTypes.has(node.type)) {
-        console.log('Found error handling node of type:', node.type);
-        console.log('Node content:', this.getNodeText(node, sourceCode));
+        // Skip logging for performance in production
+        // console.log('Found error handling node of type:', node.type);
+        // console.log('Node content:', this.getNodeText(node, sourceCode));
         const snippet = this.createSnippetFromNode(node, sourceCode, 'error_handling', nestingLevel);
         if (snippet) {
-          console.log('Created error handling snippet:', snippet.content);
+          // Skip logging for performance in production
+          // console.log('Created error handling snippet:', snippet.content);
           snippets.push(snippet);
         }
       } else if (node.type === 'catch_clause' || node.type === 'finally_clause') {
@@ -420,8 +428,11 @@ export class TreeSitterService {
         return;
       }
 
-      for (const child of node.children) {
-        findErrorHandling(child, nestingLevel + 1, depth + 1);
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findErrorHandling(child, nestingLevel + 1, depth + 1);
+        }
       }
     };
 
@@ -444,8 +455,11 @@ export class TreeSitterService {
         }
       }
 
-      for (const child of node.children) {
-        findFunctionCallChains(child, nestingLevel + 1, depth + 1);
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findFunctionCallChains(child, nestingLevel + 1, depth + 1);
+        }
       }
     };
 
@@ -458,7 +472,10 @@ export class TreeSitterService {
     const lines = sourceCode.split('\n');
     
     // First, look for comment nodes in the AST
-    const findCommentNodes = (node: Parser.SyntaxNode) => {
+    const findCommentNodes = (node: Parser.SyntaxNode, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 50) return;
+      
       if (node.type === 'comment') {
         const commentText = this.getNodeText(node, sourceCode);
         if (this.snippetMarkerRegex.test(commentText)) {
@@ -504,9 +521,11 @@ export class TreeSitterService {
         }
       }
       
-      // Recursively search child nodes
-      for (const child of node.children) {
-        findCommentNodes(child);
+      // Recursively search child nodes with depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findCommentNodes(child, depth + 1);
+        }
       }
     };
     
@@ -589,8 +608,11 @@ export class TreeSitterService {
         }
       }
 
-      for (const child of node.children) {
-        findLogicBlocks(child, nestingLevel + 1, depth + 1);
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findLogicBlocks(child, nestingLevel + 1, depth + 1);
+        }
       }
     };
 
@@ -675,35 +697,45 @@ export class TreeSitterService {
 
     // Find parent function
     let parent = node.parent;
-    while (parent) {
-      console.log('Checking parent node of type:', parent.type);
+    let depth = 0;
+    while (parent && depth < 50) {
+      // Skip logging for performance in production
+      // console.log('Checking parent node of type:', parent.type);
       if (parent.type === 'function_declaration' || parent.type === 'function_definition' ||
           parent.type === 'method_definition' || parent.type === 'arrow_function') {
-        console.log('Parent node has childForFieldName method:', typeof parent.childForFieldName);
+        // Skip logging for performance in production
+        // console.log('Parent node has childForFieldName method:', typeof parent.childForFieldName);
         const nameNode = parent.childForFieldName('name');
-        console.log('Name node:', nameNode);
+        // Skip logging for performance in production
+        // console.log('Name node:', nameNode);
         if (nameNode) {
           contextInfo.parentFunction = this.getNodeText(nameNode, sourceCode);
-          console.log('Found parent function:', contextInfo.parentFunction);
+          // Skip logging for performance in production
+          // console.log('Found parent function:', contextInfo.parentFunction);
           break;
         }
       }
       parent = parent.parent;
+      depth++;
     }
 
     // Find parent class
     parent = node.parent;
-    while (parent) {
-      console.log('Checking parent node of type for class:', parent.type);
+    depth = 0;
+    while (parent && depth < 50) {
+      // Skip logging for performance in production
+      // console.log('Checking parent node of type for class:', parent.type);
       if (parent.type === 'class_declaration' || parent.type === 'class_definition') {
         const nameNode = parent.childForFieldName('name');
         if (nameNode) {
           contextInfo.parentClass = this.getNodeText(nameNode, sourceCode);
-          console.log('Found parent class:', contextInfo.parentClass);
+          // Skip logging for performance in production
+          // console.log('Found parent class:', contextInfo.parentClass);
           break;
         }
       }
       parent = parent.parent;
+      depth++;
     }
 
     return contextInfo;
@@ -765,10 +797,12 @@ export class TreeSitterService {
       /\b(?:console\.log|process\.exit|process\.kill)\b/ // External calls
     ];
     
-    console.log('Checking for side effects in content:', content);
+    // Skip logging for performance in production
+    // console.log('Checking for side effects in content:', content);
     const hasSideEffect = sideEffectPatterns.some(pattern => {
       const matches = pattern.test(content);
-      console.log('Pattern', pattern, 'matches:', matches);
+      // Skip logging for performance in production
+      // console.log('Pattern', pattern, 'matches:', matches);
       return matches;
     });
     
@@ -776,19 +810,22 @@ export class TreeSitterService {
     if (!hasSideEffect && /=/.test(content)) {
       // Check for property assignments (more specific than the general pattern)
       if (/\.\w+\s*=/.test(content)) {
-        console.log('Property assignment detected as side effect');
+        // Skip logging for performance in production
+        // console.log('Property assignment detected as side effect');
         return true;
       }
       
       // Check for assignments that look like they might be to global variables
       // This is a heuristic - we can't know for sure without more context
       if (/\b(?:window|global|document|console|process|module|exports)\.\w+\s*=/.test(content)) {
-        console.log('Global property assignment detected as side effect');
+        // Skip logging for performance in production
+        // console.log('Global property assignment detected as side effect');
         return true;
       }
     }
     
-    console.log('Has side effects:', hasSideEffect);
+    // Skip logging for performance in production
+    // console.log('Has side effects:', hasSideEffect);
     return hasSideEffect;
   }
 
@@ -872,19 +909,21 @@ export class TreeSitterService {
     const seen = new Set<string>();
     
     for (const snippet of snippets) {
-      console.log('Processing snippet:', snippet.content);
-      console.log('Snippet type:', snippet.snippetMetadata.snippetType);
-      console.log('Snippet complexity:', snippet.snippetMetadata.complexity);
-      console.log('Snippet length:', snippet.content.length);
+      // Skip logging for performance in production
+      // console.log('Processing snippet:', snippet.content);
+      // console.log('Snippet type:', snippet.snippetMetadata.snippetType);
+      // console.log('Snippet complexity:', snippet.snippetMetadata.complexity);
+      // console.log('Snippet length:', snippet.content.length);
+      
       // Less restrictive complexity filter for testing
       if (snippet.snippetMetadata.complexity < 1 || snippet.snippetMetadata.complexity > 15) {
-        console.log('Skipping snippet due to complexity filter');
+        // console.log('Skipping snippet due to complexity filter');
         continue;
       }
       
       // Length filter matching test expectations
       if (snippet.content.length < 20 || snippet.content.length > 1000) {
-        console.log('Skipping snippet due to length filter, length:', snippet.content.length);
+        // console.log('Skipping snippet due to length filter, length:', snippet.content.length);
         continue;
       }
       
@@ -939,10 +978,11 @@ export class TreeSitterService {
         nodes.push(node);
       }
 
-      // Recursively traverse child nodes
-      const children = node.children || [];
-      for (const child of children) {
-        traverse(child, depth + 1);
+      // Recursively traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child, depth + 1);
+        }
       }
     };
 
@@ -962,7 +1002,7 @@ export class TreeSitterService {
       const startIndex = code.indexOf(text);
       const endIndex = startIndex + text.length;
       
-      return {
+      const node = {
         type,
         startPosition: { row: startLine, column: 0 },
         endPosition: { row: endLine, column: text.length },
@@ -972,6 +1012,13 @@ export class TreeSitterService {
         parent: null,
         text: text
       };
+      
+      // Set parent relationship for children
+      children.forEach(child => {
+        child.parent = node;
+      });
+      
+      return node;
     };
 
     // Parse the code to create a simple mock AST
@@ -1023,7 +1070,7 @@ export class TreeSitterService {
         nodeName = 'finally_block';
       }
       
-      children.push(createNode(nodeType, matchedText, startLine, endLine));
+      children.push(createNode(nodeType, matchedText, startLine, endLine, []));
     }
     
     // Create root node

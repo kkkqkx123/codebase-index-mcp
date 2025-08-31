@@ -49,17 +49,26 @@ function createMockSyntaxNode(
   endPosition: { row: number; column: number } = { row: 0, column: 0 },
   startIndex: number = 0,
   endIndex: number = text.length,
-  children: any[] = []
+  children: any[] = [],
+  parent: any = null
 ): any {
-  return {
+  const node = {
     type,
     startPosition,
     endPosition,
     startIndex,
     endIndex,
     children,
+    parent,
     childForFieldName: jest.fn().mockReturnValue(null)
   };
+  
+  // Set parent relationship for children
+  children.forEach(child => {
+    child.parent = node;
+  });
+  
+  return node;
 }
 
 // Helper function to create mock AST with specified complexity
@@ -76,7 +85,8 @@ function createMockAST(code: string): any {
         { row: index, column: 0 },
         { row: index, column: line.length },
         code.indexOf(line),
-        code.indexOf(line) + line.length
+        code.indexOf(line) + line.length,
+        []
       ));
     }
     
@@ -87,7 +97,8 @@ function createMockAST(code: string): any {
         { row: index, column: 0 },
         { row: index, column: line.length },
         code.indexOf(line),
-        code.indexOf(line) + line.length
+        code.indexOf(line) + line.length,
+        []
       ));
     }
     
@@ -98,7 +109,8 @@ function createMockAST(code: string): any {
         { row: index, column: 0 },
         { row: index, column: line.length },
         code.indexOf(line),
-        code.indexOf(line) + line.length
+        code.indexOf(line) + line.length,
+        []
       ));
     }
     
@@ -110,7 +122,8 @@ function createMockAST(code: string): any {
         { row: index, column: 0 },
         { row: index, column: line.length },
         code.indexOf(line),
-        code.indexOf(line) + line.length
+        code.indexOf(line) + line.length,
+        []
       ));
     }
   });
@@ -123,7 +136,8 @@ function createMockAST(code: string): any {
     { row: lines.length - 1, column: lines[lines.length - 1].length },
     0,
     code.length,
-    nodes
+    nodes,
+    null
   );
   
   return rootNode;
