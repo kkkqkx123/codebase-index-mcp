@@ -401,7 +401,7 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
       const mockAST = createMockAST(code);
       
       const startTime = performance.now();
-      const snippets = treeSitterService.extractSnippets(mockAST, code);
+      const snippets = (treeSitterService as any).extractCommentMarkedSnippets(mockAST, code);
       const endTime = performance.now();
       
       const processingTime = endTime - startTime;

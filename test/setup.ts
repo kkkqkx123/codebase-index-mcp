@@ -141,54 +141,71 @@ export const createTestContainer = () => {
   
   // Create mock embedders
   
-  // Create simple mock embedder objects that properly implement the Embedder interface
-  const createMockEmbedder = (name: string) => {
-    const embedder = {
-      async embed(input: any) {
-        if (Array.isArray(input)) {
-          return input.map((_, index) => ({
-            vector: [0.1, 0.2, 0.3],
-            dimensions: 1536,
-            model: `${name}-test-model`,
-            processingTime: 10 + index
-          }));
-        } else {
-          return {
-            vector: [0.1, 0.2, 0.3],
-            dimensions: 1536,
-            model: `${name}-test-model`,
-            processingTime: 10
-          };
-        }
-      },
-      async isAvailable() {
-        return true;
-      },
-      getModelName() {
-        return `${name}-test-model`;
-      },
-      getDimensions() {
-        return 1536;
-      }
-    };
+  // Create proper mock embedder classes that implement the Embedder interface
+  class MockEmbedder {
+    private name: string;
     
-    // Explicitly cast to Embedder interface
-    return embedder as any;
+    constructor(name: string) {
+      this.name = name;
+    }
+    
+    async embed(input: any) {
+      if (Array.isArray(input)) {
+        return input.map((_, index) => ({
+          vector: [0.1, 0.2, 0.3],
+          dimensions: 1536,
+          model: `${this.name}-test-model`,
+          processingTime: 10 + index
+        }));
+      } else {
+        return {
+          vector: [0.1, 0.2, 0.3],
+          dimensions: 1536,
+          model: `${this.name}-test-model`,
+          processingTime: 10
+        };
+      }
+    }
+    
+    async isAvailable() {
+      return true;
+    }
+    
+    getModelName() {
+      return `${this.name}-test-model`;
+    }
+    
+    getDimensions() {
+      return 1536;
+    }
+  }
+
+  const createMockEmbedder = (name: string) => {
+    return new MockEmbedder(name) as any;
   };
   
-  // Bind mock embedders
-  container.bind<OpenAIEmbedder>(OpenAIEmbedder).toConstantValue(createMockEmbedder('openai') as any);
-  container.bind<OllamaEmbedder>(OllamaEmbedder).toConstantValue(createMockEmbedder('ollama') as any);
-  container.bind<GeminiEmbedder>(GeminiEmbedder).toConstantValue(createMockEmbedder('gemini') as any);
-  container.bind<MistralEmbedder>(MistralEmbedder).toConstantValue(createMockEmbedder('mistral') as any);
-  container.bind<SiliconFlowEmbedder>(SiliconFlowEmbedder).toConstantValue(createMockEmbedder('siliconflow') as any);
-  container.bind<Custom1Embedder>(Custom1Embedder).toConstantValue(createMockEmbedder('custom1') as any);
-  container.bind<Custom2Embedder>(Custom2Embedder).toConstantValue(createMockEmbedder('custom2') as any);
-  container.bind<Custom3Embedder>(Custom3Embedder).toConstantValue(createMockEmbedder('custom3') as any);
+  // Bind mock embedders with proper interface binding
+  const openaiMock = createMockEmbedder('openai');
+  const ollamaMock = createMockEmbedder('ollama');
+  const geminiMock = createMockEmbedder('gemini');
+  const mistralMock = createMockEmbedder('mistral');
+  const siliconflowMock = createMockEmbedder('siliconflow');
+  const custom1Mock = createMockEmbedder('custom1');
+  const custom2Mock = createMockEmbedder('custom2');
+  const custom3Mock = createMockEmbedder('custom3');
+
+  container.bind<OpenAIEmbedder>(OpenAIEmbedder).toConstantValue(openaiMock as any);
+  container.bind<OllamaEmbedder>(OllamaEmbedder).toConstantValue(ollamaMock as any);
+  container.bind<GeminiEmbedder>(GeminiEmbedder).toConstantValue(geminiMock as any);
+  container.bind<MistralEmbedder>(MistralEmbedder).toConstantValue(mistralMock as any);
+  container.bind<SiliconFlowEmbedder>(SiliconFlowEmbedder).toConstantValue(siliconflowMock as any);
+  container.bind<Custom1Embedder>(Custom1Embedder).toConstantValue(custom1Mock as any);
+  container.bind<Custom2Embedder>(Custom2Embedder).toConstantValue(custom2Mock as any);
+  container.bind<Custom3Embedder>(Custom3Embedder).toConstantValue(custom3Mock as any);
   
   // Bind factory and dimension adapter
-  container.bind<EmbedderFactory>(EmbedderFactory).toSelf();
-  container.bind<DimensionAdapterService>(DimensionAdapterService).toSelf();
+  container.bind<EmbedderFactory>(EmbedderFactory).toSelf().inSingletonScope();
+  container.bind<DimensionAdapterService>(DimensionAdapterService).toSelf().inSingletonScope();
   
   return container;
 };
