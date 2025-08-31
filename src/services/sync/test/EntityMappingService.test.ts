@@ -6,8 +6,8 @@ import { CodebaseIndexError } from '../../../core/ErrorHandlerService'; // Keep 
 import { createMockEntityMapping, createMockSyncOperation } from '@test/setup';
 
 // Mock dependencies
-jest.mock('../../src/core/LoggerService');
-jest.mock('../../src/services/sync/EntityIdManager');
+jest.mock('../../../core/LoggerService');
+jest.mock('../EntityIdManager');
 // Removed: jest.mock('../../src/core/ErrorHandlerService'); to allow actual CodebaseIndexError to be used
 
 describe('EntityMappingService', () => {

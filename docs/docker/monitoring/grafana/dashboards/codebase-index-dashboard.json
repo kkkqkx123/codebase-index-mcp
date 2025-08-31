@@ -1,0 +1,306 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Codebase Index Service",
+    "tags": ["codebase-index", "mcp", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "graph",
+        "title": "Database Connection Status",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "qdrant_connection_status",
+            "legendFormat": "Qdrant",
+            "refId": "A"
+          },
+          {
+            "expr": "nebula_connection_status",
+            "legendFormat": "Nebula",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Status (1=Connected, 0=Disconnected)",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "Database Latency",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "qdrant_latency_ms",
+            "legendFormat": "Qdrant Latency (ms)",
+            "refId": "A"
+          },
+          {
+            "expr": "nebula_latency_ms",
+            "legendFormat": "Nebula Latency (ms)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": "Latency (ms)"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "graph",
+        "title": "System Resources",
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "system_memory_usage_percent",
+            "legendFormat": "Memory Usage %",
+            "refId": "A"
+          },
+          {
+            "expr": "system_cpu_usage_percent",
+            "legendFormat": "CPU Usage %",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "Usage %",
+            "min": 0,
+            "max": 100
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "type": "graph",
+        "title": "Active Operations",
+        "gridPos": {
+          "x": 12,
+          "y": 6,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "service_active_queries",
+            "legendFormat": "Active Queries",
+            "refId": "A"
+          },
+          {
+            "expr": "service_active_batches",
+            "legendFormat": "Active Batches",
+            "refId": "B"
+          },
+          {
+            "expr": "service_pending_sync_operations",
+            "legendFormat": "Pending Sync Operations",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Count"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "Query Performance",
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(service_query_latency_seconds_bucket[5m])) by (le))",
+            "legendFormat": "95th Percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(service_query_latency_seconds_bucket[5m])) by (le))",
+            "legendFormat": "Median",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency (seconds)"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "type": "graph",
+        "title": "Cache Hit Rate",
+        "gridPos": {
+          "x": 12,
+          "y": 12,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "service_cache_hit_rate",
+            "legendFormat": "Cache Hit Rate %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "Hit Rate %",
+            "min": 0,
+            "max": 100
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "type": "graph",
+        "title": "Sync Delay",
+        "gridPos": {
+          "x": 0,
+          "y": 18,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "service_sync_delay_seconds",
+            "legendFormat": "Sync Delay (seconds)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Delay (seconds)"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "type": "graph",
+        "title": "Error Rates",
+        "gridPos": {
+          "x": 12,
+          "y": 18,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "service_query_error_rate",
+            "legendFormat": "Query Error Rate %",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(service_sync_errors_total[5m])",
+            "legendFormat": "Sync Errors/sec",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "Rate"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "links": [],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ]
+    }
+  }
+}

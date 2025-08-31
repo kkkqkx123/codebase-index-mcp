@@ -6,9 +6,9 @@ import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
 import { createMockTransaction, createMockSyncOperation } from '@test/setup';
 
 // Mock dependencies
-jest.mock('../../src/core/LoggerService');
-jest.mock('../../src/core/ErrorHandlerService');
-jest.mock('../../src/services/sync/EntityMappingService');
+jest.mock('../../../core/LoggerService');
+jest.mock('../../../core/ErrorHandlerService');
+jest.mock('../EntityMappingService');
 
 describe('TransactionCoordinator', () => {
   let transactionCoordinator: TransactionCoordinator;

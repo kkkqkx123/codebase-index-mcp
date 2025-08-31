@@ -11,6 +11,9 @@ module.exports = {
       tsconfig: 'tsconfig.json'
     }],
   },
+  moduleNameMapper: {
+    '^@test/setup$': '<rootDir>/test/setup.ts'
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

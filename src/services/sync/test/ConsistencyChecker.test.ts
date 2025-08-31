@@ -6,8 +6,8 @@ import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
 import { createMockEntityMapping, createMockConsistencyIssue } from '@test/setup';
 
 // Mock dependencies
-jest.mock('../../src/core/LoggerService');
-jest.mock('../../src/services/sync/EntityIdManager');
+jest.mock('../../../core/LoggerService');
+jest.mock('../EntityIdManager');
 
 describe('ConsistencyChecker', () => {
   let consistencyChecker: ConsistencyChecker;
@@ -34,6 +34,7 @@ describe('ConsistencyChecker', () => {
 
     mockEntityIdManager = {
       getMappingsByProject: jest.fn(),
+      getMapping: jest.fn(),
       updateMapping: jest.fn(),
       deleteMapping: jest.fn(),
     } as any;
@@ -186,6 +187,7 @@ describe('ConsistencyChecker', () => {
 
       expect(mockEntityIdManager.updateMapping).toHaveBeenCalledWith('entity_1', {
         vectorId: 'vector_entity_1_repaired',
+        graphId: undefined,
       });
 
       expect(mockLoggerService.info).toHaveBeenCalledWith('Repairing consistency issue', {
@@ -220,6 +222,7 @@ describe('ConsistencyChecker', () => {
 
       expect(mockEntityIdManager.updateMapping).toHaveBeenCalledWith('entity_1', {
         graphId: 'graph_entity_1_repaired',
+        vectorId: undefined,
       });
     });
 

@@ -42,7 +42,7 @@ This document outlines the implementation plan for testing the Codebase Index MC
 
 ### Phase 3: Search and Graph Integration (Week 5-6) 
 
-#### [ ] Search Services Integration
+#### [x] Search Services Integration
 **Objectives:**
 - Implement integration tests for search services
 - Test semantic search functionality
@@ -51,7 +51,7 @@ This document outlines the implementation plan for testing the Codebase Index MC
 - Test query coordination and result fusion
 - Test query optimization and caching
 
-#### [ ] Graph and Sync Services Integration
+#### [x] Graph and Sync Services Integration
 **Objectives:**
 - Implement integration tests for graph services
 - Implement integration tests for sync services
