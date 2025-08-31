@@ -1,30 +1,38 @@
 import { Container } from 'inversify';
 import { VectorStorageService } from './VectorStorageService';
-import { QdrantService } from '../../database/QdrantService';
+import { QdrantClientWrapper } from '../../database/qdrant/QdrantClientWrapper';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
 import { TYPES } from '../../core/DIContainer';
 
 describe('VectorStorageService', () => {
   let container: Container;
   let vectorStorageService: VectorStorageService;
-  let mockQdrantService: jest.Mocked<QdrantService>;
+  let mockQdrantClient: jest.Mocked<QdrantClientWrapper>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
+  let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
+  let mockBatchMetrics: jest.Mocked<BatchProcessingMetrics>;
 
   beforeEach(() => {
     container = new Container();
     
     // Create mocks
-    mockQdrantService = {
-      upsert: jest.fn(),
-      delete: jest.fn(),
+    mockQdrantClient = {
+      upsertPoints: jest.fn(),
+      deletePoints: jest.fn(),
       getPoint: jest.fn(),
-      search: jest.fn(),
+      searchVectors: jest.fn(),
       createCollection: jest.fn(),
-      deleteCollection: jest.fn(),
+      clearCollection: jest.fn(),
       getCollectionInfo: jest.fn(),
-      updatePoint: jest.fn(),
+      getPointCount: jest.fn(),
+      collectionExists: jest.fn(),
+      connect: jest.fn(),
+      close: jest.fn(),
+      isConnectedToDatabase: jest.fn(),
     } as any;
 
     mockLoggerService = {
@@ -36,277 +44,409 @@ describe('VectorStorageService', () => {
 
     mockConfigService = {
       get: jest.fn(),
-      getVectorConfig: jest.fn().mockReturnValue({
-        collectionName: 'codebase_vectors',
-        vectorSize: 384,
-        distance: 'Cosine',
-        batchSize: 100,
-      }),
     } as any;
 
+    mockErrorHandlerService = {
+      handleError: jest.fn().mockReturnValue({ id: 'test-error-id' }),
+    } as any;
+
+    mockBatchMetrics = {
+      startBatchOperation: jest.fn(),
+      updateBatchOperation: jest.fn(),
+      endBatchOperation: jest.fn(),
+    } as any;
+
+    // Setup mock config
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'qdrant') {
+        return {
+          collection: 'codebase_vectors',
+          host: 'localhost',
+          port: 6333,
+        };
+      }
+      if (key === 'batchProcessing') {
+        return {
+          maxConcurrentOperations: 5,
+          defaultBatchSize: 100,
+          maxBatchSize: 1000
+        };
+      }
+      return null;
+    });
+
     // Bind mocks to container
-    container.bind(TYPES.QdrantService).toConstantValue(mockQdrantService);
+    container.bind(TYPES.QdrantClientWrapper).toConstantValue(mockQdrantClient);
     container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
     container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    container.bind(TYPES.VectorStorageService).to(VectorStorageService);
+    container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
+    container.bind(TYPES.BatchProcessingMetrics).toConstantValue(mockBatchMetrics);
+    container.bind(VectorStorageService).toSelf();
 
-    vectorStorageService = container.get<VectorStorageService>(TYPES.VectorStorageService);
+    vectorStorageService = container.get<VectorStorageService>(VectorStorageService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('storeVector', () => {
-    it('should store a single vector with metadata', async () => {
-      const vectorData = {
-        id: 'test-vector-1',
-        vector: [0.1, 0.2, 0.3, 0.4],
-        metadata: {
-          content: 'function test() { return true; }',
-          filePath: '/src/test.ts',
-          language: 'typescript',
-          functionName: 'test',
-        }
-      };
+  describe('initialize', () => {
+    it('should initialize successfully when collection exists', async () => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(false);
+      mockQdrantClient.connect.mockResolvedValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
 
-      mockQdrantService.upsert.mockResolvedValue({ operation_id: 1, status: 'completed' });
+      const result = await vectorStorageService.initialize();
 
-      await vectorStorageService.storeVector(vectorData);
-
-      expect(mockQdrantService.upsert).toHaveBeenCalledWith({
-        points: [{
-          id: vectorData.id,
-          vector: vectorData.vector,
-          payload: vectorData.metadata,
-        }]
-      });
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Stored vector', { id: vectorData.id });
+      expect(result).toBe(true);
+      expect(mockQdrantClient.connect).toHaveBeenCalled();
+      expect(mockQdrantClient.createCollection).not.toHaveBeenCalled();
     });
 
-    it('should handle storage errors gracefully', async () => {
-      const vectorData = {
-        id: 'test-vector-1',
-        vector: [0.1, 0.2, 0.3, 0.4],
-        metadata: { content: 'test content' }
-      };
+    it('should create collection when it does not exist', async () => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(false);
+      mockQdrantClient.connect.mockResolvedValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(false);
+      mockQdrantClient.createCollection.mockResolvedValue(true);
+      mockQdrantClient.getCollectionInfo.mockResolvedValue({
+        name: 'codebase_vectors',
+        status: 'green' as const,
+        vectors: { size: 1536, distance: 'Cosine' as const },
+        pointsCount: 0
+      });
 
-      mockQdrantService.upsert.mockRejectedValue(new Error('Storage failed'));
+      const result = await vectorStorageService.initialize();
 
-      await expect(vectorStorageService.storeVector(vectorData)).rejects.toThrow('Storage failed');
+      expect(result).toBe(true);
+      expect(mockQdrantClient.createCollection).toHaveBeenCalledWith(
+        'codebase_vectors',
+        1536,
+        'Cosine',
+        false
+      );
+    });
+
+    it('should handle connection failure', async () => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(false);
+      mockQdrantClient.connect.mockResolvedValue(false);
+
+      const result = await vectorStorageService.initialize();
+
+      expect(result).toBe(false);
+      expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
+    });
+
+    it('should handle collection creation failure', async () => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(false);
+      mockQdrantClient.connect.mockResolvedValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(false);
+      mockQdrantClient.createCollection.mockResolvedValue(false);
+
+      const result = await vectorStorageService.initialize();
+
+      expect(result).toBe(false);
+    });
+
+    it('should skip initialization if already connected', async () => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+
+      const result = await vectorStorageService.initialize();
+
+      expect(result).toBe(true);
+      expect(mockQdrantClient.connect).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('storeChunks', () => {
+    beforeEach(() => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+      mockQdrantClient.connect.mockResolvedValue(true);
+      mockQdrantClient.upsertPoints.mockResolvedValue(true);
+    });
+
+    it('should store code chunks as vectors', async () => {
+      const chunks = [
+        {
+          id: 'chunk-1',
+          content: 'function test() { return true; }',
+          type: 'function',
+          startLine: 1,
+          endLine: 3,
+          metadata: {
+            filePath: '/src/test.ts',
+            language: 'typescript',
+            functionName: 'test'
+          }
+        }
+      ];
+
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.storeChunks(chunks);
+
+      expect(result.success).toBe(true);
+      expect(result.totalChunks).toBe(1);
+      expect(mockQdrantClient.upsertPoints).toHaveBeenCalled();
+    });
+
+    it('should store multiple vectors with metadata', async () => {
+      const chunks = [
+        {
+          id: 'chunk-1',
+          content: 'function test1() { return true; }',
+          type: 'function',
+          startLine: 1,
+          endLine: 5,
+          startByte: 0,
+          endByte: 50,
+          filePath: '/src/test1.ts',
+          language: 'typescript',
+          metadata: {
+            filePath: '/src/test1.ts',
+            language: 'typescript',
+            functionName: 'test1'
+          }
+        },
+        {
+          id: 'chunk-2',
+          content: 'function test2() { return false; }',
+          type: 'function',
+          startLine: 6,
+          endLine: 10,
+          startByte: 51,
+          endByte: 100,
+          filePath: '/src/test2.ts',
+          language: 'typescript',
+          metadata: {
+            filePath: '/src/test2.ts',
+            language: 'typescript',
+            functionName: 'test2'
+          }
+        }
+      ];
+
+      mockQdrantClient.upsertPoints.mockResolvedValue(true);
+
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.storeChunks(chunks);
+
+      expect(result.success).toBe(true);
+      expect(result.totalChunks).toBe(2);
+      expect(mockQdrantClient.upsertPoints).toHaveBeenCalledWith(
+        'codebase_vectors',
+        expect.any(Array)
+      );
+    });
+
+    it('should handle empty chunks array', async () => {
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.storeChunks([]);
+
+      expect(result.success).toBe(true);
+      expect(result.totalChunks).toBe(0);
+    });
+  });
+
+  describe('updateChunks', () => {
+    beforeEach(() => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+      mockQdrantClient.connect.mockResolvedValue(true);
+      mockQdrantClient.upsertPoints.mockResolvedValue(true);
+    });
+
+    it('should update existing chunks with new vectors', async () => {
+      const chunks = [
+        {
+          id: 'existing-1',
+          content: 'updated function content',
+          type: 'function',
+          startLine: 1,
+          endLine: 5,
+          startByte: 0,
+          endByte: 50,
+          filePath: '/src/updated.ts',
+          language: 'typescript',
+          metadata: {
+            filePath: '/src/updated.ts',
+            language: 'typescript',
+            functionName: 'updatedFunction'
+          }
+        }
+      ];
+
+      mockQdrantClient.upsertPoints.mockResolvedValue(true);
+
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.updateChunks(chunks);
+
+      expect(result.success).toBe(true);
+      expect(result.totalChunks).toBe(1);
+      expect(mockQdrantClient.upsertPoints).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteChunks', () => {
+    beforeEach(() => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+      mockQdrantClient.connect.mockResolvedValue(true);
+    });
+
+    it('should delete chunks by IDs', async () => {
+      const chunkIds = ['chunk-1', 'chunk-2', 'chunk-3'];
+
+      mockQdrantClient.deletePoints.mockResolvedValue(true);
+
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.deleteChunks(chunkIds);
+
+      expect(result).toBe(true);
+      expect(mockQdrantClient.deletePoints).toHaveBeenCalledWith(
+        'codebase_vectors',
+        chunkIds
+      );
+    });
+
+    it('should handle empty chunks array', async () => {
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.deleteChunks([]);
+
+      expect(result).toBe(true);
+      expect(mockQdrantClient.deletePoints).not.toHaveBeenCalled();
+    });
+
+    it('should handle deletion errors gracefully', async () => {
+      const chunkIds = ['chunk-1'];
+
+      mockQdrantClient.deletePoints.mockRejectedValue(new Error('Deletion failed'));
+
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.deleteChunks(chunkIds);
+
+      expect(result).toBe(false);
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 
-  describe('storeBatch', () => {
-    it('should store multiple vectors in batches', async () => {
-      const vectors = [
-        {
-          id: 'vector-1',
-          vector: [0.1, 0.2, 0.3, 0.4],
-          metadata: { content: 'content 1', filePath: '/src/file1.ts' }
-        },
-        {
-          id: 'vector-2',
-          vector: [0.5, 0.6, 0.7, 0.8],
-          metadata: { content: 'content 2', filePath: '/src/file2.ts' }
-        },
-        {
-          id: 'vector-3',
-          vector: [0.9, 0.1, 0.2, 0.3],
-          metadata: { content: 'content 3', filePath: '/src/file3.ts' }
-        },
-      ];
-
-      mockQdrantService.upsert.mockResolvedValue({ operation_id: 1, status: 'completed' });
-
-      await vectorStorageService.storeBatch(vectors);
-
-      expect(mockQdrantService.upsert).toHaveBeenCalledWith({
-        points: vectors.map(v => ({
-          id: v.id,
-          vector: v.vector,
-          payload: v.metadata,
-        }))
-      });
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Stored vector batch', { count: 3 });
+  describe('searchVectors', () => {
+    beforeEach(async () => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+      await vectorStorageService.initialize();
     });
 
-    it('should split large batches into smaller chunks', async () => {
-      const vectors = Array.from({ length: 250 }, (_, i) => ({
-        id: `vector-${i}`,
-        vector: [0.1, 0.2, 0.3, 0.4],
-        metadata: { content: `content ${i}` }
-      }));
-
-      mockQdrantService.upsert.mockResolvedValue({ operation_id: 1, status: 'completed' });
-
-      await vectorStorageService.storeBatch(vectors);
-
-      expect(mockQdrantService.upsert).toHaveBeenCalledTimes(3); // 100 + 100 + 50
-    });
-  });
-
-  describe('updateVector', () => {
-    it('should update an existing vector', async () => {
-      const vectorId = 'existing-vector';
-      const newVector = [0.9, 0.8, 0.7, 0.6];
-      const newMetadata = {
-        content: 'updated function test() { return false; }',
-        lastModified: new Date().toISOString(),
+    it('should search for similar vectors', async () => {
+      const queryVector = [0.1, 0.2, 0.3, 0.4];
+      const options = {
+        limit: 10,
+        scoreThreshold: 0.8
       };
 
-      mockQdrantService.updatePoint.mockResolvedValue({ operation_id: 1, status: 'completed' });
-
-      await vectorStorageService.updateVector(vectorId, newVector, newMetadata);
-
-      expect(mockQdrantService.updatePoint).toHaveBeenCalledWith({
-        id: vectorId,
-        vector: newVector,
-        payload: newMetadata,
-      });
-    });
-  });
-
-  describe('deleteVector', () => {
-    it('should delete a vector by ID', async () => {
-      const vectorId = 'vector-to-delete';
-
-      mockQdrantService.delete.mockResolvedValue({ operation_id: 1, status: 'completed' });
-
-      await vectorStorageService.deleteVector(vectorId);
-
-      expect(mockQdrantService.delete).toHaveBeenCalledWith({ ids: [vectorId] });
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Deleted vector', { id: vectorId });
-    });
-  });
-
-  describe('deleteByFilter', () => {
-    it('should delete vectors matching filter criteria', async () => {
-      const filter = {
-        must: [
-          { key: 'filePath', match: { value: '/src/deprecated/' } }
-        ]
-      };
-
-      mockQdrantService.delete.mockResolvedValue({ operation_id: 1, status: 'completed' });
-
-      await vectorStorageService.deleteByFilter(filter);
-
-      expect(mockQdrantService.delete).toHaveBeenCalledWith({ filter });
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Deleted vectors by filter', { filter });
-    });
-  });
-
-  describe('getVector', () => {
-    it('should retrieve a vector by ID', async () => {
-      const vectorId = 'test-vector';
-      const expectedVector = {
-        id: vectorId,
-        vector: [0.1, 0.2, 0.3, 0.4],
+      const mockResults = [{
+        id: 'vector-1',
+        score: 0.95,
         payload: {
           content: 'function test() { return true; }',
           filePath: '/src/test.ts',
+          language: 'typescript',
+          chunkType: 'function',
+          startLine: 1,
+          endLine: 5,
+          functionName: 'test',
+          metadata: { functionName: 'test' },
+          timestamp: new Date('2024-01-01')
         }
-      };
+      }];
 
-      mockQdrantService.getPoint.mockResolvedValue(expectedVector);
+      mockQdrantClient.searchVectors.mockResolvedValue(mockResults);
 
-      const result = await vectorStorageService.getVector(vectorId);
+      const result = await vectorStorageService.searchVectors(queryVector, options);
 
-      expect(result).toEqual({
-        id: vectorId,
-        vector: expectedVector.vector,
-        metadata: expectedVector.payload,
-      });
-      expect(mockQdrantService.getPoint).toHaveBeenCalledWith(vectorId);
+      expect(mockQdrantClient.searchVectors).toHaveBeenCalledWith(
+        'codebase_vectors',
+        queryVector,
+        10,
+        0.8
+      );
+      expect(result).toEqual(mockResults);
     });
 
-    it('should return null for non-existent vectors', async () => {
-      const vectorId = 'non-existent';
-
-      mockQdrantService.getPoint.mockResolvedValue(null);
-
-      const result = await vectorStorageService.getVector(vectorId);
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('searchSimilar', () => {
-    it('should find similar vectors', async () => {
+    it('should return empty array when search fails', async () => {
       const queryVector = [0.1, 0.2, 0.3, 0.4];
-      const options = { limit: 10, scoreThreshold: 0.7 };
+      const options = { limit: 5 };
 
-      const searchResults = [
-        {
-          id: 'similar-1',
-          score: 0.95,
-          payload: { content: 'similar content 1', filePath: '/src/similar1.ts' }
-        },
-        {
-          id: 'similar-2',
-          score: 0.85,
-          payload: { content: 'similar content 2', filePath: '/src/similar2.ts' }
-        },
-      ];
+      mockQdrantClient.searchVectors.mockRejectedValue(new Error('Search failed'));
 
-      mockQdrantService.search.mockResolvedValue(searchResults);
+      const result = await vectorStorageService.searchVectors(queryVector, options);
 
-      const result = await vectorStorageService.searchSimilar(queryVector, options);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].score).toBe(0.95);
-      expect(mockQdrantService.search).toHaveBeenCalledWith({
-        vector: queryVector,
-        limit: options.limit,
-        score_threshold: options.scoreThreshold,
-      });
+      expect(result).toEqual([]);
+      expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 
-  describe('getStorageStats', () => {
-    it('should return storage statistics', async () => {
+
+
+  describe('getCollectionStats', () => {
+    beforeEach(() => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+      mockQdrantClient.connect.mockResolvedValue(true);
+    });
+
+    it('should return collection statistics', async () => {
       const collectionInfo = {
-        status: 'green',
-        vectors_count: 1500,
-        indexed_vectors_count: 1500,
-        points_count: 1500,
-        segments_count: 3,
-        config: {
-          params: {
-            vector_size: 384,
-            distance: 'Cosine'
-          }
-        }
+        name: 'codebase_vectors',
+        status: 'green' as const,
+        vectors: { size: 1536, distance: 'Cosine' as const },
+        pointsCount: 1500
       };
 
-      mockQdrantService.getCollectionInfo.mockResolvedValue(collectionInfo);
+      mockQdrantClient.getCollectionInfo.mockResolvedValue(collectionInfo);
+      mockQdrantClient.getPointCount.mockResolvedValue(1500);
 
-      const stats = await vectorStorageService.getStorageStats();
+      await vectorStorageService.initialize();
+      const stats = await vectorStorageService.getCollectionStats();
 
-      expect(stats).toEqual({
-        totalVectors: 1500,
-        indexedVectors: 1500,
-        vectorDimensions: 384,
-        distanceMetric: 'Cosine',
-        segmentCount: 3,
-        status: 'green',
-      });
+      expect(stats.totalPoints).toBe(1500);
+      expect(stats.collectionInfo).toEqual(collectionInfo);
+    });
+
+    it('should handle errors when getting stats', async () => {
+      mockQdrantClient.getCollectionInfo.mockRejectedValue(new Error('Collection not found'));
+
+      await vectorStorageService.initialize();
+      const stats = await vectorStorageService.getCollectionStats();
+
+      expect(stats.totalPoints).toBe(0);
+      expect(stats.collectionInfo).toBeNull();
     });
   });
 
-  describe('optimizeStorage', () => {
-    it('should optimize vector storage', async () => {
-      mockQdrantService.getCollectionInfo.mockResolvedValue({
-        status: 'green',
-        vectors_count: 1000,
-        segments_count: 10, // Too many segments
-      });
+  describe('clearCollection', () => {
+    beforeEach(() => {
+      mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
+      mockQdrantClient.collectionExists.mockResolvedValue(true);
+      mockQdrantClient.connect.mockResolvedValue(true);
+      mockQdrantClient.clearCollection.mockResolvedValue(true);
+    });
 
-      await vectorStorageService.optimizeStorage();
+    it('should clear the collection', async () => {
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.clearCollection();
 
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Storage optimization completed');
+      expect(result).toBe(true);
+      expect(mockQdrantClient.clearCollection).toHaveBeenCalledWith('codebase_vectors');
+    });
+
+    it('should handle clear collection errors', async () => {
+      mockQdrantClient.clearCollection.mockRejectedValue(new Error('Clear failed'));
+
+      await vectorStorageService.initialize();
+      const result = await vectorStorageService.clearCollection();
+
+      expect(result).toBe(false);
     });
   });
 });

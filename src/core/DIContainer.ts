@@ -48,6 +48,11 @@ import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetri
 import { HealthCheckService } from '../services/monitoring/HealthCheckService';
 import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
 
+// Processing services
+import { BatchProcessor } from '../services/processing/BatchProcessor';
+import { PerformanceMonitor } from '../services/monitoring/PerformanceMonitor';
+import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMetrics';
+
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
 import { SnippetController } from '../controllers/SnippetController';
@@ -97,6 +102,11 @@ export const TYPES = {
   PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
   HealthCheckService: Symbol.for('HealthCheckService'),
   PerformanceAnalysisService: Symbol.for('PerformanceAnalysisService'),
+  PerformanceMonitor: Symbol.for('PerformanceMonitor'),
+  BatchProcessingMetrics: Symbol.for('BatchProcessingMetrics'),
+
+  // Processing services
+  BatchProcessor: Symbol.for('BatchProcessor'),
 
   // Controllers
   MonitoringController: Symbol.for('MonitoringController'),
@@ -170,11 +180,15 @@ const monitoringModule = new ContainerModule((bind: any) => {
   bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
   bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
   bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
+  bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics).inSingletonScope();
 });
 
 const controllerModule = new ContainerModule((bind: any) => {
   bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
   bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
+  
+  // Processing services
+  bind(TYPES.BatchProcessor).to(BatchProcessor).inSingletonScope();
 });
 
 export class DIContainer {

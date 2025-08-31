@@ -1,9 +1,11 @@
 import { Container } from 'inversify';
-import { HealthCheckService } from './HealthCheckService';
+import { HealthCheckService, HealthStatus, ServiceDependency } from './HealthCheckService';
 import { QdrantService } from '../../database/QdrantService';
 import { NebulaService } from '../../database/NebulaService';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
+import { ErrorHandlerService, ErrorReport } from '../../core/ErrorHandlerService';
+import { PrometheusMetricsService } from './PrometheusMetricsService';
 import { TYPES } from '../../core/DIContainer';
 
 describe('HealthCheckService', () => {
@@ -13,22 +15,20 @@ describe('HealthCheckService', () => {
   let mockNebulaService: jest.Mocked<NebulaService>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
+  let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
+  let mockPrometheusMetricsService: jest.Mocked<PrometheusMetricsService>;
 
   beforeEach(() => {
     container = new Container();
 
     // Create mocks
     mockQdrantService = {
-      ping: jest.fn(),
-      getCollectionInfo: jest.fn(),
       isConnected: jest.fn(),
+      getCollectionInfo: jest.fn(),
     } as any;
 
     mockNebulaService = {
-      ping: jest.fn(),
-      executeQuery: jest.fn(),
       isConnected: jest.fn(),
-      getConnectionStats: jest.fn(),
     } as any;
 
     mockLoggerService = {
@@ -36,16 +36,19 @@ describe('HealthCheckService', () => {
       error: jest.fn(),
       warn: jest.fn(),
       debug: jest.fn(),
+      verbose: jest.fn(),
     } as any;
 
     mockConfigService = {
       get: jest.fn(),
-      getHealthCheckConfig: jest.fn().mockReturnValue({
-        checkInterval: 30000,
-        timeout: 5000,
-        retryAttempts: 3,
-        criticalServices: ['qdrant', 'nebula'],
-      }),
+    } as any;
+
+    mockErrorHandlerService = {
+      handleError: jest.fn(),
+    } as any;
+
+    mockPrometheusMetricsService = {
+      recordAlert: jest.fn(),
     } as any;
 
     // Bind mocks to container
@@ -53,6 +56,8 @@ describe('HealthCheckService', () => {
     container.bind(TYPES.NebulaService).toConstantValue(mockNebulaService);
     container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
     container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
+    container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
+    container.bind(TYPES.PrometheusMetricsService).toConstantValue(mockPrometheusMetricsService);
     container.bind(TYPES.HealthCheckService).to(HealthCheckService);
 
     healthCheckService = container.get<HealthCheckService>(TYPES.HealthCheckService);
@@ -62,244 +67,275 @@ describe('HealthCheckService', () => {
     jest.clearAllMocks();
   });
 
-  describe('checkOverallHealth', () => {
-    it('should return healthy status when all services are up', async () => {
-      mockQdrantService.ping.mockResolvedValue(true);
+  describe('checkDatabaseHealth', () => {
+    it('should return healthy status when both databases are up', async () => {
       mockQdrantService.isConnected.mockReturnValue(true);
-      mockNebulaService.ping.mockResolvedValue(true);
       mockNebulaService.isConnected.mockReturnValue(true);
-
-      const health = await healthCheckService.checkOverallHealth();
-
-      expect(health.status).toBe('healthy');
-      expect(health.services.qdrant.status).toBe('healthy');
-      expect(health.services.nebula.status).toBe('healthy');
-      expect(health.timestamp).toBeDefined();
-    });
-
-    it('should return degraded status when non-critical services are down', async () => {
-      mockQdrantService.ping.mockResolvedValue(true);
-      mockQdrantService.isConnected.mockReturnValue(true);
-      mockNebulaService.ping.mockResolvedValue(true);
-      mockNebulaService.isConnected.mockReturnValue(true);
-
-      // Mock a non-critical service failure
-      const health = await healthCheckService.checkOverallHealth();
-
-      expect(health.status).toBe('healthy'); // Should still be healthy if only non-critical services fail
-    });
-
-    it('should return unhealthy status when critical services are down', async () => {
-      mockQdrantService.ping.mockRejectedValue(new Error('Connection failed'));
-      mockQdrantService.isConnected.mockReturnValue(false);
-      mockNebulaService.ping.mockResolvedValue(true);
-      mockNebulaService.isConnected.mockReturnValue(true);
-
-      const health = await healthCheckService.checkOverallHealth();
-
-      expect(health.status).toBe('unhealthy');
-      expect(health.services.qdrant.status).toBe('unhealthy');
-      expect(health.services.qdrant.error).toBeDefined();
-    });
-  });
-
-  describe('checkQdrantHealth', () => {
-    it('should return healthy status for Qdrant', async () => {
-      mockQdrantService.ping.mockResolvedValue(true);
-      mockQdrantService.isConnected.mockReturnValue(true);
       mockQdrantService.getCollectionInfo.mockResolvedValue({
         status: 'green',
         vectors_count: 1000,
       });
 
-      const health = await healthCheckService.checkQdrantHealth();
+      const health = await healthCheckService.checkDatabaseHealth();
 
-      expect(health.status).toBe('healthy');
-      expect(health.responseTime).toBeDefined();
-      expect(health.details.vectorCount).toBe(1000);
-      expect(health.details.collectionStatus).toBe('green');
+      expect(health.qdrant.status).toBe('healthy');
+      expect(health.nebula.status).toBe('healthy');
+      expect(mockQdrantService.isConnected).toHaveBeenCalled();
+      expect(mockNebulaService.isConnected).toHaveBeenCalled();
     });
 
     it('should return unhealthy status when Qdrant is down', async () => {
-      mockQdrantService.ping.mockRejectedValue(new Error('Service unavailable'));
       mockQdrantService.isConnected.mockReturnValue(false);
-
-      const health = await healthCheckService.checkQdrantHealth();
-
-      expect(health.status).toBe('unhealthy');
-      expect(health.error).toBe('Service unavailable');
-    });
-
-    it('should handle timeout for slow responses', async () => {
-      mockQdrantService.ping.mockImplementation(() =>
-        new Promise(resolve => setTimeout(() => resolve(true), 6000))
-      );
-
-      const health = await healthCheckService.checkQdrantHealth();
-
-      expect(health.status).toBe('unhealthy');
-      expect(health.error).toContain('timeout');
-    });
-  });
-
-  describe('checkNebulaHealth', () => {
-    it('should return healthy status for NebulaGraph', async () => {
-      mockNebulaService.ping.mockResolvedValue(true);
       mockNebulaService.isConnected.mockReturnValue(true);
-      mockNebulaService.getConnectionStats.mockResolvedValue({
-        activeConnections: 5,
-        totalConnections: 10,
-        avgResponseTime: 50,
-      });
 
-      const health = await healthCheckService.checkNebulaHealth();
+      const health = await healthCheckService.checkDatabaseHealth();
 
-      expect(health.status).toBe('healthy');
-      expect(health.details.activeConnections).toBe(5);
-      expect(health.details.avgResponseTime).toBe(50);
+      expect(health.qdrant.status).toBe('unhealthy');
+      expect(health.nebula.status).toBe('healthy');
     });
 
-    it('should return unhealthy status when NebulaGraph is down', async () => {
-      mockNebulaService.ping.mockRejectedValue(new Error('Connection refused'));
+    it('should return unhealthy status when Nebula is down', async () => {
+      mockQdrantService.isConnected.mockReturnValue(true);
       mockNebulaService.isConnected.mockReturnValue(false);
 
-      const health = await healthCheckService.checkNebulaHealth();
+      const health = await healthCheckService.checkDatabaseHealth();
+
+      expect(health.qdrant.status).toBe('healthy');
+      expect(health.nebula.status).toBe('unhealthy');
+    });
+
+    it('should handle errors when checking Qdrant health', async () => {
+      mockQdrantService.isConnected.mockImplementation(() => {
+        throw new Error('Connection failed');
+      });
+      mockNebulaService.isConnected.mockReturnValue(true);
+
+      const health = await healthCheckService.checkDatabaseHealth();
+
+      expect(health.qdrant.status).toBe('unhealthy');
+      expect(health.qdrant.message).toContain('Connection failed');
+      expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
+    });
+
+    it('should handle errors when checking Nebula health', async () => {
+      mockQdrantService.isConnected.mockReturnValue(true);
+      mockNebulaService.isConnected.mockImplementation(() => {
+        throw new Error('Connection failed');
+      });
+
+      const health = await healthCheckService.checkDatabaseHealth();
+
+      expect(health.nebula.status).toBe('unhealthy');
+      expect(health.nebula.message).toContain('Connection failed');
+      expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
+    });
+  });
+
+  describe('checkSystemHealth', () => {
+    it('should return healthy status when system resources are normal', () => {
+      const health = healthCheckService.checkSystemHealth();
+
+      expect(health.status).toBe('healthy');
+      expect(health.memoryUsage).toBeGreaterThanOrEqual(0);
+      expect(health.cpuUsage).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return degraded status when system resources are elevated', () => {
+      // Mock process.memoryUsage to return high memory usage
+      const originalMemoryUsage = process.memoryUsage;
+      (process as any).memoryUsage = jest.fn().mockReturnValue({
+        heapUsed: 850 * 1024 * 1024, // 850MB
+        heapTotal: 1000 * 1024 * 1024, // 1000MB
+        external: 50 * 1024 * 1024, // 50MB
+        rss: 950 * 1024 * 1024 // 950MB
+      });
+
+      const health = healthCheckService.checkSystemHealth();
+
+      expect(health.status).toBe('degraded');
+      (process as any).memoryUsage = originalMemoryUsage;
+    });
+
+    it('should return unhealthy status when system resources are critically high', () => {
+      // Mock process.memoryUsage to return very high memory usage
+      const originalMemoryUsage = process.memoryUsage;
+      (process as any).memoryUsage = jest.fn().mockReturnValue({
+        heapUsed: 950 * 1024 * 1024, // 950MB
+        heapTotal: 1000 * 1024 * 1024, // 1000MB
+        external: 100 * 1024 * 1024, // 100MB
+        rss: 1100 * 1024 * 1024 // 1100MB
+      });
+
+      const health = healthCheckService.checkSystemHealth();
 
       expect(health.status).toBe('unhealthy');
-      expect(health.error).toBe('Connection refused');
+      (process as any).memoryUsage = originalMemoryUsage;
+    });
+
+    it('should handle errors when checking system health', () => {
+      // Mock process.memoryUsage to throw an error
+      const originalMemoryUsage = process.memoryUsage;
+      (process as any).memoryUsage = jest.fn().mockImplementation(() => {
+        throw new Error('System error');
+      });
+
+      const health = healthCheckService.checkSystemHealth();
+
+      expect(health.status).toBe('unhealthy');
+      expect(health.message).toContain('System health check failed');
+      expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
+      (process as any).memoryUsage = originalMemoryUsage;
     });
   });
 
-  describe('checkDatabaseConsistency', () => {
-    it('should verify data consistency between databases', async () => {
-      mockQdrantService.getCollectionInfo.mockResolvedValue({
-        vectors_count: 1000,
-      });
-      mockNebulaService.executeQuery.mockResolvedValue({
-        data: [{ count: 1000 }]
-      });
-
-      const consistency = await healthCheckService.checkDatabaseConsistency();
-
-      expect(consistency.status).toBe('consistent');
-      expect(consistency.vectorCount).toBe(1000);
-      expect(consistency.graphNodeCount).toBe(1000);
-      expect(consistency.discrepancy).toBe(0);
-    });
-
-    it('should detect inconsistencies between databases', async () => {
-      mockQdrantService.getCollectionInfo.mockResolvedValue({
-        vectors_count: 1000,
-      });
-      mockNebulaService.executeQuery.mockResolvedValue({
-        data: [{ count: 950 }]
-      });
-
-      const consistency = await healthCheckService.checkDatabaseConsistency();
-
-      expect(consistency.status).toBe('inconsistent');
-      expect(consistency.discrepancy).toBe(50);
-      expect(consistency.discrepancyPercentage).toBe(5);
-    });
-  });
-
-  describe('getSystemMetrics', () => {
-    it('should return system performance metrics', async () => {
-      const metrics = await healthCheckService.getSystemMetrics();
-
-      expect(metrics.memory).toBeDefined();
-      expect(metrics.memory.used).toBeGreaterThan(0);
-      expect(metrics.memory.total).toBeGreaterThan(0);
-      expect(metrics.cpu).toBeDefined();
-      expect(metrics.uptime).toBeGreaterThan(0);
-    });
-  });
-
-  describe('performDeepHealthCheck', () => {
-    it('should perform comprehensive health check', async () => {
-      mockQdrantService.ping.mockResolvedValue(true);
+  describe('performHealthCheck', () => {
+    it('should return healthy status when all checks pass', async () => {
       mockQdrantService.isConnected.mockReturnValue(true);
+      mockNebulaService.isConnected.mockReturnValue(true);
       mockQdrantService.getCollectionInfo.mockResolvedValue({
         status: 'green',
         vectors_count: 1000,
       });
 
-      mockNebulaService.ping.mockResolvedValue(true);
+      const health = await healthCheckService.performHealthCheck();
+
+      expect(health.status).toBe('healthy');
+      expect(health.checks.qdrant.status).toBe('healthy');
+      expect(health.checks.nebula.status).toBe('healthy');
+      expect(health.checks.system.status).toBe('healthy');
+      expect(health.timestamp).toBeDefined();
+      expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('low');
+    });
+
+    it('should return degraded status when one check is degraded', async () => {
+      mockQdrantService.isConnected.mockReturnValue(true);
       mockNebulaService.isConnected.mockReturnValue(true);
-      mockNebulaService.executeQuery.mockResolvedValue({
-        data: [{ count: 1000 }]
+      mockQdrantService.getCollectionInfo.mockResolvedValue({
+        status: 'green',
+        vectors_count: 1000,
       });
 
-      const deepHealth = await healthCheckService.performDeepHealthCheck();
+      // Mock system health to be degraded
+      const originalMemoryUsage = process.memoryUsage;
+      (process as any).memoryUsage = jest.fn().mockReturnValue({
+        heapUsed: 850 * 1024 * 1024, // 850MB
+        heapTotal: 1000 * 1024 * 1024, // 1000MB
+        external: 50 * 1024 * 1024, // 50MB
+        rss: 950 * 1024 * 1024 // 950MB
+      });
 
-      expect(deepHealth.overall.status).toBe('healthy');
-      expect(deepHealth.services).toBeDefined();
-      expect(deepHealth.consistency).toBeDefined();
-      expect(deepHealth.performance).toBeDefined();
-      expect(deepHealth.recommendations).toBeInstanceOf(Array);
+      const health = await healthCheckService.performHealthCheck();
+
+      expect(health.status).toBe('degraded');
+      expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('high');
+      (process as any).memoryUsage = originalMemoryUsage;
     });
 
-    it('should provide recommendations for unhealthy services', async () => {
-      mockQdrantService.ping.mockRejectedValue(new Error('Connection failed'));
+    it('should return unhealthy status when one check fails', async () => {
       mockQdrantService.isConnected.mockReturnValue(false);
-      mockNebulaService.ping.mockResolvedValue(true);
       mockNebulaService.isConnected.mockReturnValue(true);
 
-      const deepHealth = await healthCheckService.performDeepHealthCheck();
+      const health = await healthCheckService.performHealthCheck();
 
-      expect(deepHealth.overall.status).toBe('unhealthy');
-      expect(deepHealth.recommendations).toContain('Check Qdrant service connectivity');
-      expect(deepHealth.recommendations.length).toBeGreaterThan(0);
+      expect(health.status).toBe('unhealthy');
+      expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('critical');
+    });
+
+    it('should handle errors during health check', async () => {
+      mockQdrantService.isConnected.mockImplementation(() => {
+        throw new Error('Connection failed');
+      });
+
+      const health = await healthCheckService.performHealthCheck();
+
+      expect(health.status).toBe('unhealthy');
+      expect(health.checks.qdrant.status).toBe('unhealthy');
+      expect(health.checks.nebula.status).toBe('unhealthy');
+      expect(health.checks.system.status).toBe('unhealthy');
+      expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
     });
   });
 
-  describe('startHealthMonitoring', () => {
-    it('should start periodic health monitoring', async () => {
-      const healthCallback = jest.fn();
+  describe('registerDependency', () => {
+    it('should register a new dependency', () => {
+      const dependency: ServiceDependency = {
+        name: 'TestService',
+        status: 'healthy',
+        lastCheck: Date.now(),
+        responseTime: 50
+      };
 
-      healthCheckService.startHealthMonitoring(healthCallback);
+      healthCheckService.registerDependency(dependency);
 
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Started health monitoring');
-
-      // Stop monitoring to clean up
-      healthCheckService.stopHealthMonitoring();
+      const dependencies = healthCheckService.getDependencies();
+      expect(dependencies).toHaveLength(1);
+      expect(dependencies[0]).toEqual(dependency);
+      expect(mockLoggerService.info).toHaveBeenCalledWith('Dependency registered', { dependency: 'TestService' });
     });
   });
 
-  describe('getHealthHistory', () => {
-    it('should return health check history', async () => {
-      // Perform a few health checks to build history
-      mockQdrantService.ping.mockResolvedValue(true);
-      mockQdrantService.isConnected.mockReturnValue(true);
-      mockNebulaService.ping.mockResolvedValue(true);
-      mockNebulaService.isConnected.mockReturnValue(true);
+  describe('getDependencies', () => {
+    it('should return registered dependencies', () => {
+      const dependency1: ServiceDependency = {
+        name: 'Service1',
+        status: 'healthy',
+        lastCheck: Date.now(),
+        responseTime: 50
+      };
+      const dependency2: ServiceDependency = {
+        name: 'Service2',
+        status: 'degraded',
+        lastCheck: Date.now(),
+        responseTime: 150
+      };
 
-      await healthCheckService.checkOverallHealth();
-      await healthCheckService.checkOverallHealth();
+      healthCheckService.registerDependency(dependency1);
+      healthCheckService.registerDependency(dependency2);
 
-      const history = healthCheckService.getHealthHistory();
+      const dependencies = healthCheckService.getDependencies();
+      expect(dependencies).toHaveLength(2);
+      expect(dependencies).toContainEqual(dependency1);
+      expect(dependencies).toContainEqual(dependency2);
+    });
 
-      expect(history).toBeInstanceOf(Array);
-      expect(history.length).toBeGreaterThan(0);
-      expect(history[0].timestamp).toBeDefined();
-      expect(history[0].status).toBeDefined();
+    it('should return an empty array when no dependencies are registered', () => {
+      const dependencies = healthCheckService.getDependencies();
+      expect(dependencies).toHaveLength(0);
     });
   });
 
-  describe('generateHealthReport', () => {
-    it('should generate comprehensive health report', async () => {
-      mockQdrantService.ping.mockResolvedValue(true);
-      mockQdrantService.isConnected.mockReturnValue(true);
-      mockNebulaService.ping.mockResolvedValue(true);
-      mockNebulaService.isConnected.mockReturnValue(true);
+  describe('checkDependencies', () => {
+    it('should return registered dependencies with updated timestamps', async () => {
+      const dependency: ServiceDependency = {
+        name: 'TestService',
+        status: 'healthy',
+        lastCheck: Date.now() - 10000, // 10 seconds ago
+        responseTime: 50
+      };
 
-      const report = await healthCheckService.generateHealthReport();
+      healthCheckService.registerDependency(dependency);
 
-      expect(report.summary).toBeDefined();
-      expect(report.services).toBeDefined();
-      expect(report.trends).toBeDefined();
-      expect(report.alerts).toBeInstanceOf(Array);
-      expect(report.generatedAt).toBeDefined();
+      const dependencies = await healthCheckService.checkDependencies();
+      expect(dependencies).toHaveLength(1);
+      expect(dependencies[0].name).toBe('TestService');
+      expect(dependencies[0].lastCheck).toBeGreaterThanOrEqual(dependency.lastCheck);
+    });
+  });
+
+  describe('handleDegradedService', () => {
+    it('should log a warning when a service is degraded', async () => {
+      await healthCheckService.handleDegradedService('TestService');
+
+      expect(mockLoggerService.warn).toHaveBeenCalledWith('Service degradation detected', { serviceName: 'TestService' });
+    });
+  });
+
+  describe('handleServiceFailure', () => {
+    it('should log an error and record a critical alert when a service fails', async () => {
+      await healthCheckService.handleServiceFailure('TestService');
+
+      expect(mockLoggerService.error).toHaveBeenCalledWith('Service failure detected', { serviceName: 'TestService' });
+      expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('critical');
     });
   });
 });
