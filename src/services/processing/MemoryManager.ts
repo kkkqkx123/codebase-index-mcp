@@ -70,6 +70,10 @@ export class MemoryManager {
     }
   }
 
+  isMonitoring(): boolean {
+    return this.intervalId !== undefined;
+  }
+
   getCurrentUsage(): MemoryUsage {
     const memUsage = process.memoryUsage();
     const percentageUsed = (memUsage.heapUsed / memUsage.heapTotal) * 100;

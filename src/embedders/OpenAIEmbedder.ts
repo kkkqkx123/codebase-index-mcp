@@ -9,6 +9,7 @@ import { HttpEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './Custo
 export class OpenAIEmbedder extends HttpEmbedder implements Embedder {
   private apiKey: string;
   private model: string;
+  private dimensions: number;
 
   constructor(
       @inject(ConfigService) configService: ConfigService,
@@ -21,6 +22,7 @@ export class OpenAIEmbedder extends HttpEmbedder implements Embedder {
       const config = configService.get('embedding');
       this.apiKey = config.openai.apiKey;
       this.model = config.openai.model || 'text-embedding-ada-002';
+      this.dimensions = config.openai.dimensions || 1536;
     }
 
   protected getBaseUrl(): string {
@@ -55,7 +57,7 @@ export class OpenAIEmbedder extends HttpEmbedder implements Embedder {
   }
 
   getDimensions(): number {
-    return 1536; // text-embedding-ada-002 dimensions
+    return this.dimensions;
   }
 
   getModelName(): string {

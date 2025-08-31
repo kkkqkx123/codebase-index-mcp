@@ -9,6 +9,7 @@ import { HttpEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './Custo
 export class MistralEmbedder extends HttpEmbedder implements Embedder {
   private apiKey: string;
   private model: string;
+  private dimensions: number;
 
   constructor(
       @inject(ConfigService) configService: ConfigService,
@@ -21,6 +22,7 @@ export class MistralEmbedder extends HttpEmbedder implements Embedder {
       const config = configService.get('embedding');
       this.apiKey = config.mistral.apiKey;
       this.model = config.mistral.model || 'mistral-embed';
+      this.dimensions = config.mistral.dimensions || 1024;
     }
 
   protected getBaseUrl(): string {
@@ -55,7 +57,7 @@ export class MistralEmbedder extends HttpEmbedder implements Embedder {
   }
 
   getDimensions(): number {
-    return 1024; // Mistral embedding dimensions
+    return this.dimensions;
   }
 
   getModelName(): string {

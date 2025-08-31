@@ -9,6 +9,7 @@ import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './BaseE
 export class GeminiEmbedder extends BaseEmbedder implements Embedder {
   private apiKey: string;
   private model: string;
+  private dimensions: number;
 
   constructor(
       @inject(ConfigService) configService: ConfigService,
@@ -21,6 +22,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
       const config = configService.get('embedding');
       this.apiKey = config.gemini.apiKey;
       this.model = config.gemini.model || 'embedding-001';
+      this.dimensions = config.gemini.dimensions || 768;
     }
 
   private getBaseUrl(): string {
@@ -73,7 +75,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
   }
 
   getDimensions(): number {
-    return 768; // Gemini embedding dimensions
+    return this.dimensions;
   }
 
   getModelName(): string {

@@ -8,14 +8,15 @@ import { EmbeddingInput } from '../BaseEmbedder';
 // Mock classes
 class MockConfigService {
   private config: any;
-  
+
   constructor(config: any = {}) {
     // Default configuration
     this.config = {
       embedding: {
         ollama: {
           baseUrl: 'http://localhost:11434',
-          model: 'nomic-embed-text'
+          model: 'nomic-embed-text',
+          dimensions: 768
         }
       },
       batchProcessing: {
@@ -34,7 +35,7 @@ class MockConfigService {
       ...config
     };
   }
-  
+
   get(key: string): any {
     if (key === 'embedding') return this.config.embedding;
     if (key === 'batchProcessing') return this.config.batchProcessing;
@@ -48,15 +49,15 @@ class MockLoggerService {
   debug(message: string, meta?: any): void {
     // Mock implementation
   }
-  
+
   warn(message: string, meta?: any): void {
     // Mock implementation
   }
-  
+
   error(message: string, meta?: any): void {
     // Mock implementation
   }
-  
+
   info(message: string, meta?: any): void {
     // Mock implementation
   }
@@ -76,7 +77,7 @@ class MockErrorHandlerService {
       handled: false
     };
   }
-  
+
   handleAsyncError(operation: () => Promise<any>, context: any): Promise<any> {
     return operation().catch((error) => {
       this.handleError(error, context);
@@ -87,21 +88,21 @@ class MockErrorHandlerService {
 
 class MockEmbeddingCacheService {
   private cache: Map<string, any> = new Map();
-  
+
   get(text: string, model: string): any {
     const key = `${model}:${text}`;
     return this.cache.get(key) || null;
   }
-  
+
   set(text: string, model: string, result: any): void {
     const key = `${model}:${text}`;
     this.cache.set(key, result);
   }
-  
+
   clear(): void {
     this.cache.clear();
   }
-  
+
   getStats(): { size: number; maxSize: number; defaultTTL: number } {
     return {
       size: this.cache.size,
@@ -117,13 +118,13 @@ describe('OllamaEmbedder', () => {
   let mockLoggerService: MockLoggerService;
   let mockErrorHandlerService: MockErrorHandlerService;
   let mockCacheService: MockEmbeddingCacheService;
-  
+
   beforeEach(() => {
     mockConfigService = new MockConfigService();
     mockLoggerService = new MockLoggerService();
     mockErrorHandlerService = new MockErrorHandlerService();
     mockCacheService = new MockEmbeddingCacheService();
-    
+
     ollamaEmbedder = new OllamaEmbedder(
       mockConfigService as unknown as ConfigService,
       mockLoggerService as unknown as LoggerService,
@@ -131,47 +132,47 @@ describe('OllamaEmbedder', () => {
       mockCacheService as unknown as EmbeddingCacheService
     );
   });
-  
+
   afterEach(() => {
     // Clear the cache after each test
     mockCacheService.clear();
   });
-  
+
   describe('constructor', () => {
     it('should initialize with correct configuration', () => {
       expect((ollamaEmbedder as any).baseUrl).toBe('http://localhost:11434');
       expect((ollamaEmbedder as any).model).toBe('nomic-embed-text');
     });
-    
+
     it('should use default configuration when not specified', () => {
       const configWithoutOllama = new MockConfigService({
         embedding: {
-          // No ollama config
+          ollama: {}
         }
       });
-      
+
       const embedder = new OllamaEmbedder(
         configWithoutOllama as unknown as ConfigService,
         mockLoggerService as unknown as LoggerService,
         mockErrorHandlerService as unknown as ErrorHandlerService,
         mockCacheService as unknown as EmbeddingCacheService
       );
-      
+
       expect((embedder as any).baseUrl).toBe('http://localhost:11434');
       expect((embedder as any).model).toBe('nomic-embed-text');
     });
   });
-  
+
   describe('embed', () => {
     it('should call embedWithCache with correct parameters', async () => {
       const input: EmbeddingInput = { text: 'test text' };
-      
+
       // Mock the embedWithCache method
       const embedWithCacheSpy = jest.spyOn(ollamaEmbedder as any, 'embedWithCache');
-      embedWithCacheSpy.mockImplementation(async (input, processEmbeddings) => {
+      embedWithCacheSpy.mockImplementation(async (input: any, processEmbeddings: any) => {
         return await processEmbeddings([input]);
       });
-      
+
       // Mock the makeEmbeddingRequest method
       const makeEmbeddingRequestSpy = jest.spyOn(ollamaEmbedder as any, 'makeEmbeddingRequest');
       makeEmbeddingRequestSpy.mockResolvedValue([
@@ -182,73 +183,73 @@ describe('OllamaEmbedder', () => {
           processingTime: 100
         }
       ]);
-      
+
       await ollamaEmbedder.embed(input);
-      
+
       expect(embedWithCacheSpy).toHaveBeenCalledWith(input, expect.any(Function));
     });
   });
-  
+
   describe('getDimensions', () => {
     it('should return correct dimensions for nomic-embed-text', () => {
       const dimensions = ollamaEmbedder.getDimensions();
       expect(dimensions).toBe(768);
     });
   });
-  
+
   describe('getModelName', () => {
     it('should return configured model name', () => {
       const modelName = ollamaEmbedder.getModelName();
       expect(modelName).toBe('nomic-embed-text');
     });
   });
-  
+
   describe('isAvailable', () => {
     it('should return true when Ollama is available', async () => {
       // Mock the fetch function to simulate a successful response
       global.fetch = jest.fn().mockResolvedValue({
         ok: true
       }) as jest.Mock;
-      
+
       const result = await ollamaEmbedder.isAvailable();
-      
+
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/tags', {
         method: 'GET'
       });
     });
-    
+
     it('should return false when Ollama is not available', async () => {
       // Mock the fetch function to simulate a failed response
       global.fetch = jest.fn().mockResolvedValue({
         ok: false
       }) as jest.Mock;
-      
+
       const result = await ollamaEmbedder.isAvailable();
-      
+
       expect(result).toBe(false);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/tags', {
         method: 'GET'
       });
     });
-    
+
     it('should return false when fetch throws an error', async () => {
       // Mock the fetch function to simulate an error
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as jest.Mock;
-      
+
       const result = await ollamaEmbedder.isAvailable();
-      
+
       expect(result).toBe(false);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/tags', {
         method: 'GET'
       });
     });
   });
-  
+
   describe('makeEmbeddingRequest', () => {
     it('should make correct API request', async () => {
       const inputs: EmbeddingInput[] = [{ text: 'test text' }];
-      
+
       // Mock the fetch function to simulate a successful response
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -256,9 +257,9 @@ describe('OllamaEmbedder', () => {
           embedding: [0.1, 0.2, 0.3]
         })
       }) as jest.Mock;
-      
+
       const results = await (ollamaEmbedder as any).makeEmbeddingRequest(inputs);
-      
+
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/embeddings', {
         method: 'POST',
         headers: {
@@ -269,7 +270,7 @@ describe('OllamaEmbedder', () => {
           model: 'nomic-embed-text'
         })
       });
-      
+
       expect(results).toEqual([
         {
           vector: [0.1, 0.2, 0.3],
@@ -279,17 +280,17 @@ describe('OllamaEmbedder', () => {
         }
       ]);
     });
-    
+
     it('should throw error when API request fails', async () => {
       const inputs: EmbeddingInput[] = [{ text: 'test text' }];
-      
+
       // Mock the fetch function to simulate a failed response
       global.fetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 500,
         text: async () => 'Internal Server Error'
       }) as jest.Mock;
-      
+
       await expect((ollamaEmbedder as any).makeEmbeddingRequest(inputs))
         .rejects
         .toThrow('Ollama API request failed with status 500: Internal Server Error');

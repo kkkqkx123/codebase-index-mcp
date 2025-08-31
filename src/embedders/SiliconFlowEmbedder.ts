@@ -9,6 +9,7 @@ import { HttpEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './Custo
 export class SiliconFlowEmbedder extends HttpEmbedder implements Embedder {
   private apiKey: string;
   private model: string;
+  private dimensions: number;
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
@@ -21,6 +22,7 @@ export class SiliconFlowEmbedder extends HttpEmbedder implements Embedder {
     const config = configService.get('embedding');
     this.apiKey = config.siliconflow.apiKey;
     this.model = config.siliconflow.model || 'BAAI/bge-large-en-v1.5';
+    this.dimensions = config.siliconflow.dimensions || 1024;
   }
 
   protected getBaseUrl(): string {
@@ -56,8 +58,7 @@ export class SiliconFlowEmbedder extends HttpEmbedder implements Embedder {
   }
 
   getDimensions(): number {
-    // Default dimensions for BAAI/bge-large-en-v1.5
-    return 1024;
+    return this.dimensions;
   }
 
   getModelName(): string {

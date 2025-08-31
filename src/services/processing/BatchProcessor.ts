@@ -198,4 +198,11 @@ export class BatchProcessor {
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  resetStats(): void {
+    // Reset any internal statistics tracking
+    // Currently, BatchProcessor doesn't maintain persistent stats,
+    // but this method provides a consistent interface for future enhancements
+    this.logger?.info('Batch processor statistics reset');
+  }
 }

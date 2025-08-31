@@ -3,7 +3,7 @@ import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { EmbeddingCacheService } from '../EmbeddingCacheService';
-import { EmbeddingInput } from '../BaseEmbedder';
+import { EmbeddingInput, EmbeddingResult } from '../BaseEmbedder';
 
 // Mock classes
 class MockConfigService {
@@ -114,7 +114,7 @@ class MockEmbeddingCacheService {
 
 describe('GeminiEmbedder', () => {
   let geminiEmbedder: GeminiEmbedder;
- let mockConfigService: MockConfigService;
+  let mockConfigService: MockConfigService;
   let mockLoggerService: MockLoggerService;
   let mockErrorHandlerService: MockErrorHandlerService;
   let mockCacheService: MockEmbeddingCacheService;
@@ -201,7 +201,7 @@ describe('GeminiEmbedder', () => {
       
       // Mock the embedWithCache method
       const embedWithCacheSpy = jest.spyOn(geminiEmbedder as any, 'embedWithCache');
-      embedWithCacheSpy.mockImplementation(async (input, processEmbeddings) => {
+      embedWithCacheSpy.mockImplementation(async (input: any, processEmbeddings: any) => {
         return await processEmbeddings([input]);
       });
       

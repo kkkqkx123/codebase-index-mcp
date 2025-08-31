@@ -27,42 +27,50 @@ const configSchema = Joi.object({
     openai: Joi.object({
       apiKey: Joi.string().required(),
       baseUrl: Joi.string().uri().optional(),
-      model: Joi.string().default('text-embedding-ada-002')
+      model: Joi.string().default('text-embedding-ada-002'),
+      dimensions: Joi.number().positive().default(1536)
     }),
     ollama: Joi.object({
       baseUrl: Joi.string().uri().default('http://localhost:11434'),
-      model: Joi.string().default('nomic-embed-text')
+      model: Joi.string().default('nomic-embed-text'),
+      dimensions: Joi.number().positive().default(768)
     }),
     gemini: Joi.object({
       apiKey: Joi.string().required(),
       baseUrl: Joi.string().uri().optional(),
-      model: Joi.string().default('embedding-001')
+      model: Joi.string().default('embedding-001'),
+      dimensions: Joi.number().positive().default(768)
     }),
     mistral: Joi.object({
       apiKey: Joi.string().required(),
       baseUrl: Joi.string().uri().optional(),
-      model: Joi.string().default('mistral-embed')
+      model: Joi.string().default('mistral-embed'),
+      dimensions: Joi.number().positive().default(1024)
     }),
     siliconflow: Joi.object({
       apiKey: Joi.string().required(),
       baseUrl: Joi.string().uri().optional(),
-      model: Joi.string().default('BAAI/bge-large-en-v1.5')
+      model: Joi.string().default('BAAI/bge-large-en-v1.5'),
+      dimensions: Joi.number().positive().default(1024)
     }),
     custom: Joi.object({
       custom1: Joi.object({
         apiKey: Joi.string().optional(),
         baseUrl: Joi.string().uri().optional(),
-        model: Joi.string().optional()
+        model: Joi.string().optional(),
+        dimensions: Joi.number().positive().default(768)
       }),
       custom2: Joi.object({
         apiKey: Joi.string().optional(),
         baseUrl: Joi.string().uri().optional(),
-        model: Joi.string().optional()
+        model: Joi.string().optional(),
+        dimensions: Joi.number().positive().default(768)
       }),
       custom3: Joi.object({
         apiKey: Joi.string().optional(),
         baseUrl: Joi.string().uri().optional(),
-        model: Joi.string().optional()
+        model: Joi.string().optional(),
+        dimensions: Joi.number().positive().default(768)
       })
     }).optional(),
     dimensionRules: Joi.object().pattern(Joi.string(), Joi.number()).optional(),
@@ -165,41 +173,49 @@ export interface Config {
       apiKey: string;
       baseUrl?: string;
       model: string;
+      dimensions: number;
     };
     ollama: {
       baseUrl: string;
       model: string;
+      dimensions: number;
     };
     gemini: {
       apiKey: string;
       baseUrl?: string;
       model: string;
+      dimensions: number;
     };
     mistral: {
       apiKey: string;
       baseUrl?: string;
       model: string;
+      dimensions: number;
     };
     siliconflow: {
       apiKey: string;
       baseUrl?: string;
       model: string;
+      dimensions: number;
     };
     custom?: {
       custom1?: {
         apiKey?: string;
         baseUrl?: string;
         model?: string;
+        dimensions?: number;
       };
       custom2?: {
         apiKey?: string;
         baseUrl?: string;
         model?: string;
+        dimensions?: number;
       };
       custom3?: {
         apiKey?: string;
         baseUrl?: string;
         model?: string;
+        dimensions?: number;
       };
     };
     dimensionRules?: { [key: string]: number };
@@ -310,42 +326,50 @@ export class ConfigService {
         openai: {
           apiKey: process.env.OPENAI_API_KEY,
           baseUrl: process.env.OPENAI_BASE_URL,
-          model: process.env.OPENAI_MODEL
+          model: process.env.OPENAI_MODEL,
+          dimensions: parseInt(process.env.OPENAI_DIMENSIONS || '1536')
         },
         ollama: {
           baseUrl: process.env.OLLAMA_BASE_URL,
-          model: process.env.OLLAMA_MODEL
+          model: process.env.OLLAMA_MODEL,
+          dimensions: parseInt(process.env.OLLAMA_DIMENSIONS || '768')
         },
         gemini: {
           apiKey: process.env.GEMINI_API_KEY,
           baseUrl: process.env.GEMINI_BASE_URL,
-          model: process.env.GEMINI_MODEL
+          model: process.env.GEMINI_MODEL,
+          dimensions: parseInt(process.env.GEMINI_DIMENSIONS || '768')
         },
         mistral: {
           apiKey: process.env.MISTRAL_API_KEY,
           baseUrl: process.env.MISTRAL_BASE_URL,
-          model: process.env.MISTRAL_MODEL
+          model: process.env.MISTRAL_MODEL,
+          dimensions: parseInt(process.env.MISTRAL_DIMENSIONS || '1024')
         },
         siliconflow: {
           apiKey: process.env.SILICONFLOW_API_KEY,
           baseUrl: process.env.SILICONFLOW_BASE_URL,
-          model: process.env.SILICONFLOW_MODEL
+          model: process.env.SILICONFLOW_MODEL,
+          dimensions: parseInt(process.env.SILICONFLOW_DIMENSIONS || '1024')
         },
         custom: {
           custom1: {
             apiKey: process.env.CUSTOM_CUSTOM1_API_KEY,
             baseUrl: process.env.CUSTOM_CUSTOM1_BASE_URL,
-            model: process.env.CUSTOM_CUSTOM1_MODEL
+            model: process.env.CUSTOM_CUSTOM1_MODEL,
+            dimensions: process.env.CUSTOM_CUSTOM1_DIMENSIONS ? parseInt(process.env.CUSTOM_CUSTOM1_DIMENSIONS) : undefined
           },
           custom2: {
             apiKey: process.env.CUSTOM_CUSTOM2_API_KEY,
             baseUrl: process.env.CUSTOM_CUSTOM2_BASE_URL,
-            model: process.env.CUSTOM_CUSTOM2_MODEL
+            model: process.env.CUSTOM_CUSTOM2_MODEL,
+            dimensions: process.env.CUSTOM_CUSTOM2_DIMENSIONS ? parseInt(process.env.CUSTOM_CUSTOM2_DIMENSIONS) : undefined
           },
           custom3: {
             apiKey: process.env.CUSTOM_CUSTOM3_API_KEY,
             baseUrl: process.env.CUSTOM_CUSTOM3_BASE_URL,
-            model: process.env.CUSTOM_CUSTOM3_MODEL
+            model: process.env.CUSTOM_CUSTOM3_MODEL,
+            dimensions: process.env.CUSTOM_CUSTOM3_DIMENSIONS ? parseInt(process.env.CUSTOM_CUSTOM3_DIMENSIONS) : undefined
           }
         },
         qualityWeight: process.env.QUALITY_WEIGHT ? parseFloat(process.env.QUALITY_WEIGHT) : undefined,

@@ -128,12 +128,11 @@ export class CustomEmbedder extends HttpEmbedder implements Embedder {
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(EmbeddingCacheService) cacheService: EmbeddingCacheService,
     name: string,
-    dimensions: number = 768
+    defaultDimensions: number = 768
   ) {
     super(configService, logger, errorHandler, cacheService);
     
     this.name = name;
-    this.dimensions = dimensions;
     
     const config = configService.get('embedding');
     const customConfig = (config.custom as Record<string, any>) || {};
@@ -141,6 +140,7 @@ export class CustomEmbedder extends HttpEmbedder implements Embedder {
     
     this.apiKey = providerConfig.apiKey || '';
     this.model = providerConfig.model || 'default-model';
+    this.dimensions = providerConfig.dimensions || defaultDimensions;
   }
 
   protected getBaseUrl(): string {

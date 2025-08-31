@@ -9,6 +9,7 @@ import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './BaseE
 export class OllamaEmbedder extends BaseEmbedder implements Embedder {
   private baseUrl: string;
   private model: string;
+  private dimensions: number;
 
   constructor(
       @inject(ConfigService) configService: ConfigService,
@@ -21,6 +22,7 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
       const config = configService.get('embedding');
       this.baseUrl = config.ollama.baseUrl || 'http://localhost:11434';
       this.model = config.ollama.model || 'nomic-embed-text';
+      this.dimensions = config.ollama.dimensions || 768;
     }
 
   private async makeEmbeddingRequest(inputs: EmbeddingInput[]): Promise<EmbeddingResult[]> {
@@ -64,7 +66,7 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
   }
 
   getDimensions(): number {
-    return 768; // nomic-embed-text dimensions
+    return this.dimensions;
   }
 
   getModelName(): string {

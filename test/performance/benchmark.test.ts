@@ -1,13 +1,13 @@
-import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
-import { StorageCoordinator } from '../../../src/services/storage/StorageCoordinator';
-import { AsyncPipeline } from '../../../src/services/infrastructure/AsyncPipeline';
-import { BatchProcessor } from '../../../src/services/processing/BatchProcessor';
-import { MemoryManager } from '../../../src/services/processing/MemoryManager';
-import { ObjectPool } from '../../../src/services/infrastructure/ObjectPool';
-import { LoggerService } from '../../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
-import { ConfigService } from '../../../src/config/ConfigService';
-import { createTestContainer } from '../../setup';
+import { IndexCoordinator } from '../../src/services/indexing/IndexCoordinator';
+import { StorageCoordinator } from '../../src/services/storage/StorageCoordinator';
+import { AsyncPipeline } from '../../src/services/infrastructure/AsyncPipeline';
+import { BatchProcessor } from '../../src/services/processing/BatchProcessor';
+import { MemoryManager } from '../../src/services/processing/MemoryManager';
+import { ObjectPool } from '../../src/services/infrastructure/ObjectPool';
+import { LoggerService } from '../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { ConfigService } from '../../src/config/ConfigService';
+import { createTestContainer } from '../setup';
 
 describe('Performance Benchmark Tests', () => {
   let container: any;
@@ -49,7 +49,7 @@ describe('Performance Benchmark Tests', () => {
       creator: () => `resource-${Math.random().toString(36).substr(2, 9)}`,
       resetter: (obj: string) => obj,
       validator: (obj: string) => typeof obj === 'string',
-      destroy: (obj: string) => {},
+      destroy: (obj: string) => { },
       evictionPolicy: 'lru'
     }, loggerService);
   });
@@ -230,7 +230,7 @@ describe('Performance Benchmark Tests', () => {
 
       for (const batchSize of batchSizes) {
         const startTime = Date.now();
-        
+
         const result = await batchProcessor.processInBatches(
           Array.from({ length: totalItems }, (_, i) => `item-${i}`),
           processor,
@@ -281,7 +281,7 @@ describe('Performance Benchmark Tests', () => {
 
       for (const concurrency of concurrencyLevels) {
         const startTime = Date.now();
-        
+
         const result = await batchProcessor.processInBatches(
           Array.from({ length: totalItems }, (_, i) => `item-${i}`),
           processor,
@@ -318,19 +318,19 @@ describe('Performance Benchmark Tests', () => {
     it('should maintain performance with error handling', async () => {
       const totalItems = 1000;
       const errorRate = 0.05; // 5% error rate
-      
+
       const failingProcessor = jest.fn().mockImplementation(async (batch: string[]) => {
         // Simulate occasional failures
         if (Math.random() < errorRate) {
           throw new Error('Random processing failure');
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 10));
         return batch.map(item => ({ processed: item }));
       });
 
       const startTime = Date.now();
-      
+
       const result = await batchProcessor.processInBatches(
         Array.from({ length: totalItems }, (_, i) => `item-${i}`),
         failingProcessor,
@@ -408,13 +408,13 @@ describe('Performance Benchmark Tests', () => {
       memoryManager.onMemoryUpdate((usage: any) => {
         memoryUpdates.push(usage);
         const responseStart = Date.now();
-        
+
         // Simulate memory pressure response
         if (usage.percentageUsed > 80) {
           // Force garbage collection if available
           memoryManager.forceGarbageCollection();
         }
-        
+
         responseTimes.push(Date.now() - responseStart);
       });
 
@@ -430,7 +430,7 @@ describe('Performance Benchmark Tests', () => {
             data: Math.random().toString(36).repeat(100),
             metadata: Array.from({ length: 20 }, () => Math.random())
           }));
-          
+
           // Process data
           return largeData.map(item => ({
             ...item,
@@ -469,10 +469,10 @@ describe('Performance Benchmark Tests', () => {
         for (let i = 0; i < operations / concurrentThreads; i++) {
           const obj = objectPool.acquire();
           acquiredObjects.push(obj);
-          
+
           // Simulate brief work
           await new Promise(resolve => setTimeout(resolve, 1));
-          
+
           objectPool.release(obj);
         }
 
@@ -503,7 +503,7 @@ describe('Performance Benchmark Tests', () => {
 
     it('should maintain performance under pool pressure', async () => {
       const initialStats = objectPool.getStats();
-      
+
       // Rapidly acquire and release objects to test pool performance
       const rapidOperations = [];
       for (let i = 0; i < 5000; i++) {
@@ -540,7 +540,7 @@ describe('Performance Benchmark Tests', () => {
         creator: () => `evict-test-${Math.random().toString(36).substr(2, 9)}`,
         resetter: (obj: string) => obj,
         validator: (obj: string) => true,
-        destroy: (obj: string) => {},
+        destroy: (obj: string) => { },
         evictionPolicy: 'lru'
       }, loggerService);
 
@@ -617,21 +617,21 @@ describe('Performance Benchmark Tests', () => {
     it('should demonstrate performance improvement from modularization', async () => {
       // This test demonstrates the performance benefits of the new modular architecture
       const iterations = 50;
-      
+
       // Test with new modular components
       const modularStartTime = Date.now();
-      
+
       for (let i = 0; i < iterations; i++) {
         // Simulate modular workflow
         await asyncPipeline.execute({
           step: 'memory-check',
           data: { id: i }
         });
-        
+
         // Use object pool
         const obj = objectPool.acquire();
         objectPool.release(obj);
-        
+
         // Batch processing
         await batchProcessor.processInBatches(
           [`item-${i}`],
@@ -639,16 +639,16 @@ describe('Performance Benchmark Tests', () => {
           { batchSize: 1, maxConcurrency: 1, timeout: 5000, continueOnError: true }
         );
       }
-      
+
       const modularTime = Date.now() - modularStartTime;
-      
+
       // Performance should be significantly better than monolithic approach
       // (In a real test, we'd compare against the old architecture)
       expect(modularTime).toBeLessThan(10000); // Should complete in under 10 seconds
-      
+
       const averageModularTime = modularTime / iterations;
       expect(averageModularTime).toBeLessThan(200); // Average iteration < 200ms
-      
+
       console.log(`Modular Architecture Performance:`);
       console.log(`- Total iterations: ${iterations}`);
       console.log(`- Total time: ${modularTime}ms`);
