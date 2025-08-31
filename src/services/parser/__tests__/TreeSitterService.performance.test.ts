@@ -153,7 +153,7 @@ function createMockAST(code: string): any {
     
     // Create comment nodes for comment markers
     if (line.includes('@snippet') || line.includes('@code') || line.includes('@example')) {
-      nodes.push(createMockSyntaxNode(
+      const commentNode = createMockSyntaxNode(
         'comment',
         line,
         { row: index, column: 0 },
@@ -161,7 +161,11 @@ function createMockAST(code: string): any {
         code.indexOf(line),
         code.indexOf(line) + line.length,
         []
-      ));
+      );
+      
+      // Mock the childForFieldName method for comment nodes
+      commentNode.childForFieldName = jest.fn().mockReturnValue(null);
+      nodes.push(commentNode);
     }
   });
   

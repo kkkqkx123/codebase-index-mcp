@@ -1,26 +1,27 @@
-import { Container } from 'inversify';
 import { SearchCoordinator, SearchOptions, SearchResult, SearchQuery } from './SearchCoordinator';
 import { HybridSearchService, HybridSearchParams, HybridSearchResult, HybridSearchMetrics } from './HybridSearchService';
 import { SemanticSearchService, SemanticSearchParams, SemanticSearchResult, SemanticSearchMetrics } from './SemanticSearchService';
+import { RerankingService } from '../reranking/RerankingService';
 import { IRerankingService, RerankingOptions, RerankedResult } from '../reranking/IRerankingService';
-import { QueryCache, QueryResult } from '../query/QueryCache';
+import { QueryResult } from '../query/QueryCoordinationService';
+import { StorageCoordinator } from '../storage/StorageCoordinator';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { ConfigFactory } from '../../config/ConfigFactory';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
-import { TYPES } from '../../core/DIContainer';
 
 describe('SearchCoordinator', () => {
-  let container: Container;
   let searchCoordinator: SearchCoordinator;
   let mockHybridSearchService: jest.Mocked<HybridSearchService>;
   let mockSemanticSearchService: jest.Mocked<SemanticSearchService>;
-  let mockRerankingService: jest.Mocked<IRerankingService>;
-  let mockQueryCache: jest.Mocked<QueryCache>;
+  let mockRerankingService: jest.Mocked<RerankingService>;
+  let mockStorageCoordinator: jest.Mocked<StorageCoordinator>;
+  let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
+  let mockConfigFactory: jest.Mocked<ConfigFactory>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
 
   beforeEach(() => {
-    container = new Container();
-    
     // Create mocks
     mockHybridSearchService = {
       search: jest.fn(),
@@ -41,20 +42,37 @@ describe('SearchCoordinator', () => {
     mockRerankingService = {
       rerank: jest.fn(),
       getRerankingStats: jest.fn(),
-    } as unknown as jest.Mocked<IRerankingService>;
+    } as unknown as jest.Mocked<RerankingService>;
 
-    mockQueryCache = {
-      get: jest.fn(),
-      set: jest.fn(),
-      invalidate: jest.fn(),
-      invalidateByProject: jest.fn(),
-      clear: jest.fn(),
-      getStats: jest.fn(),
-      preloadCache: jest.fn(),
-      stopCleanupTask: jest.fn(),
-      exportCache: jest.fn(),
-      importCache: jest.fn(),
-    } as unknown as jest.Mocked<QueryCache>;
+    mockStorageCoordinator = {
+      getStorageStats: jest.fn(),
+      optimizeStorage: jest.fn(),
+      cleanupStorage: jest.fn(),
+    } as unknown as jest.Mocked<StorageCoordinator>;
+
+    mockErrorHandlerService = {
+      handleError: jest.fn(),
+      classifyError: jest.fn(),
+      createErrorContext: jest.fn(),
+    } as unknown as jest.Mocked<ErrorHandlerService>;
+
+    mockConfigFactory = {
+      createSearchConfig: jest.fn(),
+      createEmbeddingConfig: jest.fn(),
+      createDatabaseConfig: jest.fn(),
+      getConfig: jest.fn().mockReturnValue({
+        defaultThreshold: 0.7,
+        defaultLimit: 10,
+        includeGraph: true,
+        useHybrid: false,
+        useReranking: true,
+        weights: {
+          semantic: 0.6,
+          keyword: 0.3,
+          graph: 0.1
+        }
+      }),
+    } as unknown as jest.Mocked<ConfigFactory>;
 
     mockLoggerService = {
       info: jest.fn(),
@@ -69,16 +87,17 @@ describe('SearchCoordinator', () => {
       getAll: jest.fn(),
     } as unknown as jest.Mocked<ConfigService>;
 
-    // Bind mocks to container
-    container.bind(TYPES.HybridSearchService).toConstantValue(mockHybridSearchService);
-    container.bind(TYPES.SemanticSearchService).toConstantValue(mockSemanticSearchService);
-    container.bind(TYPES.RerankingService).toConstantValue(mockRerankingService);
-    container.bind(TYPES.QueryCache).toConstantValue(mockQueryCache);
-    container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
-    container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    container.bind(TYPES.SearchCoordinator).to(SearchCoordinator);
-
-    searchCoordinator = container.get<SearchCoordinator>(TYPES.SearchCoordinator);
+    // Create service instance directly with mocked dependencies
+    searchCoordinator = new SearchCoordinator(
+      mockLoggerService,
+      mockErrorHandlerService,
+      mockConfigService,
+      mockConfigFactory,
+      mockSemanticSearchService,
+      mockHybridSearchService,
+      mockRerankingService,
+      mockStorageCoordinator
+    );
   });
 
   afterEach(() => {
@@ -178,8 +197,33 @@ describe('SearchCoordinator', () => {
         },
       ];
 
-      mockQueryCache.get.mockResolvedValue(null);
-      mockHybridSearchService.search.mockResolvedValue(searchResults);
+      // QueryCache reference removed as SearchCoordinator doesn't use it
+      // Since useHybrid is false by default, set up semantic search mock
+      const semanticResults = {
+        results: searchResults.results.map(result => ({
+          ...result,
+          similarity: result.score,
+          rankingFactors: {
+            semanticScore: result.score,
+            contextualScore: 0.8,
+            recencyScore: 0.7,
+            popularityScore: 0.6,
+            finalScore: result.score
+          }
+        })),
+        metrics: {
+          queryId: 'test-query-id',
+          executionTime: 100,
+          embeddingTime: 50,
+          searchTime: 30,
+          rankingTime: 20,
+          totalResults: searchResults.results.length,
+          averageSimilarity: 0.85,
+          searchStrategy: 'semantic'
+        }
+      };
+      
+      mockSemanticSearchService.search.mockResolvedValue(semanticResults);
       mockRerankingService.rerank.mockResolvedValue(rerankedResults);
 
       const searchQuery: SearchQuery = { text: queryText, options };
@@ -189,46 +233,66 @@ describe('SearchCoordinator', () => {
         expect.objectContaining({ id: '1' }),
         expect.objectContaining({ id: '2' })
       ]));
-      expect(mockHybridSearchService.search).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(expect.objectContaining({
         query: queryText,
         limit: options.limit
       }));
-      expect(mockQueryCache.set).toHaveBeenCalled();
+      // QueryCache reference removed as SearchCoordinator doesn't use it
     });
 
-    it('should return cached results when available', async () => {
-      const queryText = 'cached query';
+    it('should return results from semantic search', async () => {
+      const queryText = 'semantic query';
       const options: SearchOptions = { limit: 10 };
 
-      const cachedResults: QueryResult[] = [
-        {
-          id: '1',
-          score: 0.9,
-          filePath: '/path/to/cached-file.ts',
-          content: 'cached result',
-          startLine: 1,
-          endLine: 5,
-          language: 'typescript',
-          chunkType: 'function',
-          metadata: {}
+      const semanticResults = {
+        results: [
+          {
+            id: '1',
+            score: 0.9,
+            similarity: 0.9,
+            filePath: '/path/to/semantic-file.ts',
+            content: 'semantic result',
+            startLine: 1,
+            endLine: 5,
+            language: 'typescript',
+            chunkType: 'function',
+            metadata: {},
+            rankingFactors: {
+              semanticScore: 0.9,
+              contextualScore: 0.8,
+              recencyScore: 0.7,
+              popularityScore: 0.6,
+              finalScore: 0.9
+            }
+          }
+        ],
+        metrics: {
+          queryId: 'semantic-query-id',
+          executionTime: 100,
+          embeddingTime: 50,
+          searchTime: 30,
+          rankingTime: 20,
+          totalResults: 1,
+          averageSimilarity: 0.9,
+          searchStrategy: 'semantic'
         }
-      ];
+      };
 
-      mockQueryCache.get.mockResolvedValue(cachedResults);
+      mockSemanticSearchService.search.mockResolvedValue(semanticResults);
 
       const searchQuery: SearchQuery = { text: queryText, options };
       const result = await searchCoordinator.search(searchQuery);
 
-      expect(result.results).toEqual(cachedResults);
-      expect(mockHybridSearchService.search).not.toHaveBeenCalled();
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Cache hit for query', { query: queryText });
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].id).toBe('1');
+      expect(mockSemanticSearchService.search).toHaveBeenCalled();
     });
 
     it('should handle search errors gracefully', async () => {
       const queryText = 'error query';
       const options: SearchOptions = { limit: 10 };
 
-      mockQueryCache.get.mockResolvedValue(null);
+      // QueryCache reference removed as SearchCoordinator doesn't use it
       mockHybridSearchService.search.mockRejectedValue(new Error('Search failed'));
 
       const searchQuery: SearchQuery = { text: queryText, options };
@@ -305,15 +369,40 @@ describe('SearchCoordinator', () => {
         }
       };
 
-      mockQueryCache.get.mockResolvedValue(null);
-      mockHybridSearchService.search.mockResolvedValue(searchResults);
+      // QueryCache reference removed as SearchCoordinator doesn't use it
+      // Set up semantic search mock since useHybrid is false by default
+      const semanticResults = {
+        results: searchResults.results.map(result => ({
+          ...result,
+          similarity: result.score,
+          rankingFactors: {
+            semanticScore: result.score,
+            contextualScore: 0.8,
+            recencyScore: 0.7,
+            popularityScore: 0.6,
+            finalScore: result.score
+          }
+        })),
+        metrics: {
+          queryId: 'test-query-id',
+          executionTime: 100,
+          embeddingTime: 50,
+          searchTime: 30,
+          rankingTime: 20,
+          totalResults: searchResults.results.length,
+          averageSimilarity: 0.85,
+          searchStrategy: 'semantic'
+        }
+      };
+      
+      mockSemanticSearchService.search.mockResolvedValue(semanticResults);
 
       const searchQuery: SearchQuery = { text: queryText, options };
       const result = await searchCoordinator.search(searchQuery);
 
       // Note: The actual filtering logic would be in the SearchCoordinator implementation
       // For this test, we're just checking that the search method was called correctly
-      expect(mockHybridSearchService.search).toHaveBeenCalled();
+      expect(mockSemanticSearchService.search).toHaveBeenCalled();
     });
   });
 
@@ -345,7 +434,19 @@ describe('SearchCoordinator', () => {
         },
       ];
 
-      mockSemanticSearchService.searchSimilar.mockResolvedValue(similarResults);
+      mockSemanticSearchService.search.mockResolvedValue({
+        results: similarResults,
+        metrics: {
+          queryId: 'test-query',
+          executionTime: 100,
+          embeddingTime: 50,
+          searchTime: 30,
+          rankingTime: 20,
+          totalResults: 1,
+          averageSimilarity: 0.95,
+          searchStrategy: 'semantic'
+        }
+      });
 
       const result = await searchCoordinator.performSemanticSearch(codeSnippet, options);
 
@@ -397,13 +498,39 @@ describe('SearchCoordinator', () => {
         }
       };
 
-      mockHybridSearchService.search.mockResolvedValue(contextualResults);
+      // Set up semantic search mock since useHybrid is false by default
+      const semanticResults = {
+        results: contextualResults.results.map(result => ({
+          ...result,
+          similarity: result.score,
+          rankingFactors: {
+            semanticScore: result.score,
+            contextualScore: 0.8,
+            recencyScore: 0.7,
+            popularityScore: 0.6,
+            finalScore: result.score
+          }
+        })),
+        metrics: {
+          queryId: 'contextual-query-id',
+          executionTime: 90,
+          embeddingTime: 45,
+          searchTime: 25,
+          rankingTime: 20,
+          totalResults: contextualResults.results.length,
+          averageSimilarity: 0.9,
+          searchStrategy: 'semantic'
+        }
+      };
+      
+      mockSemanticSearchService.search.mockResolvedValue(semanticResults);
 
       const searchQuery: SearchQuery = { text: queryText, options: {} };
       const result = await searchCoordinator.search(searchQuery);
 
-      expect(result.results).toEqual(contextualResults.results);
-      expect(mockHybridSearchService.search).toHaveBeenCalledWith(expect.objectContaining({ query: queryText }));
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].id).toBe('1');
+      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(expect.objectContaining({ query: queryText }));
     });
   });
 

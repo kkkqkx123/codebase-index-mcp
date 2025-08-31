@@ -492,9 +492,9 @@ export class TreeSitterService {
             const endByte = startByte + snippetContent.length;
             
             const snippet: SnippetChunk = {
-              id: this.generateSnippetId(snippetContent, startLine + 1),
+              id: this.generateSnippetId(snippetContent, startLine),
               content: snippetContent,
-              startLine: startLine + 1,
+              startLine: startLine,
               endLine,
               startByte,
               endByte,
@@ -531,20 +531,27 @@ export class TreeSitterService {
     
     findCommentNodes(ast);
     
+    // Track which markers we've already found via AST to avoid duplicates in direct scanning
+    const foundMarkers = new Set(snippets.map(snippet => 
+      snippet.snippetMetadata.commentMarkers?.[0]?.trim()
+    ).filter(Boolean));
+    
+    // If we already found snippets via AST, skip direct scanning to avoid duplicates
+    if (snippets.length > 0) {
+      console.log(`[DEBUG] Skipping direct scan - found ${snippets.length} snippets via AST`);
+      return snippets;
+    }
+    
     // Also scan source code directly for comment markers (fallback)
     // This is more reliable than relying on the AST structure in our mock environment
+    
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       // Use precompiled regex for better performance
       const hasMarker = this.snippetMarkerRegex.test(line);
       
       // Skip if we already found this marker in the AST
-      const alreadyFound = snippets.some(snippet => 
-        snippet.snippetMetadata.commentMarkers && 
-        snippet.snippetMetadata.commentMarkers.includes(line)
-      );
-      
-      if (hasMarker && !alreadyFound) {
+      if (hasMarker && !foundMarkers.has(line)) {
         // Find the code block following the marker
         const snippetLines = this.extractCodeBlockAfterMarker(lines, i + 1);
         if (snippetLines.length > 0) {
@@ -589,6 +596,18 @@ export class TreeSitterService {
     
     // Debug: Log the number of comment markers found
     console.log(`[DEBUG] Found ${snippets.length} comment-marked snippets`);
+    console.log(`[DEBUG] AST markers: ${Array.from(foundMarkers).join(', ')}`);
+    console.log(`[DEBUG] AST snippets count: ${snippets.length}`);
+    
+    // Debug: Log direct scanning results
+    const directMarkers = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (this.snippetMarkerRegex.test(line)) {
+        directMarkers.push(line);
+      }
+    }
+    console.log(`[DEBUG] Direct markers: ${directMarkers.join(', ')}`);
     
     return snippets;
   }
@@ -844,25 +863,18 @@ export class TreeSitterService {
 
   private extractCodeBlockAfterMarker(lines: string[], startLine: number): string[] {
     const snippetLines: string[] = [];
-    let indentLevel = null;
     
     for (let i = startLine; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
       
-      // Skip empty lines and comments
-      if (trimmedLine === '' || trimmedLine.startsWith('//') || trimmedLine.startsWith('*')) {
-        continue;
+      // Stop if we encounter another marker
+      if (i > startLine && this.snippetMarkerRegex.test(trimmedLine)) {
+        break;
       }
       
-      // Determine indentation level from first non-empty line
-      if (indentLevel === null) {
-        indentLevel = line.length - line.trimStart().length;
-      }
-      
-      // Stop if we encounter a line with less indentation (end of block)
-      const currentIndent = line.length - line.trimStart().length;
-      if (currentIndent < indentLevel && trimmedLine.length > 0) {
+      // Stop if we encounter an empty line (end of function)
+      if (trimmedLine === '') {
         break;
       }
       
@@ -1010,7 +1022,18 @@ export class TreeSitterService {
         endIndex,
         children,
         parent: null,
-        text: text
+        text: text,
+        childForFieldName: (fieldName: string) => {
+          // Mock implementation for childForFieldName method
+          if (fieldName === 'name' && (type === 'function_declaration' || type === 'class_declaration')) {
+            // Extract name from function/class declaration
+            const nameMatch = text.match(/(?:function|class)\s+(\w+)/);
+            if (nameMatch && nameMatch[1]) {
+              return createNode('identifier', nameMatch[1], startLine, endLine);
+            }
+          }
+          return null;
+        }
       };
       
       // Set parent relationship for children
@@ -1071,6 +1094,18 @@ export class TreeSitterService {
       }
       
       children.push(createNode(nodeType, matchedText, startLine, endLine, []));
+    }
+    
+    // Look for comment nodes with snippet markers
+    const commentRegex = /\/\/.*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)/g;
+    let commentMatch;
+    
+    while ((commentMatch = commentRegex.exec(code)) !== null) {
+      const matchedText = commentMatch[0];
+      const startLine = code.substring(0, commentMatch.index).split('\n').length;
+      const endLine = startLine;
+      
+      children.push(createNode('comment', matchedText, startLine, endLine, []));
     }
     
     // Create root node
