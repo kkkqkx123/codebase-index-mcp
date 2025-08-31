@@ -7,7 +7,7 @@
 ## 执行计划
 
 ### 1. Qdrant 向量数据库隔离
-
+[ ]
 #### 集合命名策略
 为每个项目创建独立的 Qdrant 集合，命名规则如下：
 ```
@@ -50,7 +50,7 @@ interface ProjectVectorConfig {
 ```
 
 ### 2. Nebula Graph 图数据库隔离
-
+[ ]
 #### 空间命名策略
 为每个项目创建独立的 Nebula Graph 空间，命名规则如下：
 ```
