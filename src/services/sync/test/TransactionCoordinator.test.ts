@@ -2,6 +2,8 @@ import { TransactionCoordinator } from '../TransactionCoordinator';
 import { EntityMappingService } from '../EntityMappingService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { VectorStorageService } from '../../storage/VectorStorageService';
+import { GraphPersistenceService } from '../../storage/GraphPersistenceService';
 import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
 import { createMockTransaction, createMockSyncOperation } from '@test/setup';
 
@@ -9,12 +11,16 @@ import { createMockTransaction, createMockSyncOperation } from '@test/setup';
 jest.mock('../../../core/LoggerService');
 jest.mock('../../../core/ErrorHandlerService');
 jest.mock('../EntityMappingService');
+jest.mock('../../storage/VectorStorageService');
+jest.mock('../../storage/GraphPersistenceService');
 
 describe('TransactionCoordinator', () => {
   let transactionCoordinator: TransactionCoordinator;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockEntityMappingService: jest.Mocked<EntityMappingService>;
+  let mockVectorStorageService: jest.Mocked<VectorStorageService>;
+  let mockGraphPersistenceService: jest.Mocked<GraphPersistenceService>;
 
   beforeEach(() => {
     // Reset all mocks
@@ -42,11 +48,29 @@ describe('TransactionCoordinator', () => {
       executeBatch: jest.fn(),
     } as any;
 
+    mockVectorStorageService = {
+      storeChunks: jest.fn().mockResolvedValue({ success: true, totalChunks: 0, uniqueChunks: 0, processingTime: 0, errors: [] }),
+      deleteChunks: jest.fn(),
+      searchSimilarChunks: jest.fn(),
+      getChunkById: jest.fn(),
+      initialize: jest.fn(),
+    } as any;
+
+    mockGraphPersistenceService = {
+      storeParsedFiles: jest.fn(),
+      storeChunks: jest.fn().mockResolvedValue({ success: true, nodesCreated: 0, relationshipsCreated: 0, nodesUpdated: 0, processingTime: 0, errors: [] }),
+      deleteNodes: jest.fn(),
+      findRelatedNodes: jest.fn(),
+      initialize: jest.fn(),
+    } as any;
+
     // Create TransactionCoordinator instance
     transactionCoordinator = new TransactionCoordinator(
       mockLoggerService,
       mockErrorHandlerService,
-      mockEntityMappingService
+      mockEntityMappingService,
+      mockVectorStorageService,
+      mockGraphPersistenceService
     );
   });
 
@@ -376,9 +400,10 @@ describe('TransactionCoordinator', () => {
       await (transactionCoordinator as any).executeVectorOperation(operation);
 
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing vector operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Storing chunks in vector database', {
-        chunkCount: 2,
-        projectId: 'test_project',
+      expect(mockLoggerService.debug).toHaveBeenCalledWith('Successfully stored chunks in vector database', {
+        chunkCount: 0,
+        uniqueChunks: 0,
+        processingTime: 0,
       });
     });
 
@@ -401,7 +426,8 @@ describe('TransactionCoordinator', () => {
         type: 'unknown',
       };
 
-      await (transactionCoordinator as any).executeVectorOperation(operation);
+      await expect((transactionCoordinator as any).executeVectorOperation(operation))
+        .rejects.toThrow('Unknown vector operation type: unknown');
 
       expect(mockLoggerService.warn).toHaveBeenCalledWith('Unknown vector operation type', {
         type: 'unknown',
@@ -435,9 +461,10 @@ describe('TransactionCoordinator', () => {
       await (transactionCoordinator as any).executeGraphOperation(operation);
 
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing graph operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Storing chunks in graph database', {
-        chunkCount: 2,
-        projectId: 'test_project',
+      expect(mockLoggerService.debug).toHaveBeenCalledWith('Successfully stored chunks in graph database', {
+        chunkCount: 0,
+        relationshipsCreated: 0,
+        processingTime: 0,
       });
     });
 
@@ -460,7 +487,8 @@ describe('TransactionCoordinator', () => {
         type: 'unknown',
       };
 
-      await (transactionCoordinator as any).executeGraphOperation(operation);
+      await expect((transactionCoordinator as any).executeGraphOperation(operation))
+        .rejects.toThrow('Unknown graph operation type: unknown');
 
       expect(mockLoggerService.warn).toHaveBeenCalledWith('Unknown graph operation type', {
         type: 'unknown',
