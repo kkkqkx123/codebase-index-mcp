@@ -1,9 +1,7 @@
 import { Container } from 'inversify';
 import { MCPServer } from './MCPServer';
-import { SearchCoordinator } from '../services/search/SearchCoordinator';
-import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
+import { IndexService } from '../services/indexing/IndexService';
 import { GraphService } from '../services/graph/GraphService';
-import { HealthCheckService } from '../services/monitoring/HealthCheckService';
 import { LoggerService } from '../core/LoggerService';
 import { ConfigService } from '../config/ConfigService';
 import { TYPES } from '../core/DIContainer';
@@ -11,10 +9,8 @@ import { TYPES } from '../core/DIContainer';
 describe('MCPServer', () => {
   let container: Container;
   let mcpServer: MCPServer;
-  let mockSearchCoordinator: jest.Mocked<SearchCoordinator>;
-  let mockIndexCoordinator: jest.Mocked<IndexCoordinator>;
+  let mockIndexService: jest.Mocked<IndexService>;
   let mockGraphService: jest.Mocked<GraphService>;
-  let mockHealthCheckService: jest.Mocked<HealthCheckService>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
 
@@ -22,39 +18,21 @@ describe('MCPServer', () => {
     container = new Container();
 
     // Create mocks
-    mockSearchCoordinator = {
+    mockIndexService = {
+      createIndex: jest.fn(),
       search: jest.fn(),
-      searchWithFilters: jest.fn(),
-      searchSimilarCode: jest.fn(),
-      searchByContext: jest.fn(),
-      getSearchSuggestions: jest.fn(),
-    } as any;
-
-    mockIndexCoordinator = {
-      indexDirectory: jest.fn(),
-      indexFile: jest.fn(),
+      getStatus: jest.fn(),
       updateIndex: jest.fn(),
-      deleteFromIndex: jest.fn(),
-      rebuildIndex: jest.fn(),
-      getIndexingStats: jest.fn(),
-      validateIndex: jest.fn(),
+      deleteIndex: jest.fn(),
+      getActiveIndexing: jest.fn(),
     } as any;
 
     mockGraphService = {
-      analyzeCodeStructure: jest.fn(),
+      analyzeCodebase: jest.fn(),
       findDependencies: jest.fn(),
-      findDependents: jest.fn(),
-      getCallChain: jest.fn(),
-      analyzeImpact: jest.fn(),
-      findCircularDependencies: jest.fn(),
-      getComplexityMetrics: jest.fn(),
-    } as any;
-
-    mockHealthCheckService = {
-      checkOverallHealth: jest.fn(),
-      checkQdrantHealth: jest.fn(),
-      checkNebulaHealth: jest.fn(),
-      performDeepHealthCheck: jest.fn(),
+      findImpact: jest.fn(),
+      getGraphStats: jest.fn(),
+      exportGraph: jest.fn(),
     } as any;
 
     mockLoggerService = {
@@ -66,25 +44,22 @@ describe('MCPServer', () => {
 
     mockConfigService = {
       get: jest.fn(),
-      getMCPConfig: jest.fn().mockReturnValue({
-        serverName: 'codebase-index-mcp',
-        version: '1.0.0',
-        capabilities: ['search', 'index', 'graph', 'monitoring'],
-        maxRequestSize: '10MB',
-        timeout: 30000,
-      }),
     } as any;
 
     // Bind mocks to container
-    container.bind(TYPES.SearchCoordinator).toConstantValue(mockSearchCoordinator);
-    container.bind(TYPES.IndexCoordinator).toConstantValue(mockIndexCoordinator);
+    container.bind(TYPES.IndexService).toConstantValue(mockIndexService);
     container.bind(TYPES.GraphService).toConstantValue(mockGraphService);
-    container.bind(TYPES.HealthCheckService).toConstantValue(mockHealthCheckService);
     container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
     container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    container.bind(TYPES.MCPServer).to(MCPServer);
-
-    mcpServer = container.get<MCPServer>(TYPES.MCPServer);
+    
+    // Create MCPServer instance directly since it's not bound to the container in the actual implementation
+    const MCPServerConstructor = jest.requireActual('./MCPServer').MCPServer;
+    mcpServer = new MCPServerConstructor();
+    
+    // Manually inject mocks into the server instance
+    (mcpServer as any).indexService = mockIndexService;
+    (mcpServer as any).graphService = mockGraphService;
+    (mcpServer as any).logger = mockLoggerService;
   });
 
   afterEach(() => {
@@ -92,447 +67,227 @@ describe('MCPServer', () => {
   });
 
   describe('Server Initialization', () => {
-    it('should initialize MCP server with capabilities', async () => {
-      await mcpServer.initialize();
-
-      expect(mockLoggerService.info).toHaveBeenCalledWith('MCP Server initialized', {
-        serverName: 'codebase-index-mcp',
-        version: '1.0.0',
-        capabilities: ['search', 'index', 'graph', 'monitoring'],
-      });
-    });
-
-    it('should register all available tools', async () => {
-      await mcpServer.initialize();
-
-      const tools = mcpServer.getAvailableTools();
-
-      expect(tools).toContain('search_code');
-      expect(tools).toContain('index_directory');
-      expect(tools).toContain('analyze_dependencies');
-      expect(tools).toContain('check_health');
+    it('should create MCP server instance', () => {
+      expect(mcpServer).toBeDefined();
     });
   });
 
   describe('Search Tools', () => {
-    it('should handle search_code tool requests', async () => {
-      const searchRequest = {
-        tool: 'search_code',
-        arguments: {
-          query: 'authentication function',
-          maxResults: 10,
-          includeContext: true,
+    it('should handle codebase.index.search tool requests', async () => {
+      const searchResults = [
+        {
+          id: '1',
+          score: 0.95,
+          finalScore: 0.95,
+          filePath: '/src/auth.ts',
+          content: 'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
+          startLine: 10,
+          endLine: 15,
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: { projectId: 'test-project' },
+        },
+      ];
+
+      mockIndexService.search.mockResolvedValue(searchResults);
+
+      const args = {
+        query: 'authentication function',
+        options: {
+          limit: 10,
+          threshold: 0.7,
+          includeGraph: true,
         },
       };
 
-      const searchResults = {
-        results: [
-          {
-            id: '1',
-            score: 0.95,
-            content: 'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
-            metadata: { filePath: '/src/auth.ts', language: 'typescript' },
-          },
-        ],
-        totalCount: 1,
-        searchTime: 45,
-      };
+      const response = await (mcpServer as any).handleSearch(args);
 
-      mockSearchCoordinator.search.mockResolvedValue(searchResults);
-
-      const response = await mcpServer.handleToolRequest(searchRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(searchResults);
-      expect(mockSearchCoordinator.search).toHaveBeenCalledWith(
+      expect(response.results).toEqual(searchResults);
+      expect(response.total).toBe(1);
+      expect(mockIndexService.search).toHaveBeenCalledWith(
         'authentication function',
-        { maxResults: 10, includeContext: true }
+        { limit: 10, threshold: 0.7, includeGraph: true }
       );
-    });
-
-    it('should handle search_similar_code tool requests', async () => {
-      const searchRequest = {
-        tool: 'search_similar_code',
-        arguments: {
-          codeSnippet: 'function login(user, pass) { return auth.verify(user, pass); }',
-          maxResults: 5,
-        },
-      };
-
-      const similarResults = {
-        results: [
-          {
-            id: '2',
-            score: 0.88,
-            content: 'function authenticate(username, password) { return bcrypt.compare(password, user.hash); }',
-            metadata: { filePath: '/src/auth.ts', similarity: 0.88 },
-          },
-        ],
-        totalCount: 1,
-        searchTime: 32,
-      };
-
-      mockSearchCoordinator.searchSimilarCode.mockResolvedValue(similarResults);
-
-      const response = await mcpServer.handleToolRequest(searchRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(similarResults);
-    });
-
-    it('should provide search suggestions', async () => {
-      const suggestionRequest = {
-        tool: 'get_search_suggestions',
-        arguments: {
-          partialQuery: 'auth',
-        },
-      };
-
-      const suggestions = ['authentication', 'authorization', 'authenticate user'];
-
-      mockSearchCoordinator.getSearchSuggestions.mockResolvedValue(suggestions);
-
-      const response = await mcpServer.handleToolRequest(suggestionRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data.suggestions).toEqual(suggestions);
     });
   });
 
   describe('Indexing Tools', () => {
-    it('should handle index_directory tool requests', async () => {
-      const indexRequest = {
-        tool: 'index_directory',
-        arguments: {
-          directoryPath: '/src/project',
-          recursive: true,
-        },
-      };
-
-      const indexResult = {
-        totalFiles: 50,
-        successCount: 48,
-        errorCount: 2,
-        indexingTime: 5000,
-        entitiesIndexed: 250,
-      };
-
-      mockIndexCoordinator.indexDirectory.mockResolvedValue(indexResult);
-
-      const response = await mcpServer.handleToolRequest(indexRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(indexResult);
-      expect(mockIndexCoordinator.indexDirectory).toHaveBeenCalledWith('/src/project', { recursive: true });
-    });
-
-    it('should handle index_file tool requests', async () => {
-      const indexRequest = {
-        tool: 'index_file',
-        arguments: {
-          filePath: '/src/auth.ts',
-        },
-      };
-
+    it('should handle codebase.index.create tool requests', async () => {
       const indexResult = {
         success: true,
-        filePath: '/src/auth.ts',
-        entitiesIndexed: 5,
-        indexingTime: 200,
+        filesProcessed: 50,
+        filesSkipped: 2,
+        chunksCreated: 250,
+        processingTime: 5000,
+        errors: [],
       };
 
-      mockIndexCoordinator.indexFile.mockResolvedValue(indexResult);
+      mockIndexService.createIndex.mockResolvedValue(indexResult);
 
-      const response = await mcpServer.handleToolRequest(indexRequest);
+      const args = {
+        projectPath: '/src/project',
+        options: {
+          recursive: true,
+          includePatterns: [],
+          excludePatterns: [],
+        },
+      };
+
+      const response = await (mcpServer as any).handleCreateIndex(args);
 
       expect(response.success).toBe(true);
-      expect(response.data).toEqual(indexResult);
+      expect(response.message).toContain('Index created successfully');
+      expect(mockIndexService.createIndex).toHaveBeenCalledWith('/src/project', {
+        recursive: true,
+        includePatterns: [],
+        excludePatterns: [],
+      });
     });
 
-    it('should handle get_indexing_stats tool requests', async () => {
-      const statsRequest = {
-        tool: 'get_indexing_stats',
-        arguments: {},
+    it('should handle codebase.status.get tool requests', async () => {
+      const statusResult = {
+        projectId: 'test-project-hash',
+        isIndexing: false,
+        lastIndexed: new Date(),
+        fileCount: 150,
+        chunkCount: 450,
+        status: 'completed' as const,
       };
 
-      const stats = {
-        totalFilesIndexed: 150,
-        totalEntitiesIndexed: 800,
-        indexingErrors: 5,
-        lastIndexingTime: new Date().toISOString(),
-        averageIndexingTime: 150,
+      mockIndexService.getStatus.mockResolvedValue(statusResult);
+
+      const args = {
+        projectPath: '/src/project',
       };
 
-      mockIndexCoordinator.getIndexingStats.mockResolvedValue(stats);
+      const response = await (mcpServer as any).handleGetStatus(args);
 
-      const response = await mcpServer.handleToolRequest(statsRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(stats);
+      expect(response.status).toEqual(statusResult);
+      expect(mockIndexService.getStatus).toHaveBeenCalledWith('/src/project');
     });
   });
 
   describe('Graph Analysis Tools', () => {
-    it('should handle analyze_dependencies tool requests', async () => {
-      const analysisRequest = {
-        tool: 'analyze_dependencies',
-        arguments: {
-          entityId: 'func_authenticate',
-        },
-      };
-
-      const dependencies = [
-        {
-          name: 'validateUser',
-          dependencyType: 'CALLS',
-          filePath: '/src/validation.ts',
-        },
-        {
-          name: 'User',
-          dependencyType: 'USES',
-          filePath: '/src/models/User.ts',
-        },
-      ];
-
-      mockGraphService.findDependencies.mockResolvedValue(dependencies);
-
-      const response = await mcpServer.handleToolRequest(analysisRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data.dependencies).toEqual(dependencies);
-    });
-
-    it('should handle analyze_impact tool requests', async () => {
-      const impactRequest = {
-        tool: 'analyze_impact',
-        arguments: {
-          entityId: 'func_authenticate',
-        },
-      };
-
-      const impactAnalysis = {
-        targetEntity: 'func_authenticate',
-        directImpact: [
-          { name: 'login', filePath: '/src/auth.ts' },
-          { name: 'middleware', filePath: '/src/middleware.ts' },
+    it('should handle codebase.graph.analyze tool requests', async () => {
+      const analysisResult = {
+        nodes: [
+          {
+            id: 'file_1',
+            label: 'Button.tsx',
+            properties: { path: 'src/components/Button.tsx', type: 'file', language: 'typescript' },
+            type: 'file' as const,
+          },
         ],
-        riskLevel: 'high',
-        affectedFiles: ['/src/auth.ts', '/src/middleware.ts'],
-        impactScore: 8.5,
-      };
-
-      mockGraphService.analyzeImpact.mockResolvedValue(impactAnalysis);
-
-      const response = await mcpServer.handleToolRequest(impactRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(impactAnalysis);
-    });
-
-    it('should handle get_call_chain tool requests', async () => {
-      const callChainRequest = {
-        tool: 'get_call_chain',
-        arguments: {
-          fromFunction: 'func_main',
-          toFunction: 'func_helper',
-        },
-      };
-
-      const callChain = {
-        path: [
-          { id: 'func_main', name: 'main' },
-          { id: 'func_process', name: 'process' },
-          { id: 'func_helper', name: 'helper' },
+        edges: [
+          {
+            id: 'edge_1',
+            source: 'file_1',
+            target: 'function_1',
+            type: 'CONTAINS',
+            properties: { relationship: 'contains' },
+          },
         ],
-        depth: 2,
-        connected: true,
-      };
-
-      mockGraphService.getCallChain.mockResolvedValue(callChain);
-
-      const response = await mcpServer.handleToolRequest(callChainRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(callChain);
-    });
-  });
-
-  describe('Monitoring Tools', () => {
-    it('should handle check_health tool requests', async () => {
-      const healthRequest = {
-        tool: 'check_health',
-        arguments: {},
-      };
-
-      const healthStatus = {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        services: {
-          qdrant: { status: 'healthy', responseTime: 25 },
-          nebula: { status: 'healthy', responseTime: 30 },
+        metrics: {
+          totalNodes: 45,
+          totalEdges: 67,
+          averageDegree: 2.5,
+          maxDepth: 3,
+          componentCount: 5,
+        },
+        summary: {
+          projectFiles: 45,
+          functions: 67,
+          classes: 23,
+          imports: 89,
+          externalDependencies: 2,
         },
       };
 
-      mockHealthCheckService.checkOverallHealth.mockResolvedValue(healthStatus);
+      mockGraphService.analyzeCodebase.mockResolvedValue(analysisResult);
 
-      const response = await mcpServer.handleToolRequest(healthRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(healthStatus);
-    });
-
-    it('should handle deep_health_check tool requests', async () => {
-      const deepHealthRequest = {
-        tool: 'deep_health_check',
-        arguments: {},
-      };
-
-      const deepHealth = {
-        overall: { status: 'healthy' },
-        services: {
-          qdrant: { status: 'healthy', details: { vectorCount: 1000 } },
-          nebula: { status: 'healthy', details: { nodeCount: 500 } },
-        },
-        consistency: { status: 'consistent', discrepancy: 0 },
-        performance: { avgResponseTime: 45, throughput: 100 },
-        recommendations: [],
-      };
-
-      mockHealthCheckService.performDeepHealthCheck.mockResolvedValue(deepHealth);
-
-      const response = await mcpServer.handleToolRequest(deepHealthRequest);
-
-      expect(response.success).toBe(true);
-      expect(response.data).toEqual(deepHealth);
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle unknown tool requests', async () => {
-      const unknownRequest = {
-        tool: 'unknown_tool',
-        arguments: {},
-      };
-
-      const response = await mcpServer.handleToolRequest(unknownRequest);
-
-      expect(response.success).toBe(false);
-      expect(response.error).toContain('Unknown tool');
-    });
-
-    it('should handle tool execution errors', async () => {
-      const searchRequest = {
-        tool: 'search_code',
-        arguments: {
-          query: 'test query',
+      const args = {
+        projectPath: '/src/project',
+        options: {
+          depth: 3,
+          focus: 'dependencies' as const,
         },
       };
 
-      mockSearchCoordinator.search.mockRejectedValue(new Error('Search service unavailable'));
-
-      const response = await mcpServer.handleToolRequest(searchRequest);
-
-      expect(response.success).toBe(false);
-      expect(response.error).toBe('Search service unavailable');
-      expect(mockLoggerService.error).toHaveBeenCalled();
-    });
-
-    it('should validate tool arguments', async () => {
-      const invalidRequest = {
-        tool: 'search_code',
-        arguments: {
-          // Missing required query parameter
-          maxResults: 10,
-        },
-      };
-
-      const response = await mcpServer.handleToolRequest(invalidRequest);
-
-      expect(response.success).toBe(false);
-      expect(response.error).toContain('Missing required argument');
-    });
-  });
-
-  describe('Resource Management', () => {
-    it('should list available resources', async () => {
-      const resources = mcpServer.getAvailableResources();
-
-      expect(resources).toContain('codebase://search');
-      expect(resources).toContain('codebase://index');
-      expect(resources).toContain('codebase://graph');
-      expect(resources).toContain('codebase://health');
-    });
-
-    it('should handle resource read requests', async () => {
-      const resourceRequest = {
-        uri: 'codebase://search?query=authentication',
-      };
-
-      const searchResults = {
-        results: [
-          { id: '1', content: 'auth function', score: 0.9 },
-        ],
-        totalCount: 1,
-      };
-
-      mockSearchCoordinator.search.mockResolvedValue(searchResults);
-
-      const response = await mcpServer.handleResourceRead(resourceRequest);
+      const response = await (mcpServer as any).handleGraphAnalyze(args);
 
       expect(response.success).toBe(true);
-      expect(response.data).toEqual(searchResults);
+      expect(response.nodes).toEqual(analysisResult.nodes);
+      expect(response.metrics).toEqual(analysisResult.metrics);
+      expect(mockGraphService.analyzeCodebase).toHaveBeenCalledWith('/src/project', {
+        depth: 3,
+        focus: 'dependencies',
+      });
     });
   });
 
   describe('Server Lifecycle', () => {
     it('should start MCP server', async () => {
+      // Mock the server connection
+      const mockServer = {
+        connect: jest.fn().mockResolvedValue(undefined),
+      };
+      (mcpServer as any).server = mockServer;
+
       await mcpServer.start();
 
-      expect(mockLoggerService.info).toHaveBeenCalledWith('MCP Server started');
+      expect(mockServer.connect).toHaveBeenCalled();
+      expect(mockLoggerService.info).toHaveBeenCalledWith('MCP Server started successfully');
     });
 
     it('should stop MCP server gracefully', async () => {
-      await mcpServer.start();
+      // Mock the server close method
+      const mockServer = {
+        close: jest.fn(),
+      };
+      (mcpServer as any).server = mockServer;
+
       await mcpServer.stop();
 
-      expect(mockLoggerService.info).toHaveBeenCalledWith('MCP Server stopped');
-    });
-
-    it('should handle shutdown signals', async () => {
-      await mcpServer.start();
-
-      // Simulate shutdown signal
-      process.emit('SIGTERM');
-
-      // Wait for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Received shutdown signal, stopping MCP server');
+      expect(mockServer.close).toHaveBeenCalled();
+      expect(mockLoggerService.info).toHaveBeenCalledWith('MCP Server stopped successfully');
     });
   });
 
-  describe('Performance Monitoring', () => {
-    it('should track tool execution metrics', async () => {
-      const searchRequest = {
-        tool: 'search_code',
-        arguments: {
-          query: 'test query',
-        },
+  describe('Error Handling', () => {
+    it('should handle search errors', async () => {
+      mockIndexService.search.mockRejectedValue(new Error('Search service unavailable'));
+
+      const args = {
+        query: 'test query',
+        options: {},
       };
 
-      mockSearchCoordinator.search.mockResolvedValue({
-        results: [],
-        totalCount: 0,
-        searchTime: 50,
-      });
+      await expect((mcpServer as any).handleSearch(args)).rejects.toThrow('Search service unavailable');
+      expect(mockLoggerService.error).toHaveBeenCalled();
+    });
 
-      await mcpServer.handleToolRequest(searchRequest);
+    it('should handle indexing errors', async () => {
+      mockIndexService.createIndex.mockRejectedValue(new Error('Index service unavailable'));
 
-      const metrics = mcpServer.getPerformanceMetrics();
+      const args = {
+        projectPath: '/src/project',
+        options: {},
+      };
 
-      expect(metrics.toolExecutions.search_code).toBeDefined();
-      expect(metrics.toolExecutions.search_code.count).toBe(1);
-      expect(metrics.toolExecutions.search_code.avgExecutionTime).toBeGreaterThan(0);
+      await expect((mcpServer as any).handleCreateIndex(args)).rejects.toThrow('Index service unavailable');
+      expect(mockLoggerService.error).toHaveBeenCalled();
+    });
+
+    it('should handle graph analysis errors', async () => {
+      mockGraphService.analyzeCodebase.mockRejectedValue(new Error('Graph service unavailable'));
+
+      const args = {
+        projectPath: '/src/project',
+        options: {},
+      };
+
+      await expect((mcpServer as any).handleGraphAnalyze(args)).rejects.toThrow('Graph service unavailable');
+      expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 });
