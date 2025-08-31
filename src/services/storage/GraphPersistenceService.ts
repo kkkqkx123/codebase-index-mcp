@@ -874,7 +874,11 @@ export class GraphPersistenceService {
     }
     
     // Start cache cleanup interval
-    setInterval(() => this.cleanupCache(), 60000); // Clean up every minute
+    this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 60000); // Clean up every minute
+    // Ensure interval doesn't prevent Node.js from exiting
+    if (this.cacheCleanupInterval.unref) {
+      this.cacheCleanupInterval.unref();
+    }
     
     this.logger.info('Graph persistence caching system initialized', {
       defaultCacheTTL: this.defaultCacheTTL,
@@ -889,15 +893,19 @@ export class GraphPersistenceService {
       this.performanceMetrics.connectionPoolStatus = 'healthy';
       
       // Set up periodic monitoring
-      setInterval(async () => {
+      this.connectionPoolMonitoringInterval = setInterval(async () => {
         try {
           const currentStats = await this.nebulaService.getDatabaseStats();
-          this.performanceMetrics.connectionPoolStatus = 
+          this.performanceMetrics.connectionPoolStatus =
             currentStats.hosts && currentStats.hosts.length > 0 ? 'healthy' : 'degraded';
         } catch (error) {
           this.performanceMetrics.connectionPoolStatus = 'error';
         }
       }, 30000); // Check every 30 seconds
+      // Ensure interval doesn't prevent Node.js from exiting
+      if (this.connectionPoolMonitoringInterval.unref) {
+        this.connectionPoolMonitoringInterval.unref();
+      }
     } catch (error) {
       this.performanceMetrics.connectionPoolStatus = 'error';
     }
@@ -1459,12 +1467,34 @@ export class GraphPersistenceService {
     }
   }
 
+  private cacheCleanupInterval: NodeJS.Timeout | null = null;
+  private connectionPoolMonitoringInterval: NodeJS.Timeout | null = null;
+
   private chunkArray<T>(array: T[], size: number): T[][] {
     const chunks: T[][] = [];
     for (let i = 0; i < array.length; i += size) {
       chunks.push(array.slice(i, i + size));
     }
     return chunks;
+  }
+
+  async close(): Promise<void> {
+    // Clear cache cleanup interval
+    if (this.cacheCleanupInterval) {
+      clearInterval(this.cacheCleanupInterval);
+      this.cacheCleanupInterval = null;
+    }
+    
+    // Clear connection pool monitoring interval
+    if (this.connectionPoolMonitoringInterval) {
+      clearInterval(this.connectionPoolMonitoringInterval);
+      this.connectionPoolMonitoringInterval = null;
+    }
+    
+    // Close the nebula service
+    if (this.nebulaService) {
+      await this.nebulaService.close();
+    }
   }
 
   // Performance monitoring methods

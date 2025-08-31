@@ -10,6 +10,10 @@ import { LoggerService } from '../../src/core/LoggerService';
 import { HashUtils } from '../../src/utils/HashUtils';
 import { QdrantClientWrapper } from '../../src/database/qdrant/QdrantClientWrapper';
 import { NebulaService } from '../../src/database/NebulaService';
+import { GraphPersistenceService } from '../../src/services/storage/GraphPersistenceService';
+import { BatchProcessingMetrics } from '../../src/services/monitoring/BatchProcessingMetrics';
+import { EmbeddingCacheService } from '../../src/embedders/EmbeddingCacheService';
+import { SemanticSearchService } from '../../src/services/search/SemanticSearchService';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -22,8 +26,14 @@ describe('Snippet Storage and Retrieval Integration', () => {
   let snippetController: SnippetController;
   let qdrantClient: QdrantClientWrapper;
   let nebulaService: NebulaService;
+  let graphPersistenceService: GraphPersistenceService;
+  let batchProcessingMetrics: BatchProcessingMetrics;
+  let configService: ConfigService;
+  let loggerService: LoggerService;
   let testProjectPath: string;
   let testFilePath: string;
+  let embeddingCacheService: EmbeddingCacheService;
+  let semanticSearchService: SemanticSearchService;
 
   beforeAll(async () => {
     // Use the configured DI container
@@ -36,6 +46,12 @@ describe('Snippet Storage and Retrieval Integration', () => {
     snippetController = container.get<SnippetController>(SnippetController);
     qdrantClient = container.get<QdrantClientWrapper>(QdrantClientWrapper);
     nebulaService = container.get<NebulaService>(NebulaService);
+    graphPersistenceService = container.get<GraphPersistenceService>(GraphPersistenceService);
+    batchProcessingMetrics = container.get<BatchProcessingMetrics>(BatchProcessingMetrics);
+    configService = container.get<ConfigService>(ConfigService);
+    loggerService = container.get<LoggerService>(LoggerService);
+    embeddingCacheService = container.get<EmbeddingCacheService>(EmbeddingCacheService);
+    semanticSearchService = container.get<SemanticSearchService>(SemanticSearchService);
     
     // Create a temporary test project
     testProjectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'codebase-index-snippet-test-'));
@@ -85,7 +101,7 @@ describe('Snippet Storage and Retrieval Integration', () => {
       console.warn('Failed to clean up test project:', error);
     }
     
-    // Close database connections
+    // Close database connections and cleanup resources
     try {
       // Close Qdrant client connection
       if (qdrantClient) {
@@ -95,6 +111,26 @@ describe('Snippet Storage and Retrieval Integration', () => {
       // Close Nebula service connection
       if (nebulaService) {
         await nebulaService.close();
+      }
+      
+      // Close GraphPersistenceService to cleanup intervals
+      if (graphPersistenceService) {
+        await graphPersistenceService.close();
+      }
+      
+      // Stop BatchProcessingMetrics cleanup task
+      if (batchProcessingMetrics) {
+        batchProcessingMetrics.stopCleanupTask();
+      }
+      
+      // Stop EmbeddingCacheService cleanup task
+      if (embeddingCacheService && typeof embeddingCacheService.stop === 'function') {
+        embeddingCacheService.stop();
+      }
+      
+      // Stop SemanticSearchService cleanup task
+      if (semanticSearchService && typeof semanticSearchService.stop === 'function') {
+        semanticSearchService.stop();
       }
     } catch (error) {
       console.warn('Failed to close database connections:', error);

@@ -87,6 +87,7 @@ export class QdrantClientWrapper {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private isConnected: boolean = false;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
@@ -541,6 +542,21 @@ export class QdrantClientWrapper {
   }
 
   async close(): Promise<void> {
+    // Clear health check interval if it exists
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    
+    // Close the Qdrant client connection if it has a close method
+    if (this.client && typeof (this.client as any).close === 'function') {
+      try {
+        await (this.client as any).close();
+      } catch (error) {
+        this.logger.warn('Error closing Qdrant client', { error });
+      }
+    }
+    
     this.isConnected = false;
     this.logger.info('Qdrant client connection closed');
   }

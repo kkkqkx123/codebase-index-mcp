@@ -1,4 +1,6 @@
 import { Container } from 'inversify';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import { LoggerService } from '../src/core/LoggerService';
 import { ErrorHandlerService } from '../src/core/ErrorHandlerService';
 import { EntityIdManager } from '../src/services/sync/EntityIdManager';
@@ -73,37 +75,46 @@ import { MCPServer } from '../src/mcp/MCPServer';
 import { DIContainer } from '../src/core/DIContainer';
 import { QdrantService } from '../src/database/QdrantService';
 
+// Load main .env file before any other setup
+const mainEnvPath = path.join(process.cwd(), '.env');
+dotenv.config({ path: mainEnvPath });
+
 // Set up test environment
 beforeAll(() => {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
   process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
   
-  // Set required environment variables for embedding services
-  process.env.EMBEDDING_PROVIDER = 'ollama';
-  process.env.OPENAI_API_KEY = 'test-key';
-  process.env.OPENAI_MODEL = 'text-embedding-ada-002';
+  // Use main .env file configuration instead of hardcoded values
+  // All environment variables will be loaded from the main .env file
   
-  // Mistral is required even if not used
-  process.env.MISTRAL_API_KEY = 'test-key';
-  process.env.MISTRAL_MODEL = 'mistral-embed';
+  // Override only specific test configurations if needed
+  // These are kept for test environment stability
+  process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'test-key';
+  process.env.MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-embed';
   
-  // Custom embedding services configuration
-  process.env.CUSTOM_CUSTOM1_BASE_URL = 'http://localhost:8000';
-  process.env.CUSTOM_CUSTOM2_BASE_URL = 'http://localhost:8001';
-  process.env.CUSTOM_CUSTOM3_BASE_URL = 'http://localhost:8002';
+  // Custom embedding services configuration - use .env values or defaults
+  process.env.CUSTOM_CUSTOM1_BASE_URL = process.env.CUSTOM_CUSTOM1_BASE_URL || 'http://localhost:8000';
+  process.env.CUSTOM_CUSTOM2_BASE_URL = process.env.CUSTOM_CUSTOM2_BASE_URL || 'http://localhost:8001';
+  process.env.CUSTOM_CUSTOM3_BASE_URL = process.env.CUSTOM_CUSTOM3_BASE_URL || 'http://localhost:8002';
   
-  // Qdrant configuration
-  process.env.QDRANT_HOST = 'localhost';
-  process.env.QDRANT_PORT = '6333';
-  process.env.QDRANT_COLLECTION = 'code-snippets';
+  // siliconflow configuration - use .env values or defaults
+  process.env.SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || 'test-key';
+  process.env.SILICONFLOW_BASE_URL = process.env.SILICONFLOW_BASE_URL || 'http://localhost:8000';
+  process.env.SILICONFLOW_MODEL = process.env.SILICONFLOW_MODEL || 'siliconflow-embed';
+  process.env.SILICONFLOW_DIMENSIONS = process.env.SILICONFLOW_DIMENSIONS || '1024';
+
+  // Qdrant configuration - use .env values or defaults
+  process.env.QDRANT_HOST = process.env.QDRANT_HOST || 'localhost';
+  process.env.QDRANT_PORT = process.env.QDRANT_PORT || '6333';
+  process.env.QDRANT_COLLECTION = process.env.QDRANT_COLLECTION || 'code-snippets';
   
-  // Nebula configuration
-  process.env.NEBULA_HOST = 'localhost';
-  process.env.NEBULA_PORT = '9669';
-  process.env.NEBULA_USERNAME = 'root';
-  process.env.NEBULA_PASSWORD = 'nebula';
-  process.env.NEBULA_SPACE = 'codegraph';
+  // Nebula configuration - use .env values or defaults
+  process.env.NEBULA_HOST = process.env.NEBULA_HOST || 'localhost';
+  process.env.NEBULA_PORT = process.env.NEBULA_PORT || '9669';
+  process.env.NEBULA_USERNAME = process.env.NEBULA_USERNAME || 'root';
+  process.env.NEBULA_PASSWORD = process.env.NEBULA_PASSWORD || 'nebula';
+  process.env.NEBULA_SPACE = process.env.NEBULA_SPACE || 'codegraph';
 });
 
 // Set up dependency injection container for tests
@@ -145,47 +156,47 @@ export const createTestContainer = () => {
     getSyncStats: jest.fn(),
   } as any);
   
-  // Mock ConfigService for tests that need it
+  // Mock ConfigService for tests that need it - use actual .env values
   const mockConfig = {
     get: jest.fn().mockImplementation((key: string) => {
       if (key === 'embedding') {
         return {
-          provider: 'ollama',
+          provider: process.env.EMBEDDING_PROVIDER || 'siliconflow',
           openai: {
-            apiKey: 'test-key',
-            model: 'text-embedding-ada-002'
+            apiKey: process.env.OPENAI_API_KEY || 'test-key',
+            model: process.env.OPENAI_MODEL || 'text-embedding-ada-002'
           },
           ollama: {
-            baseUrl: 'http://localhost:11434',
-            model: 'nomic-embed-text'
+            baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+            model: process.env.OLLAMA_MODEL || 'nomic-embed-text'
           },
           gemini: {
-            apiKey: 'test-key',
-            model: 'embedding-001'
+            apiKey: process.env.GEMINI_API_KEY || 'test-key',
+            model: process.env.GEMINI_MODEL || 'embedding-001'
           },
           mistral: {
-            apiKey: 'test-key',
-            model: 'mistral-embed'
+            apiKey: process.env.MISTRAL_API_KEY || 'test-key',
+            model: process.env.MISTRAL_MODEL || 'mistral-embed'
           },
           siliconflow: {
-            apiKey: 'test-key',
-            model: 'BAAI/bge-large-en-v1.5'
+            apiKey: process.env.SILICONFLOW_API_KEY || 'test-key',
+            model: process.env.SILICONFLOW_MODEL || 'BAAI/bge-m3'
           },
           custom: {
             custom1: {
-              apiKey: 'test-key',
-              baseUrl: 'http://localhost:8000',
-              model: 'custom-model-1'
+              apiKey: process.env.CUSTOM_CUSTOM1_API_KEY || 'test-key',
+              baseUrl: process.env.CUSTOM_CUSTOM1_BASE_URL || 'http://localhost:8000',
+              model: process.env.CUSTOM_CUSTOM1_MODEL || 'custom-model-1'
             },
             custom2: {
-              apiKey: 'test-key',
-              baseUrl: 'http://localhost:8001',
-              model: 'custom-model-2'
+              apiKey: process.env.CUSTOM_CUSTOM2_API_KEY || 'test-key',
+              baseUrl: process.env.CUSTOM_CUSTOM2_BASE_URL || 'http://localhost:8001',
+              model: process.env.CUSTOM_CUSTOM2_MODEL || 'custom-model-2'
             },
             custom3: {
-              apiKey: 'test-key',
-              baseUrl: 'http://localhost:8002',
-              model: 'custom-model-3'
+              apiKey: process.env.CUSTOM_CUSTOM3_API_KEY || 'test-key',
+              baseUrl: process.env.CUSTOM_CUSTOM3_BASE_URL || 'http://localhost:8002',
+              model: process.env.CUSTOM_CUSTOM3_MODEL || 'custom-model-3'
             }
           }
         };

@@ -15,6 +15,7 @@ export class EmbeddingCacheService {
   private maxSize: number;
   private defaultTTL: number;
   private logger: LoggerService;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
     configService: ConfigService,
@@ -32,7 +33,11 @@ export class EmbeddingCacheService {
     
     // Start cleanup interval
     const cleanupInterval = cacheConfig?.cleanupInterval ? cacheConfig.cleanupInterval * 1000 : 60000; // Default to 1 minute
-    setInterval(() => this.cleanup(), cleanupInterval);
+    this.cleanupInterval = setInterval(() => this.cleanup(), cleanupInterval);
+    // Ensure interval doesn't prevent Node.js from exiting
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
  }
 
   /**
@@ -114,6 +119,16 @@ export class EmbeddingCacheService {
   clear(): void {
     this.cache.clear();
     this.logger.debug('Cache cleared');
+  }
+
+  /**
+   * Stop the cleanup interval
+   */
+  stop(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   /**

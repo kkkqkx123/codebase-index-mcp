@@ -553,6 +553,11 @@ export class BatchProcessingMetrics {
     this.cleanupInterval = setInterval(() => {
       this.cleanupOldMetrics();
     }, cleanupInterval);
+    
+    // Ensure interval doesn't prevent Node.js from exiting
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
 
     this.logger.info('Batch processing metrics cleanup task started', {
       interval: cleanupInterval

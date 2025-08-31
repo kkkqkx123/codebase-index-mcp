@@ -18,6 +18,8 @@ export class NebulaConnectionManager {
   private queryBuilder: NebulaQueryBuilder;
   // 存储连接超时定时器引用，以便在断开连接时清理
   private connectionTimeout: NodeJS.Timeout | null = null;
+  // 存储其他可能的定时器引用
+  private healthCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(
     logger: LoggerService,
@@ -158,6 +160,12 @@ export class NebulaConnectionManager {
       if (this.connectionTimeout) {
         clearTimeout(this.connectionTimeout);
         this.connectionTimeout = null;
+      }
+      
+      // 清理健康检查定时器
+      if (this.healthCheckInterval) {
+        clearInterval(this.healthCheckInterval);
+        this.healthCheckInterval = null;
       }
 
       if (this.client) {

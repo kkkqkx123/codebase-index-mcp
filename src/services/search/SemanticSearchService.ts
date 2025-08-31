@@ -66,6 +66,7 @@ export class SemanticSearchService {
   private vectorStorage: VectorStorageService;
   private searchCache: Map<string, { results: SemanticSearchResult[]; timestamp: number }> = new Map();
   private cacheExpiryTime: number = 5 * 60 * 1000; // 5 minutes
+  private cacheCleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
@@ -81,7 +82,11 @@ export class SemanticSearchService {
     this.vectorStorage = vectorStorage;
     
     // Clean up expired cache entries periodically
-    setInterval(() => this.cleanupCache(), 60 * 1000); // Every minute
+    this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 60 * 1000); // Every minute
+    // Ensure interval doesn't prevent Node.js from exiting
+    if (this.cacheCleanupInterval.unref) {
+      this.cacheCleanupInterval.unref();
+    }
   }
 
   async search(params: SemanticSearchParams): Promise<{
@@ -764,5 +769,15 @@ export class SemanticSearchService {
         { concept: 'error handling', searchCount: 87 }
       ]
     };
+  }
+
+  /**
+   * Stop the cache cleanup interval
+   */
+  stop(): void {
+    if (this.cacheCleanupInterval) {
+      clearInterval(this.cacheCleanupInterval);
+      this.cacheCleanupInterval = null;
+    }
   }
 }
