@@ -99,6 +99,22 @@ export class IndexService {
     }
   }
 
+  async searchSnippets(query: string, options: SearchOptions = {}): Promise<any[]> {
+    this.logger.info('Performing snippet search', { query, options });
+
+    try {
+      // Delegate to IndexCoordinator for snippet search
+      const result = await this.indexCoordinator.search(query, { ...options, searchType: 'snippet' });
+      return result;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Snippet search failed: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'IndexService', operation: 'searchSnippets' }
+      );
+      throw error;
+    }
+  }
+
   async getStatus(projectPath: string): Promise<IndexStatus> {
     try {
       // Delegate to IndexCoordinator

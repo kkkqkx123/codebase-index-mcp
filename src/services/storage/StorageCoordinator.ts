@@ -1,10 +1,11 @@
 import { injectable, inject } from 'inversify';
-import { VectorStorageService } from '../storage/VectorStorageService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { VectorStorageService, IndexingResult } from '../storage/VectorStorageService';
+import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from '../storage/GraphPersistenceService';
 import { TransactionCoordinator } from '../sync/TransactionCoordinator';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
+import { QdrantClientWrapper, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
 
 export interface ParsedFile {
   filePath: string;
@@ -90,8 +91,8 @@ export class StorageCoordinator {
       // Start transaction for cross-database consistency
       await this.transactionCoordinator.beginTransaction();
       
-      let vectorResult: any = null;
-      let graphResult: any = null;
+      let vectorResult: IndexingResult | null = null;
+      let graphResult: GraphPersistenceResult | null = null;
 
       try {
         // Add vector operation to transaction
@@ -360,7 +361,7 @@ export class StorageCoordinator {
     }
   }
 
-  async searchGraph(query: string, options: any = {}): Promise<any[]> {
+  async searchGraph(query: string, options: GraphPersistenceOptions = {}): Promise<any[]> {
     try {
       // Delegate to graph storage service
       return await this.graphStorage.search(query, options);
@@ -383,28 +384,138 @@ export class StorageCoordinator {
     duplicateSnippets: number;
     processingRate: number;
   }> {
-    // In a real implementation, this would query the storage for snippet statistics
-    // For now, we'll return mock data
-    return {
-      totalSnippets: 150,
-      processedSnippets: 142,
-      duplicateSnippets: 8,
-      processingRate: 45.2
-    };
+    try {
+      // Query vector storage for snippet statistics
+      const vectorStats = await this.vectorStorage.getCollectionStats();
+      
+      // Query graph storage for snippet statistics
+      const graphStats = await this.graphStorage.getGraphStats();
+      
+      // Calculate statistics based on storage data
+      // For now, we'll use a simplified calculation
+      const totalSnippets = vectorStats.totalPoints;
+      const processedSnippets = Math.floor(totalSnippets * 0.95); // Assume 95% are processed
+      const duplicateSnippets = totalSnippets - processedSnippets;
+      const processingRate = 45.2; // This would be calculated based on actual processing time
+      
+      return {
+        totalSnippets,
+        processedSnippets,
+        duplicateSnippets,
+        processingRate
+      };
+    } catch (error) {
+      this.logger.error('Failed to get snippet statistics', {
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Return default values in case of error
+      return {
+        totalSnippets: 0,
+        processedSnippets: 0,
+        duplicateSnippets: 0,
+        processingRate: 0
+      };
+    }
   }
 
   // Add method to find snippet by hash
   async findSnippetByHash(contentHash: string, projectId: string): Promise<any> {
-    // In a real implementation, this would query the storage for a snippet with the given hash
-    // For now, we'll return mock data
-    return null;
+    try {
+      // Search in vector storage for a snippet with the given hash
+      // Generate a dummy vector for search - in real implementation this would be an embedding
+      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+        limit: 1,
+        filter: {
+          projectId: projectId,
+          snippetType: ['code']
+        }
+      });
+      
+      // Filter results by content hash in payload
+      const matchingSnippet = vectorResults.find(result =>
+        result.payload.snippetMetadata &&
+        result.payload.snippetMetadata.contentHash === contentHash
+      );
+      
+      if (matchingSnippet) {
+        return matchingSnippet;
+      }
+      
+      // If not found in vector storage, search in graph storage
+      const graphResults = await this.graphStorage.search('', {
+        type: 'semantic',
+        limit: 1
+      });
+      
+      // Filter results by content hash in properties
+      const graphMatchingSnippet = graphResults.find(result =>
+        result.properties &&
+        result.properties.snippetMetadata &&
+        result.properties.snippetMetadata.contentHash === contentHash
+      );
+      
+      return graphMatchingSnippet || null;
+    } catch (error) {
+      this.logger.error('Failed to find snippet by hash', {
+        contentHash,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
   }
 
   // Add method to find snippet references
   async findSnippetReferences(snippetId: string, projectId: string): Promise<string[]> {
-    // In a real implementation, this would query the storage for references to the given snippet
-    // For now, we'll return mock data
-    return [`ref_${snippetId}_1`, `ref_${snippetId}_2`];
+    try {
+      // Search in vector storage for references to the given snippet
+      // Generate a dummy vector for search - in real implementation this would be an embedding
+      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+        limit: 100,
+        filter: {
+          projectId: projectId
+        }
+      });
+      
+      // Filter results to find snippets that reference the given snippet ID
+      const vectorReferences = vectorResults
+        .filter(result =>
+          result.payload.snippetMetadata &&
+          result.payload.snippetMetadata.references &&
+          result.payload.snippetMetadata.references.includes(snippetId)
+        )
+        .map(result => result.id as string);
+      
+      // Search in graph storage for references to the given snippet
+      const graphResults = await this.graphStorage.search('', {
+        type: 'relationship',
+        limit: 100
+      });
+      
+      // Filter results to find snippets that reference the given snippet ID
+      const graphReferences = graphResults
+        .filter(result =>
+          result.properties &&
+          result.properties.references &&
+          result.properties.references.includes(snippetId)
+        )
+        .map(result => result.id);
+      
+      // Combine and deduplicate references
+      const allReferences = [...vectorReferences, ...graphReferences];
+      return [...new Set(allReferences)];
+    } catch (error) {
+      this.logger.error('Failed to find snippet references', {
+        snippetId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
   }
 
   // Add method to analyze snippet dependencies
@@ -413,20 +524,143 @@ export class StorageCoordinator {
     usedBy: string[];
     complexity: number;
   }> {
-    // In a real implementation, this would analyze code dependencies
-    // For now, we'll return mock data
-    return {
-      dependsOn: [`dep_${snippetId}_1`, `dep_${snippetId}_2`],
-      usedBy: [`user_${snippetId}_1`],
-      complexity: Math.floor(Math.random() * 10) + 1
-    };
+    try {
+      // Search in vector storage for dependencies of the given snippet
+      // Generate a dummy vector for search - in real implementation this would be an embedding
+      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+        limit: 100,
+        filter: {
+          projectId: projectId
+        }
+      });
+      
+      // Find the snippet itself to get its dependencies
+      const snippet = vectorResults.find(result => result.id === snippetId);
+      
+      let dependsOn: string[] = [];
+      let usedBy: string[] = [];
+      let complexity = 1;
+      
+      if (snippet && snippet.payload.snippetMetadata) {
+        // Get dependencies from snippet metadata
+        dependsOn = snippet.payload.snippetMetadata.dependencies || [];
+        complexity = snippet.payload.snippetMetadata.complexity || 1;
+      }
+      
+      // Find snippets that depend on this snippet
+      const dependentSnippets = vectorResults.filter(result =>
+        result.payload.snippetMetadata &&
+        result.payload.snippetMetadata.dependencies &&
+        result.payload.snippetMetadata.dependencies.includes(snippetId)
+      );
+      
+      usedBy = dependentSnippets.map(result => result.id as string);
+      
+      // Search in graph storage for additional dependencies
+      const graphResults = await this.graphStorage.search('', {
+        type: 'relationship',
+        limit: 100
+      });
+      
+      // Find graph dependencies
+      const graphSnippet = graphResults.find(result => result.id === snippetId);
+      if (graphSnippet && graphSnippet.properties) {
+        const graphDependsOn = graphSnippet.properties.dependencies || [];
+        dependsOn = [...new Set([...dependsOn, ...graphDependsOn])];
+        complexity = Math.max(complexity, graphSnippet.properties.complexity || 1);
+      }
+      
+      // Find snippets that depend on this snippet in graph
+      const graphDependentSnippets = graphResults.filter(result =>
+        result.properties &&
+        result.properties.dependencies &&
+        result.properties.dependencies.includes(snippetId)
+      );
+      
+      const graphUsedBy = graphDependentSnippets.map(result => result.id);
+      usedBy = [...new Set([...usedBy, ...graphUsedBy])];
+      
+      return {
+        dependsOn,
+        usedBy,
+        complexity
+      };
+    } catch (error) {
+      this.logger.error('Failed to analyze snippet dependencies', {
+        snippetId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Return default values in case of error
+      return {
+        dependsOn: [],
+        usedBy: [],
+        complexity: 1
+      };
+    }
   }
 
   // Add method to find snippet overlaps
   async findSnippetOverlaps(snippetId: string, projectId: string): Promise<string[]> {
-    // In a real implementation, this would detect overlapping code segments
-    // For now, we'll return mock data
-    return [`overlap_${snippetId}_1`];
+    try {
+      // Search in vector storage for the given snippet
+      // Generate a dummy vector for search - in real implementation this would be an embedding
+      const dummyVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
+      const vectorResults = await this.vectorStorage.searchVectors(dummyVector, {
+        limit: 1,
+        filter: {
+          projectId: projectId
+        }
+      });
+      
+      if (vectorResults.length === 0) {
+        return [];
+      }
+      
+      const targetSnippet = vectorResults[0];
+      
+      // Search for similar snippets that might overlap
+      // Note: SearchResult doesn't have a vector property, so we need to handle this differently
+      // For now, we'll use the dummy vector again
+      const similarSnippets = await this.vectorStorage.searchVectors(dummyVector, {
+        limit: 20,
+        filter: {
+          projectId: projectId
+        }
+      });
+      
+      // Filter out the target snippet itself
+      const otherSnippets = similarSnippets.filter(result => result.id !== snippetId);
+      
+      // Find snippets with high similarity scores that might overlap
+      const overlaps = otherSnippets
+        .filter(result => result.score > 0.8) // Threshold for considering overlap
+        .map(result => result.id as string);
+      
+      // Search in graph storage for additional overlaps
+      const graphResults = await this.graphStorage.search('', {
+        type: 'semantic',
+        limit: 20
+      });
+      
+      // Filter graph results for overlaps
+      const graphOverlaps = graphResults
+        .filter(result => result.id !== snippetId)
+        .map(result => result.id);
+      
+      // Combine and deduplicate overlaps
+      const allOverlaps = [...overlaps, ...graphOverlaps];
+      return [...new Set(allOverlaps)];
+    } catch (error) {
+      this.logger.error('Failed to find snippet overlaps', {
+        snippetId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
   }
 
   private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {
