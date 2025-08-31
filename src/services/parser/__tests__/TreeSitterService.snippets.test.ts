@@ -60,6 +60,7 @@ function createMockSyntaxNode(
     endIndex,
     children,
     parent,
+    text,
     childForFieldName: jest.fn().mockReturnValue(null)
   };
   
@@ -123,9 +124,10 @@ function createMockAST(code: string): any {
            }
          }
          
+         const nodeText = code.substring(code.indexOf(trimmedLine), endIndex);
          const tryNode = createMockSyntaxNode(
            'try_statement',
-           code.substring(code.indexOf(trimmedLine), endIndex),
+           nodeText,
            { row: index, column: line.length - line.trimStart().length },
            { row: index, column: line.length },
            code.indexOf(trimmedLine),
@@ -133,7 +135,6 @@ function createMockAST(code: string): any {
            []
          );
          nodes.push(tryNode);
-         console.log('Created try node with content:', tryNode.text);
        }
      }
      
