@@ -89,7 +89,7 @@ async initializeProjectSpace(projectId: string): Promise<boolean> {
 ```
 
 ### 3. 存储协调器改造
-
+[ ]
 #### 项目资源管理
 修改 `StorageCoordinator` 类，支持项目级别的资源管理：
 
@@ -130,7 +130,7 @@ class StorageCoordinator {
 ```
 
 ### 4. 索引协调器改造
-
+[ ]
 #### 项目上下文管理
 修改 `IndexCoordinator` 类，确保所有操作都在正确的项目上下文中执行：
 
@@ -157,7 +157,7 @@ class IndexCoordinator {
 ```
 
 ### 5. 集合/空间管理策略
-
+[ ]
 #### Qdrant 集合管理
 
 ##### 集合生命周期管理
@@ -208,7 +208,7 @@ class QdrantCollectionManager {
 ```
 
 #### Nebula Graph 空间管理
-
+[ ]
 ##### 空间生命周期管理
 为每个项目创建独立的 Nebula Graph 空间，并提供完整的生命周期管理：
 
@@ -269,7 +269,7 @@ class NebulaSpaceManager {
 ```
 
 ### 6. 项目映射和标识
-
+[ ]
 #### 项目标识符管理
 实现统一的项目标识符管理机制：
 
@@ -345,7 +345,7 @@ class ProjectIdManager {
 
 #### 反向查找机制
 实现从集合或空间名称反向查找对应项目的功能：
-
+[ ]
 ```typescript
 class ProjectLookupService {
   private projectIdManager: ProjectIdManager;
@@ -382,7 +382,7 @@ class ProjectLookupService {
 ```
 
 ### 7. 监控模块集成
-
+[ ]
 #### Prometheus 集成
 配置 Prometheus 动态发现和监控每个项目的集合和空间：
 
@@ -687,7 +687,7 @@ POST /api/projects/{projectId}/restore
 ## 测试策略
 
 ### 单元测试
-- 对每个新类和方法进行单元测试，覆盖率达到90%以上
+- 对每个新类和方法进行单元测试，覆盖率达到80%以上
 - 使用jest和ts-mockito进行mock对象隔离外部依赖
 - 重点测试错误处理、边界条件和并发场景
 
