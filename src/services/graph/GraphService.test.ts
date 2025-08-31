@@ -60,15 +60,15 @@ describe('GraphService', () => {
     } as any;
 
     // Bind mocks to container
-    container.bind(TYPES.NebulaService).toConstantValue(mockNebulaService);
-    container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
-    container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
-    container.bind(TYPES.GraphPersistenceService).toConstantValue(mockGraphPersistenceService);
-    container.bind(TYPES.NebulaQueryBuilder).toConstantValue(mockNebulaQueryBuilder);
-    container.bind(TYPES.GraphService).to(GraphService);
+    container.bind(NebulaService).toConstantValue(mockNebulaService);
+    container.bind(LoggerService).toConstantValue(mockLoggerService);
+    container.bind(ConfigService).toConstantValue(mockConfigService);
+    container.bind(ErrorHandlerService).toConstantValue(mockErrorHandlerService);
+    container.bind(GraphPersistenceService).toConstantValue(mockGraphPersistenceService);
+    container.bind(NebulaQueryBuilder).toConstantValue(mockNebulaQueryBuilder);
+    container.bind(GraphService).to(GraphService);
 
-    graphService = container.get<GraphService>(TYPES.GraphService);
+    graphService = container.get<GraphService>(GraphService);
   });
 
   afterEach(() => {
@@ -77,7 +77,7 @@ describe('GraphService', () => {
 
   describe('analyzeCodebase', () => {
     it('should analyze codebase and return graph analysis result', async () => {
-      const projectPath = '/src/project';
+      const projectPath = './src';
       const mockResult = {
         data: [
           {
@@ -109,7 +109,7 @@ describe('GraphService', () => {
     });
 
     it('should handle errors during codebase analysis', async () => {
-      const projectPath = '/src/project';
+      const projectPath = './src';
       const errorMessage = 'Database connection failed';
       
       mockNebulaService.executeReadQuery.mockRejectedValue(new Error(errorMessage));
@@ -199,7 +199,7 @@ describe('GraphService', () => {
 
   describe('getGraphStats', () => {
     it('should get graph statistics', async () => {
-      const projectPath = '/src/project';
+      const projectPath = './src';
 
       const result = await graphService.getGraphStats(projectPath);
 
@@ -213,7 +213,7 @@ describe('GraphService', () => {
     });
 
     it('should handle errors during stats calculation', async () => {
-      const projectPath = '/src/project';
+      const projectPath = './src';
       const errorMessage = 'Stats calculation failed';
       
       mockErrorHandlerService.handleError.mockImplementation((error) => {
@@ -235,7 +235,7 @@ describe('GraphService', () => {
 
   describe('exportGraph', () => {
     it('should export graph in JSON format', async () => {
-      const projectPath = '/src/project';
+      const projectPath = './src';
       const format = 'json';
 
       const result = await graphService.exportGraph(projectPath, format);
@@ -247,7 +247,7 @@ describe('GraphService', () => {
     });
 
     it('should handle errors during graph export', async () => {
-      const projectPath = '/src/project';
+      const projectPath = './src';
       const format = 'json';
       const errorMessage = 'Export failed';
       

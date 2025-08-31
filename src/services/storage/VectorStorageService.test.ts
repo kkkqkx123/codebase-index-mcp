@@ -31,6 +31,8 @@ describe('VectorStorageService', () => {
       connect: jest.fn(),
       close: jest.fn(),
       isConnectedToDatabase: jest.fn(),
+      getExistingChunkIds: jest.fn(),
+      getChunkIdsByFiles: jest.fn(),
     } as any;
 
     mockLoggerService = {
@@ -140,9 +142,17 @@ describe('VectorStorageService', () => {
 
   describe('initialize', () => {
     it('should initialize successfully when collection exists', async () => {
+      // Reset the initialized flag by accessing private property
+      (vectorStorageService as any).isInitialized = false;
       mockQdrantClient.isConnectedToDatabase.mockReturnValue(false);
       mockQdrantClient.connect.mockResolvedValue(true);
       mockQdrantClient.collectionExists.mockResolvedValue(true);
+      mockQdrantClient.getCollectionInfo.mockResolvedValue({
+        name: 'codebase_vectors',
+        status: 'green' as const,
+        vectors: { size: 1536, distance: 'Cosine' as const },
+        pointsCount: 0
+      });
 
       const result = await vectorStorageService.initialize();
 
@@ -196,6 +206,8 @@ describe('VectorStorageService', () => {
     });
 
     it('should skip initialization if already connected', async () => {
+      // Set the initialized flag to true to simulate already initialized state
+      (vectorStorageService as any).isInitialized = true;
       mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
       mockQdrantClient.collectionExists.mockResolvedValue(true);
 
@@ -212,6 +224,18 @@ describe('VectorStorageService', () => {
       mockQdrantClient.collectionExists.mockResolvedValue(true);
       mockQdrantClient.connect.mockResolvedValue(true);
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
+      // Mock memory check to pass
+      jest.spyOn(process, 'memoryUsage').mockReturnValue({
+        rss: 100000000,
+        heapTotal: 150000000,
+        heapUsed: 50000000,
+        external: 10000000,
+        arrayBuffers: 0
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     it('should store code chunks as vectors', async () => {
@@ -234,6 +258,8 @@ describe('VectorStorageService', () => {
         }
       ];
 
+      // Reset initialized flag and initialize
+      (vectorStorageService as any).isInitialized = false;
       await vectorStorageService.initialize();
       const result = await vectorStorageService.storeChunks(chunks);
 
@@ -280,6 +306,8 @@ describe('VectorStorageService', () => {
 
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
 
+      // Reset initialized flag and initialize
+      (vectorStorageService as any).isInitialized = false;
       await vectorStorageService.initialize();
       const result = await vectorStorageService.storeChunks(chunks);
 
@@ -294,6 +322,8 @@ describe('VectorStorageService', () => {
     it('should handle empty chunks array', async () => {
       const chunks: CodeChunk[] = [];
 
+      // Reset initialized flag and initialize
+      (vectorStorageService as any).isInitialized = false;
       await vectorStorageService.initialize();
       const result = await vectorStorageService.storeChunks(chunks);
 
@@ -309,6 +339,18 @@ describe('VectorStorageService', () => {
       mockQdrantClient.collectionExists.mockResolvedValue(true);
       mockQdrantClient.connect.mockResolvedValue(true);
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
+      // Mock memory check to pass
+      jest.spyOn(process, 'memoryUsage').mockReturnValue({
+        rss: 100000000,
+        heapTotal: 150000000,
+        heapUsed: 50000000,
+        external: 10000000,
+        arrayBuffers: 0
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     it('should update existing chunks with new vectors', async () => {
@@ -332,7 +374,10 @@ describe('VectorStorageService', () => {
       ];
 
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
+      mockQdrantClient.getExistingChunkIds.mockResolvedValue(['existing-1']);
 
+      // Reset initialized flag and initialize
+      (vectorStorageService as any).isInitialized = false;
       await vectorStorageService.initialize();
       const result = await vectorStorageService.updateChunks(chunks);
 

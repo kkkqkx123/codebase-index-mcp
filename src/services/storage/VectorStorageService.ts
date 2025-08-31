@@ -78,6 +78,11 @@ export class VectorStorageService {
 
   async initialize(): Promise<boolean> {
     try {
+      // If already initialized, return true immediately
+      if (this.isInitialized) {
+        return true;
+      }
+      
       if (!this.qdrantClient.isConnectedToDatabase()) {
         const connected = await this.qdrantClient.connect();
         if (!connected) {

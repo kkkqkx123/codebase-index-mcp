@@ -1,4 +1,4 @@
-import { FileSystemTraversal, FileInfo, TraversalOptions, TraversalResult } from '../FileSystemTraversal';
+import { FileSystemTraversal, FileInfo, TraversalOptions, TraversalResult } from './FileSystemTraversal';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
