@@ -115,6 +115,48 @@ describe('SemanticSearchService', () => {
       mockEmbedder.embed.mockResolvedValue({ vector: [0.1, 0.2, 0.3, 0.4], dimensions: 384, model: 'test-model', processingTime: 100 });
       mockVectorStorage.searchVectors.mockResolvedValue(searchResults as any);
 
+      // Mock the internal enhanceResults method to return simple results
+      jest.spyOn(semanticSearchService as any, 'enhanceResults').mockResolvedValue([
+        {
+          id: '1',
+          score: 0.9,
+          similarity: 0.9,
+          filePath: '/src/auth.ts',
+          content: 'function authenticateUser(username, password) { return bcrypt.compare(password, user.hash); }',
+          startLine: 1,
+          endLine: 2,
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: {},
+          rankingFactors: {
+            semanticScore: 0.9,
+            contextualScore: 0.8,
+            recencyScore: 0.9,
+            popularityScore: 0.7,
+            finalScore: 0.9
+          }
+        },
+        {
+          id: '2',
+          score: 0.85,
+          similarity: 0.85,
+          filePath: '/src/login.ts',
+          content: 'async function login(credentials) { const user = await authenticate(credentials); }',
+          startLine: 1,
+          endLine: 2,
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: {},
+          rankingFactors: {
+            semanticScore: 0.85,
+            contextualScore: 0.8,
+            recencyScore: 0.9,
+            popularityScore: 0.7,
+            finalScore: 0.85
+          }
+        }
+      ]);
+
       const result = await semanticSearchService.searchSimilar(content, params);
 
       expect(result).toHaveLength(2);

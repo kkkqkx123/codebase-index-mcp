@@ -5,6 +5,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
+import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 
 export interface VectorStorageConfig {
   collectionName: string;
@@ -55,7 +56,8 @@ export class VectorStorageService {
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics
+    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(EmbedderFactory) private embedderFactory: EmbedderFactory
   ) {
     this.qdrantClient = qdrantClient;
     this.logger = logger;
@@ -357,21 +359,20 @@ export class VectorStorageService {
   }
 
   private async generateEmbedding(content: string): Promise<number[]> {
-    // This is a placeholder implementation
-    // In a real implementation, this would use the configured embedding provider
-    // For now, we'll generate a random vector of the correct size
-    const vector: number[] = [];
-    for (let i = 0; i < this.config.vectorSize; i++) {
-      vector.push(Math.random() * 2 - 1); // Random values between -1 and 1
+    try {
+      // Use the embedder factory to get the configured embedder and generate embedding
+      const result = await this.embedderFactory.embed({ text: content });
+      
+      // Handle both single result and array result
+      const embeddingResult = Array.isArray(result) ? result[0] : result;
+      return embeddingResult.vector;
+    } catch (error) {
+      this.logger.error('Failed to generate embedding', {
+        error: error instanceof Error ? error.message : String(error),
+        contentLength: content.length
+      });
+      throw error;
     }
-
-    // Normalize the vector
-    const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-    if (magnitude > 0) {
-      return vector.map(val => val / magnitude);
-    }
-
-    return vector;
   }
 
   async updateConfig(newConfig: Partial<VectorStorageConfig>): Promise<void> {
@@ -631,25 +632,31 @@ export class VectorStorageService {
   }
 
   private async getExistingChunkIds(chunkIds: string[]): Promise<string[]> {
-    // This would typically query the vector database to check which chunks exist
-    // For now, we'll return a mock implementation
-    return chunkIds.filter(() => Math.random() > 0.5); // Randomly return half the chunk IDs
+    try {
+      const existingChunkIds = await this.qdrantClient.getExistingChunkIds(this.config.collectionName, chunkIds);
+      this.logger.debug(`Found ${existingChunkIds.length} existing chunk IDs out of ${chunkIds.length} requested`);
+      return existingChunkIds;
+    } catch (error) {
+      this.logger.error('Failed to get existing chunk IDs', {
+        error: error instanceof Error ? error.message : String(error),
+        requestedCount: chunkIds.length
+      });
+      return [];
+    }
   }
 
   private async getChunkIdsByFiles(filePaths: string[]): Promise<string[]> {
-    // This would typically query the vector database to get chunk IDs for the specified files
-    // For now, we'll return a mock implementation
-    const chunkIds: string[] = [];
-
-    for (const filePath of filePaths) {
-      // Generate mock chunk IDs based on file path
-      const mockChunkCount = Math.floor(Math.random() * 5) + 1;
-      for (let i = 0; i < mockChunkCount; i++) {
-        chunkIds.push(`chunk_${filePath.replace(/[^a-zA-Z0-9]/g, '_')}_${i}`);
-      }
+    try {
+      const chunkIds = await this.qdrantClient.getChunkIdsByFiles(this.config.collectionName, filePaths);
+      this.logger.debug(`Retrieved ${chunkIds.length} chunk IDs for ${filePaths.length} files`);
+      return chunkIds;
+    } catch (error) {
+      this.logger.error('Failed to get chunk IDs by files', {
+        error: error instanceof Error ? error.message : String(error),
+        fileCount: filePaths.length
+      });
+      return [];
     }
-
-    return chunkIds;
   }
 
   private extractUniqueFileCount(chunks: CodeChunk[]): number {

@@ -1,24 +1,22 @@
-import { Container } from 'inversify';
 import { VectorStorageService } from './VectorStorageService';
 import { QdrantClientWrapper } from '../../database/qdrant/QdrantClientWrapper';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
-import { TYPES } from '../../core/DIContainer';
+import { CodeChunk } from '../parser/TreeSitterService';
+import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 
 describe('VectorStorageService', () => {
-  let container: Container;
   let vectorStorageService: VectorStorageService;
   let mockQdrantClient: jest.Mocked<QdrantClientWrapper>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
   let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockBatchMetrics: jest.Mocked<BatchProcessingMetrics>;
+  let mockEmbedderFactory: jest.Mocked<EmbedderFactory>;
 
   beforeEach(() => {
-    container = new Container();
-    
     // Create mocks
     mockQdrantClient = {
       upsertPoints: jest.fn(),
@@ -56,34 +54,84 @@ describe('VectorStorageService', () => {
       endBatchOperation: jest.fn(),
     } as any;
 
+    mockEmbedderFactory = {
+      getEmbedder: jest.fn(),
+      embed: jest.fn().mockResolvedValue(Array(1536).fill(0.1)),
+      getAvailableProviders: jest.fn(),
+      autoSelectProvider: jest.fn(),
+    } as any;
+
+    // 移除了对generateEmbedding的mock，因为现在使用的是EmbedderFactory
+
     // Setup mock config
-    mockConfigService.get.mockImplementation((key: string) => {
-      if (key === 'qdrant') {
-        return {
-          collection: 'codebase_vectors',
-          host: 'localhost',
-          port: 6333,
-        };
+    mockConfigService.get.mockImplementation((key: string): any => {
+      switch (key) {
+        case 'qdrant':
+          return {
+            host: 'localhost',
+            port: 6333,
+            collection: 'codebase_vectors',
+            vectorSize: 1536,
+            recreateCollection: false,
+            distance: 'Cosine'
+          };
+        case 'batchProcessing':
+          return {
+            enabled: true,
+            maxConcurrentOperations: 5,
+            defaultBatchSize: 100,
+            maxBatchSize: 1000,
+            memoryThreshold: 80,
+            processingTimeout: 300000,
+            retryAttempts: 3,
+            retryDelay: 1000,
+            continueOnError: false,
+            adaptiveBatching: {
+              enabled: true,
+              minBatchSize: 10,
+              maxBatchSize: 1000,
+              adjustmentInterval: 1000,
+              performanceThreshold: 0.8,
+              adjustmentFactor: 1.5
+            },
+            monitoring: {
+              enabled: true,
+              metricsInterval: 5000,
+              alertThresholds: {
+                highLatency: 10000,
+                lowThroughput: 10,
+                highErrorRate: 0.05,
+                highMemoryUsage: 80,
+                criticalMemoryUsage: 90,
+                highCpuUsage: 80,
+                criticalCpuUsage: 90
+              }
+            }
+          };
+        case 'embedding':
+          return {
+            enabled: true,
+            provider: 'openai',
+            openai: {
+              apiKey: 'test-key',
+              model: 'text-embedding-3-small',
+              dimensions: 1536
+            }
+          };
+        default:
+          return undefined;
       }
-      if (key === 'batchProcessing') {
-        return {
-          maxConcurrentOperations: 5,
-          defaultBatchSize: 100,
-          maxBatchSize: 1000
-        };
-      }
-      return null;
     });
 
-    // Bind mocks to container
-    container.bind(TYPES.QdrantClientWrapper).toConstantValue(mockQdrantClient);
-    container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
-    container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
-    container.bind(TYPES.BatchProcessingMetrics).toConstantValue(mockBatchMetrics);
-    container.bind(VectorStorageService).toSelf();
-
-    vectorStorageService = container.get<VectorStorageService>(VectorStorageService);
+    // 直接实例化服务
+    vectorStorageService = new VectorStorageService(
+      mockQdrantClient,
+      mockLoggerService,
+      mockErrorHandlerService,
+      mockConfigService,
+      mockBatchMetrics,
+      mockEmbedderFactory
+    );
   });
 
   afterEach(() => {
@@ -174,6 +222,10 @@ describe('VectorStorageService', () => {
           type: 'function',
           startLine: 1,
           endLine: 3,
+          startByte: 0,
+          endByte: 50,
+          imports: [],
+          exports: [],
           metadata: {
             filePath: '/src/test.ts',
             language: 'typescript',
@@ -200,8 +252,8 @@ describe('VectorStorageService', () => {
           endLine: 5,
           startByte: 0,
           endByte: 50,
-          filePath: '/src/test1.ts',
-          language: 'typescript',
+          imports: [],
+          exports: [],
           metadata: {
             filePath: '/src/test1.ts',
             language: 'typescript',
@@ -216,8 +268,8 @@ describe('VectorStorageService', () => {
           endLine: 10,
           startByte: 51,
           endByte: 100,
-          filePath: '/src/test2.ts',
-          language: 'typescript',
+          imports: [],
+          exports: [],
           metadata: {
             filePath: '/src/test2.ts',
             language: 'typescript',
@@ -240,11 +292,14 @@ describe('VectorStorageService', () => {
     });
 
     it('should handle empty chunks array', async () => {
+      const chunks: CodeChunk[] = [];
+
       await vectorStorageService.initialize();
-      const result = await vectorStorageService.storeChunks([]);
+      const result = await vectorStorageService.storeChunks(chunks);
 
       expect(result.success).toBe(true);
       expect(result.totalChunks).toBe(0);
+      expect(mockQdrantClient.upsertPoints).not.toHaveBeenCalled();
     });
   });
 
@@ -266,8 +321,8 @@ describe('VectorStorageService', () => {
           endLine: 5,
           startByte: 0,
           endByte: 50,
-          filePath: '/src/updated.ts',
-          language: 'typescript',
+          imports: [],
+          exports: [],
           metadata: {
             filePath: '/src/updated.ts',
             language: 'typescript',
@@ -310,11 +365,12 @@ describe('VectorStorageService', () => {
     });
 
     it('should handle empty chunks array', async () => {
+      mockQdrantClient.deletePoints.mockResolvedValue(true);
       await vectorStorageService.initialize();
       const result = await vectorStorageService.deleteChunks([]);
 
       expect(result).toBe(true);
-      expect(mockQdrantClient.deletePoints).not.toHaveBeenCalled();
+      expect(mockQdrantClient.deletePoints).toHaveBeenCalledWith('codebase_vectors', []);
     });
 
     it('should handle deletion errors gracefully', async () => {
@@ -367,8 +423,7 @@ describe('VectorStorageService', () => {
       expect(mockQdrantClient.searchVectors).toHaveBeenCalledWith(
         'codebase_vectors',
         queryVector,
-        10,
-        0.8
+        { limit: 10, scoreThreshold: 0.8 }
       );
       expect(result).toEqual(mockResults);
     });

@@ -61,6 +61,25 @@ export interface SearchResult {
   payload: VectorPoint['payload'];
 }
 
+export interface IQdrantClient {
+  connect(): Promise<boolean>;
+  createCollection(collectionName: string, vectorSize: number, distance?: 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan', recreateIfExists?: boolean): Promise<boolean>;
+  collectionExists(collectionName: string): Promise<boolean>;
+  deleteCollection(collectionName: string): Promise<boolean>;
+  getCollectionInfo(collectionName: string): Promise<CollectionInfo | null>;
+  upsertPoints(collectionName: string, points: VectorPoint[]): Promise<boolean>;
+  searchVectors(collectionName: string, queryVector: number[], options?: SearchOptions): Promise<SearchResult[]>;
+  deletePoints(collectionName: string, pointIds: string[]): Promise<boolean>;
+  clearCollection(collectionName: string): Promise<boolean>;
+  getPointCount(collectionName: string): Promise<number>;
+  createPayloadIndex(collectionName: string, field: string): Promise<boolean>;
+  isConnectedToDatabase(): boolean;
+  close(): Promise<void>;
+  // New methods
+  getChunkIdsByFiles(collectionName: string, filePaths: string[]): Promise<string[]>;
+  getExistingChunkIds(collectionName: string, chunkIds: string[]): Promise<string[]>;
+}
+
 @injectable()
 export class QdrantClientWrapper {
   private client: QdrantClient;
@@ -320,6 +339,88 @@ export class QdrantClientWrapper {
       );
       this.logger.error('Failed to delete points', { errorId: report.id, collectionName });
       return false;
+    }
+  }
+
+  async getChunkIdsByFiles(collectionName: string, filePaths: string[]): Promise<string[]> {
+    try {
+      // Build filter to match any of the provided file paths
+      const filter = {
+        must: [
+          {
+            key: 'filePath',
+            match: {
+              any: filePaths
+            }
+          }
+        ]
+      };
+
+      // Search for points matching the filter, only retrieving IDs
+      const results = await this.client.scroll(collectionName, {
+        filter,
+        with_payload: false,
+        with_vector: false,
+        limit: 1000 // Adjust this limit as needed
+      });
+
+      // Extract IDs from the results
+      const chunkIds = results.points.map(point => point.id as string);
+      
+      this.logger.debug(`Found ${chunkIds.length} chunk IDs for ${filePaths.length} files`, {
+        fileCount: filePaths.length,
+        chunkCount: chunkIds.length
+      });
+
+      return chunkIds;
+    } catch (error) {
+      const report = this.errorHandler.handleError(
+        new Error(`Failed to get chunk IDs by files from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'QdrantClient', operation: 'getChunkIdsByFiles' }
+      );
+      this.logger.error('Failed to get chunk IDs by files', { errorId: report.id, collectionName });
+      return [];
+    }
+  }
+
+  async getExistingChunkIds(collectionName: string, chunkIds: string[]): Promise<string[]> {
+    try {
+      // Build filter to match any of the provided chunk IDs
+      const filter = {
+        must: [
+          {
+            key: 'id',
+            match: {
+              any: chunkIds
+            }
+          }
+        ]
+      };
+
+      // Search for points matching the filter, only retrieving IDs
+      const results = await this.client.scroll(collectionName, {
+        filter,
+        with_payload: false,
+        with_vector: false,
+        limit: 1000 // Adjust this limit as needed
+      });
+
+      // Extract IDs from the results
+      const existingChunkIds = results.points.map(point => point.id as string);
+      
+      this.logger.debug(`Found ${existingChunkIds.length} existing chunk IDs out of ${chunkIds.length} requested`, {
+        requestedCount: chunkIds.length,
+        existingCount: existingChunkIds.length
+      });
+
+      return existingChunkIds;
+    } catch (error) {
+      const report = this.errorHandler.handleError(
+        new Error(`Failed to get existing chunk IDs from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'QdrantClient', operation: 'getExistingChunkIds' }
+      );
+      this.logger.error('Failed to get existing chunk IDs', { errorId: report.id, collectionName });
+      return [];
     }
   }
 
