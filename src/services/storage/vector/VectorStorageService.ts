@@ -1,15 +1,15 @@
 import { injectable, inject } from 'inversify';
-import { QdrantClientWrapper, VectorPoint, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
-import { CodeChunk } from '../../services/parser/TreeSitterService';
-import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { ConfigService } from '../../config/ConfigService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
-import { EmbedderFactory } from '../../embedders/EmbedderFactory';
-import { BatchProcessingService } from './BatchProcessingService';
-import { EmbeddingService } from './EmbeddingService';
-import { VectorStorageUtils } from './utils/VectorStorageUtils';
-import { ChunkProcessingUtils } from './utils/ChunkProcessingUtils';
+import { QdrantClientWrapper, VectorPoint, SearchOptions, SearchResult } from '../../../database/qdrant/QdrantClientWrapper';
+import { CodeChunk } from '../../parser/TreeSitterService';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { ConfigService } from '../../../config/ConfigService';
+import { BatchProcessingMetrics, BatchOperationMetrics } from '../../monitoring/BatchProcessingMetrics';
+import { EmbedderFactory } from '../../../embedders/EmbedderFactory';
+import { BatchProcessingService } from '../BatchProcessingService';
+import { EmbeddingService } from '../EmbeddingService';
+import { VectorStorageUtils } from '../utils/VectorStorageUtils';
+import { ChunkProcessingUtils } from '../utils/ChunkProcessingUtils';
 
 export interface VectorStorageConfig {
   collectionName: string;

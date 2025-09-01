@@ -30,7 +30,7 @@ import { IndexService } from '../src/services/indexing/IndexService';
 import { IndexCoordinator } from '../src/services/indexing/IndexCoordinator';
 import { StorageCoordinator } from '../src/services/storage/StorageCoordinator';
 import { ParserService } from '../src/services/parser/ParserService';
-import { VectorStorageService } from '../src/services/storage/VectorStorageService';
+import { VectorStorageService } from '../src/services/storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../src/services/storage/graph/GraphPersistenceService';
 import { QdrantClientWrapper } from '../src/database/qdrant/QdrantClientWrapper';
 import { NebulaService } from '../src/database/NebulaService';

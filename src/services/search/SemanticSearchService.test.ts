@@ -3,7 +3,7 @@ import { BaseEmbedder } from '../../embedders/BaseEmbedder';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
-import { VectorStorageService } from '../storage/VectorStorageService';
+import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 
 describe('SemanticSearchService', () => {

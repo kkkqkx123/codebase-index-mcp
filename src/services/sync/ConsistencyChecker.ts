@@ -3,7 +3,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 import { EntityIdManager, EntityMapping } from './EntityIdManager';
-import { VectorStorageService } from '../storage/VectorStorageService';
+import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { TransactionCoordinator } from './TransactionCoordinator';
 

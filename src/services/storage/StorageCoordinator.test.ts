@@ -1,5 +1,5 @@
 import { StorageCoordinator, ParsedFile, Chunk, StorageResult, DeleteResult } from '../../../src/services/storage/StorageCoordinator';
-import { VectorStorageService } from '../../../src/services/storage/VectorStorageService';
+import { VectorStorageService } from './vector/VectorStorageService';
 import { GraphPersistenceService, GraphPersistenceOptions } from './graph/GraphPersistenceService';
 import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
 import { LoggerService } from '../../../src/core/LoggerService';

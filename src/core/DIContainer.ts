@@ -22,7 +22,7 @@ import { FileWatcherService } from '../services/filesystem/FileWatcherService';
 import { ChangeDetectionService } from '../services/filesystem/ChangeDetectionService';
 import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
-import { VectorStorageService } from '../services/storage/VectorStorageService';
+import { VectorStorageService } from '../services/storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../services/storage/graph/GraphPersistenceService';
 import { GraphCacheService } from '../services/storage/graph/GraphCacheService';
 import { GraphPerformanceMonitor } from '../services/storage/graph/GraphPerformanceMonitor';

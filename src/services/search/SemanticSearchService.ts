@@ -3,7 +3,7 @@ import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
-import { VectorStorageService } from '../storage/VectorStorageService';
+import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { SearchResult } from '../../database/qdrant/QdrantClientWrapper';
 
 export interface SemanticSearchParams {

@@ -1,6 +1,6 @@
 import { HybridSearchService } from './HybridSearchService';
 import { SemanticSearchService } from './SemanticSearchService';
-import { VectorStorageService } from '../storage/VectorStorageService';
+import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { LoggerService } from '../../core/LoggerService';

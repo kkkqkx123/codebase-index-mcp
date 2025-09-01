@@ -13,7 +13,7 @@ import { PoolOptions } from './services/infrastructure/ObjectPool';
 import { TraversalOptions } from './services/filesystem/FileSystemTraversal';
 import { ChunkingOptions } from './services/parser/SmartCodeParser';
 import { FileWatcherService } from './services/filesystem/FileWatcherService';
-import { VectorStorageService } from './services/storage/VectorStorageService';
+import { VectorStorageService } from './services/storage/vector/VectorStorageService';
 import { GraphPersistenceService } from './services/storage/graph/GraphPersistenceService';
 import { ParserService } from './services/parser/ParserService';
 import { TransactionCoordinator } from './services/sync/TransactionCoordinator';

@@ -3,7 +3,7 @@ import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { SemanticSearchService } from './SemanticSearchService';
-import { VectorStorageService } from '../storage/VectorStorageService';
+import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 
 export interface HybridSearchParams {

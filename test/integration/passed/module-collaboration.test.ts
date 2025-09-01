@@ -8,7 +8,7 @@ import { ChangeDetectionService } from '../../../src/services/filesystem/ChangeD
 import { ParserService } from '../../../src/services/parser/ParserService';
 import { FileSystemTraversal } from '../../../src/services/filesystem/FileSystemTraversal';
 import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
-import { VectorStorageService } from '../../../src/services/storage/VectorStorageService';
+import { VectorStorageService } from '../../../src/services/storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../../../src/services/storage/graph/GraphPersistenceService';
 import { LoggerService } from '../../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
