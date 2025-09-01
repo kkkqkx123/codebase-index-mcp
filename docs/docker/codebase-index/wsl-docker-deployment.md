@@ -24,8 +24,8 @@
 cd /home/docker-compose/codebase-index
 
 # 运行目录创建脚本
-chmod +x setup-wsl-directories.sh
-bash setup-wsl-directories.sh
+chmod +x setup-config-files.sh
+bash setup-config-files.sh
 ```
 
 ### 目录结构
@@ -159,20 +159,41 @@ curl http://localhost:3000         # Grafana
 
 ```bash
 cd /home/docker-compose/codebase-index/nebula
-docker-compose up -d
+docker-compose -f docker-compose.nebula.yml up -d
 ```
 
 **等待 NebulaGraph 初始化**（约1-2分钟）：
 ```bash
 # 检查服务状态
-docker-compose ps
+docker-compose -f docker-compose.nebula.yml ps
+```
 
-# 查看存储节点日志
-docker-compose logs storaged0
+增加hosts配置
+在Windows PowerShell中执行以下命令来添加存储节点到NebulaGraph集群：
+```powershell
+# 在宿主机执行nebula-console命令
+nebula-console -u root -p nebula --address=127.0.0.1 --port=9669
+```
+
+```nebula console
+ADD HOSTS "storaged0":9779,"storaged1":9779,"storaged2":9779;
+```
+
+**说明**：
+- 该命令在宿主机（Windows）上执行，而不是在WSL中
+- 添加三个存储节点(storaged0, storaged1, storaged2)到NebulaGraph集群(视实际情况修改)
+- 每个存储节点监听端口9779
 
 # 验证连接
+```powershell
 nebula-console -u root -p nebula --address=127.0.0.1 --port=9669 -e "SHOW HOSTS"
 ```
+
+# 查看存储节点日志
+```bash
+docker-compose -f docker-compose.nebula.yml logs storaged0
+```
+现在看不到，因为存储节点的日志没有发送到stdout。自己到wsl的logs目录里看
 
 ### 3. 最后启动 Qdrant 服务
 
