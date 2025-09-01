@@ -7,7 +7,13 @@ import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
 import { NebulaService } from '../../database/NebulaService';
 import { NebulaQueryBuilder, BatchVertex } from '../../database/nebula/NebulaQueryBuilder';
+import { NebulaSpaceManager } from '../../database/nebula/NebulaSpaceManager';
 import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler';
+import { GraphCacheService } from './GraphCacheService';
+import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
+import { GraphBatchOptimizer } from './GraphBatchOptimizer';
+import { GraphQueryBuilder as EnhancedQueryBuilder } from './GraphQueryBuilder';
+import { GraphSearchService } from './GraphSearchService';
 
 export interface CacheEntry<T> {
   data: T;
@@ -58,51 +64,29 @@ export interface GraphQuery {
 @injectable()
 export class GraphPersistenceService {
   private nebulaService: NebulaService;
+  private nebulaSpaceManager: NebulaSpaceManager;
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
   private queryBuilder: NebulaQueryBuilder;
   private graphErrorHandler: GraphDatabaseErrorHandler;
+  private cacheService: GraphCacheService;
+  private performanceMonitor: GraphPerformanceMonitor;
+  private batchOptimizer: GraphBatchOptimizer;
+  private enhancedQueryBuilder: EnhancedQueryBuilder;
+  private searchService: GraphSearchService;
   private isInitialized: boolean = false;
-  
-  // Batch processing configuration
-  private maxConcurrentOperations: number = 5;
-  private defaultBatchSize: number = 50;
-  private maxBatchSize: number = 500;
-  private memoryThreshold: number = 80;
-  private processingTimeout: number = 300000;
+  private currentSpace: string = '';
+  private defaultCacheTTL: number = 300000; // 5 minutes default
+  private processingTimeout: number = 300000; // 5 minutes default
   private retryAttempts: number = 3;
-  private retryDelay: number = 1000;
-  private adaptiveBatchingEnabled: boolean = true;
-  
-  // Caching system
-  private queryCache: Map<string, CacheEntry<any>> = new Map();
-  private nodeExistenceCache: Map<string, CacheEntry<boolean>> = new Map();
-  private graphStatsCache: CacheEntry<{
-    nodeCount: number;
-    relationshipCount: number;
-    nodeTypes: Record<string, number>;
-    relationshipTypes: Record<string, number>;
-  }> | null = null;
-  private defaultCacheTTL: number = 300000; // 5 minutes
-  private maxCacheSize: number = 1000;
-  
-  // Performance monitoring
-  private performanceMetrics: {
-    queryExecutionTimes: number[];
-    cacheHitRate: number;
-    averageBatchSize: number;
-    connectionPoolStatus: string;
-  } = {
-    queryExecutionTimes: [],
-    cacheHitRate: 0,
-    averageBatchSize: 0,
-    connectionPoolStatus: 'unknown'
-  };
+  private retryDelay: number = 1000; // 1 second default
+  private connectionPoolMonitoringInterval: NodeJS.Timeout | null = null;
 
   constructor(
     @inject(NebulaService) nebulaService: NebulaService,
+    @inject(NebulaSpaceManager) nebulaSpaceManager: NebulaSpaceManager,
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService,
@@ -111,6 +95,7 @@ export class GraphPersistenceService {
     @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler
   ) {
     this.nebulaService = nebulaService;
+    this.nebulaSpaceManager = nebulaSpaceManager;
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.configService = configService;
@@ -118,8 +103,24 @@ export class GraphPersistenceService {
     this.queryBuilder = queryBuilder;
     this.graphErrorHandler = graphErrorHandler;
     
-    this.initializeBatchProcessingConfig();
-    this.initializeCachingSystem();
+    // Initialize new services
+    this.cacheService = new GraphCacheService(logger);
+    this.performanceMonitor = new GraphPerformanceMonitor(logger);
+    this.batchOptimizer = new GraphBatchOptimizer();
+    this.enhancedQueryBuilder = new EnhancedQueryBuilder(queryBuilder);
+    this.searchService = new GraphSearchService(
+      nebulaService,
+      logger,
+      this.cacheService,
+      this.performanceMonitor,
+      this.enhancedQueryBuilder
+    );
+    
+    this.initializeServices();
+  }
+
+  private generateSpaceName(projectId: string): string {
+    return `project_${projectId}`;
   }
 
   async initialize(): Promise<boolean> {
@@ -153,6 +154,49 @@ export class GraphPersistenceService {
       this.logger.error('Failed to initialize graph persistence', { 
         errorType: result.action,
         suggestions: result.suggestions 
+      });
+      return false;
+    }
+  }
+
+  async initializeProjectSpace(projectId: string): Promise<boolean> {
+    try {
+      const spaceName = this.generateSpaceName(projectId);
+      this.currentSpace = spaceName;
+      // 检查空间是否存在，如果不存在则创建
+      const spaceExists = await this.nebulaSpaceManager.checkSpaceExists(projectId);
+      if (!spaceExists) {
+        // 获取配置
+        const config = this.configService.get('nebula') || {} as any;
+        await this.nebulaSpaceManager.createSpace(projectId, {
+          partitionNum: (config as any).partitionNum || 10,
+          replicaFactor: (config as any).replicaFactor || 1,
+          vidType: (config as any).vidType || 'FIXED_STRING(32)'
+        });
+      }
+      
+      // 切换到项目空间
+      await this.nebulaService.executeWriteQuery(`USE ${spaceName}`);
+      
+      this.logger.info(`Initialized project space ${spaceName} for project ${projectId}`);
+      return true;
+    } catch (error) {
+      const errorContext = {
+        component: 'GraphPersistenceService',
+        operation: 'initializeProjectSpace',
+        projectId,
+        retryCount: 0
+      };
+      
+      const result = await this.graphErrorHandler.handleError(
+        new Error(`Failed to initialize project space: ${error instanceof Error ? error.message : String(error)}`),
+        errorContext
+      );
+      
+      this.logger.error('Failed to initialize project space', {
+        errorType: result.action,
+        suggestions: result.suggestions,
+        projectId
       });
       return false;
     }
@@ -208,7 +252,8 @@ export class GraphPersistenceService {
       });
 
       // Update performance metrics
-      this.performanceMetrics.averageBatchSize = batchSize;
+      this.performanceMonitor.updateCacheHitRate(true);
+      this.performanceMonitor.updateBatchSize(batchSize);
 
       if (result.success) {
         this.logger.info('Files stored in graph successfully', {
@@ -218,7 +263,7 @@ export class GraphPersistenceService {
           processingTime: result.processingTime,
           batchSize,
           cacheEnabled: useCache,
-          cacheHitRate: this.performanceMetrics.cacheHitRate
+          cacheHitRate: this.performanceMonitor.getMetrics().cacheHitRate
         });
       }
     } catch (error) {
@@ -305,7 +350,7 @@ export class GraphPersistenceService {
         
         const batchResult = await this.processWithTimeout(
           () => this.retryOperation(() => this.executeBatch(batch)),
-          this.processingTimeout
+          this.batchOptimizer.getConfig().processingTimeout
         );
         
         results.push(batchResult);
@@ -361,9 +406,6 @@ export class GraphPersistenceService {
     }
 
     try {
-      // NebulaGraph使用nGQL而不是Cypher
-      // 这里需要根据实际的NebulaGraph数据模型进行调整
-      // For NebulaGraph, we use GO statement to traverse the graph
       const edgeTypes = relationshipTypes && relationshipTypes.length > 0
         ? relationshipTypes.join(',')
         : '*'; // Use * to match all edge types
@@ -379,8 +421,6 @@ export class GraphPersistenceService {
       };
 
       const result = await this.nebulaService.executeReadQuery(query.nGQL, query.parameters);
-      // 这里需要根据NebulaGraph的返回结果格式进行调整
-      // For NebulaGraph, we need to extract vertex information from the result
       if (result && Array.isArray(result)) {
         return result.map((record: any) => this.recordToGraphNode(record.related || record.vertex || record));
       }
@@ -401,9 +441,6 @@ export class GraphPersistenceService {
     }
 
     try {
-      // NebulaGraph使用nGQL而不是Cypher
-      // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
-      // NebulaGraph has a built-in shortest path function
       const query: GraphQuery = {
         nGQL: `
           FIND SHORTEST PATH FROM $sourceId TO $targetId OVER * UPTO ${maxDepth} STEPS
@@ -439,15 +476,9 @@ export class GraphPersistenceService {
     }
 
     // Check cache first
-    const cacheKey = 'graph_stats';
-    const cachedStats = this.getFromCache<{
-      nodeCount: number;
-      relationshipCount: number;
-      nodeTypes: Record<string, number>;
-      relationshipTypes: Record<string, number>;
-    }>(cacheKey);
+    const cachedStats = this.cacheService.getGraphStatsCache();
     if (cachedStats) {
-      this.performanceMetrics.cacheHitRate = (this.performanceMetrics.cacheHitRate * 0.9) + 0.1;
+      this.performanceMonitor.updateCacheHitRate(true);
       return cachedStats;
     }
 
@@ -456,14 +487,8 @@ export class GraphPersistenceService {
       const stats = await this.getEnhancedGraphStats();
       
       // Cache the result
-      this.setCache(cacheKey, stats, this.defaultCacheTTL);
-      this.graphStatsCache = {
-        data: stats,
-        timestamp: Date.now(),
-        ttl: this.defaultCacheTTL
-      };
-      
-      this.performanceMetrics.cacheHitRate = this.performanceMetrics.cacheHitRate * 0.9;
+      this.cacheService.setGraphStatsCache(stats);
+      this.performanceMonitor.updateCacheHitRate(false);
       
       return stats;
     } catch (error) {
@@ -504,9 +529,6 @@ export class GraphPersistenceService {
 
       for (let i = 0; i < nodeIds.length; i += batchSize) {
         const batch = nodeIds.slice(i, i + batchSize);
-        // NebulaGraph使用nGQL而不是Cypher
-        // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
-        // For NebulaGraph, we need to delete vertices and their associated edges
         const queries: GraphQuery[] = batch.map(nodeId => ({
           nGQL: `DELETE VERTEX $nodeId WITH EDGE`,
           parameters: { nodeId }
@@ -543,49 +565,283 @@ export class GraphPersistenceService {
     }
 
     try {
-      // NebulaGraph使用nGQL而不是Cypher
-      // 这里需要根据实际的NebulaGraph数据模型和功能进行调整
-      // NebulaGraph可能没有直接的clearDatabase方法，需要使用nGQL语句来实现
-      // 例如，可以使用DROP SPACE和CREATE SPACE语句来清空数据
-      // 但这种方法需要谨慎使用，因为它会删除整个空间
-      // 这里我们暂时返回true，表示清空操作成功
-      // 实际实现需要根据NebulaGraph的特性进行调整
-      return true;
+      // 获取当前项目ID
+      const projectId = this.extractProjectIdFromCurrentSpace();
+      if (!projectId) {
+        throw new Error('Cannot determine project ID from current space');
+      }
+
+      this.logger.info(`Starting to clear graph for project: ${projectId}`);
+
+      // 记录开始时间
+      const startTime = Date.now();
+
+      // 方法1: 尝试删除并重新创建整个空间（最彻底的方式）
+      const spaceName = this.generateSpaceName(projectId);
+      
+      // 检查空间是否存在
+      const spaceExists = await this.nebulaSpaceManager.checkSpaceExists(projectId);
+      if (!spaceExists) {
+        this.logger.warn(`Space ${spaceName} does not exist, nothing to clear`);
+        return true;
+      }
+
+      try {
+        // 获取当前空间配置
+        const spaceInfo = await this.nebulaSpaceManager.getSpaceInfo(projectId);
+        if (!spaceInfo) {
+          throw new Error(`Cannot get configuration for space ${spaceName}`);
+        }
+
+        // 删除整个空间
+        const deleteSuccess = await this.nebulaSpaceManager.deleteSpace(projectId);
+        if (!deleteSuccess) {
+          throw new Error(`Failed to delete space ${spaceName}`);
+        }
+
+        // 等待删除操作完成
+        await this.waitForSpaceDeletion(spaceName);
+
+        // 重新创建空间
+        const createSuccess = await this.nebulaSpaceManager.createSpace(projectId, {
+          partitionNum: spaceInfo.partition_num,
+          replicaFactor: spaceInfo.replica_factor,
+          vidType: spaceInfo.vid_type
+        });
+
+        if (!createSuccess) {
+          throw new Error(`Failed to recreate space ${spaceName}`);
+        }
+
+        // 切换到新创建的空间
+        await this.nebulaService.executeWriteQuery(`USE ${spaceName}`);
+
+        // 清空缓存
+        this.cacheService.clearAllCache();
+
+        const processingTime = Date.now() - startTime;
+        this.logger.info('Graph cleared successfully using space recreation', {
+          projectId,
+          spaceName,
+          processingTime,
+          method: 'drop_and_recreate_space'
+        });
+
+        return true;
+
+      } catch (spaceMethodError) {
+        this.logger.warn('Space recreation method failed, falling back to data deletion method', {
+          error: spaceMethodError instanceof Error ? spaceMethodError.message : String(spaceMethodError)
+        });
+
+        // 方法2: 如果空间删除失败，使用批量删除所有数据的方式
+        return await this.clearGraphByDeletingData(projectId, spaceName, startTime);
+      }
+
     } catch (error) {
-      const report = this.errorHandler.handleError(
-        new Error(`Failed to clear graph: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'GraphPersistenceService', operation: 'clearGraph' }
+      const errorContext = {
+        component: 'GraphPersistenceService',
+        operation: 'clearGraph',
+        currentSpace: this.currentSpace
+      };
+      
+      const result = await this.graphErrorHandler.handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        errorContext
       );
-      this.logger.error('Failed to clear graph', { errorId: report.id });
+      
+      this.logger.error('Failed to clear graph', { 
+        errorType: result.action,
+        suggestions: result.suggestions,
+        currentSpace: this.currentSpace
+      });
       return false;
     }
   }
 
-  private async ensureConstraints(): Promise<void> {
-    // NebulaGraph使用不同的约束机制
-    // 这里需要根据实际的NebulaGraph特性进行调整
-    // NebulaGraph可能使用标签和属性的组合来实现唯一性约束
-    // 例如，可以使用CREATE TAG INDEX语句来创建索引
-    // 实际实现需要根据NebulaGraph的特性进行调整
-    
-    // 暂时注释掉这部分代码，因为NebulaGraph的约束机制与Neo4j不同
-    /*
-    const constraints = [
-      'CREATE CONSTRAINT file_id_unique IF NOT EXISTS FOR (f:File) REQUIRE f.id IS UNIQUE',
-      'CREATE CONSTRAINT function_id_unique IF NOT EXISTS FOR (f:Function) REQUIRE f.id IS UNIQUE',
-      'CREATE CONSTRAINT class_id_unique IF NOT EXISTS FOR (c:Class) REQUIRE c.id IS UNIQUE',
-      'CREATE CONSTRAINT project_id_unique IF NOT EXISTS FOR (p:Project) REQUIRE p.id IS UNIQUE'
-    ];
+  private async clearGraphByDeletingData(projectId: string, spaceName: string, startTime: number): Promise<boolean> {
+    try {
+      this.logger.info('Using data deletion method to clear graph');
 
-    for (const constraint of constraints) {
-      await this.neo4jManager.executeQuery({ cypher: constraint });
+      // 切换到目标空间
+      await this.nebulaService.executeWriteQuery(`USE ${spaceName}`);
+
+      // 获取所有标签类型
+      const tagsResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
+      const tags = tagsResult?.data?.map((row: any) => row.Name || row.name) || [];
+
+      // 获取所有边类型
+      const edgesResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
+      const edges = edgesResult?.data?.map((row: any) => row.Name || row.name) || [];
+
+      // 批量删除所有边
+      for (const edgeType of edges) {
+        try {
+          await this.nebulaService.executeWriteQuery(`DELETE EDGE ${edgeType} * -> *`);
+          this.logger.debug(`Deleted all edges of type: ${edgeType}`);
+        } catch (error) {
+          // 某些边类型可能没有数据，忽略错误
+          this.logger.debug(`Failed to delete edges of type ${edgeType}: ${error}`);
+        }
+      }
+
+      // 批量删除所有顶点
+      for (const tagName of tags) {
+        try {
+          // 获取该标签的所有顶点ID
+          const vertexResult = await this.nebulaService.executeReadQuery(
+            `LOOKUP ON ${tagName} YIELD ${tagName}._id AS id`
+          );
+          
+          if (vertexResult?.data && vertexResult.data.length > 0) {
+            const vertexIds = vertexResult.data.map((row: any) => row.id);
+            
+            // 分批删除顶点（避免单次操作过大）
+            const batchSize = 100;
+            for (let i = 0; i < vertexIds.length; i += batchSize) {
+              const batch = vertexIds.slice(i, i + batchSize);
+              const idList = batch.map((id: string) => `"${id}"`).join(', ');
+              await this.nebulaService.executeWriteQuery(`DELETE VERTEX ${idList}`);
+            }
+            
+            this.logger.debug(`Deleted ${vertexIds.length} vertices of type: ${tagName}`);
+          }
+        } catch (error) {
+          this.logger.debug(`Failed to delete vertices of type ${tagName}: ${error}`);
+        }
+      }
+
+      // 清空缓存
+      this.cacheService.clearAllCache();
+
+      const processingTime = Date.now() - startTime;
+      this.logger.info('Graph cleared successfully using data deletion', {
+        projectId,
+        spaceName,
+        processingTime,
+        tagsDeleted: tags.length,
+        edgesDeleted: edges.length,
+        method: 'delete_all_data'
+      });
+
+      return true;
+    } catch (error) {
+      throw new Error(`Data deletion method failed: ${error instanceof Error ? error.message : String(error)}`);
     }
-    */
+  }
+
+  private extractProjectIdFromCurrentSpace(): string | null {
+    if (!this.currentSpace) {
+      return null;
+    }
+    
+    const match = this.currentSpace.match(/^project_(.+)$/);
+    return match ? match[1] : null;
+  }
+
+  private async waitForSpaceDeletion(spaceName: string, maxRetries: number = 30, retryDelay: number = 1000): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const result = await this.nebulaService.executeReadQuery(`DESCRIBE SPACE ${spaceName}`);
+        if (!result || !result.data || result.data.length === 0) {
+          // 空间已成功删除
+          return;
+        }
+      } catch (error) {
+        // 查询失败通常意味着空间不存在，即删除成功
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+          return;
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+
+    throw new Error(`Space ${spaceName} was not deleted within ${maxRetries} retries`);
+  }
+
+  private async ensureConstraints(): Promise<void> {
+    try {
+      this.logger.debug('Creating graph indexes and constraints...');
+      
+      // 检查当前空间
+      const currentSpace = await this.nebulaService.getCurrentSpace();
+      if (!currentSpace) {
+        throw new Error('No active space selected');
+      }
+
+      // 创建索引查询
+      const indexQueries = [
+        // Project 索引
+        'CREATE TAG INDEX IF NOT EXISTS project_id_index ON Project(id(64))',
+        'CREATE TAG INDEX IF NOT EXISTS project_name_index ON Project(name(64))',
+        
+        // File 索引
+        'CREATE TAG INDEX IF NOT EXISTS file_id_index ON File(id(64))',
+        'CREATE TAG INDEX IF NOT EXISTS file_path_index ON File(path(256))',
+        'CREATE TAG INDEX IF NOT EXISTS file_name_index ON File(name(128))',
+        'CREATE TAG INDEX IF NOT EXISTS file_language_index ON File(language(32))',
+        'CREATE TAG INDEX IF NOT EXISTS file_project_index ON File(projectId(64))',
+        
+        // Function 索引
+        'CREATE TAG INDEX IF NOT EXISTS function_id_index ON Function(id(64))',
+        'CREATE TAG INDEX IF NOT EXISTS function_name_index ON Function(name(128))',
+        'CREATE TAG INDEX IF NOT EXISTS function_project_index ON Function(projectId(64))',
+        
+        // Class 索引
+        'CREATE TAG INDEX IF NOT EXISTS class_id_index ON Class(id(64))',
+        'CREATE TAG INDEX IF NOT EXISTS class_name_index ON Class(name(128))',
+        'CREATE TAG INDEX IF NOT EXISTS class_project_index ON Class(projectId(64))',
+        
+        // Import 索引
+        'CREATE TAG INDEX IF NOT EXISTS import_id_index ON Import(id(64))',
+        'CREATE TAG INDEX IF NOT EXISTS import_project_index ON Import(projectId(64))',
+        
+        // Interface 索引
+        'CREATE TAG INDEX IF NOT EXISTS interface_id_index ON Interface(id(64))',
+        'CREATE TAG INDEX IF NOT EXISTS interface_name_index ON Interface(name(128))',
+        'CREATE TAG INDEX IF NOT EXISTS interface_project_index ON Interface(projectId(64))',
+        
+        // 关系边索引
+        'CREATE EDGE INDEX IF NOT EXISTS contains_index ON CONTAINS()',
+        'CREATE EDGE INDEX IF NOT EXISTS calls_index ON CALLS()',
+        'CREATE EDGE INDEX IF NOT EXISTS extends_index ON EXTENDS()',
+        'CREATE EDGE INDEX IF NOT EXISTS implements_index ON IMPLEMENTS()',
+        'CREATE EDGE INDEX IF NOT EXISTS imports_index ON IMPORTS()',
+        'CREATE EDGE INDEX IF NOT EXISTS belongs_to_index ON BELONGS_TO()'
+      ];
+
+      // 执行索引创建
+      for (const query of indexQueries) {
+        try {
+          this.logger.debug(`Executing index query: ${query}`);
+          await this.nebulaService.executeReadQuery(query);
+          this.logger.debug(`Index created successfully: ${query}`);
+        } catch (error) {
+          // 更精确的错误处理
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const isIndexExistsError = 
+            errorMessage.includes('exists') || 
+            errorMessage.includes('already') ||
+            errorMessage.includes('EXISTED');
+            
+          if (isIndexExistsError) {
+            this.logger.debug(`Index already exists: ${query}`);
+          } else {
+            this.logger.warn(`Failed to create index: ${query}`, error);
+          }
+        }
+      }
+
+      this.logger.info('Graph indexes and constraints creation completed');
+    } catch (error) {
+      this.logger.error('Failed to ensure graph constraints', error);
+      // 不抛出错误，允许系统继续运行
+    }
   }
 
   private createProjectNode(projectId: string): GraphQuery {
-    // NebulaGraph使用nGQL而不是Cypher
-    // 这里需要根据实际的NebulaGraph数据模型进行调整
     return {
       nGQL: `
         INSERT VERTEX Project(id, name, createdAt, updatedAt) 
@@ -597,9 +853,6 @@ export class GraphPersistenceService {
 
   private createFileQueries(file: ParsedFile, options: GraphPersistenceOptions): GraphQuery[] {
     const queries: GraphQuery[] = [];
-
-    // NebulaGraph使用nGQL而不是Cypher
-    // 这里需要根据实际的NebulaGraph数据模型进行调整
     const fileQuery: GraphQuery = {
       nGQL: `
         INSERT VERTEX File(id, path, relativePath, name, language, size, hash, linesOfCode, functions, classes, lastModified, updatedAt) 
@@ -623,8 +876,6 @@ export class GraphPersistenceService {
     queries.push(fileQuery);
 
     if (options.projectId) {
-      // NebulaGraph使用nGQL而不是Cypher
-      // 这里需要根据实际的NebulaGraph数据模型进行调整
       queries.push({
         nGQL: `
           INSERT EDGE BELONGS_TO() VALUES $fileId->$projectId:()
@@ -713,7 +964,6 @@ export class GraphPersistenceService {
 
     for (const file of files) {
       for (const importName of file.metadata.imports) {
-        // NebulaGraph使用nGQL而不是Cypher
         // 这里需要根据实际的NebulaGraph数据模型进行调整
         queries.push({
           nGQL: `
@@ -777,10 +1027,7 @@ export class GraphPersistenceService {
       const processingTime = Date.now() - startTime;
       
       // Update performance metrics
-      this.performanceMetrics.queryExecutionTimes.push(processingTime);
-      if (this.performanceMetrics.queryExecutionTimes.length > 100) {
-        this.performanceMetrics.queryExecutionTimes = this.performanceMetrics.queryExecutionTimes.slice(-100);
-      }
+      this.performanceMonitor.recordQueryExecution(processingTime);
       
       return {
         success: true,
@@ -825,7 +1072,7 @@ export class GraphPersistenceService {
       name: vertex.name || vertex.id || '',
       properties: vertex.properties || vertex || {}
     };
-  }
+ }
 
   private recordToGraphRelationship(record: any, sourceId: string, targetId: string): CodeGraphRelationship {
     // NebulaGraph records have different structure than Neo4j
@@ -839,93 +1086,65 @@ export class GraphPersistenceService {
       targetId: edge._dst || targetId,
       properties: edge.properties || edge || {}
     };
-  }
+ }
 
   isServiceInitialized(): boolean {
     return this.isInitialized;
   }
 
-  private initializeBatchProcessingConfig(): void {
+  private async initializeServices(): Promise<void> {
     const batchConfig = this.configService.get('batchProcessing');
-    
-    this.maxConcurrentOperations = batchConfig.maxConcurrentOperations;
-    this.defaultBatchSize = batchConfig.defaultBatchSize;
-    this.maxBatchSize = batchConfig.maxBatchSize;
-    this.memoryThreshold = batchConfig.memoryThreshold;
-    this.processingTimeout = batchConfig.processingTimeout;
-    this.retryAttempts = batchConfig.retryAttempts;
-    this.retryDelay = batchConfig.retryDelay;
-    this.adaptiveBatchingEnabled = batchConfig.adaptiveBatching.enabled;
-    
-    this.logger.info('Graph persistence batch processing configuration initialized', {
-      maxConcurrentOperations: this.maxConcurrentOperations,
-      defaultBatchSize: this.defaultBatchSize,
-      maxBatchSize: this.maxBatchSize,
-      memoryThreshold: this.memoryThreshold,
-      processingTimeout: this.processingTimeout,
-      adaptiveBatchingEnabled: this.adaptiveBatchingEnabled
-    });
-  }
+    if (batchConfig) {
+      this.batchOptimizer.updateConfig({
+        maxConcurrentOperations: batchConfig.maxConcurrentOperations || 5,
+        defaultBatchSize: batchConfig.defaultBatchSize || 50,
+        maxBatchSize: batchConfig.maxBatchSize || 500,
+        memoryThreshold: batchConfig.memoryThreshold || 80,
+        processingTimeout: batchConfig.processingTimeout || 300000,
+        retryAttempts: batchConfig.retryAttempts || 3,
+        retryDelay: batchConfig.retryDelay || 1000,
+        adaptiveBatchingEnabled: batchConfig.adaptiveBatching?.enabled !== false
+      });
+    }
 
-  private initializeCachingSystem(): void {
     const cacheConfig = this.configService.get('caching');
     if (cacheConfig && typeof cacheConfig === 'object') {
       const config = cacheConfig as any;
-      this.defaultCacheTTL = config.defaultTTL || this.defaultCacheTTL;
-      this.maxCacheSize = config.maxSize || this.maxCacheSize;
+      // Configure cache service if needed
     }
-    
-    // Start cache cleanup interval
-    this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 60000); // Clean up every minute
-    // Ensure interval doesn't prevent Node.js from exiting
-    if (this.cacheCleanupInterval.unref) {
-      this.cacheCleanupInterval.unref();
-    }
-    
-    this.logger.info('Graph persistence caching system initialized', {
-      defaultCacheTTL: this.defaultCacheTTL,
-      maxCacheSize: this.maxCacheSize
-    });
+
+    // Start performance monitoring
+    this.performanceMonitor.startPeriodicMonitoring(30000);
   }
 
   private async initializeConnectionPoolMonitoring(): Promise<void> {
     try {
       // Monitor connection pool status
       const stats = await this.nebulaService.getDatabaseStats();
-      this.performanceMetrics.connectionPoolStatus = 'healthy';
+      this.performanceMonitor.updateConnectionPoolStatus('healthy');
       
       // Set up periodic monitoring
       this.connectionPoolMonitoringInterval = setInterval(async () => {
         try {
           const currentStats = await this.nebulaService.getDatabaseStats();
-          this.performanceMetrics.connectionPoolStatus =
-            currentStats.hosts && currentStats.hosts.length > 0 ? 'healthy' : 'degraded';
+          this.performanceMonitor.updateConnectionPoolStatus(
+            currentStats.hosts && currentStats.hosts.length > 0 ? 'healthy' : 'degraded'
+          );
         } catch (error) {
-          this.performanceMetrics.connectionPoolStatus = 'error';
+          this.performanceMonitor.updateConnectionPoolStatus('error');
         }
-      }, 30000); // Check every 30 seconds
+      }, 300); // Check every 30 seconds
       // Ensure interval doesn't prevent Node.js from exiting
-      if (this.connectionPoolMonitoringInterval.unref) {
+      if (this.connectionPoolMonitoringInterval && this.connectionPoolMonitoringInterval.unref) {
         this.connectionPoolMonitoringInterval.unref();
       }
     } catch (error) {
-      this.performanceMetrics.connectionPoolStatus = 'error';
+      this.performanceMonitor.updateConnectionPoolStatus('error');
     }
   }
 
   private checkMemoryUsage(): boolean {
-    const memUsage = process.memoryUsage();
-    const memoryUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-    
-    if (memoryUsagePercent > this.memoryThreshold) {
-      this.logger.warn('Memory usage exceeds threshold', {
-        memoryUsagePercent,
-        threshold: this.memoryThreshold
-      });
-      return false;
-    }
-    
-    return true;
+    return this.batchOptimizer.checkMemoryUsage();
   }
 
   private async processWithTimeout<T>(
@@ -951,8 +1170,8 @@ export class GraphPersistenceService {
 
   private async retryOperation<T>(
     operation: () => Promise<T>,
-    maxAttempts: number = this.retryAttempts,
-    delayMs: number = this.retryDelay
+    maxAttempts: number = this.batchOptimizer.getConfig().retryAttempts,
+    delayMs: number = this.batchOptimizer.getConfig().retryDelay
   ): Promise<T> {
     let lastError: Error = new Error('Unknown error');
     
@@ -979,25 +1198,7 @@ export class GraphPersistenceService {
   }
 
   private calculateOptimalBatchSize(totalItems: number): number {
-    if (!this.adaptiveBatchingEnabled) {
-      return Math.min(this.defaultBatchSize, totalItems);
-    }
-
-    // For graph operations, use a different strategy based on item count
-    const config = this.configService.get('batchProcessing');
-    const adaptiveConfig = config.adaptiveBatching;
-    
-    // Start with a reasonable batch size based on total items
-    let batchSize = Math.min(this.defaultBatchSize, totalItems);
-    
-    // Adjust based on item count - smaller batches for very large item counts
-    if (totalItems > 1000) {
-      batchSize = Math.min(adaptiveConfig.minBatchSize * 2, totalItems);
-    } else if (totalItems > 500) {
-      batchSize = Math.min(adaptiveConfig.minBatchSize * 3, totalItems);
-    }
-
-    return Math.max(adaptiveConfig.minBatchSize, Math.min(batchSize, adaptiveConfig.maxBatchSize));
+    return this.batchOptimizer.calculateOptimalBatchSize(totalItems);
   }
 
   async updateChunks(chunks: CodeChunk[], options: GraphPersistenceOptions = {}): Promise<GraphPersistenceResult> {
@@ -1331,7 +1532,7 @@ export class GraphPersistenceService {
         const cacheKey = `vertices_${vertexBatch.map(v => v.id).sort().join('_')}`;
         
         if (useCache) {
-          const cached = this.getFromCache<number>(cacheKey);
+          const cached = this.cacheService.getFromCache<number>(cacheKey);
           if (cached && typeof cached === 'number') {
             totalNodesCreated += cached;
             continue;
@@ -1344,7 +1545,7 @@ export class GraphPersistenceService {
         if (executionResult.success) {
           totalNodesCreated += vertexBatch.length;
           if (useCache) {
-            this.setCache(cacheKey, vertexBatch.length, cacheTTL);
+            this.cacheService.setCache(cacheKey, vertexBatch.length, cacheTTL);
           }
         } else {
           result.errors.push(...executionResult.errors);
@@ -1436,63 +1637,15 @@ export class GraphPersistenceService {
   }
 
   // Caching helper methods
-  private getFromCache<T>(key: string): T | null {
-    const entry = this.queryCache.get(key);
-    if (!entry) return null;
-    
-    if (Date.now() - entry.timestamp > entry.ttl) {
-      this.queryCache.delete(key);
-      return null;
-    }
-    
-    return entry.data;
-  }
-
-  private setCache<T>(key: string, data: T, ttl: number): void {
-    if (this.queryCache.size >= this.maxCacheSize) {
-      this.cleanupCache();
-    }
-    
-    this.queryCache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl
-    });
-  }
-
-  private cleanupCache(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.queryCache.entries()) {
-      if (now - entry.timestamp > entry.ttl) {
-        this.queryCache.delete(key);
-      }
-    }
-  }
-
-  private cacheCleanupInterval: NodeJS.Timeout | null = null;
-  private connectionPoolMonitoringInterval: NodeJS.Timeout | null = null;
-
   private chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = [];
+    const result: T[][] = [];
     for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size));
+      result.push(array.slice(i, i + size));
     }
-    return chunks;
+    return result;
   }
 
   async close(): Promise<void> {
-    // Clear cache cleanup interval
-    if (this.cacheCleanupInterval) {
-      clearInterval(this.cacheCleanupInterval);
-      this.cacheCleanupInterval = null;
-    }
-    
-    // Clear connection pool monitoring interval
-    if (this.connectionPoolMonitoringInterval) {
-      clearInterval(this.connectionPoolMonitoringInterval);
-      this.connectionPoolMonitoringInterval = null;
-    }
-    
     // Close the nebula service
     if (this.nebulaService) {
       await this.nebulaService.close();
@@ -1501,52 +1654,15 @@ export class GraphPersistenceService {
 
   // Performance monitoring methods
   getPerformanceMetrics() {
-    const avgQueryTime = this.performanceMetrics.queryExecutionTimes.length > 0
-      ? this.performanceMetrics.queryExecutionTimes.reduce((a, b) => a + b, 0) / this.performanceMetrics.queryExecutionTimes.length
-      : 0;
-    
-    return {
-      averageQueryTime: avgQueryTime,
-      cacheHitRate: this.performanceMetrics.cacheHitRate,
-      averageBatchSize: this.performanceMetrics.averageBatchSize,
-      connectionPoolStatus: this.performanceMetrics.connectionPoolStatus,
-      cacheSize: this.queryCache.size,
-      totalQueriesExecuted: this.performanceMetrics.queryExecutionTimes.length
-    };
+    return this.performanceMonitor.getMetrics();
   }
 
   async search(query: string, options: any = {}): Promise<any[]> {
-    try {
-      // This is a placeholder implementation for graph search
-      // In a real implementation, this would execute graph queries based on the search terms
-      
-      const limit = options.limit || 10;
-      const queryType = options.type || 'semantic'; // 'semantic', 'relationship', 'path'
-      
-      // For now, return empty results as this is a placeholder
-      // In a real implementation, this would:
-      // 1. Parse the query to understand search intent
-      // 2. Execute appropriate graph queries (e.g., find nodes, relationships, paths)
-      // 3. Return structured results with graph metadata
-      
-      this.logger.info('Graph search executed', {
-        query,
-        queryType,
-        limit,
-        options
-      });
-      
-      return [];
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      this.logger.error('Failed to search graph', {
-        query,
-        options,
-        error: errorMessage
-      });
-      
-      throw new Error(`Failed to search graph: ${errorMessage}`);
-    }
+    const { results } = await this.searchService.search(query, options);
+    return results;
+  }
+
+  getSearchService(): GraphSearchService {
+    return this.searchService;
   }
 }

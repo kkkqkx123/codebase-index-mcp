@@ -20,6 +20,8 @@ export class NebulaConnectionManager {
   private connectionTimeout: NodeJS.Timeout | null = null;
   // 存储其他可能的定时器引用
   private healthCheckInterval: NodeJS.Timeout | null = null;
+  // 存储当前空间名称
+  private currentSpace: string = '';
 
   constructor(
     logger: LoggerService,
@@ -58,8 +60,14 @@ export class NebulaConnectionManager {
         space: config.nebula.space
       };
       
+      // 保存当前空间名称
+      this.currentSpace = config.nebula.space || '';
+      
       this.client = createClient(options);
       this.logger.debug('NebulaGraph client created');
+      
+      // 保存当前空间名称
+      this.currentSpace = config.nebula.space || '';
       
       // 检查客户端是否已经准备就绪
       if (this.client && typeof this.client.isConnected === 'function' && this.client.isConnected()) {

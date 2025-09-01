@@ -47,6 +47,10 @@ export interface GraphDatabaseConfig {
   retryAttempts: number;
   retryDelay: number;
   database: string;
+  space?: string;
+  partitionNum?: number;
+  replicaFactor?: number;
+  vidType?: string;
 }
 
 export interface ConnectionPoolConfig {

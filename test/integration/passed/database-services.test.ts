@@ -1,9 +1,9 @@
-import { QdrantService } from '../../src/database/QdrantService';
-import { NebulaService } from '../../src/database/NebulaService';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { QdrantService } from '../../../src/database/QdrantService';
+import { NebulaService } from '../../../src/database/NebulaService';
+import { LoggerService } from '../../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
-import { createTestContainer } from '../setup';
+import { createTestContainer } from '../../setup';
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
 
 describe('Database Services Integration Tests', () => {

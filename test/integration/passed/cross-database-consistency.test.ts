@@ -1,11 +1,11 @@
-import { ConsistencyChecker } from '../../src/services/sync/ConsistencyChecker';
-import { EntityMappingService } from '../../src/services/sync/EntityMappingService';
-import { TransactionCoordinator } from '../../src/services/sync/TransactionCoordinator';
-import { EntityIdManager, EntityMapping } from '../../src/services/sync/EntityIdManager';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { ConsistencyChecker } from '../../../src/services/sync/ConsistencyChecker';
+import { EntityMappingService } from '../../../src/services/sync/EntityMappingService';
+import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
+import { EntityIdManager, EntityMapping } from '../../../src/services/sync/EntityIdManager';
+import { LoggerService } from '../../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
-import { createTestContainer, createMockEntityMapping } from '../setup';
+import { createTestContainer, createMockEntityMapping } from '../../setup';
 
 // Mock database services for integration testing
 class MockVectorStorageService {

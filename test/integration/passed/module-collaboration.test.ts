@@ -1,20 +1,20 @@
-import { IndexCoordinator } from '../../src/services/indexing/IndexCoordinator';
-import { StorageCoordinator } from '../../src/services/storage/StorageCoordinator';
-import { AsyncPipeline } from '../../src/services/infrastructure/AsyncPipeline';
-import { BatchProcessor } from '../../src/services/processing/BatchProcessor';
-import { MemoryManager } from '../../src/services/processing/MemoryManager';
-import { ObjectPool } from '../../src/services/infrastructure/ObjectPool';
-import { ChangeDetectionService } from '../../src/services/filesystem/ChangeDetectionService';
-import { ParserService } from '../../src/services/parser/ParserService';
-import { FileSystemTraversal } from '../../src/services/filesystem/FileSystemTraversal';
-import { TransactionCoordinator } from '../../src/services/sync/TransactionCoordinator';
-import { VectorStorageService } from '../../src/services/storage/VectorStorageService';
-import { GraphPersistenceService } from '../../src/services/storage/GraphPersistenceService';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
-import { ConfigService } from '../../src/config/ConfigService';
-import { HashUtils } from '../../src/utils/HashUtils';
-import { createTestContainer } from '../setup';
+import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
+import { StorageCoordinator } from '../../../src/services/storage/StorageCoordinator';
+import { AsyncPipeline } from '../../../src/services/infrastructure/AsyncPipeline';
+import { BatchProcessor } from '../../../src/services/processing/BatchProcessor';
+import { MemoryManager } from '../../../src/services/processing/MemoryManager';
+import { ObjectPool } from '../../../src/services/infrastructure/ObjectPool';
+import { ChangeDetectionService } from '../../../src/services/filesystem/ChangeDetectionService';
+import { ParserService } from '../../../src/services/parser/ParserService';
+import { FileSystemTraversal } from '../../../src/services/filesystem/FileSystemTraversal';
+import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
+import { VectorStorageService } from '../../../src/services/storage/VectorStorageService';
+import { GraphPersistenceService } from '../../../src/services/storage/GraphPersistenceService';
+import { LoggerService } from '../../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
+import { ConfigService } from '../../../src/config/ConfigService';
+import { HashUtils } from '../../../src/utils/HashUtils';
+import { createTestContainer } from '../../setup';
 
 describe('Module Collaboration Integration Tests', () => {
   let container: any;

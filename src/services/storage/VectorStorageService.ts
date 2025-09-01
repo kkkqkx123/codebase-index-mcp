@@ -14,6 +14,13 @@ export interface VectorStorageConfig {
   recreateCollection: boolean;
 }
 
+export interface ProjectVectorConfig {
+  collectionName: string;
+  vectorSize: number;
+  distance: 'Cosine' | 'Euclidean' | 'Dot';
+  recreateCollection: boolean;
+}
+
 export interface IndexingOptions {
   projectId?: string;
   batchSize?: number;
@@ -40,6 +47,7 @@ export class VectorStorageService {
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
   private isInitialized: boolean = false;
+  private currentCollection: string = '';
 
   // Batch processing configuration
   private maxConcurrentOperations: number = 5;
@@ -76,10 +84,14 @@ export class VectorStorageService {
     this.initializeBatchProcessingConfig();
   }
 
-  async initialize(): Promise<boolean> {
+  private generateCollectionName(projectId: string): string {
+    return `project-${projectId}`;
+  }
+
+  async initialize(projectId?: string): Promise<boolean> {
     try {
       // If already initialized, return true immediately
-      if (this.isInitialized) {
+      if (this.isInitialized && (!projectId || this.currentCollection === this.generateCollectionName(projectId))) {
         return true;
       }
       
@@ -90,28 +102,32 @@ export class VectorStorageService {
         }
       }
 
-      const collectionExists = await this.qdrantClient.collectionExists(this.config.collectionName);
+      // Set the collection name based on projectId or use default
+      const collectionName = projectId ? this.generateCollectionName(projectId) : this.config.collectionName;
+      this.currentCollection = collectionName;
+
+      const collectionExists = await this.qdrantClient.collectionExists(collectionName);
 
       if (!collectionExists || this.config.recreateCollection) {
         const created = await this.qdrantClient.createCollection(
-          this.config.collectionName,
+          collectionName,
           this.config.vectorSize,
           this.config.distance as 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan',
           this.config.recreateCollection
         );
 
         if (!created) {
-          throw new Error(`Failed to create collection ${this.config.collectionName}`);
+          throw new Error(`Failed to create collection ${collectionName}`);
         }
       }
 
-      const collectionInfo = await this.qdrantClient.getCollectionInfo(this.config.collectionName);
+      const collectionInfo = await this.qdrantClient.getCollectionInfo(collectionName);
       if (!collectionInfo) {
-        throw new Error(`Failed to get collection info for ${this.config.collectionName}`);
+        throw new Error(`Failed to get collection info for ${collectionName}`);
       }
 
       this.logger.info('Vector storage service initialized', {
-        collectionName: this.config.collectionName,
+        collectionName,
         vectorSize: collectionInfo.vectors.size,
         pointsCount: collectionInfo.pointsCount,
         status: collectionInfo.status
@@ -180,7 +196,7 @@ export class VectorStorageService {
 
       // Store vector points with retry logic
       const success = await this.retryOperation(() =>
-        this.qdrantClient.upsertPoints(this.config.collectionName, vectorPoints)
+        this.qdrantClient.upsertPoints(this.currentCollection, vectorPoints)
       );
 
       if (success) {
@@ -234,7 +250,7 @@ export class VectorStorageService {
     }
 
     try {
-      return await this.qdrantClient.searchVectors(this.config.collectionName, queryVector, options);
+      return await this.qdrantClient.searchVectors(this.currentCollection, queryVector, options);
     } catch (error) {
       const report = this.errorHandler.handleError(
         new Error(`Failed to search vectors: ${error instanceof Error ? error.message : String(error)}`),
@@ -251,7 +267,7 @@ export class VectorStorageService {
     }
 
     try {
-      return await this.qdrantClient.deletePoints(this.config.collectionName, chunkIds);
+      return await this.qdrantClient.deletePoints(this.currentCollection, chunkIds);
     } catch (error) {
       const report = this.errorHandler.handleError(
         new Error(`Failed to delete chunks: ${error instanceof Error ? error.message : String(error)}`),
@@ -268,7 +284,7 @@ export class VectorStorageService {
     }
 
     try {
-      return await this.qdrantClient.clearCollection(this.config.collectionName);
+      return await this.qdrantClient.clearCollection(this.currentCollection);
     } catch (error) {
       const report = this.errorHandler.handleError(
         new Error(`Failed to clear collection: ${error instanceof Error ? error.message : String(error)}`),
@@ -289,8 +305,8 @@ export class VectorStorageService {
 
     try {
       const [pointCount, collectionInfo] = await Promise.all([
-        this.qdrantClient.getPointCount(this.config.collectionName),
-        this.qdrantClient.getCollectionInfo(this.config.collectionName)
+        this.qdrantClient.getPointCount(this.currentCollection),
+        this.qdrantClient.getCollectionInfo(this.currentCollection)
       ]);
 
       return {
@@ -613,7 +629,7 @@ export class VectorStorageService {
       }
 
       // Delete the chunks
-      const success = await this.qdrantClient.deletePoints(this.config.collectionName, chunkIds);
+      const success = await this.qdrantClient.deletePoints(this.currentCollection, chunkIds);
 
       if (success) {
         this.logger.info('Chunks deleted by files', {
@@ -638,7 +654,7 @@ export class VectorStorageService {
 
   private async getExistingChunkIds(chunkIds: string[]): Promise<string[]> {
     try {
-      const existingChunkIds = await this.qdrantClient.getExistingChunkIds(this.config.collectionName, chunkIds);
+      const existingChunkIds = await this.qdrantClient.getExistingChunkIds(this.currentCollection, chunkIds);
       this.logger.debug(`Found ${existingChunkIds.length} existing chunk IDs out of ${chunkIds.length} requested`);
       return existingChunkIds;
     } catch (error) {
@@ -652,7 +668,7 @@ export class VectorStorageService {
 
   private async getChunkIdsByFiles(filePaths: string[]): Promise<string[]> {
     try {
-      const chunkIds = await this.qdrantClient.getChunkIdsByFiles(this.config.collectionName, filePaths);
+      const chunkIds = await this.qdrantClient.getChunkIdsByFiles(this.currentCollection, filePaths);
       this.logger.debug(`Retrieved ${chunkIds.length} chunk IDs for ${filePaths.length} files`);
       return chunkIds;
     } catch (error) {
@@ -813,7 +829,7 @@ export class VectorStorageService {
 
       // Store vector points with retry logic
       const success = await this.retryOperation(() =>
-        this.qdrantClient.upsertPoints(this.config.collectionName, vectorPoints)
+        this.qdrantClient.upsertPoints(this.currentCollection, vectorPoints)
       );
 
       if (success) {

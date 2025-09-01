@@ -1,7 +1,7 @@
-import { AsyncPipeline, PipelineStep, PipelineOptions } from '../../src/services/infrastructure/AsyncPipeline';
-import { ObjectPool, PoolOptions } from '../../src/services/infrastructure/ObjectPool';
-import { BatchProcessor, BatchOptions } from '../../src/services/processing/BatchProcessor';
-import { MemoryManager, MemoryManagerOptions } from '../../src/services/processing/MemoryManager';
+import { AsyncPipeline, PipelineStep, PipelineOptions } from '../../../src/services/infrastructure/AsyncPipeline';
+import { ObjectPool, PoolOptions } from '../../../src/services/infrastructure/ObjectPool';
+import { BatchProcessor, BatchOptions } from '../../../src/services/processing/BatchProcessor';
+import { MemoryManager, MemoryManagerOptions } from '../../../src/services/processing/MemoryManager';
 
 describe('Phase 2 Performance Components Integration', () => {
   let asyncPipeline: AsyncPipeline;

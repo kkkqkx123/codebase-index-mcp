@@ -1,15 +1,15 @@
-import { EmbedderFactory } from '../../src/embedders/EmbedderFactory';
-import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from '../../src/embedders/BaseEmbedder';
-import { OpenAIEmbedder } from '../../src/embedders/OpenAIEmbedder';
-import { OllamaEmbedder } from '../../src/embedders/OllamaEmbedder';
-import { GeminiEmbedder } from '../../src/embedders/GeminiEmbedder';
-import { MistralEmbedder } from '../../src/embedders/MistralEmbedder';
-import { DimensionAdapterService } from '../../src/embedders/DimensionAdapterService';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
-import { ConfigService } from '../../src/config/ConfigService';
+import { EmbedderFactory } from '../../../src/embedders/EmbedderFactory';
+import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from '../../../src/embedders/BaseEmbedder';
+import { OpenAIEmbedder } from '../../../src/embedders/OpenAIEmbedder';
+import { OllamaEmbedder } from '../../../src/embedders/OllamaEmbedder';
+import { GeminiEmbedder } from '../../../src/embedders/GeminiEmbedder';
+import { MistralEmbedder } from '../../../src/embedders/MistralEmbedder';
+import { DimensionAdapterService } from '../../../src/embedders/DimensionAdapterService';
+import { LoggerService } from '../../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
+import { ConfigService } from '../../../src/config/ConfigService';
 import { Container } from 'inversify';
-import { createTestContainer } from '../setup';
+import { createTestContainer } from '../../setup';
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
 
 describe('Embedding Services Integration Tests', () => {

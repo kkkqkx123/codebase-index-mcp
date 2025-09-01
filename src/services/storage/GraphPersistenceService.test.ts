@@ -6,6 +6,7 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
 import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
 import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler';
+import { NebulaSpaceManager } from '../../database/nebula/NebulaSpaceManager';
 import { TYPES } from '../../core/DIContainer';
 
 describe('GraphPersistenceService', () => {
@@ -16,6 +17,7 @@ describe('GraphPersistenceService', () => {
   let mockErrorHandlerService: any;
   let mockQueryBuilder: any;
   let mockGraphErrorHandler: any;
+  let mockNebulaSpaceManager: any;
 
   beforeEach(() => {
     // Use fake timers to control async operations
@@ -94,9 +96,15 @@ describe('GraphPersistenceService', () => {
       }),
     };
 
+    mockNebulaSpaceManager = {
+      checkSpaceExists: jest.fn().mockResolvedValue(true),
+      createSpace: jest.fn().mockResolvedValue(true),
+    };
+
     // Create service instance directly
     graphPersistenceService = new GraphPersistenceService(
       mockNebulaService,
+      mockNebulaSpaceManager,
       mockLoggerService,
       mockErrorHandlerService,
       mockConfigService,

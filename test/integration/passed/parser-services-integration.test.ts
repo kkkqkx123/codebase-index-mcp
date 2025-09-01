@@ -1,11 +1,11 @@
-import { ParserService } from '../../src/services/parser/ParserService';
-import { TreeSitterService } from '../../src/services/parser/TreeSitterService';
-import { SmartCodeParser } from '../../src/services/parser/SmartCodeParser';
-import { ConfigService } from '../../src/config/ConfigService';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
+import { ParserService } from '../../../src/services/parser/ParserService';
+import { TreeSitterService } from '../../../src/services/parser/TreeSitterService';
+import { SmartCodeParser } from '../../../src/services/parser/SmartCodeParser';
+import { ConfigService } from '../../../src/config/ConfigService';
+import { LoggerService } from '../../../src/core/LoggerService';
+import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
-import { createTestContainer } from '../setup';
+import { createTestContainer } from '../../setup';
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
 import fs from 'fs/promises';
 import path from 'path';

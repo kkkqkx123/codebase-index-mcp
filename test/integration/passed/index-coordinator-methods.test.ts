@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { DIContainer, TYPES } from '../../src/core/DIContainer';
-import { IndexService } from '../../src/services/indexing/IndexService';
-import { IndexCoordinator } from '../../src/services/indexing/IndexCoordinator';
-import { HashUtils } from '../../src/utils/HashUtils';
+import { DIContainer, TYPES } from '../../../src/core/DIContainer';
+import { IndexService } from '../../../src/services/indexing/IndexService';
+import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
+import { HashUtils } from '../../../src/utils/HashUtils';
 
 describe('Index Coordinator Methods', () => {
   let container: Container;
