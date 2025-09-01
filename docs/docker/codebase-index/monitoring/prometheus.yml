@@ -23,6 +23,7 @@ scrape_configs:
       - targets: ['graphd:19670']
     metrics_path: '/stats'
     scrape_interval: 30s
+    fallback_scrape_protocol: 'prometheus-text'
 
 alerting:
   alertmanagers:

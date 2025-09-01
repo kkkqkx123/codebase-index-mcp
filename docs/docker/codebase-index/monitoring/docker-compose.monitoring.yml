@@ -60,4 +60,5 @@ volumes:
 
 networks:
   monitoring:
+    driver: bridge
     external: true

@@ -224,7 +224,6 @@ services:
       start_period: 10s
     networks:
       - monitoring
-        external: true
 
 volumes:
   meta0:
@@ -237,4 +236,5 @@ volumes:
 
 networks:
   monitoring:
+    driver: bridge
     external: true

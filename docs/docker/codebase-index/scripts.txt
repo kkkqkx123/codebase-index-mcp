@@ -1,0 +1,12 @@
+cd /home/docker-compose/codebase-index
+
+# 运行目录创建脚本q
+bash setup-config-files.sh
+
+docker network create monitoring
+
+cd /home/docker-compose/codebase-index/nebula && docker-compose -f docker-compose.nebula.yml up -d
+
+cd /home/docker-compose/codebase-index/qdrant && docker-compose -f docker-compose.qdrant.yml up -d
+
+cd /home/docker-compose/codebase-index/monitoring && docker-compose -f docker-compose.monitoring.yml up -d
