@@ -143,7 +143,7 @@ docker network create monitoring
 ### 1. 首先启动监控服务
 
 ```bash
-cd /home/share/monitoring
+cd /home/docker-compose/codebase-index/share/monitoring
 docker-compose -f docker-compose.monitoring.yml up -d
 ```
 
@@ -158,7 +158,7 @@ curl http://localhost:3000         # Grafana
 ### 2. 然后启动 NebulaGraph 服务
 
 ```bash
-cd /home/share/nebula
+cd /home/docker-compose/codebase-index/share/nebula
 docker-compose up -d
 ```
 
@@ -177,7 +177,7 @@ nebula-console -u root -p nebula --address=127.0.0.1 --port=9669 -e "SHOW HOSTS"
 ### 3. 最后启动 Qdrant 服务
 
 ```bash
-cd /home/share/qdrant
+cd /home/docker-compose/codebase-index/share/qdrant
 docker-compose -f docker-compose.qdrant.yml up -d
 ```
 
@@ -211,20 +211,20 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(prome
 
 ```bash
 # 按启动顺序逆序停止
-cd /home/share/qdrant && docker-compose down
-cd /home/share/nebula && docker-compose down
-cd /home/share/monitoring && docker-compose -f docker-compose.monitoring.yml down
+cd /home/docker-compose/codebase-index/share/qdrant && docker-compose down
+cd /home/docker-compose/codebase-index/share/nebula && docker-compose down
+cd /home/docker-compose/codebase-index/share/monitoring && docker-compose -f docker-compose.monitoring.yml down
 ```
 
 ### 重启特定服务
 
 ```bash
 # 重启NebulaGraph
-cd /home/share/nebula
+cd /home/docker-compose/codebase-index/share/nebula
 docker-compose restart
 
 # 重启监控服务
-cd /home/share/monitoring
+cd /home/docker-compose/codebase-index/share/monitoring
 docker-compose -f docker-compose.monitoring.yml restart
 ```
 
@@ -270,9 +270,9 @@ docker-compose -f docker-compose.monitoring.yml restart
 
 ```bash
 # 查看所有服务日志
-cd /home/share/monitoring && docker-compose logs
-cd /home/share/nebula && docker-compose logs
-cd /home/share/qdrant && docker-compose logs
+cd /home/docker-compose/codebase-index/share/monitoring && docker-compose logs
+cd /home/docker-compose/codebase-index/share/nebula && docker-compose logs
+cd /home/docker-compose/codebase-index/share/qdrant && docker-compose logs
 
 # 查看特定服务日志
 docker logs prometheus
@@ -284,8 +284,8 @@ docker logs qdrant
 
 所有数据都配置了持久化存储：
 - **监控数据**：存储在Docker volumes中
-- **NebulaGraph数据**：存储在本地目录 `/home/share/nebula/data/`
-- **Qdrant数据**：存储在本地目录 `/home/share/qdrant/storage/`
+- **NebulaGraph数据**：存储在本地目录 `/home/docker-compose/codebase-index/share/nebula/data/`
+- **Qdrant数据**：存储在本地目录 `/home/docker-compose/codebase-index/share/qdrant/storage/`
 
 ## 备份和恢复
 
@@ -297,7 +297,7 @@ docker exec -it graphd bash
 nebula> CREATE SNAPSHOT;
 
 # 备份Qdrant数据（复制存储目录）
-cp -r /home/share/qdrant/storage/ /backup/qdrant-backup/
+cp -r /home/docker-compose/codebase-index/share/qdrant/storage/ /backup/qdrant-backup/
 ```
 
 ### 恢复数据
@@ -308,7 +308,7 @@ docker exec -it graphd bash
 nebula> RESTORE SNAPSHOT your_snapshot;
 
 # 恢复Qdrant数据
-cp -r /backup/qdrant-backup/ /home/share/qdrant/storage/
+cp -r /backup/qdrant-backup/ /home/docker-compose/codebase-index/share/qdrant/storage/
 ```
 
 ## 性能优化建议
