@@ -4,7 +4,7 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 import { EntityMappingService } from './EntityMappingService';
 import { VectorStorageService } from '../storage/VectorStorageService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 
 export interface TransactionStep {
   id: string;

@@ -6,8 +6,8 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
 import { CodeChunk } from '../parser/TreeSitterService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
-import { BatchProcessingService } from './batch-processing/BatchProcessingService';
-import { EmbeddingService } from './embedding/EmbeddingService';
+import { BatchProcessingService } from './BatchProcessingService';
+import { EmbeddingService } from './EmbeddingService';
 
 describe('VectorStorageService', () => {
   let vectorStorageService: VectorStorageService;

@@ -1,19 +1,19 @@
-import { GraphPersistenceService, GraphPersistenceOptions, GraphPersistenceResult, CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
-import { NebulaService } from '../../database/NebulaService';
-import { LoggerService } from '../../core/LoggerService';
-import { ConfigService } from '../../config/ConfigService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
-import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
-import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler';
-import { NebulaSpaceManager } from '../../database/nebula/NebulaSpaceManager';
+import { GraphPersistenceService, GraphPersistenceOptions, GraphPersistenceResult, CodeGraphNode, CodeGraphRelationship } from '../GraphPersistenceService';
+import { NebulaService } from '../../../database/NebulaService';
+import { LoggerService } from '../../../core/LoggerService';
+import { ConfigService } from '../../../config/ConfigService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { BatchProcessingMetrics } from '../../monitoring/BatchProcessingMetrics';
+import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
+import { GraphDatabaseErrorHandler } from '../../../core/GraphDatabaseErrorHandler';
+import { NebulaSpaceManager } from '../../../database/nebula/NebulaSpaceManager';
 import { GraphPersistenceUtils } from './GraphPersistenceUtils';
-import { TYPES } from '../../core/DIContainer';
+import { TYPES } from '../../../core/DIContainer';
 import { GraphCacheService } from './GraphCacheService';
 import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
 import { GraphBatchOptimizer } from './GraphBatchOptimizer';
 import { GraphQueryBuilder } from './GraphQueryBuilder';
-import { GraphSearchService } from './GraphSearchService';
+import { GraphSearchService } from '../GraphSearchService';
 
 describe('GraphPersistenceService', () => {
   let graphPersistenceService: GraphPersistenceService;
@@ -111,10 +111,17 @@ describe('GraphPersistenceService', () => {
     mockNebulaSpaceManager = {
       checkSpaceExists: jest.fn().mockResolvedValue(true),
       createSpace: jest.fn().mockResolvedValue(true),
+      getSpaceInfo: jest.fn().mockResolvedValue({
+        partition_num: 10,
+        replica_factor: 1,
+        vid_type: 'FIXED_STRING(32)'
+      }),
+      deleteSpace: jest.fn().mockResolvedValue(true),
     };
 
     mockGraphPersistenceUtils = {
-      // Mock methods as needed for tests
+      calculateOptimalBatchSize: jest.fn().mockReturnValue(50),
+      waitForSpaceDeletion: jest.fn().mockResolvedValue(undefined),
     };
 
     mockGraphCacheService = {
@@ -129,12 +136,14 @@ describe('GraphPersistenceService', () => {
       updateCacheHitRate: jest.fn(),
       recordQueryExecution: jest.fn(),
       getMetrics: jest.fn(),
+      startPeriodicMonitoring: jest.fn(),
     };
 
     mockGraphBatchOptimizer = {
       getConfig: jest.fn().mockReturnValue({
         processingTimeout: 300000,
       }),
+      updateConfig: jest.fn(),
     };
 
     mockGraphQueryBuilder = {
@@ -446,6 +455,14 @@ describe('GraphPersistenceService', () => {
   describe('clearGraph', () => {
     it('should clear the entire graph', async () => {
       mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true });
+      mockNebulaSpaceManager.getSpaceInfo.mockResolvedValue({
+        partition_num: 10,
+        replica_factor: 1,
+        vid_type: 'FIXED_STRING(32)'
+      });
+      mockNebulaSpaceManager.deleteSpace.mockResolvedValue(true);
+      mockNebulaSpaceManager.createSpace.mockResolvedValue(true);
+      mockGraphCacheService.clearAllCache.mockReturnValue(undefined);
 
       const result = await graphPersistenceService.clearGraph();
 

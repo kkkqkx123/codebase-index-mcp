@@ -6,8 +6,8 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
-import { BatchProcessingService } from './batch-processing/BatchProcessingService';
-import { EmbeddingService } from './embedding/EmbeddingService';
+import { BatchProcessingService } from './BatchProcessingService';
+import { EmbeddingService } from './EmbeddingService';
 import { VectorStorageUtils } from './utils/VectorStorageUtils';
 import { ChunkProcessingUtils } from './utils/ChunkProcessingUtils';
 

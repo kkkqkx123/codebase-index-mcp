@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
  import { VectorStorageService, IndexingResult } from '../storage/VectorStorageService';
- import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from '../storage/GraphPersistenceService';
+ import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from './graph/GraphPersistenceService';
  import { TransactionCoordinator } from '../sync/TransactionCoordinator';
  import { LoggerService } from '../../core/LoggerService';
  import { ErrorHandlerService } from '../../core/ErrorHandlerService';

@@ -1,9 +1,9 @@
 import { injectable, inject } from 'inversify';
-import { LoggerService } from '../../core/LoggerService';
-import { NebulaService } from '../../database/NebulaService';
-import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
-import { ParsedFile } from '../parser/SmartCodeParser';
-import { CodeChunk } from '../parser/TreeSitterService';
+import { LoggerService } from '../../../core/LoggerService';
+import { NebulaService } from '../../../database/NebulaService';
+import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
+import { ParsedFile } from '../../parser/SmartCodeParser';
+import { CodeChunk } from '../../parser/TreeSitterService';
 import { CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 
 export interface GraphQuery {

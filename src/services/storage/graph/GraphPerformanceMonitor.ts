@@ -1,4 +1,4 @@
-import { LoggerService } from '../../core/LoggerService';
+import { LoggerService } from '../../../core/LoggerService';
 import { injectable } from 'inversify';
 
 export interface PerformanceMetrics {

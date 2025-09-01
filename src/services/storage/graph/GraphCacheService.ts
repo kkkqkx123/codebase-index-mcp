@@ -1,5 +1,5 @@
-import { CacheEntry } from './GraphPersistenceService';
-import { LoggerService } from '../../core/LoggerService';
+import { CacheEntry } from '../GraphPersistenceService';
+import { LoggerService } from '../../../core/LoggerService';
 import { injectable } from 'inversify';
 
 export interface GraphCacheConfig {

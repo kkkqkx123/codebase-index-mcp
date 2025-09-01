@@ -4,7 +4,7 @@ import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
 import { VectorStorageService } from '../../storage/VectorStorageService';
-import { GraphPersistenceService } from '../../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../../storage/graph/GraphPersistenceService';
 import { TransactionCoordinator } from '../TransactionCoordinator';
 import { createMockEntityMapping, createMockConsistencyIssue } from '@test/setup';
 

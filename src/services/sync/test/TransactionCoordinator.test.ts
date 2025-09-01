@@ -3,7 +3,7 @@ import { EntityMappingService } from '../EntityMappingService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { VectorStorageService } from '../../storage/VectorStorageService';
-import { GraphPersistenceService } from '../../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../../storage/graph/GraphPersistenceService';
 import { CodebaseIndexError } from '../../../core/ErrorHandlerService';
 import { createMockTransaction, createMockSyncOperation } from '@test/setup';
 

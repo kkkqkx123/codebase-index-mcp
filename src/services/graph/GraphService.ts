@@ -4,7 +4,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { HashUtils } from '../../utils/HashUtils';
 import { NebulaService } from '../../database/NebulaService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
 
 export interface GraphNode {

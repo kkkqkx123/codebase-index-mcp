@@ -4,7 +4,7 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
 import { EntityIdManager, EntityMapping } from './EntityIdManager';
 import { VectorStorageService } from '../storage/VectorStorageService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { TransactionCoordinator } from './TransactionCoordinator';
 
 export interface ConsistencyIssue {

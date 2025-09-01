@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
-import { LoggerService } from '../../core/LoggerService';
-import { NebulaService } from '../../database/NebulaService';
+import { LoggerService } from '../../../core/LoggerService';
+import { NebulaService } from '../../../database/NebulaService';
 import { GraphCacheService } from './GraphCacheService';
 import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
 import { GraphQueryBuilder } from './GraphQueryBuilder';

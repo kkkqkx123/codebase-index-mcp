@@ -1,20 +1,20 @@
 import { injectable, inject } from 'inversify';
-import { CodeChunk } from '../../services/parser/TreeSitterService';
-import { ParsedFile } from '../../services/parser/SmartCodeParser';
-import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { ConfigService } from '../../config/ConfigService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
-import { NebulaService } from '../../database/NebulaService';
-import { NebulaQueryBuilder, BatchVertex } from '../../database/nebula/NebulaQueryBuilder';
-import { NebulaSpaceManager } from '../../database/nebula/NebulaSpaceManager';
-import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler';
+import { CodeChunk } from '../../parser/TreeSitterService';
+import { ParsedFile } from '../../parser/SmartCodeParser';
+import { LoggerService } from '../../../core/LoggerService';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { ConfigService } from '../../../config/ConfigService';
+import { BatchProcessingMetrics, BatchOperationMetrics } from '../../monitoring/BatchProcessingMetrics';
+import { NebulaService } from '../../../database/NebulaService';
+import { NebulaQueryBuilder, BatchVertex } from '../../../database/nebula/NebulaQueryBuilder';
+import { NebulaSpaceManager } from '../../../database/nebula/NebulaSpaceManager';
+import { GraphDatabaseErrorHandler } from '../../../core/GraphDatabaseErrorHandler';
 import { GraphCacheService } from './GraphCacheService';
 import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
 import { GraphBatchOptimizer } from './GraphBatchOptimizer';
 import { GraphQueryBuilder as EnhancedQueryBuilder } from './GraphQueryBuilder';
 import { GraphPersistenceUtils } from './GraphPersistenceUtils';
-import { GraphSearchService } from './GraphSearchService';
+import { GraphSearchService } from '../GraphSearchService';
 
 export interface CacheEntry<T> {
   data: T;

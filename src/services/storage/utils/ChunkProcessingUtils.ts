@@ -1,6 +1,6 @@
 import { CodeChunk } from '../../parser/TreeSitterService';
 import { VectorPoint } from '../../../database/qdrant/QdrantClientWrapper';
-import { IndexingOptions } from '../embedding/EmbeddingService';
+import { IndexingOptions } from '../EmbeddingService';
 
 export class ChunkProcessingUtils {
   static extractUniqueFileCount(chunks: CodeChunk[]): number {

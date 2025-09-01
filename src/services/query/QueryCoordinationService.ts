@@ -3,7 +3,7 @@ import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { VectorStorageService } from '../storage/VectorStorageService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { ResultFusionEngine } from './ResultFusionEngine';
 import { QueryOptimizer } from './QueryOptimizer';

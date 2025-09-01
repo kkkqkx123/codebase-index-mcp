@@ -1,6 +1,6 @@
 import { QueryCoordinationService } from './QueryCoordinationService';
 import { VectorStorageService } from '../../services/storage/VectorStorageService';
-import { GraphPersistenceService } from '../../services/storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { ResultFusionEngine } from './ResultFusionEngine';
 import { QueryOptimizer } from './QueryOptimizer';
 import { QueryCache } from './QueryCache';

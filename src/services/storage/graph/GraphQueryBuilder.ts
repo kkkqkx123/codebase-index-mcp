@@ -1,5 +1,5 @@
-import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
-import { CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
+import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
+import { CodeGraphNode, CodeGraphRelationship } from '../GraphPersistenceService';
 import { injectable, inject } from 'inversify';
 
 export interface SearchQuery {

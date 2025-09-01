@@ -1,8 +1,8 @@
 import { injectable, inject } from 'inversify';
-import { ConfigService } from '../../../config/ConfigService';
-import { LoggerService } from '../../../core/LoggerService';
-import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
-import { BatchProcessingMetrics } from '../../monitoring/BatchProcessingMetrics';
+import { ConfigService } from '../../config/ConfigService';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
 
 export interface BatchProcessingConfig {
   maxConcurrentOperations: number;

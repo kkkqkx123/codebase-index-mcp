@@ -4,7 +4,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { IRerankingService, RerankingOptions, RerankedResult } from './IRerankingService';
 import { QueryResult } from '../query/QueryCoordinationService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { SemanticSearchService } from '../search/SemanticSearchService';
 
 @injectable()

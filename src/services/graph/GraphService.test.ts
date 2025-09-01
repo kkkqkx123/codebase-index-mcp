@@ -4,7 +4,7 @@ import { NebulaService } from '../../database/NebulaService';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { GraphPersistenceService } from '../storage/GraphPersistenceService';
+import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
 import { TYPES } from '../../core/DIContainer';
 
