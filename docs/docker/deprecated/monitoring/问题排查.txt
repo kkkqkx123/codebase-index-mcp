@@ -18,10 +18,10 @@ docker inspect qdrant_server
 --
 
 
-让ai查找文档后发现nebula指标服务可以使用/stats和/metrics
+让ai查找文档后发现nebula指标服务只支持/stats(json格式)，不支持/metrics(文本格式)
 --ws_http_port 用于WebSocket服务（提供/stats端点）
---metric_port 用于Prometheus指标服务（提供/metrics端点）
-不能使用同一端口，且端口必须是设置了映射的端口
+
+
 
 prometheus.yml中设置prometheus查看的端点
 

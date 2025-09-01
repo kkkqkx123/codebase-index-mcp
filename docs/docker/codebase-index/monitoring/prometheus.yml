@@ -21,7 +21,7 @@ scrape_configs:
   - job_name: 'nebula-graph'
     static_configs:
       - targets: ['graphd:19670']
-    metrics_path: '/metrics'
+    metrics_path: '/stats'
     scrape_interval: 30s
     fallback_scrape_protocol: 'PrometheusText1.0.0'
 
