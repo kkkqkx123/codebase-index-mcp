@@ -205,6 +205,7 @@ services:
       - --minloglevel=0
     volumes:
       - ./logs/graphd:/logs
+      - ./nebula-graphd.conf:/usr/local/nebula/etc/nebula-graphd.conf
     depends_on:
       - metad0
       - metad1

@@ -43,7 +43,7 @@ docker run -d \
 docker ps | grep qdrant
 
 # 查看 Qdrant 健康状态
-curl http://localhost:6333/
+curl http://localhost:6335/
 
 # 查看日志
 docker logs qdrant
@@ -52,12 +52,13 @@ docker logs qdrant
 ## 配置文件（可选）
 
 如需自定义配置，可以创建配置文件并挂载：
+使用6335与6336端口，从而与默认的qdrant服务隔离
 
 ```bash
 docker run -d \
   --name qdrant \
-  -p 6333:6333 \
-  -p 6334:6334 \
+  -p 6335:6333 \
+  -p 6336:6334 \
   -v /home/share/qdrant_storage:/qdrant/storage \
   -v /home/share/qdrant_config.yaml:/qdrant/config/production.yaml \
   qdrant/qdrant:latest
