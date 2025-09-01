@@ -1,7 +1,8 @@
 cd /home/docker-compose/codebase-index
 
-# 运行目录创建脚本q
-bash setup-config-files.sh
+# 运行目录创建脚本
+# CRLF转LF
+sed -i 's/\r$//' setup-config-files.sh && bash setup-config-files.sh
 
 docker network create monitoring
 

@@ -39,6 +39,7 @@ bash setup-config-files.sh
 - `docker-compose.monitoring.yml` - 监控服务编排
 - `docker-compose.nebula.yml` - NebulaGraph服务编排
 - `nebula-graphd.conf` - NebulaGraph图服务配置
+- `nebula-stats-exporter-config.yaml` - NebulaGraph指标导出器配置
 - `docker-compose.qdrant.yml` - Qdrant服务编排
 
 
@@ -69,8 +70,9 @@ bash setup-config-files.sh
 │   │   ├── metad0/ metad1/ metad2/
 │   │   ├── storaged0/ storaged1/ storaged2/
 │   │   └── graphd/ console/
-│   ├── docker-compose.yml
-│   └── nebula-graphd.conf
+│   ├── docker-compose.nebula.yml
+│   ├── nebula-graphd.conf
+│   └── nebula-stats-exporter-config.yaml
 └── qdrant/
     ├── storage/
     └── docker-compose.qdrant.yml
@@ -94,6 +96,8 @@ docker network create monitoring
 cd /home/docker-compose/codebase-index/nebula
 docker-compose -f docker-compose.nebula.yml up -d
 ```
+
+**注意**：Nebula Stats Exporter 会自动启动并与 NebulaGraph 服务一起运行，负责将 NebulaGraph 的指标转换为 Prometheus 兼容格式。
 
 **等待 NebulaGraph 初始化**（约1-2分钟）：
 ```bash
@@ -166,6 +170,7 @@ curl http://localhost:3000         # Grafana
 | Grafana | http://localhost:3000 | 3000 | 监控仪表板 |
 | NebulaGraph | nebula://localhost:9669 | 9669 | 图数据库服务 |
 | Nebula HTTP | http://localhost:19669 | 19669 | 图数据库监控 |
+| Nebula Stats Exporter | http://localhost:9100 | 9100 | NebulaGraph 指标导出器 |
 | Qdrant HTTP | http://localhost:6333 | 6333 | 向量数据库API |
 | Qdrant gRPC | localhost:6334 | 6334 | 向量数据库gRPC |
 
@@ -326,6 +331,7 @@ fi
 # NebulaGraph配置文件
 mv docker-compose.nebula.yml nebula/ 2>/dev/null || echo "docker-compose.nebula.yml 不存在"
 mv nebula-graphd.conf nebula/ 2>/dev/null || echo "nebula-graphd.conf 不存在"
+mv nebula-stats-exporter-config.yaml nebula/ 2>/dev/null || echo "nebula-stats-exporter-config.yaml 不存在"
 
 # Qdrant配置文件
 mv docker-compose.qdrant.yml qdrant/ 2>/dev/null || echo "docker-compose.qdrant.yml 不存在"
@@ -333,7 +339,7 @@ mv docker-compose.qdrant.yml qdrant/ 2>/dev/null || echo "docker-compose.qdrant.
 # 设置文件权限
 chmod -R 755 monitoring/ nebula/ qdrant/
 find monitoring/ -name "*.yml" -o -name "*.yaml" -o -name "*.json" | xargs chmod 644 2>/dev/null || true
-find nebula/ -name "*.yml" -o -name "*.conf" | xargs chmod 644 2>/dev/null || true
+find nebula/ -name "*.yml" -o -name "*.conf" -o -name "*.yaml" | xargs chmod 644 2>/dev/null || true
 find qdrant/ -name "*.yml" | xargs chmod 644 2>/dev/null || true
 ```
 

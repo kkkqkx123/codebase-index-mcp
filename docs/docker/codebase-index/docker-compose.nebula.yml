@@ -187,6 +187,29 @@ services:
     networks:
       - monitoring
 
+  # ==================== Nebula Stats Exporter ====================
+  nebula-stats-exporter:
+    image: vesoft/nebula-stats-exporter:v3.8.0
+    container_name: nebula-stats-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - ./nebula-stats-exporter-config.yaml:/config.yaml
+    command:
+      - "--bare-metal"
+      - "--bare-metal-config=/config.yaml"
+    restart: unless-stopped
+    networks:
+      - monitoring
+    depends_on:
+      - graphd
+      - metad0
+      - metad1
+      - metad2
+      - storaged0
+      - storaged1
+      - storaged2
+
   # ==================== Graph Service ====================
   graphd:
     hostname: graphd

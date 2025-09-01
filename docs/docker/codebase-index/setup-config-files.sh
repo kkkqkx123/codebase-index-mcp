@@ -31,8 +31,17 @@ mkdir -p nebula/logs/{metad0,metad1,metad2,storaged0,storaged1,storaged2,graphd,
 echo "✓ nebula目录结构创建完成"
 
 # 创建qdrant目录结构
+
 echo "=== 创建Qdrant目录结构 ==="
 mkdir -p qdrant/storage
+
+mkdir -p qdrant/config
+
+# 检查qdrant目录中的文件
+if [ -f "config/production.yaml" ]; then
+    mv config/production.yaml qdrant/config/production.yaml
+    echo "✓ roduction.yaml 已移动到 qdrant/config/"
+fi
 
 echo "✓ qdrant目录结构创建完成"
 
@@ -74,7 +83,11 @@ if [ -f "nebula-graphd.conf" ]; then
     echo "✓ nebula-graphd.conf 已移动到 nebula/"
 fi
 
-# 检查qdrant目录中的文件
+if [ -f "config/nebula-stats-exporter-config.yaml" ]; then
+    mv config/nebula-stats-exporter-config.yaml nebula/
+    echo "✓ nebula-stats-exporter-config.yaml 已移动到 nebula/"
+fi
+
 if [ -f "docker-compose.qdrant.yml" ]; then
     mv docker-compose.qdrant.yml qdrant/
     echo "✓ docker-compose.qdrant.yml 已移动到 qdrant/"
@@ -89,7 +102,7 @@ find monitoring/ -name "*.yml" -o -name "*.yaml" -o -name "*.json" | xargs chmod
 
 echo "正在设置NebulaGraph配置文件权限..."
 chmod -R 755 nebula/
-find nebula/ -name "*.yml" -o -name "*.conf" | xargs chmod 644 2>/dev/null || true
+find nebula/ -name "*.yml" -o -name "*.conf" -o -name "*.yaml" | xargs chmod 644 2>/dev/null || true
 
 # 设置数据目录权限
 chmod -R 755 nebula/data/* 2>/dev/null || true
@@ -99,6 +112,8 @@ echo "正在设置Qdrant配置文件权限..."
 chmod -R 755 qdrant/
 find qdrant/ -name "*.yml" | xargs chmod 644 2>/dev/null || true
 chmod -R 755 qdrant/storage/ 2>/dev/null || true
+chmod -R 755 config/ 2>/dev/null || true
+find config/ -name "*.yaml" | xargs chmod 644 2>/dev/null || true
 
 echo "✓ 所有文件权限设置完成"
 
@@ -112,6 +127,7 @@ echo "检查配置文件:"
 ls -la monitoring/ 2>/dev/null || echo "monitoring目录为空"
 ls -la nebula/ 2>/dev/null || echo "nebula目录为空"
 ls -la qdrant/ 2>/dev/null || echo "qdrant目录为空"
+ls -la config/ 2>/dev/null || echo "config目录为空"
 
 echo ""
 echo "=== 配置完成 ==="

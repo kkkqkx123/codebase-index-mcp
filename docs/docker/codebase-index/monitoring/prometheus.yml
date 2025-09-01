@@ -18,12 +18,10 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
 
-  - job_name: 'nebula-graph'
+  - job_name: 'nebula-stats-exporter'
     static_configs:
-      - targets: ['graphd:19670']
-    metrics_path: '/stats'
+      - targets: ['nebula-stats-exporter:9100']
     scrape_interval: 30s
-    fallback_scrape_protocol: 'PrometheusText1.0.0'
 
 alerting:
   alertmanagers:

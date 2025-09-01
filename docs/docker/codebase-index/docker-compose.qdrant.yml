@@ -10,6 +10,7 @@ services:
       - qdrant_storage:/qdrant/storage
       - ./config/production.yaml:/qdrant/config/production.yaml
     environment:
+      - QDRANT__CONFIG=/qdrant/config/production.yaml
       - QDRANT_ENABLE_METRICS=1
     restart: unless-stopped
     networks:
