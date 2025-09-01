@@ -13,6 +13,7 @@ import { GraphCacheService } from './GraphCacheService';
 import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
 import { GraphBatchOptimizer } from './GraphBatchOptimizer';
 import { GraphQueryBuilder as EnhancedQueryBuilder } from './GraphQueryBuilder';
+import { GraphPersistenceUtils } from './GraphPersistenceUtils';
 import { GraphSearchService } from './GraphSearchService';
 
 export interface CacheEntry<T> {
@@ -75,6 +76,7 @@ export class GraphPersistenceService {
   private performanceMonitor: GraphPerformanceMonitor;
   private batchOptimizer: GraphBatchOptimizer;
   private enhancedQueryBuilder: EnhancedQueryBuilder;
+  private persistenceUtils: GraphPersistenceUtils;
   private searchService: GraphSearchService;
   private isInitialized: boolean = false;
   private currentSpace: string = '';
@@ -92,7 +94,8 @@ export class GraphPersistenceService {
     @inject(ConfigService) configService: ConfigService,
     @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
     @inject(NebulaQueryBuilder) queryBuilder: NebulaQueryBuilder,
-    @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler
+    @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler,
+    @inject(GraphPersistenceUtils) persistenceUtils: GraphPersistenceUtils
   ) {
     this.nebulaService = nebulaService;
     this.nebulaSpaceManager = nebulaSpaceManager;
@@ -108,6 +111,7 @@ export class GraphPersistenceService {
     this.performanceMonitor = new GraphPerformanceMonitor(logger);
     this.batchOptimizer = new GraphBatchOptimizer();
     this.enhancedQueryBuilder = new EnhancedQueryBuilder(queryBuilder);
+    this.persistenceUtils = persistenceUtils;
     this.searchService = new GraphSearchService(
       nebulaService,
       logger,
@@ -333,7 +337,7 @@ export class GraphPersistenceService {
       const queries: GraphQuery[] = [];
 
       for (const chunk of chunks) {
-        const chunkQueries = this.createChunkQueries(chunk, options);
+        const chunkQueries = this.persistenceUtils.createChunkQueries(chunk, options);
         queries.push(...chunkQueries);
       }
 
@@ -841,155 +845,15 @@ export class GraphPersistenceService {
     }
   }
 
-  private createProjectNode(projectId: string): GraphQuery {
-    return {
-      nGQL: `
-        INSERT VERTEX Project(id, name, createdAt, updatedAt) 
-        VALUES $projectId:($projectId, $projectId, now(), now())
-      `,
-      parameters: { projectId }
-    };
-  }
 
-  private createFileQueries(file: ParsedFile, options: GraphPersistenceOptions): GraphQuery[] {
-    const queries: GraphQuery[] = [];
-    const fileQuery: GraphQuery = {
-      nGQL: `
-        INSERT VERTEX File(id, path, relativePath, name, language, size, hash, linesOfCode, functions, classes, lastModified, updatedAt) 
-        VALUES $fileId:($fileId, $filePath, $relativePath, $fileName, $language, $size, $hash, $linesOfCode, $functions, $classes, $lastModified, now())
-      `,
-      parameters: {
-        fileId: file.id,
-        filePath: file.filePath,
-        relativePath: file.relativePath,
-        fileName: file.filePath.split('/').pop() || 'unknown',
-        language: file.language,
-        size: file.size,
-        hash: file.hash,
-        linesOfCode: file.metadata.linesOfCode,
-        functions: file.metadata.functions,
-        classes: file.metadata.classes,
-        lastModified: new Date().toISOString()
-      }
-    };
 
-    queries.push(fileQuery);
 
-    if (options.projectId) {
-      queries.push({
-        nGQL: `
-          INSERT EDGE BELONGS_TO() VALUES $fileId->$projectId:()
-        `,
-        parameters: { fileId: file.id, projectId: options.projectId }
-      });
-    }
 
-    for (const chunk of file.chunks) {
-      queries.push(...this.createChunkNodeQueries(chunk, file, options));
-    }
 
-    return queries;
-  }
 
-  private createChunkQueries(chunk: CodeChunk, options: GraphPersistenceOptions): GraphQuery[] {
-    return this.createChunkNodeQueries(chunk, null, options);
-  }
 
-  private createChunkNodeQueries(chunk: CodeChunk, file: ParsedFile | null, options: GraphPersistenceOptions): GraphQuery[] {
-    const queries: GraphQuery[] = [];
 
-    if (chunk.type === 'function') {
-      queries.push({
-        nGQL: `
-          INSERT VERTEX Function(id, name, content, startLine, endLine, complexity, parameters, returnType, language, updatedAt)
-          VALUES $chunkId:($chunkId, $functionName, $content, $startLine, $endLine, $complexity, $parameters, $returnType, $language, now())
-        `,
-        parameters: {
-          chunkId: chunk.id,
-          functionName: chunk.functionName || 'anonymous',
-          content: chunk.content,
-          startLine: chunk.startLine,
-          endLine: chunk.endLine,
-          complexity: chunk.metadata.complexity || 1,
-          parameters: chunk.metadata.parameters || [],
-          returnType: chunk.metadata.returnType || 'unknown',
-          language: chunk.metadata.language || 'unknown'
-        }
-      });
 
-      if (file) {
-        queries.push({
-          nGQL: `
-            INSERT EDGE CONTAINS() VALUES $fileId->$chunkId:()
-          `,
-          parameters: { fileId: file.id, chunkId: chunk.id }
-        });
-      }
-    }
-
-    if (chunk.type === 'class') {
-      queries.push({
-        nGQL: `
-          INSERT VERTEX Class(id, name, content, startLine, endLine, methods, properties, inheritance, language, updatedAt)
-          VALUES $chunkId:($chunkId, $className, $content, $startLine, $endLine, $methods, $properties, $inheritance, $language, now())
-        `,
-        parameters: {
-          chunkId: chunk.id,
-          className: chunk.className || 'anonymous',
-          content: chunk.content,
-          startLine: chunk.startLine,
-          endLine: chunk.endLine,
-          methods: chunk.metadata.methods || 0,
-          properties: chunk.metadata.properties || 0,
-          inheritance: chunk.metadata.inheritance || [],
-          language: chunk.metadata.language || 'unknown'
-        }
-      });
-
-      if (file) {
-        queries.push({
-          nGQL: `
-            INSERT EDGE CONTAINS() VALUES $fileId->$chunkId:()
-          `,
-          parameters: { fileId: file.id, chunkId: chunk.id }
-        });
-      }
-    }
-
-    return queries;
-  }
-
-  private createRelationshipQueries(files: ParsedFile[], options: GraphPersistenceOptions): GraphQuery[] {
-    const queries: GraphQuery[] = [];
-
-    for (const file of files) {
-      for (const importName of file.metadata.imports) {
-        // 这里需要根据实际的NebulaGraph数据模型进行调整
-        queries.push({
-          nGQL: `
-            INSERT VERTEX Import(id, module, updatedAt) 
-            VALUES $importId:($importId, $importName, now())
-          `,
-          parameters: {
-            importId: `import_${file.id}_${importName}`,
-            importName: importName
-          }
-        });
-        
-        queries.push({
-          nGQL: `
-            INSERT EDGE IMPORTS() VALUES $fileId->$importId:()
-          `,
-          parameters: { 
-            fileId: file.id, 
-            importId: `import_${file.id}_${importName}`
-          }
-        });
-      }
-    }
-
-    return queries;
-  }
 
   private async executeBatch(queries: GraphQuery[]): Promise<GraphPersistenceResult> {
     const startTime = Date.now();
@@ -1231,7 +1095,7 @@ export class GraphPersistenceService {
       
       // Update existing nodes
       if (nodesToUpdate.length > 0) {
-        const updateQueries = this.createUpdateNodeQueries(nodesToUpdate, options);
+        const updateQueries = this.persistenceUtils.createUpdateNodeQueries(nodesToUpdate, options);
         const updateResult = await this.executeBatch(updateQueries);
         
         if (updateResult.success) {

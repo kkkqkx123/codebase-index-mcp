@@ -6,6 +6,9 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
+import { BatchProcessingService } from './batch-processing/BatchProcessingService';
+import { EmbeddingService } from './embedding/EmbeddingService';
+import { VectorStorageUtils } from './utils/VectorStorageUtils';
 
 export interface VectorStorageConfig {
   collectionName: string;
@@ -46,18 +49,14 @@ export class VectorStorageService {
   private config: VectorStorageConfig;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
+  private batchProcessingService: BatchProcessingService;
+  private embeddingService: EmbeddingService;
   private isInitialized: boolean = false;
   private currentCollection: string = '';
 
-  // Batch processing configuration
-  private maxConcurrentOperations: number = 5;
-  private defaultBatchSize: number = 100;
-  private maxBatchSize: number = 1000;
-  private memoryThreshold: number = 80;
-  private processingTimeout: number = 300000;
-  private retryAttempts: number = 3;
-  private retryDelay: number = 1000;
-  private adaptiveBatchingEnabled: boolean = true;
+  private generateCollectionName(projectId: string): string {
+    return VectorStorageUtils.generateCollectionName(projectId);
+  }
 
   constructor(
     @inject(QdrantClientWrapper) qdrantClient: QdrantClientWrapper,
@@ -65,13 +64,17 @@ export class VectorStorageService {
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService,
     @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
-    @inject(EmbedderFactory) private embedderFactory: EmbedderFactory
+    @inject(EmbedderFactory) private embedderFactory: EmbedderFactory,
+    @inject(BatchProcessingService) batchProcessingService: BatchProcessingService,
+    @inject(EmbeddingService) embeddingService: EmbeddingService
   ) {
     this.qdrantClient = qdrantClient;
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.configService = configService;
     this.batchMetrics = batchMetrics;
+    this.batchProcessingService = batchProcessingService;
+    this.embeddingService = embeddingService;
 
     const qdrantConfig = configService.get('qdrant');
     this.config = {
@@ -80,12 +83,6 @@ export class VectorStorageService {
       distance: 'Cosine',
       recreateCollection: false
     };
-
-    this.initializeBatchProcessingConfig();
-  }
-
-  private generateCollectionName(projectId: string): string {
-    return `project-${projectId}`;
   }
 
   async initialize(projectId?: string): Promise<boolean> {
@@ -327,73 +324,13 @@ export class VectorStorageService {
   }
 
   private async convertChunksToVectorPoints(chunks: CodeChunk[], options: IndexingOptions): Promise<VectorPoint[]> {
-    const vectorPoints: VectorPoint[] = [];
-    const batchSize = options.batchSize || 100;
-
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batch = chunks.slice(i, i + batchSize);
-
-      for (const chunk of batch) {
-        try {
-          const vector = await this.generateEmbedding(chunk.content);
-
-          // Check if this is a SnippetChunk
-          const isSnippet = chunk.type === 'snippet' && 'snippetMetadata' in chunk;
-
-          const vectorPoint: VectorPoint = {
-            id: chunk.id,
-            vector,
-            payload: {
-              content: chunk.content,
-              filePath: chunk.metadata.filePath || '',
-              language: chunk.metadata.language || 'unknown',
-              chunkType: chunk.type,
-              startLine: chunk.startLine,
-              endLine: chunk.endLine,
-              ...(chunk.functionName && { functionName: chunk.functionName }),
-              ...(chunk.className && { className: chunk.className }),
-              ...(options.projectId && { projectId: options.projectId }),
-              ...(isSnippet && { snippetMetadata: (chunk as any).snippetMetadata }),
-              metadata: {
-                ...chunk.metadata,
-                imports: chunk.imports || [],
-                exports: chunk.exports || [],
-                complexity: chunk.metadata.complexity || 1,
-                parameters: chunk.metadata.parameters || [],
-                returnType: chunk.metadata.returnType || 'unknown'
-              },
-              timestamp: new Date()
-            }
-          };
-
-          vectorPoints.push(vectorPoint);
-        } catch (error) {
-          this.logger.warn('Failed to generate embedding for chunk', {
-            chunkId: chunk.id,
-            error: error instanceof Error ? error.message : String(error)
-          });
-        }
-      }
-    }
-
-    return vectorPoints;
+    // Use the embedding service to convert chunks to vector points
+    return this.embeddingService.convertChunksToVectorPoints(chunks, options);
   }
 
   private async generateEmbedding(content: string): Promise<number[]> {
-    try {
-      // Use the embedder factory to get the configured embedder and generate embedding
-      const result = await this.embedderFactory.embed({ text: content });
-      
-      // Handle both single result and array result
-      const embeddingResult = Array.isArray(result) ? result[0] : result;
-      return embeddingResult.vector;
-    } catch (error) {
-      this.logger.error('Failed to generate embedding', {
-        error: error instanceof Error ? error.message : String(error),
-        contentLength: content.length
-      });
-      throw error;
-    }
+    // Use the embedding service to generate embedding
+    return this.embeddingService.generateEmbedding(content);
   }
 
   async updateConfig(newConfig: Partial<VectorStorageConfig>): Promise<void> {
@@ -401,91 +338,23 @@ export class VectorStorageService {
     this.logger.info('Vector storage config updated', { config: this.config });
   }
 
-  private initializeBatchProcessingConfig(): void {
-    const batchConfig = this.configService.get('batchProcessing');
-
-    this.maxConcurrentOperations = batchConfig?.maxConcurrentOperations ?? this.maxConcurrentOperations;
-    this.defaultBatchSize = batchConfig?.defaultBatchSize ?? this.defaultBatchSize;
-    this.maxBatchSize = batchConfig?.maxBatchSize ?? this.maxBatchSize;
-    this.memoryThreshold = batchConfig?.memoryThreshold ?? this.memoryThreshold;
-    this.processingTimeout = batchConfig?.processingTimeout ?? this.processingTimeout;
-    this.retryAttempts = batchConfig?.retryAttempts ?? this.retryAttempts;
-    this.retryDelay = batchConfig?.retryDelay ?? this.retryDelay;
-    this.adaptiveBatchingEnabled = batchConfig?.adaptiveBatching?.enabled ?? this.adaptiveBatchingEnabled;
-
-    this.logger.info('Vector storage batch processing configuration initialized', {
-      maxConcurrentOperations: this.maxConcurrentOperations,
-      defaultBatchSize: this.defaultBatchSize,
-      maxBatchSize: this.maxBatchSize,
-      memoryThreshold: this.memoryThreshold,
-      processingTimeout: this.processingTimeout,
-      adaptiveBatchingEnabled: this.adaptiveBatchingEnabled
-    });
-  }
-
   private checkMemoryUsage(): boolean {
-    const memUsage = process.memoryUsage();
-    const memoryUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-
-    if (memoryUsagePercent > this.memoryThreshold) {
-      this.logger.warn('Memory usage exceeds threshold', {
-        memoryUsagePercent,
-        threshold: this.memoryThreshold
-      });
-      return false;
-    }
-
-    return true;
+    return this.batchProcessingService.checkMemoryUsage();
   }
 
   private async processWithTimeout<T>(
     operation: () => Promise<T>,
     timeoutMs: number
   ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error(`Operation timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-
-      operation()
-        .then(result => {
-          clearTimeout(timeout);
-          resolve(result);
-        })
-        .catch(error => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-    });
+    return this.batchProcessingService.processWithTimeout(operation, timeoutMs);
   }
 
   private async retryOperation<T>(
     operation: () => Promise<T>,
-    maxAttempts: number = this.retryAttempts,
-    delayMs: number = this.retryDelay
+    maxAttempts?: number,
+    delayMs?: number
   ): Promise<T> {
-    let lastError: Error = new Error(`Operation failed after ${maxAttempts} attempts.`);
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
-
-        if (attempt < maxAttempts) {
-          this.logger.debug('Operation failed, retrying', {
-            attempt,
-            maxAttempts,
-            error: lastError.message
-          });
-
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-      }
-    }
-
-    throw lastError;
+    return this.batchProcessingService.retryOperation(operation, maxAttempts, delayMs);
   }
 
   isServiceInitialized(): boolean {
@@ -681,39 +550,12 @@ export class VectorStorageService {
   }
 
   private extractUniqueFileCount(chunks: CodeChunk[]): number {
-    const uniqueFiles = new Set<string>();
-
-    for (const chunk of chunks) {
-      if (chunk.metadata.filePath) {
-        uniqueFiles.add(chunk.metadata.filePath);
-      }
-    }
-
-    return uniqueFiles.size;
+    return VectorStorageUtils.extractUniqueFileCount(chunks);
   }
 
   private calculateOptimalBatchSize(totalItems: number): number {
-    if (!this.adaptiveBatchingEnabled) {
-      return Math.min(this.defaultBatchSize, totalItems);
-    }
-
-    // For vector operations, use a different strategy based on item count
-    const config = this.configService.get('batchProcessing');
-    const adaptiveConfig = config?.adaptiveBatching;
-
-    // Start with a reasonable batch size based on total items
-    let batchSize = Math.min(this.defaultBatchSize, totalItems);
-
-    // Adjust based on item count - smaller batches for very large item counts
-    if (totalItems > 1000 && adaptiveConfig?.minBatchSize) {
-      batchSize = Math.min(adaptiveConfig.minBatchSize * 2, totalItems);
-    } else if (totalItems > 500 && adaptiveConfig?.minBatchSize) {
-      batchSize = Math.min(adaptiveConfig.minBatchSize * 3, totalItems);
-    }
-
-    const minBatchSize = adaptiveConfig?.minBatchSize ?? 10;
-    const maxBatchSize = adaptiveConfig?.maxBatchSize ?? 200;
-    return Math.max(minBatchSize, Math.min(batchSize, maxBatchSize));
+    // Use the batch processing service to calculate optimal batch size
+    return this.batchProcessingService.calculateOptimalBatchSize(totalItems);
   }
 
   private async convertChunksToVectorPointsOptimized(
@@ -721,38 +563,23 @@ export class VectorStorageService {
     options: IndexingOptions,
     batchSize: number
   ): Promise<VectorPoint[]> {
-    if (chunks.length === 0) {
-      return [];
-    }
-
-    const vectorPoints: VectorPoint[] = [];
-
-    // Process chunks in batches with concurrent embedding generation
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batch = chunks.slice(i, i + batchSize);
-
-      // Check memory usage before processing each batch
-      if (!this.checkMemoryUsage()) {
-        throw new Error('Insufficient memory available for batch processing');
-      }
-
-      // Generate embeddings for the batch with timeout and retry
-      const batchVectorPoints = await this.processWithTimeout(
-        () => this.generateEmbeddingsForBatch(batch, options),
-        this.processingTimeout
-      );
-
-      vectorPoints.push(...batchVectorPoints);
-    }
-
-    return vectorPoints;
+    // Use the embedding service to convert chunks to vector points
+    return this.embeddingService.convertChunksToVectorPointsOptimized(
+      chunks,
+      options,
+      batchSize,
+      () => this.checkMemoryUsage(),
+      (operation, timeoutMs) => this.processWithTimeout(operation, timeoutMs)
+    );
   }
 
   private async generateEmbeddingsForBatch(
     batch: CodeChunk[],
     options: IndexingOptions
   ): Promise<VectorPoint[]> {
-    // Generate embeddings concurrently for better performance
+    // Use the embedding service to generate embeddings for batch
+    // Since generateEmbeddingsForBatch is private, we'll use the public method
+    // and implement the batch processing logic here
     const embeddingPromises = batch.map(async (chunk) => {
       try {
         const vector = await this.generateEmbedding(chunk.content);
@@ -905,7 +732,7 @@ export class VectorStorageService {
   async processChunksAsync(
     chunks: CodeChunk[],
     options: IndexingOptions = {},
-    concurrency: number = this.maxConcurrentOperations
+    concurrency: number = this.batchProcessingService.getMaxConcurrentOperations()
   ): Promise<IndexingResult> {
     if (!this.isInitialized) {
       await this.initialize();
