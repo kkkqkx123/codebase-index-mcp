@@ -353,7 +353,7 @@ export class GraphPersistenceService {
         }
         
         const batchResult = await this.processWithTimeout(
-          () => this.retryOperation(() => this.executeBatch(batch)),
+          () => this.persistenceUtils.retryOperation(() => this.executeBatch(batch)),
           this.batchOptimizer.getConfig().processingTimeout
         );
         
@@ -1032,34 +1032,7 @@ export class GraphPersistenceService {
     });
   }
 
-  private async retryOperation<T>(
-    operation: () => Promise<T>,
-    maxAttempts: number = this.batchOptimizer.getConfig().retryAttempts,
-    delayMs: number = this.batchOptimizer.getConfig().retryDelay
-  ): Promise<T> {
-    let lastError: Error = new Error('Unknown error');
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (attempt < maxAttempts) {
-          this.logger.debug('Operation failed, retrying', {
-            attempt,
-            maxAttempts,
-            error: lastError.message
-          });
-          
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-      }
-    }
-    
-    throw lastError;
-  }
+
 
   private calculateOptimalBatchSize(totalItems: number): number {
     return this.batchOptimizer.calculateOptimalBatchSize(totalItems);
@@ -1107,7 +1080,7 @@ export class GraphPersistenceService {
       
       // Create new nodes
       if (nodesToCreate.length > 0) {
-        const createQueries = nodesToCreate.map(chunk => this.createChunkNodeQueries(chunk, null, options)).flat();
+        const createQueries = nodesToCreate.map(chunk => this.persistenceUtils.createChunkQueries(chunk, options)).flat();
         const createResult = await this.executeBatch(createQueries);
         
         if (createResult.success) {
@@ -1181,60 +1154,15 @@ export class GraphPersistenceService {
   }
 
   private async getExistingNodeIds(nodeIds: string[]): Promise<string[]> {
-    // This would typically query the graph database to check which nodes exist
-    // For now, we'll return a mock implementation
-    return nodeIds.filter(() => Math.random() > 0.5); // Randomly return half the node IDs
+    return this.persistenceUtils.getExistingNodeIdsByIds(nodeIds, 'Node');
   }
 
   private async getNodeIdsByFiles(filePaths: string[]): Promise<string[]> {
-    // This would typically query the graph database to get node IDs for the specified files
-    // For now, we'll return a mock implementation
-    const nodeIds: string[] = [];
-    
-    for (const filePath of filePaths) {
-      // Generate mock node IDs based on file path
-      const mockNodeCount = Math.floor(Math.random() * 5) + 1;
-      for (let i = 0; i < mockNodeCount; i++) {
-        nodeIds.push(`node_${filePath.replace(/[^a-zA-Z0-9]/g, '_')}_${i}`);
-      }
-    }
-    
-    return nodeIds;
+    const nodeIdsByFiles = await this.persistenceUtils.getNodeIdsByFiles(filePaths);
+    return Object.values(nodeIdsByFiles).flat();
   }
 
-  private createUpdateNodeQueries(chunks: CodeChunk[], options: GraphPersistenceOptions): GraphQuery[] {
-    const queries: GraphQuery[] = [];
 
-    for (const chunk of chunks) {
-      if (chunk.type === 'function') {
-        const updateQuery = this.queryBuilder.updateVertex(chunk.id, 'Function', {
-          content: chunk.content,
-          startLine: chunk.startLine,
-          endLine: chunk.endLine,
-          complexity: chunk.metadata.complexity || 1,
-          parameters: chunk.metadata.parameters || [],
-          returnType: chunk.metadata.returnType || 'unknown',
-          updatedAt: new Date().toISOString()
-        });
-        queries.push({ nGQL: updateQuery.query, parameters: updateQuery.params });
-      }
-
-      if (chunk.type === 'class') {
-        const updateQuery = this.queryBuilder.updateVertex(chunk.id, 'Class', {
-          content: chunk.content,
-          startLine: chunk.startLine,
-          endLine: chunk.endLine,
-          methods: chunk.metadata.methods || 0,
-          properties: chunk.metadata.properties || 0,
-          inheritance: chunk.metadata.inheritance || [],
-          updatedAt: new Date().toISOString()
-        });
-        queries.push({ nGQL: updateQuery.query, parameters: updateQuery.params });
-      }
-    }
-
-    return queries;
-  }
 
   // Enhanced batch processing using NebulaQueryBuilder
   private async processFilesWithEnhancedBatching(
@@ -1385,8 +1313,8 @@ export class GraphPersistenceService {
       }
 
       // Process in batches
-      const vertexBatches = this.chunkArray(vertices, batchSize);
-      const edgeBatches = this.chunkArray(edges, batchSize);
+      const vertexBatches = this.persistenceUtils.chunkArray(vertices, batchSize);
+      const edgeBatches = this.persistenceUtils.chunkArray(edges, batchSize);
       
       let totalNodesCreated = 0;
       let totalRelationshipsCreated = 0;
@@ -1500,14 +1428,7 @@ export class GraphPersistenceService {
     }
   }
 
-  // Caching helper methods
-  private chunkArray<T>(array: T[], size: number): T[][] {
-    const result: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-      result.push(array.slice(i, i + size));
-    }
-    return result;
-  }
+
 
   async close(): Promise<void> {
     // Close the nebula service

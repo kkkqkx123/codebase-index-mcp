@@ -9,6 +9,7 @@ import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { BatchProcessingService } from './batch-processing/BatchProcessingService';
 import { EmbeddingService } from './embedding/EmbeddingService';
 import { VectorStorageUtils } from './utils/VectorStorageUtils';
+import { ChunkProcessingUtils } from './utils/ChunkProcessingUtils';
 
 export interface VectorStorageConfig {
   collectionName: string;
@@ -520,37 +521,16 @@ export class VectorStorageService {
       return false;
     }
   }
-
   private async getExistingChunkIds(chunkIds: string[]): Promise<string[]> {
-    try {
-      const existingChunkIds = await this.qdrantClient.getExistingChunkIds(this.currentCollection, chunkIds);
-      this.logger.debug(`Found ${existingChunkIds.length} existing chunk IDs out of ${chunkIds.length} requested`);
-      return existingChunkIds;
-    } catch (error) {
-      this.logger.error('Failed to get existing chunk IDs', {
-        error: error instanceof Error ? error.message : String(error),
-        requestedCount: chunkIds.length
-      });
-      return [];
-    }
+    return ChunkProcessingUtils.getExistingChunkIds(chunkIds, this.qdrantClient.getExistingChunkIds.bind(this.qdrantClient));
   }
 
   private async getChunkIdsByFiles(filePaths: string[]): Promise<string[]> {
-    try {
-      const chunkIds = await this.qdrantClient.getChunkIdsByFiles(this.currentCollection, filePaths);
-      this.logger.debug(`Retrieved ${chunkIds.length} chunk IDs for ${filePaths.length} files`);
-      return chunkIds;
-    } catch (error) {
-      this.logger.error('Failed to get chunk IDs by files', {
-        error: error instanceof Error ? error.message : String(error),
-        fileCount: filePaths.length
-      });
-      return [];
-    }
+    return ChunkProcessingUtils.getChunkIdsByFiles(filePaths, this.qdrantClient.getChunkIdsByFiles.bind(this.qdrantClient));
   }
 
   private extractUniqueFileCount(chunks: CodeChunk[]): number {
-    return VectorStorageUtils.extractUniqueFileCount(chunks);
+    return ChunkProcessingUtils.extractUniqueFileCount(chunks);
   }
 
   private calculateOptimalBatchSize(totalItems: number): number {
@@ -573,120 +553,23 @@ export class VectorStorageService {
     );
   }
 
-  private async generateEmbeddingsForBatch(
-    batch: CodeChunk[],
-    options: IndexingOptions
-  ): Promise<VectorPoint[]> {
-    // Use the embedding service to generate embeddings for batch
-    // Since generateEmbeddingsForBatch is private, we'll use the public method
-    // and implement the batch processing logic here
-    const embeddingPromises = batch.map(async (chunk) => {
-      try {
-        const vector = await this.generateEmbedding(chunk.content);
-
-        // Check if this is a SnippetChunk
-        const isSnippet = chunk.type === 'snippet' && 'snippetMetadata' in chunk;
-
-        const vectorPoint: VectorPoint = {
-          id: chunk.id,
-          vector,
-          payload: {
-            content: chunk.content,
-            filePath: chunk.metadata.filePath || '',
-            language: chunk.metadata.language || 'unknown',
-            chunkType: chunk.type,
-            startLine: chunk.startLine,
-            endLine: chunk.endLine,
-            ...(chunk.functionName && { functionName: chunk.functionName }),
-            ...(chunk.className && { className: chunk.className }),
-            ...(options.projectId && { projectId: options.projectId }),
-            ...(isSnippet && { snippetMetadata: (chunk as any).snippetMetadata }),
-            metadata: {
-              ...chunk.metadata,
-              imports: chunk.imports || [],
-              exports: chunk.exports || [],
-              complexity: chunk.metadata.complexity || 1,
-              parameters: chunk.metadata.parameters || [],
-              returnType: chunk.metadata.returnType || 'unknown'
-            },
-            timestamp: new Date()
-          }
-        };
-
-        return vectorPoint;
-      } catch (error) {
-        this.logger.warn('Failed to generate embedding for chunk', {
-          chunkId: chunk.id,
-          error: error instanceof Error ? error.message : String(error)
-        });
-        return null; // Filter out failed chunks
-      }
-    });
-
-    // Wait for all embeddings to complete and filter out null results
-    const results = await Promise.all(embeddingPromises);
-    return results.filter((point): point is VectorPoint => point !== null);
-  }
-
   private async processChunksInBatches(
     chunks: CodeChunk[],
     options: IndexingOptions,
     batchSize: number,
     operationType: 'create' | 'update'
   ): Promise<IndexingResult> {
-    const startTime = Date.now();
-    const result: IndexingResult = {
-      success: false,
-      processedFiles: 0,
-      totalChunks: chunks.length,
-      uniqueChunks: 0,
-      duplicatesRemoved: 0,
-      processingTime: 0,
-      errors: []
-    };
-
-    try {
-      const vectorPoints = await this.convertChunksToVectorPointsOptimized(chunks, options, batchSize);
-
-      if (vectorPoints.length === 0) {
-        result.success = true;
-        result.processingTime = Date.now() - startTime;
-        return result;
-      }
-
-      // Store vector points with retry logic
-      const success = await this.retryOperation(() =>
-        this.qdrantClient.upsertPoints(this.currentCollection, vectorPoints)
-      );
-
-      if (success) {
-        result.success = true;
-        result.uniqueChunks = vectorPoints.length;
-        result.duplicatesRemoved = chunks.length - vectorPoints.length;
-        result.processingTime = Date.now() - startTime;
-
-        this.logger.debug(`Chunks ${operationType}d successfully in batch`, {
-          operationType,
-          totalChunks: chunks.length,
-          uniqueChunks: vectorPoints.length,
-          duplicatesRemoved: result.duplicatesRemoved,
-          processingTime: result.processingTime,
-          batchSize
-        });
-      } else {
-        throw new Error(`Failed to ${operationType} vector points in batch`);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      result.errors.push(`${operationType} failed: ${errorMessage}`);
-      this.logger.error(`Failed to ${operationType} chunks in batch`, {
-        operationType,
-        batchSize,
-        error: errorMessage
-      });
-    }
-
-    return result;
+    return ChunkProcessingUtils.processChunksInBatches(
+      chunks,
+      options,
+      batchSize,
+      operationType,
+      (chunks, options, batchSize) => this.convertChunksToVectorPointsOptimized(chunks, options, batchSize),
+      (operation) => this.retryOperation(operation),
+      this.qdrantClient.upsertPoints.bind(this.qdrantClient),
+      this.currentCollection,
+      this.logger
+    );
   }
 
   async search(query: string, options: any = {}): Promise<any[]> {

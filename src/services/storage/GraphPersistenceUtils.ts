@@ -34,7 +34,7 @@ export class GraphPersistenceUtils {
     @inject(LoggerService) private logger: LoggerService,
     @inject(NebulaService) private nebulaService: NebulaService,
     @inject(NebulaQueryBuilder) private queryBuilder: NebulaQueryBuilder
-  ) {}
+  ) { }
 
   createProjectNode(projectId: string): GraphQuery {
     return {
@@ -148,11 +148,11 @@ export class GraphPersistenceUtils {
             importName: importName
           }
         });
-        
+
         queries.push({
           nGQL: `INSERT EDGE IMPORTS() VALUES $fileId->$importId:()`,
-          parameters: { 
-            fileId: file.id, 
+          parameters: {
+            fileId: file.id,
             importId: `import_${file.id}_${importName}`
           }
         });
@@ -177,7 +177,7 @@ export class GraphPersistenceUtils {
   ): number {
     const memoryLimit = Math.floor(availableMemory * 0.8 / avgQuerySize);
     const latencyLimit = Math.floor(1000 / networkLatency);
-    
+
     return Math.min(memoryLimit, latencyLimit, 1000);
   }
 
@@ -195,6 +195,35 @@ export class GraphPersistenceUtils {
         setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs);
       })
     ]);
+  }
+
+  async retryOperation<T>(
+    operation: () => Promise<T>,
+    maxAttempts: number = 3,
+    delayMs: number = 1000
+  ): Promise<T> {
+    let lastError: Error = new Error('Unknown error');
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+
+        if (attempt < maxAttempts) {
+          this.logger.debug('Operation failed, retrying', {
+            attempt,
+            maxAttempts,
+            error: lastError.message
+          });
+
+          // Wait before retrying
+          await this.delay(delayMs);
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   createUpdateNodeQueries(chunks: CodeChunk[], options: GraphPersistenceOptions): GraphQuery[] {
@@ -229,5 +258,99 @@ export class GraphPersistenceUtils {
     }
 
     return queries;
+  }
+
+  async getExistingNodeIds(nodeType: string, options: GraphPersistenceOptions = {}): Promise<string[]> {
+    try {
+      const query = this.queryBuilder.buildPagedQuery(
+        `(n:${nodeType})`,
+        'n.id',
+        options.projectId ? `n.projectId = \"${options.projectId}\"` : undefined,
+        undefined,
+        options.limit
+      );
+
+      const result = await this.nebulaService.executeReadQuery(query.query, query.params);
+
+      if (result && result.success && result.data && result.data.rows) {
+        return result.data.rows.map((row: any) => row.id || row._id);
+      }
+
+      return [];
+    } catch (error) {
+      this.logger.error('Failed to get existing node IDs', {
+        nodeType,
+        error: (error as Error).message
+      });
+      throw error;
+    }
+  }
+
+  async getExistingNodeIdsByIds(nodeIds: string[], nodeType: string = 'Node'): Promise<string[]> {
+    try {
+      if (nodeIds.length === 0) {
+        return [];
+      }
+
+      // 对于大量节点ID，需要分批查询
+      const batches = this.chunkArray(nodeIds, 100);
+      const existingIds: string[] = [];
+
+      for (const batch of batches) {
+        const idList = batch.map(id => `\"${id}\"`).join(',');
+        const query = this.queryBuilder.buildPagedQuery(
+          `(n:${nodeType})`,
+          'n.id',
+          `n.id IN [${idList}]`
+        );
+
+        const result = await this.nebulaService.executeReadQuery(query.query, query.params);
+
+        if (result && result.success && result.data && result.data.rows) {
+          existingIds.push(...result.data.rows.map((row: any) => row.id || row._id));
+        }
+      }
+
+      return existingIds;
+    } catch (error) {
+      this.logger.error('Failed to get existing node IDs by IDs', {
+        nodeType,
+        nodeIdsCount: nodeIds.length,
+        error: (error as Error).message
+      });
+      throw error;
+    }
+  }
+
+  async getNodeIdsByFiles(filePaths: string[], options: GraphPersistenceOptions = {}): Promise<Record<string, string[]>> {
+    try {
+      const result: Record<string, string[]> = {};
+
+      for (const filePath of filePaths) {
+        const query = this.queryBuilder.buildPagedQuery(
+          `(f:File)`,
+          'f.id',
+          `f.path = \"${filePath}\"`,
+          undefined,
+          options.limit
+        );
+
+        const queryResult = await this.nebulaService.executeReadQuery(query.query, query.params);
+
+        if (queryResult && queryResult.success && queryResult.data && queryResult.data.rows) {
+          result[filePath] = queryResult.data.rows.map((row: any) => row.id || row._id);
+        } else {
+          result[filePath] = [];
+        }
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to get node IDs by files', {
+        filePaths,
+        error: (error as Error).message
+      });
+      throw error;
+    }
   }
 }

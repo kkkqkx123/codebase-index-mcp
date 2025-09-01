@@ -6,15 +6,19 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { BatchProcessingMetrics } from '../monitoring/BatchProcessingMetrics';
 import { CodeChunk } from '../parser/TreeSitterService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
+import { BatchProcessingService } from './batch-processing/BatchProcessingService';
+import { EmbeddingService } from './embedding/EmbeddingService';
 
 describe('VectorStorageService', () => {
   let vectorStorageService: VectorStorageService;
   let mockQdrantClient: jest.Mocked<QdrantClientWrapper>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
-  let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
+ let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockBatchMetrics: jest.Mocked<BatchProcessingMetrics>;
   let mockEmbedderFactory: jest.Mocked<EmbedderFactory>;
+  let mockBatchProcessingService: jest.Mocked<BatchProcessingService>;
+  let mockEmbeddingService: jest.Mocked<EmbeddingService>;
 
   beforeEach(() => {
     // Create mocks
@@ -61,6 +65,24 @@ describe('VectorStorageService', () => {
       embed: jest.fn().mockResolvedValue(Array(1536).fill(0.1)),
       getAvailableProviders: jest.fn(),
       autoSelectProvider: jest.fn(),
+    } as any;
+
+    mockBatchProcessingService = {
+      checkMemoryUsage: jest.fn().mockReturnValue(true),
+      processWithTimeout: jest.fn(),
+      retryOperation: jest.fn(),
+      calculateOptimalBatchSize: jest.fn().mockReturnValue(100),
+      getMaxConcurrentOperations: jest.fn().mockReturnValue(5),
+      getDefaultBatchSize: jest.fn().mockReturnValue(100),
+      getProcessingTimeout: jest.fn().mockReturnValue(300000),
+      getRetryAttempts: jest.fn().mockReturnValue(3),
+      getRetryDelay: jest.fn().mockReturnValue(1000),
+    } as any;
+
+    mockEmbeddingService = {
+      convertChunksToVectorPoints: jest.fn().mockResolvedValue([]),
+      generateEmbedding: jest.fn().mockResolvedValue(Array(1536).fill(0.1)),
+      convertChunksToVectorPointsOptimized: jest.fn().mockResolvedValue([]),
     } as any;
 
     // 移除了对generateEmbedding的mock，因为现在使用的是EmbedderFactory
@@ -132,7 +154,9 @@ describe('VectorStorageService', () => {
       mockErrorHandlerService,
       mockConfigService,
       mockBatchMetrics,
-      mockEmbedderFactory
+      mockEmbedderFactory,
+      mockBatchProcessingService,
+      mockEmbeddingService
     );
   });
 
