@@ -1,0 +1,2 @@
+先看Prometheus的stat>target health
+(http://127.0.0.1:9090/targets)

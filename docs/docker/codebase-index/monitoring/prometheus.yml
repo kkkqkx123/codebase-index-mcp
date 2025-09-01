@@ -20,7 +20,8 @@ scrape_configs:
 
   - job_name: 'nebula-graph'
     static_configs:
-      - targets: ['graphd:9669']
+      - targets: ['graphd:19670']
+    metrics_path: '/stats'
     scrape_interval: 30s
 
 alerting:

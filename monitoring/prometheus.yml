@@ -14,13 +14,13 @@ scrape_configs:
 
   - job_name: 'qdrant'
     static_configs:
-      - targets: ['qdrant:6333']
+      - targets: ['qdrant:6335']
     metrics_path: '/metrics'
     scrape_interval: 30s
 
   - job_name: 'nebula-graph'
     static_configs:
-      - targets: ['graphd:19670']
+      - targets: ['graphd:19669']
     metrics_path: '/metrics'
     scrape_interval: 30s
 

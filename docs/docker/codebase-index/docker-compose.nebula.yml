@@ -224,6 +224,7 @@ services:
       start_period: 10s
     networks:
       - monitoring
+        external: true
 
 volumes:
   meta0:

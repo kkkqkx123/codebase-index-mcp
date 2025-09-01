@@ -27,6 +27,20 @@ cd /home/docker-compose/codebase-index
 chmod +x setup-config-files.sh
 bash setup-config-files.sh
 ```
+这个脚本会自动：
+1. 创建完整的目录结构（monitoring、nebula、qdrant）
+2. 将现有的配置文件移动到正确的目录位置
+3. 设置适当的文件权限
+4. 验证目录结构的完整性
+
+**注意：确保以下配置文件已准备好：**
+- `prometheus.yml` - Prometheus监控配置
+- `alertmanager.yml` - 告警管理配置
+- `docker-compose.monitoring.yml` - 监控服务编排
+- `docker-compose.nebula.yml` - NebulaGraph服务编排
+- `nebula-graphd.conf` - NebulaGraph图服务配置
+- `docker-compose.qdrant.yml` - Qdrant服务编排
+
 
 ### 目录结构
 
@@ -60,74 +74,6 @@ bash setup-config-files.sh
     └── docker-compose.qdrant.yml
 ```
 
-## 配置文件准备
-
-### 使用自动化脚本设置目录结构
-
-我们提供了一个自动化脚本来完成目录结构的创建和文件权限设置：
-
-```bash
-# 进入codebase-index目录
-cd /home/docker-compose/codebase-index
-
-# 确保配置文件已经在当前目录中
-# 运行目录设置脚本
-chmod +x setup-config-files.sh
-./setup-config-files.sh
-```
-
-这个脚本会自动：
-1. 创建完整的目录结构（monitoring、nebula、qdrant）
-2. 将现有的配置文件移动到正确的目录位置
-3. 设置适当的文件权限
-4. 验证目录结构的完整性
-
-**注意：确保以下配置文件已准备好：**
-- `prometheus.yml` - Prometheus监控配置
-- `alertmanager.yml` - 告警管理配置
-- `docker-compose.monitoring.yml` - 监控服务编排
-- `docker-compose.nebula.yml` - NebulaGraph服务编排
-- `nebula-graphd.conf` - NebulaGraph图服务配置
-- `docker-compose.qdrant.yml` - Qdrant服务编排
-
-### 手动设置目录结构（可选）
-
-如果您希望手动操作，可以按以下步骤执行：
-
-```bash
-# 进入codebase-index目录
-cd /home/docker-compose/codebase-index
-
-# 创建目录结构
-mkdir -p monitoring/{alerts,grafana/{dashboards,provisioning/{dashboards,datasources}}}
-mkdir -p nebula/{data/{meta0,meta1,meta2,storage0,storage1,storage2},logs/{metad0,metad1,metad2,storaged0,storaged1,storaged2,graphd,console}}
-mkdir -p qdrant/storage
-
-# 移动现有的配置文件到正确位置
-# 监控配置文件
-mv prometheus.yml monitoring/ 2>/dev/null || echo "prometheus.yml 不存在"
-mv alertmanager.yml monitoring/ 2>/dev/null || echo "alertmanager.yml 不存在"
-mv docker-compose.monitoring.yml monitoring/ 2>/dev/null || echo "docker-compose.monitoring.yml 不存在"
-
-# 如果存在grafana目录，移动其内容
-if [ -d "grafana" ]; then
-    mv grafana/* monitoring/grafana/
-    rmdir grafana
-fi
-
-# NebulaGraph配置文件
-mv docker-compose.nebula.yml nebula/ 2>/dev/null || echo "docker-compose.nebula.yml 不存在"
-mv nebula-graphd.conf nebula/ 2>/dev/null || echo "nebula-graphd.conf 不存在"
-
-# Qdrant配置文件
-mv docker-compose.qdrant.yml qdrant/ 2>/dev/null || echo "docker-compose.qdrant.yml 不存在"
-
-# 设置文件权限
-chmod -R 755 monitoring/ nebula/ qdrant/
-find monitoring/ -name "*.yml" -o -name "*.yaml" -o -name "*.json" | xargs chmod 644 2>/dev/null || true
-find nebula/ -name "*.yml" -o -name "*.conf" | xargs chmod 644 2>/dev/null || true
-find qdrant/ -name "*.yml" | xargs chmod 644 2>/dev/null || true
-```
 
 ## 网络配置
 
@@ -140,22 +86,7 @@ docker network create monitoring
 
 ## 服务部署顺序
 
-### 1. 首先启动监控服务
-
-```bash
-cd /home/docker-compose/codebase-index/monitoring
-docker-compose -f docker-compose.monitoring.yml up -d
-```
-
-**验证监控服务**：
-```bash
-docker ps | grep -E "(prometheus|alertmanager|grafana)"
-curl http://localhost:9090/status  # Prometheus
-curl http://localhost:9093         # Alertmanager
-curl http://localhost:3000         # Grafana
-```
-
-### 2. 然后启动 NebulaGraph 服务
+### 1. 首先启动 NebulaGraph 服务
 
 ```bash
 cd /home/docker-compose/codebase-index/nebula
@@ -195,7 +126,7 @@ docker-compose -f docker-compose.nebula.yml logs storaged0
 ```
 现在看不到，因为存储节点的日志没有发送到stdout。自己到wsl的logs目录里看
 
-### 3. 最后启动 Qdrant 服务
+### 2. 然后启动 Qdrant 服务
 
 ```bash
 cd /home/docker-compose/codebase-index/qdrant
@@ -203,9 +134,25 @@ docker-compose -f docker-compose.qdrant.yml up -d
 ```
 
 **验证 Qdrant 服务**：
+宿主机：
+```powershell
+curl http://127.0.0.1:6333/healthz
+curl http://127.0.0.1:6333/metrics
+```
+
+### 3. 最后启动监控服务
+
 ```bash
-docker ps | grep qdrant
-curl http://localhost:6333/healthz
+cd /home/docker-compose/codebase-index/monitoring
+docker-compose -f docker-compose.monitoring.yml up -d
+```
+
+**验证监控服务**：
+```bash
+docker ps | grep -E "(prometheus|alertmanager|grafana)"
+curl http://localhost:9090/status  # Prometheus
+curl http://localhost:9093         # Alertmanager
+curl http://localhost:3000         # Grafana
 ```
 
 ## 服务访问信息
@@ -232,9 +179,9 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(prome
 
 ```bash
 # 按启动顺序逆序停止
+cd /home/docker-compose/codebase-index/monitoring && docker-compose -f docker-compose.monitoring.yml down
 cd /home/docker-compose/codebase-index/qdrant && docker-compose down
 cd /home/docker-compose/codebase-index/nebula && docker-compose down
-cd /home/docker-compose/codebase-index/monitoring && docker-compose -f docker-compose.monitoring.yml down
 ```
 
 ### 重启特定服务
@@ -345,3 +292,45 @@ cp -r /backup/qdrant-backup/ /home/docker-compose/codebase-index/qdrant/storage/
 2. **网络隔离**：服务运行在独立的监控网络中
 3. **文件权限**：确保配置文件具有适当的权限
 4. **定期更新**：保持Docker镜像和系统更新到最新版本
+
+
+
+## 附录
+### 手动设置目录结构（可选）
+
+如果您希望手动操作，可以按以下步骤执行：
+
+```bash
+# 进入codebase-index目录
+cd /home/docker-compose/codebase-index
+
+# 创建目录结构
+mkdir -p monitoring/{alerts,grafana/{dashboards,provisioning/{dashboards,datasources}}}
+mkdir -p nebula/{data/{meta0,meta1,meta2,storage0,storage1,storage2},logs/{metad0,metad1,metad2,storaged0,storaged1,storaged2,graphd,console}}
+mkdir -p qdrant/storage
+
+# 移动现有的配置文件到正确位置
+# 监控配置文件
+mv prometheus.yml monitoring/ 2>/dev/null || echo "prometheus.yml 不存在"
+mv alertmanager.yml monitoring/ 2>/dev/null || echo "alertmanager.yml 不存在"
+mv docker-compose.monitoring.yml monitoring/ 2>/dev/null || echo "docker-compose.monitoring.yml 不存在"
+
+# 如果存在grafana目录，移动其内容
+if [ -d "grafana" ]; then
+    mv grafana/* monitoring/grafana/
+    rmdir grafana
+fi
+
+# NebulaGraph配置文件
+mv docker-compose.nebula.yml nebula/ 2>/dev/null || echo "docker-compose.nebula.yml 不存在"
+mv nebula-graphd.conf nebula/ 2>/dev/null || echo "nebula-graphd.conf 不存在"
+
+# Qdrant配置文件
+mv docker-compose.qdrant.yml qdrant/ 2>/dev/null || echo "docker-compose.qdrant.yml 不存在"
+
+# 设置文件权限
+chmod -R 755 monitoring/ nebula/ qdrant/
+find monitoring/ -name "*.yml" -o -name "*.yaml" -o -name "*.json" | xargs chmod 644 2>/dev/null || true
+find nebula/ -name "*.yml" -o -name "*.conf" | xargs chmod 644 2>/dev/null || true
+find qdrant/ -name "*.yml" | xargs chmod 644 2>/dev/null || true
+```
