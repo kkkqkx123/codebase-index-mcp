@@ -5,14 +5,11 @@ services:
     ports:
       - "6335:6333"  # REST API
       - "6336:6334"  # gRPC API
-      - "9091:9091"  # Metrics
     volumes:
       - qdrant_storage:/qdrant/storage
       - ./config/production.yaml:/qdrant/config/production.yaml
     environment:
       - QDRANT__CONFIG=/qdrant/config/production.yaml
-      - QDRANT__METRICS__ENABLED=true
-      - QDRANT__METRICS__PORT=9091
     restart: unless-stopped
     networks:
       - monitoring
