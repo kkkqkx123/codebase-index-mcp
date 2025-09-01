@@ -1,0 +1,98 @@
+从 Nebula Graph 3.0.0 版本开始，必须先使用 ADD HOSTS 添加主机，才能正常通过 Storage 服务读写数据。
+
+
+先看Prometheus的stat>target health
+(http://127.0.0.1:9090/targets)
+
+dial tcp: lookup graphd on 127.0.0.11:53: no such host：
+docker-compose文件末尾的network设置为：
+networks:
+  monitoring:
+    driver: bridge
+    // 可省
+    external: true
+    // 用于解决该问题。
+    // 若不配置，docker-compose创建时可以看到启动列表里存在创建自己的网络的过程，无法正确使用全局的monitoring网络
+
+检验：
+docker ps
+docker network inspect monitoring
+docker inspect qdrant_server
+--
+
+
+让ai查找文档后发现nebula指标服务只支持/stats(json格式)，不支持/metrics(文本格式)
+--ws_http_port 用于WebSocket服务（提供/stats端点）
+
+
+
+prometheus.yml中设置prometheus查看的端点
+
+
+qdrant的端点：由于使用的是容器间的通信，端口使用docker的，而非映射出来的
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+
+qdrant的metrics问题
+## 问题分析
+经过分析，Prometheus无法抓取Qdrant指标的问题主要有两个原因：
+
+1.Qdrant容器中的metrics功能存在错误：从日志中可以看到 MetricFamily has no metrics 的错误信息
+这表明即使端口配置正确，metrics功能也无法正常工作。
+2.端口配置不匹配 ：Prometheus配置中的端口与Docker Compose中的端口映射不完全一致。
+Prometheus试图访问 qdrant:6333 ，而Docker Compose将容器的6333端口映射到宿主机的6335端口。
+
+解决：
+/qdrant/config/production.yaml
+
+log_level: INFO
+
+service:
+  host: 0.0.0.0
+  http_port: 6333
+  grpc_port: 6334
+
+metrics:
+  enabled: true
+  port: 9091
+
+
+docker-compose.qdrant.yml
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_codeindex
+    ports:
+      - "6335:6333"  # REST API
+      - "6336:6334"  # gRPC API
+      - "9091:9091"  # Metrics
+    volumes:
+      - qdrant_storage:/qdrant/storage
+      - ./config/production.yaml:/qdrant/config/production.yaml
+    environment:
+      - QDRANT_ENABLE_METRICS=1
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  qdrant_storage:
+
+networks:
+  monitoring:
+    external: true
+
+
+prometheus.yml
+
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+

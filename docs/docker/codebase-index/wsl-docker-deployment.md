@@ -49,6 +49,8 @@ bash setup-config-files.sh
 ```
 /home/docker-compose/codebase-index
 ├── codebase-index
+├── config/
+│   └── production.yaml
 ├── monitoring/
 │   ├── alerts/
 │   ├── grafana/
@@ -334,3 +336,21 @@ find monitoring/ -name "*.yml" -o -name "*.yaml" -o -name "*.json" | xargs chmod
 find nebula/ -name "*.yml" -o -name "*.conf" | xargs chmod 644 2>/dev/null || true
 find qdrant/ -name "*.yml" | xargs chmod 644 2>/dev/null || true
 ```
+
+# Qdrant 配置
+
+Qdrant服务现在启用了metrics监控功能，相关配置如下：
+
+1. **配置文件**：`config/production.yaml`
+   - 启用metrics：`metrics.enabled: true`
+   - metrics端口：`metrics.port: 9091`
+
+2. **Docker Compose配置**：`qdrant/docker-compose.qdrant.yml`
+   - 映射9091端口到宿主机
+   - 挂载配置文件到容器
+
+3. **Prometheus监控配置**：`monitoring/prometheus.yml`
+   - 监控目标：`qdrant:9091`
+   - metrics路径：`/metrics`
+
+这些配置使Prometheus能够正确抓取Qdrant的metrics数据。
