@@ -1,0 +1,238 @@
+services:
+  # ==================== Meta Services ====================
+  metad0:
+    hostname: metad0
+    image: vesoft/nebula-metad:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --local_ip=metad0
+      - --ws_ip=metad0
+      - --port=9559
+      - --data_path=/data/meta
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./data/meta0:/data
+      - ./logs/metad0:/logs
+    ports:
+      - 9559:9559
+      - 19559:19559
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "metad0", "-port", "9559", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  metad1:
+    hostname: metad1
+    image: vesoft/nebula-metad:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --local_ip=metad1
+      - --ws_ip=metad1
+      - --port=9559
+      - --data_path=/data/meta
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./data/meta1:/data
+      - ./logs/metad1:/logs
+    ports:
+      - 9560:9559
+      - 19560:19559
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "metad1", "-port", "9559", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  metad2:
+    hostname: metad2
+    image: vesoft/nebula-metad:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --local_ip=metad2
+      - --ws_ip=metad2
+      - --port=9559
+      - --data_path=/data/meta
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./data/meta2:/data
+      - ./logs/metad2:/logs
+    ports:
+      - 9561:9559
+      - 19561:19559
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "metad2", "-port", "9559", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  # ==================== Storage Services ====================
+  storaged0:
+    hostname: storaged0
+    image: vesoft/nebula-storaged:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --local_ip=storaged0
+      - --ws_ip=storaged0
+      - --port=9779
+      - --data_path=/data/storage
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./data/storage0:/data
+      - ./logs/storaged0:/logs
+    depends_on:
+      - metad0
+      - metad1
+      - metad2
+    ports:
+      - 9779:9779
+      - 19779:19779
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "storaged0", "-port", "9779", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS storage;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  storaged1:
+    hostname: storaged1
+    image: vesoft/nebula-storaged:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --local_ip=storaged1
+      - --ws_ip=storaged1
+      - --port=9779
+      - --data_path=/data/storage
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./data/storage1:/data
+      - ./logs/storaged1:/logs
+    depends_on:
+      - metad0
+      - metad1
+      - metad2
+    ports:
+      - 9780:9779
+      - 19780:19779
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "storaged1", "-port", "9779", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS storage;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  storaged2:
+    hostname: storaged2
+    image: vesoft/nebula-storaged:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --local_ip=storaged2
+      - --ws_ip=storaged2
+      - --port=9779
+      - --data_path=/data/storage
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./data/storage2:/data
+      - ./logs/storaged2:/logs
+    depends_on:
+      - metad0
+      - metad1
+      - metad2
+    ports:
+      - 9781:9779
+      - 19781:19779
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "storaged2", "-port", "9779", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS storage;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+  # ==================== Graph Service ====================
+  graphd:
+    hostname: graphd
+    image: vesoft/nebula-graphd:v3.8.0
+    environment:
+      TZ: "Asia/Shanghai"
+    command:
+      - --meta_server_addrs=metad0:9559,metad1:9559,metad2:9559
+      - --port=9669
+      - --local_ip=graphd
+      - --ws_ip=graphd
+      - --enable_authorize=true
+      - --log_dir=/logs
+      - --minloglevel=0
+    volumes:
+      - ./logs/graphd:/logs
+      - ./nebula-graphd.conf:/usr/local/nebula/etc/nebula-graphd.conf
+    depends_on:
+      - metad0
+      - metad1
+      - metad2
+      - storaged0
+      - storaged1
+      - storaged2
+    ports:
+      - 9669:9669
+      - 19669:19669
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "graphd", "-port", "9669", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS;"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - monitoring
+
+volumes:
+  meta0:
+  meta1:
+  meta2:
+  storage0:
+  storage1:
+  storage2:
+  logs:
+
+networks:
+  monitoring:
+    external: true

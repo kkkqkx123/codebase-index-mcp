@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==================== Meta Services ====================
   metad0:
