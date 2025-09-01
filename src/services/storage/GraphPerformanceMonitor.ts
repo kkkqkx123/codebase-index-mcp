@@ -1,4 +1,5 @@
 import { LoggerService } from '../../core/LoggerService';
+import { injectable } from 'inversify';
 
 export interface PerformanceMetrics {
   queryExecutionTimes: number[];
@@ -17,6 +18,7 @@ export interface BatchMetrics {
   totalProcessingTime: number;
 }
 
+@injectable()
 export class GraphPerformanceMonitor {
   private metrics: PerformanceMetrics = {
     queryExecutionTimes: [],

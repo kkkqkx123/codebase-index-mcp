@@ -24,6 +24,13 @@ import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDedupl
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 import { VectorStorageService } from '../services/storage/VectorStorageService';
 import { GraphPersistenceService } from '../services/storage/GraphPersistenceService';
+import { GraphCacheService } from '../services/storage/GraphCacheService';
+import { GraphPerformanceMonitor } from '../services/storage/GraphPerformanceMonitor';
+import { GraphBatchOptimizer } from '../services/storage/GraphBatchOptimizer';
+import { GraphQueryBuilder } from '../services/storage/GraphQueryBuilder';
+import { GraphSearchService } from '../services/storage/GraphSearchService';
+import { BatchProcessingService } from '../services/storage/batch-processing/BatchProcessingService';
+import { EmbeddingService } from '../services/storage/embedding/EmbeddingService';
 import { EntityIdManager } from '../services/sync/EntityIdManager';
 import { EntityMappingService } from '../services/sync/EntityMappingService';
 import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
@@ -113,7 +120,14 @@ export const TYPES = {
   SnippetController: Symbol.for('SnippetController'),
   GraphDatabaseErrorHandler: Symbol.for('GraphDatabaseErrorHandler'),
   ErrorClassifier: Symbol.for('ErrorClassifier'),
-  NebulaQueryBuilder: Symbol.for('NebulaQueryBuilder')
+  NebulaQueryBuilder: Symbol.for('NebulaQueryBuilder'),
+  GraphCacheService: Symbol.for('GraphCacheService'),
+  GraphPerformanceMonitor: Symbol.for('GraphPerformanceMonitor'),
+  GraphBatchOptimizer: Symbol.for('GraphBatchOptimizer'),
+  GraphQueryBuilder: Symbol.for('GraphQueryBuilder'),
+  GraphSearchService: Symbol.for('GraphSearchService'),
+  BatchProcessingService: Symbol.for('BatchProcessingService'),
+  EmbeddingService: Symbol.for('EmbeddingService')
 };
 
 const coreModule = new ContainerModule((bind: any) => {
@@ -153,6 +167,13 @@ const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
   bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
   bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
+  bind(TYPES.GraphCacheService).to(GraphCacheService).inSingletonScope();
+  bind(TYPES.GraphPerformanceMonitor).to(GraphPerformanceMonitor).inSingletonScope();
+  bind(TYPES.GraphBatchOptimizer).to(GraphBatchOptimizer).inSingletonScope();
+  bind(TYPES.GraphQueryBuilder).to(GraphQueryBuilder).inSingletonScope();
+  bind(TYPES.GraphSearchService).to(GraphSearchService).inSingletonScope();
+  bind(TYPES.BatchProcessingService).to(BatchProcessingService).inSingletonScope();
+  bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
   bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
   bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
   bind(TYPES.SemanticSearchService).to(SemanticSearchService).inSingletonScope();

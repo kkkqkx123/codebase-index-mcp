@@ -4,6 +4,7 @@ import { NebulaService } from '../../database/NebulaService';
 import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
 import { ParsedFile } from '../parser/SmartCodeParser';
 import { CodeChunk } from '../parser/TreeSitterService';
+import { CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 
 export interface GraphQuery {
   nGQL: string;
@@ -30,6 +31,9 @@ export interface BatchProcessingOptions {
 
 @injectable()
 export class GraphPersistenceUtils {
+  generateSpaceName(projectId: string): string {
+    return `project_${projectId}`;
+  }
   constructor(
     @inject(LoggerService) private logger: LoggerService,
     @inject(NebulaService) private nebulaService: NebulaService,
@@ -170,31 +174,8 @@ export class GraphPersistenceUtils {
     return chunks;
   }
 
-  calculateOptimalBatchSize(
-    avgQuerySize: number,
-    availableMemory: number,
-    networkLatency: number
-  ): number {
-    const memoryLimit = Math.floor(availableMemory * 0.8 / avgQuerySize);
-    const latencyLimit = Math.floor(1000 / networkLatency);
-
-    return Math.min(memoryLimit, latencyLimit, 1000);
-  }
-
   async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
-    return Promise.race([
-      operation(),
-      new Promise<T>((_, reject) => {
-        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs);
-      })
-    ]);
   }
 
   async retryOperation<T>(
@@ -351,6 +332,259 @@ export class GraphPersistenceUtils {
         error: (error as Error).message
       });
       throw error;
+    }
+  }
+
+  checkMemoryUsage(): boolean {
+    const memoryUsage = process.memoryUsage();
+    const usedMemory = memoryUsage.heapUsed / 1024 / 1024;
+    const totalMemory = memoryUsage.heapTotal / 1024 / 1024;
+    const memoryUsagePercent = (usedMemory / totalMemory) * 100;
+
+    this.logger.debug('Memory usage', {
+      usedMemory: `${usedMemory.toFixed(2)}MB`,
+      totalMemory: `${totalMemory.toFixed(2)}MB`,
+      memoryUsagePercent: `${memoryUsagePercent.toFixed(2)}%`
+    });
+
+    return memoryUsagePercent < 80;
+  }
+
+  calculateOptimalBatchSize(totalItems: number): number {
+    const baseSize = 100;
+    const maxSize = 1000;
+    const memorySafe = this.checkMemoryUsage();
+
+    if (!memorySafe) {
+      return Math.max(10, Math.floor(baseSize * 0.5));
+    }
+
+    if (totalItems <= baseSize) {
+      return totalItems;
+    }
+
+    const optimalSize = Math.min(
+      Math.floor(baseSize * Math.log10(totalItems)),
+      maxSize
+    );
+
+    return Math.max(baseSize, optimalSize);
+  }
+
+  extractProjectIdFromCurrentSpace(currentSpace: string | null): string | null {
+    if (!currentSpace) {
+      return null;
+    }
+
+    const projectIdMatch = currentSpace.match(/project_(.+)/);
+
+    if (projectIdMatch && projectIdMatch[1]) {
+      return projectIdMatch[1];
+    }
+
+    return null;
+  }
+
+  async waitForSpaceDeletion(
+    nebulaService: NebulaService,
+    spaceName: string, 
+    maxRetries: number = 30, 
+    retryDelay: number = 1000
+  ): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const spacesResult = await nebulaService.executeReadQuery('SHOW SPACES');
+        const spaces = spacesResult?.data || [];
+        const spaceExists = spaces.some((space: { Name: string } | { name: string }) => {
+          const spaceNameValue = 'Name' in space ? space.Name : space.name;
+          return spaceNameValue === spaceName;
+        });
+
+        if (!spaceExists) {
+          this.logger.debug('Space successfully deleted', { spaceName });
+          return;
+        }
+
+        this.logger.debug('Waiting for space deletion', {
+          spaceName,
+          attempt,
+          maxRetries
+        });
+
+        await this.delay(retryDelay);
+      } catch (error) {
+        this.logger.warn('Error checking space deletion status', {
+          spaceName,
+          error: (error as Error).message,
+          attempt
+        });
+
+        if (attempt === maxRetries) {
+          throw new Error(`Failed to confirm space deletion after ${maxRetries} attempts: ${(error as Error).message}`);
+        }
+
+        await this.delay(retryDelay);
+      }
+    }
+
+    throw new Error(`Space ${spaceName} still exists after ${maxRetries} retries`);
+  }
+
+  async ensureConstraints(nebulaService: NebulaService, logger: any): Promise<void> {
+    try {
+      // 确保唯一性约束
+      const constraints = [
+        'CREATE TAG INDEX IF NOT EXISTS unique_file_id ON File(id(64));',
+        'CREATE TAG INDEX IF NOT EXISTS unique_function_id ON Function(id(64));',
+        'CREATE TAG INDEX IF NOT EXISTS unique_class_id ON Class(id(64));',
+        'CREATE TAG INDEX IF NOT EXISTS unique_chunk_id ON Chunk(id(64));',
+        'CREATE EDGE INDEX IF NOT EXISTS unique_contains_id ON Contains();',
+        'CREATE EDGE INDEX IF NOT EXISTS unique_imports_id ON Imports();',
+        'CREATE EDGE INDEX IF NOT EXISTS unique_extends_id ON Extends();',
+        'CREATE EDGE INDEX IF NOT EXISTS unique_implements_id ON Implements();'
+      ];
+
+      for (const constraint of constraints) {
+        await nebulaService.executeWriteQuery(constraint, {});
+      }
+
+      logger.debug('Constraints ensured successfully');
+    } catch (error) {
+      logger.error('Failed to ensure constraints', {
+        error: (error as Error).message
+      });
+      throw error;
+    }
+  }
+
+  recordToGraphNode(record: any): CodeGraphNode {
+    return {
+      id: record.id || record._id,
+      type: record.type || record.tag || 'Unknown',
+      name: record.name || 'Unknown',
+      properties: record.properties || {}
+    };
+  }
+
+  recordToGraphRelationship(record: any, sourceId: string, targetId: string): CodeGraphRelationship {
+    return {
+      id: record.id || record._id,
+      type: record.type || record.edge || 'Unknown',
+      sourceId,
+      targetId,
+      properties: record.properties || {}
+    };
+  }
+
+  async initializeConnectionPoolMonitoring(
+    nebulaService: NebulaService,
+    performanceMonitor: any
+  ): Promise<void> {
+    try {
+      // Monitor connection pool status
+      const stats = await nebulaService.getDatabaseStats();
+      performanceMonitor.updateConnectionPoolStatus('healthy');
+      
+      // Set up periodic monitoring
+      const interval = setInterval(async () => {
+        try {
+          const currentStats = await nebulaService.getDatabaseStats();
+          performanceMonitor.updateConnectionPoolStatus(
+            currentStats.hosts && currentStats.hosts.length > 0 ? 'healthy' : 'degraded'
+          );
+        } catch (error) {
+          performanceMonitor.updateConnectionPoolStatus('error');
+        }
+      }, 30000); // Check every 30 seconds
+      
+      // Ensure interval doesn't prevent Node.js from exiting
+      if (interval && interval.unref) {
+        interval.unref();
+      }
+    } catch (error) {
+      performanceMonitor.updateConnectionPoolStatus('error');
+    }
+  }
+
+  async processWithTimeout<T>(
+    operation: () => Promise<T>,
+    timeoutMs: number
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      
+      operation()
+        .then(result => {
+          clearTimeout(timeout);
+          resolve(result);
+        })
+        .catch(error => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+    });
+  }
+
+  // Enhanced graph statistics using NebulaQueryBuilder
+  async getEnhancedGraphStats(
+    nebulaService: NebulaService,
+    queryBuilder: NebulaQueryBuilder
+  ): Promise<{
+    nodeCount: number;
+    relationshipCount: number;
+    nodeTypes: Record<string, number>;
+    relationshipTypes: Record<string, number>;
+  }> {
+    try {
+      // Use NebulaQueryBuilder to build count queries
+      const tagResult = await nebulaService.executeReadQuery('SHOW TAGS');
+      const edgeResult = await nebulaService.executeReadQuery('SHOW EDGES');
+      
+      const nodeTypes: Record<string, number> = {};
+      const relationshipTypes: Record<string, number> = {};
+      
+      // Count nodes for each tag
+      if (tagResult && Array.isArray(tagResult)) {
+        for (const tag of tagResult) {
+          const tagName = tag.Name || tag.name || 'Unknown';
+          const countQuery = queryBuilder.buildCountQuery(tagName);
+          const countResult = await nebulaService.executeReadQuery(countQuery.query, countQuery.params);
+          
+          if (countResult && Array.isArray(countResult) && countResult.length > 0) {
+            nodeTypes[tagName] = countResult[0].total || 0;
+          }
+        }
+      }
+      
+      // Count relationships for each edge type
+      if (edgeResult && Array.isArray(edgeResult)) {
+        for (const edge of edgeResult) {
+          const edgeName = edge.Name || edge.name || 'Unknown';
+          // For edge counting, we would need to use MATCH queries
+          // This is a simplified implementation
+          relationshipTypes[edgeName] = 0;
+        }
+      }
+      
+      const totalNodes = Object.values(nodeTypes).reduce((sum, count) => sum + count, 0);
+      const totalRelationships = Object.values(relationshipTypes).reduce((sum, count) => sum + count, 0);
+      
+      return {
+        nodeCount: totalNodes,
+        relationshipCount: totalRelationships,
+        nodeTypes,
+        relationshipTypes
+      };
+    } catch (error) {
+      // Fallback to basic implementation
+      return {
+        nodeCount: 0,
+        relationshipCount: 0,
+        nodeTypes: {},
+        relationshipTypes: {}
+      } as const;
     }
   }
 }

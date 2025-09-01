@@ -1,5 +1,6 @@
 import { CacheEntry } from './GraphPersistenceService';
 import { LoggerService } from '../../core/LoggerService';
+import { injectable } from 'inversify';
 
 export interface GraphCacheConfig {
   maxCacheSize: number;
@@ -7,6 +8,7 @@ export interface GraphCacheConfig {
   cleanupInterval: number;
 }
 
+@injectable()
 export class GraphCacheService {
   private queryCache: Map<string, CacheEntry<any>> = new Map();
   private nodeExistenceCache: Map<string, CacheEntry<boolean>> = new Map();

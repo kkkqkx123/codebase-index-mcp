@@ -1,3 +1,5 @@
+import { injectable } from 'inversify';
+
 export interface BatchOptimizationConfig {
   maxConcurrentOperations: number;
   defaultBatchSize: number;
@@ -16,6 +18,7 @@ export interface BatchOptimizationResult {
   memoryUsage: number;
 }
 
+@injectable()
 export class GraphBatchOptimizer {
   private config: BatchOptimizationConfig;
   private lastBatchSizes: number[] = [];

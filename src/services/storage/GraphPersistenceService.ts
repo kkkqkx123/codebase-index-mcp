@@ -95,7 +95,12 @@ export class GraphPersistenceService {
     @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
     @inject(NebulaQueryBuilder) queryBuilder: NebulaQueryBuilder,
     @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler,
-    @inject(GraphPersistenceUtils) persistenceUtils: GraphPersistenceUtils
+    @inject(GraphPersistenceUtils) persistenceUtils: GraphPersistenceUtils,
+    @inject(GraphCacheService) cacheService: GraphCacheService,
+    @inject(GraphPerformanceMonitor) performanceMonitor: GraphPerformanceMonitor,
+    @inject(GraphBatchOptimizer) batchOptimizer: GraphBatchOptimizer,
+    @inject(EnhancedQueryBuilder) enhancedQueryBuilder: EnhancedQueryBuilder,
+    @inject(GraphSearchService) searchService: GraphSearchService
   ) {
     this.nebulaService = nebulaService;
     this.nebulaSpaceManager = nebulaSpaceManager;
@@ -105,26 +110,18 @@ export class GraphPersistenceService {
     this.batchMetrics = batchMetrics;
     this.queryBuilder = queryBuilder;
     this.graphErrorHandler = graphErrorHandler;
-    
-    // Initialize new services
-    this.cacheService = new GraphCacheService(logger);
-    this.performanceMonitor = new GraphPerformanceMonitor(logger);
-    this.batchOptimizer = new GraphBatchOptimizer();
-    this.enhancedQueryBuilder = new EnhancedQueryBuilder(queryBuilder);
+    this.cacheService = cacheService;
+    this.performanceMonitor = performanceMonitor;
+    this.batchOptimizer = batchOptimizer;
+    this.enhancedQueryBuilder = enhancedQueryBuilder;
     this.persistenceUtils = persistenceUtils;
-    this.searchService = new GraphSearchService(
-      nebulaService,
-      logger,
-      this.cacheService,
-      this.performanceMonitor,
-      this.enhancedQueryBuilder
-    );
+    this.searchService = searchService;
     
     this.initializeServices();
   }
 
   private generateSpaceName(projectId: string): string {
-    return `project_${projectId}`;
+    return this.persistenceUtils.generateSpaceName(projectId);
   }
 
   async initialize(): Promise<boolean> {
@@ -403,6 +400,26 @@ export class GraphPersistenceService {
 
     return result;
   }
+  private async processWithTimeout<T>(
+    operation: () => Promise<T>,
+    timeoutMs: number
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      
+      operation()
+        .then(result => {
+          clearTimeout(timeout);
+          resolve(result);
+        })
+        .catch(error => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+    });
+  }
 
   async findRelatedNodes(nodeId: string, relationshipTypes?: string[], maxDepth: number = 2): Promise<CodeGraphNode[]> {
     if (!this.isInitialized) {
@@ -512,6 +529,65 @@ export class GraphPersistenceService {
         suggestions: result.suggestions
       });
       
+      return {
+        nodeCount: 0,
+        relationshipCount: 0,
+        nodeTypes: {},
+        relationshipTypes: {}
+      };
+    }
+  }
+  private async getEnhancedGraphStats(): Promise<{
+    nodeCount: number;
+    relationshipCount: number;
+    nodeTypes: Record<string, number>;
+    relationshipTypes: Record<string, number>;
+  }> {
+    try {
+      // Use NebulaQueryBuilder to build count queries
+      const tagResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
+      const edgeResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
+      
+      const nodeTypes: Record<string, number> = {};
+      const relationshipTypes: Record<string, number> = {};
+      
+      // Count nodes for each tag
+      if (tagResult && Array.isArray(tagResult)) {
+        for (const tag of tagResult) {
+          const tagName = tag.Name || tag.name || 'Unknown';
+          const countQuery = this.enhancedQueryBuilder.buildNodeCountQuery(tagName);
+          const countResult = await this.nebulaService.executeReadQuery(countQuery.nGQL, countQuery.parameters);
+          
+          if (countResult && Array.isArray(countResult) && countResult.length > 0) {
+            nodeTypes[tagName] = countResult[0].total || 0;
+          }
+        }
+      }
+      
+      // Count relationships for each edge type
+      if (edgeResult && Array.isArray(edgeResult)) {
+        for (const edge of edgeResult) {
+          const edgeName = edge.Name || edge.name || 'Unknown';
+          const countQuery = this.enhancedQueryBuilder.buildRelationshipCountQuery(edgeName);
+          const countResult = await this.nebulaService.executeReadQuery(countQuery.nGQL, countQuery.parameters);
+          
+          if (countResult && Array.isArray(countResult) && countResult.length > 0) {
+            relationshipTypes[edgeName] = countResult[0].total || 0;
+          }
+        }
+      }
+      
+      const totalNodes = Object.values(nodeTypes).reduce((sum, count) => sum + count, 0);
+      const totalRelationships = Object.values(relationshipTypes).reduce((sum, count) => sum + count, 0);
+      
+      return {
+        nodeCount: totalNodes,
+        relationshipCount: totalRelationships,
+        nodeTypes,
+        relationshipTypes
+      };
+    } catch (error) {
+      // Fallback to basic implementation
       return {
         nodeCount: 0,
         relationshipCount: 0,
@@ -735,125 +811,21 @@ export class GraphPersistenceService {
   }
 
   private extractProjectIdFromCurrentSpace(): string | null {
-    if (!this.currentSpace) {
-      return null;
-    }
-    
-    const match = this.currentSpace.match(/^project_(.+)$/);
-    return match ? match[1] : null;
+    return this.persistenceUtils.extractProjectIdFromCurrentSpace(this.currentSpace);
   }
 
   private async waitForSpaceDeletion(spaceName: string, maxRetries: number = 30, retryDelay: number = 1000): Promise<void> {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const result = await this.nebulaService.executeReadQuery(`DESCRIBE SPACE ${spaceName}`);
-        if (!result || !result.data || result.data.length === 0) {
-          // 空间已成功删除
-          return;
-        }
-      } catch (error) {
-        // 查询失败通常意味着空间不存在，即删除成功
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
-          return;
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
-    }
-
-    throw new Error(`Space ${spaceName} was not deleted within ${maxRetries} retries`);
+    await this.persistenceUtils.waitForSpaceDeletion(
+      this.nebulaService,
+      spaceName,
+      maxRetries,
+      retryDelay
+    );
   }
 
   private async ensureConstraints(): Promise<void> {
-    try {
-      this.logger.debug('Creating graph indexes and constraints...');
-      
-      // 检查当前空间
-      const currentSpace = await this.nebulaService.getCurrentSpace();
-      if (!currentSpace) {
-        throw new Error('No active space selected');
-      }
-
-      // 创建索引查询
-      const indexQueries = [
-        // Project 索引
-        'CREATE TAG INDEX IF NOT EXISTS project_id_index ON Project(id(64))',
-        'CREATE TAG INDEX IF NOT EXISTS project_name_index ON Project(name(64))',
-        
-        // File 索引
-        'CREATE TAG INDEX IF NOT EXISTS file_id_index ON File(id(64))',
-        'CREATE TAG INDEX IF NOT EXISTS file_path_index ON File(path(256))',
-        'CREATE TAG INDEX IF NOT EXISTS file_name_index ON File(name(128))',
-        'CREATE TAG INDEX IF NOT EXISTS file_language_index ON File(language(32))',
-        'CREATE TAG INDEX IF NOT EXISTS file_project_index ON File(projectId(64))',
-        
-        // Function 索引
-        'CREATE TAG INDEX IF NOT EXISTS function_id_index ON Function(id(64))',
-        'CREATE TAG INDEX IF NOT EXISTS function_name_index ON Function(name(128))',
-        'CREATE TAG INDEX IF NOT EXISTS function_project_index ON Function(projectId(64))',
-        
-        // Class 索引
-        'CREATE TAG INDEX IF NOT EXISTS class_id_index ON Class(id(64))',
-        'CREATE TAG INDEX IF NOT EXISTS class_name_index ON Class(name(128))',
-        'CREATE TAG INDEX IF NOT EXISTS class_project_index ON Class(projectId(64))',
-        
-        // Import 索引
-        'CREATE TAG INDEX IF NOT EXISTS import_id_index ON Import(id(64))',
-        'CREATE TAG INDEX IF NOT EXISTS import_project_index ON Import(projectId(64))',
-        
-        // Interface 索引
-        'CREATE TAG INDEX IF NOT EXISTS interface_id_index ON Interface(id(64))',
-        'CREATE TAG INDEX IF NOT EXISTS interface_name_index ON Interface(name(128))',
-        'CREATE TAG INDEX IF NOT EXISTS interface_project_index ON Interface(projectId(64))',
-        
-        // 关系边索引
-        'CREATE EDGE INDEX IF NOT EXISTS contains_index ON CONTAINS()',
-        'CREATE EDGE INDEX IF NOT EXISTS calls_index ON CALLS()',
-        'CREATE EDGE INDEX IF NOT EXISTS extends_index ON EXTENDS()',
-        'CREATE EDGE INDEX IF NOT EXISTS implements_index ON IMPLEMENTS()',
-        'CREATE EDGE INDEX IF NOT EXISTS imports_index ON IMPORTS()',
-        'CREATE EDGE INDEX IF NOT EXISTS belongs_to_index ON BELONGS_TO()'
-      ];
-
-      // 执行索引创建
-      for (const query of indexQueries) {
-        try {
-          this.logger.debug(`Executing index query: ${query}`);
-          await this.nebulaService.executeReadQuery(query);
-          this.logger.debug(`Index created successfully: ${query}`);
-        } catch (error) {
-          // 更精确的错误处理
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const isIndexExistsError = 
-            errorMessage.includes('exists') || 
-            errorMessage.includes('already') ||
-            errorMessage.includes('EXISTED');
-            
-          if (isIndexExistsError) {
-            this.logger.debug(`Index already exists: ${query}`);
-          } else {
-            this.logger.warn(`Failed to create index: ${query}`, error);
-          }
-        }
-      }
-
-      this.logger.info('Graph indexes and constraints creation completed');
-    } catch (error) {
-      this.logger.error('Failed to ensure graph constraints', error);
-      // 不抛出错误，允许系统继续运行
-    }
+    await this.persistenceUtils.ensureConstraints(this.nebulaService, this.logger);
   }
-
-
-
-
-
-
-
-
-
-
 
   private async executeBatch(queries: GraphQuery[]): Promise<GraphPersistenceResult> {
     const startTime = Date.now();
@@ -926,30 +898,11 @@ export class GraphPersistenceService {
   }
 
   private recordToGraphNode(record: any): CodeGraphNode {
-    // NebulaGraph records have different structure than Neo4j
-    // We need to extract the vertex information from NebulaGraph result
-    const vertex = record._vertex || record.vertex || record;
-    
-    return {
-      id: vertex.id || vertex._id || '',
-      type: vertex.tag || vertex.label || 'Unknown',
-      name: vertex.name || vertex.id || '',
-      properties: vertex.properties || vertex || {}
-    };
+    return this.persistenceUtils.recordToGraphNode(record);
  }
 
   private recordToGraphRelationship(record: any, sourceId: string, targetId: string): CodeGraphRelationship {
-    // NebulaGraph records have different structure than Neo4j
-    // We need to extract the edge information from NebulaGraph result
-    const edge = record._edge || record.edge || record;
-    
-    return {
-      id: (edge.id || edge._src + '->' + edge._dst).toString(),
-      type: edge.name || edge.type || 'Unknown',
-      sourceId: edge._src || sourceId,
-      targetId: edge._dst || targetId,
-      properties: edge.properties || edge || {}
-    };
+    return this.persistenceUtils.recordToGraphRelationship(record, sourceId, targetId);
  }
 
   isServiceInitialized(): boolean {
@@ -982,60 +935,22 @@ export class GraphPersistenceService {
   }
 
   private async initializeConnectionPoolMonitoring(): Promise<void> {
-    try {
-      // Monitor connection pool status
-      const stats = await this.nebulaService.getDatabaseStats();
-      this.performanceMonitor.updateConnectionPoolStatus('healthy');
-      
-      // Set up periodic monitoring
-      this.connectionPoolMonitoringInterval = setInterval(async () => {
-        try {
-          const currentStats = await this.nebulaService.getDatabaseStats();
-          this.performanceMonitor.updateConnectionPoolStatus(
-            currentStats.hosts && currentStats.hosts.length > 0 ? 'healthy' : 'degraded'
-          );
-        } catch (error) {
-          this.performanceMonitor.updateConnectionPoolStatus('error');
-        }
-      }, 300); // Check every 30 seconds
-      // Ensure interval doesn't prevent Node.js from exiting
-      if (this.connectionPoolMonitoringInterval && this.connectionPoolMonitoringInterval.unref) {
-        this.connectionPoolMonitoringInterval.unref();
-      }
-    } catch (error) {
-      this.performanceMonitor.updateConnectionPoolStatus('error');
-    }
+    await this.persistenceUtils.initializeConnectionPoolMonitoring(
+      this.nebulaService,
+      this.performanceMonitor
+    );
   }
 
   private checkMemoryUsage(): boolean {
-    return this.batchOptimizer.checkMemoryUsage();
+    return this.persistenceUtils.checkMemoryUsage();
   }
 
-  private async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error(`Operation timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-      
-      operation()
-        .then(result => {
-          clearTimeout(timeout);
-          resolve(result);
-        })
-        .catch(error => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-    });
-  }
+
 
 
 
   private calculateOptimalBatchSize(totalItems: number): number {
-    return this.batchOptimizer.calculateOptimalBatchSize(totalItems);
+    return this.persistenceUtils.calculateOptimalBatchSize(totalItems);
   }
 
   async updateChunks(chunks: CodeChunk[], options: GraphPersistenceOptions = {}): Promise<GraphPersistenceResult> {
@@ -1370,63 +1285,7 @@ export class GraphPersistenceService {
     }
   }
 
-  // Enhanced graph statistics using NebulaQueryBuilder
-  private async getEnhancedGraphStats(): Promise<{
-    nodeCount: number;
-    relationshipCount: number;
-    nodeTypes: Record<string, number>;
-    relationshipTypes: Record<string, number>;
-  }> {
-    try {
-      // Use NebulaQueryBuilder to build count queries
-      const tagResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
-      const edgeResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
-      
-      const nodeTypes: Record<string, number> = {};
-      const relationshipTypes: Record<string, number> = {};
-      
-      // Count nodes for each tag
-      if (tagResult && Array.isArray(tagResult)) {
-        for (const tag of tagResult) {
-          const tagName = tag.Name || tag.name || 'Unknown';
-          const countQuery = this.queryBuilder.buildCountQuery(tagName);
-          const countResult = await this.nebulaService.executeReadQuery(countQuery.query, countQuery.params);
-          
-          if (countResult && Array.isArray(countResult) && countResult.length > 0) {
-            nodeTypes[tagName] = countResult[0].total || 0;
-          }
-        }
-      }
-      
-      // Count relationships for each edge type
-      if (edgeResult && Array.isArray(edgeResult)) {
-        for (const edge of edgeResult) {
-          const edgeName = edge.Name || edge.name || 'Unknown';
-          // For edge counting, we would need to use MATCH queries
-          // This is a simplified implementation
-          relationshipTypes[edgeName] = 0;
-        }
-      }
-      
-      const totalNodes = Object.values(nodeTypes).reduce((sum, count) => sum + count, 0);
-      const totalRelationships = Object.values(relationshipTypes).reduce((sum, count) => sum + count, 0);
-      
-      return {
-        nodeCount: totalNodes,
-        relationshipCount: totalRelationships,
-        nodeTypes,
-        relationshipTypes
-      };
-    } catch (error) {
-      // Fallback to basic implementation
-      return {
-        nodeCount: 0,
-        relationshipCount: 0,
-        nodeTypes: {},
-        relationshipTypes: {}
-      } as const;
-    }
-  }
+
 
 
 

@@ -24,7 +24,14 @@ import { NebulaConnectionManager } from './database/nebula/NebulaConnectionManag
 import { QdrantClientWrapper } from './database/qdrant/QdrantClientWrapper';
 import { NebulaService } from './database/NebulaService';
 import { NebulaQueryBuilder } from './database/nebula/NebulaQueryBuilder';
+import { NebulaSpaceManager } from './database/nebula/NebulaSpaceManager';
 import { GraphDatabaseErrorHandler } from './core/GraphDatabaseErrorHandler';
+import { GraphPersistenceUtils } from './services/storage/GraphPersistenceUtils';
+import { GraphCacheService } from './services/storage/GraphCacheService';
+import { GraphPerformanceMonitor } from './services/storage/GraphPerformanceMonitor';
+import { GraphBatchOptimizer } from './services/storage/GraphBatchOptimizer';
+import { GraphQueryBuilder } from './services/storage/GraphQueryBuilder';
+import { GraphSearchService } from './services/storage/GraphSearchService';
 import { ErrorClassifier } from './core/ErrorClassifier';
 import { EmbedderFactory } from './embedders/EmbedderFactory';
 import { OpenAIEmbedder } from './embedders/OpenAIEmbedder';
@@ -36,6 +43,8 @@ import { Custom1Embedder } from './embedders/Custom1Embedder';
 import { Custom2Embedder } from './embedders/Custom2Embedder';
 import { Custom3Embedder } from './embedders/Custom3Embedder';
 import { EmbeddingCacheService } from './embedders/EmbeddingCacheService';
+import { BatchProcessingService } from './services/storage/batch-processing/BatchProcessingService';
+import { EmbeddingService } from './services/storage/embedding/EmbeddingService';
 
 // New refactored services
 import { IndexCoordinator } from './services/indexing/IndexCoordinator';
@@ -109,6 +118,13 @@ container.bind<NebulaConnectionManager>(NebulaConnectionManager).toSelf().inSing
 container.bind<QdrantClientWrapper>(QdrantClientWrapper).toSelf().inSingletonScope();
 container.bind<NebulaService>(NebulaService).toSelf().inSingletonScope();
 container.bind<NebulaQueryBuilder>(NebulaQueryBuilder).toSelf().inSingletonScope();
+container.bind<NebulaSpaceManager>(NebulaSpaceManager).toSelf().inSingletonScope();
+container.bind<GraphPersistenceUtils>(GraphPersistenceUtils).toSelf().inSingletonScope();
+container.bind<GraphCacheService>(GraphCacheService).toSelf().inSingletonScope();
+container.bind<GraphPerformanceMonitor>(GraphPerformanceMonitor).toSelf().inSingletonScope();
+container.bind<GraphBatchOptimizer>(GraphBatchOptimizer).toSelf().inSingletonScope();
+container.bind<GraphQueryBuilder>(GraphQueryBuilder).toSelf().inSingletonScope();
+container.bind<GraphSearchService>(GraphSearchService).toSelf().inSingletonScope();
 container.bind<GraphDatabaseErrorHandler>(GraphDatabaseErrorHandler).toSelf().inSingletonScope();
 container.bind<ErrorClassifier>(ErrorClassifier).toSelf().inSingletonScope();
 container.bind<EmbedderFactory>(EmbedderFactory).toSelf().inSingletonScope();
@@ -165,6 +181,8 @@ container.bind<RerankingService>(RerankingService).toSelf().inSingletonScope();
 
 // Bind batch processing services
 container.bind<BatchProcessingMetrics>(BatchProcessingMetrics).toSelf().inSingletonScope();
+container.bind<BatchProcessingService>(BatchProcessingService).toSelf().inSingletonScope();
+container.bind<EmbeddingService>(EmbeddingService).toSelf().inSingletonScope();
 container.bind<ConcurrentProcessingService>(ConcurrentProcessingService).toSelf().inSingletonScope();
 container.bind<MemoryOptimizationService>(MemoryOptimizationService).toSelf().inSingletonScope();
 container.bind<BatchPerformanceMonitor>(BatchPerformanceMonitor).toSelf().inSingletonScope();

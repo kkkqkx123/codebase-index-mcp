@@ -9,6 +9,11 @@ import { GraphDatabaseErrorHandler } from '../../core/GraphDatabaseErrorHandler'
 import { NebulaSpaceManager } from '../../database/nebula/NebulaSpaceManager';
 import { GraphPersistenceUtils } from './GraphPersistenceUtils';
 import { TYPES } from '../../core/DIContainer';
+import { GraphCacheService } from './GraphCacheService';
+import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
+import { GraphBatchOptimizer } from './GraphBatchOptimizer';
+import { GraphQueryBuilder } from './GraphQueryBuilder';
+import { GraphSearchService } from './GraphSearchService';
 
 describe('GraphPersistenceService', () => {
   let graphPersistenceService: GraphPersistenceService;
@@ -20,6 +25,11 @@ describe('GraphPersistenceService', () => {
   let mockGraphErrorHandler: any;
   let mockNebulaSpaceManager: any;
   let mockGraphPersistenceUtils: any;
+  let mockGraphCacheService: any;
+  let mockGraphPerformanceMonitor: any;
+  let mockGraphBatchOptimizer: any;
+  let mockGraphQueryBuilder: any;
+  let mockGraphSearchService: any;
 
   beforeEach(() => {
     // Use fake timers to control async operations
@@ -107,6 +117,35 @@ describe('GraphPersistenceService', () => {
       // Mock methods as needed for tests
     };
 
+    mockGraphCacheService = {
+      getFromCache: jest.fn(),
+      setCache: jest.fn(),
+      getGraphStatsCache: jest.fn(),
+      setGraphStatsCache: jest.fn(),
+      clearAllCache: jest.fn(),
+    };
+
+    mockGraphPerformanceMonitor = {
+      updateCacheHitRate: jest.fn(),
+      recordQueryExecution: jest.fn(),
+      getMetrics: jest.fn(),
+    };
+
+    mockGraphBatchOptimizer = {
+      getConfig: jest.fn().mockReturnValue({
+        processingTimeout: 300000,
+      }),
+    };
+
+    mockGraphQueryBuilder = {
+      buildNodeCountQuery: jest.fn(),
+      buildRelationshipCountQuery: jest.fn(),
+    };
+
+    mockGraphSearchService = {
+      search: jest.fn(),
+    };
+
     // Create service instance directly
     graphPersistenceService = new GraphPersistenceService(
       mockNebulaService,
@@ -117,7 +156,12 @@ describe('GraphPersistenceService', () => {
       new BatchProcessingMetrics(mockConfigService, mockLoggerService, mockErrorHandlerService),
       mockQueryBuilder,
       mockGraphErrorHandler,
-      mockGraphPersistenceUtils
+      mockGraphPersistenceUtils,
+      mockGraphCacheService,
+      mockGraphPerformanceMonitor,
+      mockGraphBatchOptimizer,
+      mockGraphQueryBuilder,
+      mockGraphSearchService
     );
   });
 

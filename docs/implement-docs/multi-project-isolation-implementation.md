@@ -50,7 +50,7 @@ interface ProjectVectorConfig {
 ```
 
 ### 2. Nebula Graph 图数据库隔离
-[ ]
+[x]
 #### 空间命名策略
 为每个项目创建独立的 Nebula Graph 空间，命名规则如下：
 ```
@@ -207,8 +207,8 @@ class QdrantCollectionManager {
 }
 ```
 
-#### Nebula Graph 空间管理
-[ ]
+#### Nebula Graph 空间管理策略
+
 ##### 空间生命周期管理
 为每个项目创建独立的 Nebula Graph 空间，并提供完整的生命周期管理：
 
