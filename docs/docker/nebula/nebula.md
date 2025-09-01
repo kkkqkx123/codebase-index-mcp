@@ -1,6 +1,7 @@
 # NebulaGraph Docker 部署指南
 
 ## Docker Compose 部署（推荐）
+
 在 `/home/docker-compose/nebula` 目录下创建 `docker-compose.yml` 文件：
 
 创建 `docker-compose.yml` 文件：
@@ -20,9 +21,12 @@ vi docker-compose.yml
 mkdir -p data/meta{0,1,2}
 mkdir -p data/storage{0,1,2}
 mkdir -p logs/{metad0,metad1,metad2,storaged0,storaged1,storaged2,graphd,console}
-# 启动
-# 清除现有实例
-docker-compose down
+
+# 启动 Nebula 服务（需要先启动监控服务）
+# 首先启动监控服务
+docker-compose -f ../monitoring/docker-compose.monitoring.yml up -d
+
+# 然后启动 Nebula 服务
 docker-compose up -d
 
 # 查看状态
@@ -33,13 +37,6 @@ docker-compose logs storaged0
 
 # 进入 CLI
 docker exec -it graphd /usr/local/nebula/bin/nebula-console -u root -p nebula
-
-
-# 重写docker-compose.yml
-cd /home/share/nebula
-rm docker-compose.yml
-touch docker-compose.yml
-vi docker-compose.yml
 ```
 
 ## 参数说明
@@ -137,4 +134,3 @@ nebula> RESTORE SNAPSHOT your_snapshot;
        target: /data/meta
        volume:
          nocopy: true
-   ```

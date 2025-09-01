@@ -1,59 +1,6 @@
+version: '3.8'
+
 services:
-  # ==================== Monitoring Services ====================
-  prometheus:
-    image: prom/prometheus:v2.45.0
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ../monitoring/alerts:/etc/prometheus/alerts
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    restart: unless-stopped
-    networks:
-      - monitoring
-
-  alertmanager:
-    image: prom/alertmanager:v0.25.0
-    container_name: alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - ../monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - alertmanager_data:/data
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/data'
-    restart: unless-stopped
-    networks:
-      - monitoring
-
-  grafana:
-    image: grafana/grafana:10.2.0
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ../monitoring/grafana/dashboards:/etc/grafana/dashboards
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    restart: unless-stopped
-    networks:
-      - monitoring
-    depends_on:
-      - prometheus
-
   # ==================== Meta Services ====================
   metad0:
     hostname: metad0
@@ -81,6 +28,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
   metad1:
     hostname: metad1
@@ -108,6 +57,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
   metad2:
     hostname: metad2
@@ -135,6 +86,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
   # ==================== Storage Services ====================
   storaged0:
@@ -167,6 +120,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
   storaged1:
     hostname: storaged1
@@ -198,6 +153,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
   storaged2:
     hostname: storaged2
@@ -229,8 +186,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
-# ==================== Graph Service ====================
+  # ==================== Graph Service ====================
   graphd:
     hostname: graphd
     image: vesoft/nebula-graphd:v3.8.0
@@ -263,11 +222,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    networks:
+      - monitoring
 
 volumes:
-  prometheus_data:
-  alertmanager_data:
-  grafana_data:
   meta0:
   meta1:
   meta2:
@@ -278,4 +236,4 @@ volumes:
 
 networks:
   monitoring:
-    driver: bridge
+    external: true

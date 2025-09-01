@@ -1,4 +1,4 @@
-import { CacheEntry } from '../GraphPersistenceService';
+import { CacheEntry } from './GraphPersistenceService';
 import { LoggerService } from '../../../core/LoggerService';
 import { injectable } from 'inversify';
 
@@ -18,7 +18,7 @@ export class GraphCacheService {
     nodeTypes: Record<string, number>;
     relationshipTypes: Record<string, number>;
   }> | null = null;
-  
+
   private logger: LoggerService;
   private config: GraphCacheConfig;
   private cacheCleanupInterval: NodeJS.Timeout | null = null;
@@ -31,19 +31,19 @@ export class GraphCacheService {
       cleanupInterval: 60000, // 1 minute
       ...config
     };
-    
+
     this.startCacheCleanup();
   }
 
   getFromCache<T>(key: string): T | null {
     const entry = this.queryCache.get(key);
     if (!entry) return null;
-    
+
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.queryCache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
 
@@ -51,7 +51,7 @@ export class GraphCacheService {
     if (this.queryCache.size >= this.config.maxCacheSize) {
       this.cleanupCache();
     }
-    
+
     this.queryCache.set(key, {
       data,
       timestamp: Date.now(),
@@ -62,12 +62,12 @@ export class GraphCacheService {
   hasNodeInCache(nodeId: string): boolean {
     const entry = this.nodeExistenceCache.get(nodeId);
     if (!entry) return false;
-    
+
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.nodeExistenceCache.delete(nodeId);
       return false;
     }
-    
+
     return entry.data;
   }
 
@@ -75,7 +75,7 @@ export class GraphCacheService {
     if (this.nodeExistenceCache.size >= this.config.maxCacheSize) {
       this.cleanupNodeExistenceCache();
     }
-    
+
     this.nodeExistenceCache.set(nodeId, {
       data: exists,
       timestamp: Date.now(),
@@ -85,12 +85,12 @@ export class GraphCacheService {
 
   getGraphStatsCache() {
     if (!this.graphStatsCache) return null;
-    
+
     if (Date.now() - this.graphStatsCache.timestamp > this.graphStatsCache.ttl) {
       this.graphStatsCache = null;
       return null;
     }
-    
+
     return this.graphStatsCache.data;
   }
 
@@ -105,14 +105,14 @@ export class GraphCacheService {
   private cleanupCache(): void {
     const now = Date.now();
     let cleaned = 0;
-    
+
     for (const [key, entry] of this.queryCache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         this.queryCache.delete(key);
         cleaned++;
       }
     }
-    
+
     if (cleaned > 0) {
       this.logger.debug(`Cleaned ${cleaned} expired cache entries from query cache`);
     }
@@ -121,14 +121,14 @@ export class GraphCacheService {
   private cleanupNodeExistenceCache(): void {
     const now = Date.now();
     let cleaned = 0;
-    
+
     for (const [key, entry] of this.nodeExistenceCache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         this.nodeExistenceCache.delete(key);
         cleaned++;
       }
     }
-    
+
     if (cleaned > 0) {
       this.logger.debug(`Cleaned ${cleaned} expired cache entries from node existence cache`);
     }

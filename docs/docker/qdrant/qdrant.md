@@ -1,5 +1,14 @@
 # Qdrant Docker 部署指南
 
+## Docker Compose 部署（推荐）
+
+使用 Docker Compose 部署 Qdrant，可以更好地与监控系统集成：
+
+```bash
+# 使用 docker-compose 部署
+docker-compose -f docker-compose.qdrant.yml up -d
+```
+
 ## Docker Run 命令
 
 ```bash
@@ -68,4 +77,3 @@ docker rm qdrant
 
 # 进入容器
 docker exec -it qdrant /bin/bash
-```

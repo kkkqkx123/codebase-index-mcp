@@ -1,4 +1,4 @@
-import { GraphPersistenceService, GraphPersistenceOptions, GraphPersistenceResult, CodeGraphNode, CodeGraphRelationship } from '../GraphPersistenceService';
+import { GraphPersistenceService, GraphPersistenceOptions, GraphPersistenceResult, CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 import { NebulaService } from '../../../database/NebulaService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ConfigService } from '../../../config/ConfigService';
@@ -13,7 +13,7 @@ import { GraphCacheService } from './GraphCacheService';
 import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
 import { GraphBatchOptimizer } from './GraphBatchOptimizer';
 import { GraphQueryBuilder } from './GraphQueryBuilder';
-import { GraphSearchService } from '../GraphSearchService';
+import { GraphSearchService } from './GraphSearchService';
 
 describe('GraphPersistenceService', () => {
   let graphPersistenceService: GraphPersistenceService;
@@ -34,7 +34,7 @@ describe('GraphPersistenceService', () => {
   beforeEach(() => {
     // Use fake timers to control async operations
     jest.useFakeTimers();
-    
+
     // Mock services
     mockNebulaService = {
       isConnected: jest.fn().mockReturnValue(true),

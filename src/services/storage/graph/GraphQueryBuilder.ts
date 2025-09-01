@@ -1,5 +1,5 @@
 import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
-import { CodeGraphNode, CodeGraphRelationship } from '../GraphPersistenceService';
+import { CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 import { injectable, inject } from 'inversify';
 
 export interface SearchQuery {
@@ -40,7 +40,7 @@ export class GraphQueryBuilder {
 
   buildSearchQuery(searchQuery: SearchQuery): { nGQL: string; parameters: Record<string, any> } {
     const { query, queryType, filters = {}, pagination = { limit: 10, offset: 0 }, sortBy = 'relevance' } = searchQuery;
-    
+
     switch (queryType) {
       case 'semantic':
         return this.buildSemanticSearchQuery(query, filters, pagination, sortBy);
@@ -56,9 +56,9 @@ export class GraphQueryBuilder {
   }
 
   private buildSemanticSearchQuery(
-    query: string, 
-    filters: any, 
-    pagination: { limit: number; offset: number }, 
+    query: string,
+    filters: any,
+    pagination: { limit: number; offset: number },
     sortBy: string
   ): { nGQL: string; parameters: Record<string, any> } {
     const parameters: Record<string, any> = {
@@ -68,7 +68,7 @@ export class GraphQueryBuilder {
     };
 
     let whereClauses: string[] = [];
-    
+
     if (filters.nodeTypes && filters.nodeTypes.length > 0) {
       whereClauses.push(`v.type IN $nodeTypes`);
       parameters.nodeTypes = filters.nodeTypes;
@@ -104,9 +104,9 @@ export class GraphQueryBuilder {
   }
 
   private buildRelationshipSearchQuery(
-    query: string, 
-    filters: any, 
-    pagination: { limit: number; offset: number }, 
+    query: string,
+    filters: any,
+    pagination: { limit: number; offset: number },
     sortBy: string
   ): { nGQL: string; parameters: Record<string, any> } {
     const parameters: Record<string, any> = {
@@ -116,7 +116,7 @@ export class GraphQueryBuilder {
     };
 
     let whereClauses: string[] = [];
-    
+
     if (filters.relationshipTypes && filters.relationshipTypes.length > 0) {
       whereClauses.push(`e.type IN $relationshipTypes`);
       parameters.relationshipTypes = filters.relationshipTypes;
@@ -141,9 +141,9 @@ export class GraphQueryBuilder {
   }
 
   private buildPathSearchQuery(
-    query: string, 
-    filters: any, 
-    pagination: { limit: number; offset: number }, 
+    query: string,
+    filters: any,
+    pagination: { limit: number; offset: number },
     sortBy: string
   ): { nGQL: string; parameters: Record<string, any> } {
     const parameters: Record<string, any> = {
@@ -153,7 +153,7 @@ export class GraphQueryBuilder {
     };
 
     let whereClauses: string[] = [];
-    
+
     if (filters.projectId) {
       whereClauses.push(`v1.projectId == $projectId`);
       parameters.projectId = filters.projectId;
@@ -173,9 +173,9 @@ export class GraphQueryBuilder {
   }
 
   private buildFuzzySearchQuery(
-    query: string, 
-    filters: any, 
-    pagination: { limit: number; offset: number }, 
+    query: string,
+    filters: any,
+    pagination: { limit: number; offset: number },
     sortBy: string
   ): { nGQL: string; parameters: Record<string, any> } {
     const parameters: Record<string, any> = {
@@ -185,7 +185,7 @@ export class GraphQueryBuilder {
     };
 
     let whereClauses: string[] = [];
-    
+
     if (filters.nodeTypes && filters.nodeTypes.length > 0) {
       whereClauses.push(`v.type IN $nodeTypes`);
       parameters.nodeTypes = filters.nodeTypes;
@@ -218,12 +218,12 @@ export class GraphQueryBuilder {
   }
 
   buildRelatedNodesQuery(
-    nodeId: string, 
-    relationshipTypes?: string[], 
+    nodeId: string,
+    relationshipTypes?: string[],
     maxDepth: number = 2
   ): { nGQL: string; parameters: Record<string, any> } {
     const parameters: Record<string, any> = { nodeId };
-    
+
     let edgeFilter = '';
     if (relationshipTypes && relationshipTypes.length > 0) {
       edgeFilter = `:${relationshipTypes.join('|')}`;
@@ -239,8 +239,8 @@ export class GraphQueryBuilder {
   }
 
   buildPathQuery(
-    sourceId: string, 
-    targetId: string, 
+    sourceId: string,
+    targetId: string,
     maxDepth: number = 5
   ): { nGQL: string; parameters: Record<string, any> } {
     return {
