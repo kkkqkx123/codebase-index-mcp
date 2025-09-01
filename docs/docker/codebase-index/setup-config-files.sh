@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # WSL Docker 配置文件设置脚本
-# 该脚本用于在share目录内部创建目录结构并设置文件权限
-# 假设当前目录为 /home/docker-compose/codebase-index/share
+# 该脚本用于在codebase-index目录创建目录结构并设置文件权限
+# 假设当前目录为 /home/docker-compose/codebase-index
 
 set -e  # 遇到错误立即退出
 
@@ -10,8 +10,8 @@ echo "=== WSL Docker 配置文件设置脚本 ==="
 echo "当前工作目录: $(pwd)"
 echo "开始配置代码库索引系统的目录结构和权限..."
 
-# 当前目录就是share目录
-SHARE_DIR="$(pwd)"
+# 当前目录就是codebase-index目录
+CURRENT_DIR="$(pwd)"
 
 echo "=== 创建目录结构 ==="
 
@@ -116,7 +116,7 @@ ls -la qdrant/ 2>/dev/null || echo "qdrant目录为空"
 echo ""
 echo "=== 配置完成 ==="
 echo "所有目录结构和权限已设置完成"
-echo "当前目录: $SHARE_DIR"
+echo "当前目录: $CURRENT_DIR"
 echo ""
 echo "目录结构概览:"
 tree -L 3 . 2>/dev/null || find . -type d | head -20

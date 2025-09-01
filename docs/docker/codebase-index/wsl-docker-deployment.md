@@ -5,7 +5,7 @@
 - **NebulaGraph**：分布式图数据库
 - **Qdrant**：向量数据库
 
-**注意：整个share目录将移动到linux子系统中的/home/docker-compose/codebase-index目录。在wsl中的绝对路径为/home/docker-compose/codebase-index/share**
+**注意：整个codebase-index目录将移动到linux子系统中的/home/docker-compose/codebase-index目录。在wsl中的绝对路径为/home/docker-compose/codebase-index**
 
 ## 先决条件
 
@@ -24,17 +24,17 @@
 cd /home/docker-compose/codebase-index
 
 # 运行目录创建脚本
-chmod +x docs/docker/setup-wsl-directories.sh
-./docs/docker/setup-wsl-directories.sh
+chmod +x setup-wsl-directories.sh
+bash setup-wsl-directories.sh
 ```
 
 ### 目录结构
 
-执行docker命令前，确保以下目录结构完整(share即实际操作时的当前文件夹)：
+执行docker命令前，确保以下目录结构完整(codebase-index即实际操作时的当前文件夹)：
 
 ```
 /home/docker-compose/codebase-index
-├── share
+├── codebase-index
 ├── monitoring/
 │   ├── alerts/
 │   ├── grafana/
@@ -67,8 +67,8 @@ chmod +x docs/docker/setup-wsl-directories.sh
 我们提供了一个自动化脚本来完成目录结构的创建和文件权限设置：
 
 ```bash
-# 进入share目录
-cd /home/docker-compose/codebase-index/share
+# 进入codebase-index目录
+cd /home/docker-compose/codebase-index
 
 # 确保配置文件已经在当前目录中
 # 运行目录设置脚本
@@ -95,8 +95,8 @@ chmod +x setup-config-files.sh
 如果您希望手动操作，可以按以下步骤执行：
 
 ```bash
-# 进入share目录
-cd /home/docker-compose/codebase-index/share
+# 进入codebase-index目录
+cd /home/docker-compose/codebase-index
 
 # 创建目录结构
 mkdir -p monitoring/{alerts,grafana/{dashboards,provisioning/{dashboards,datasources}}}
@@ -143,7 +143,7 @@ docker network create monitoring
 ### 1. 首先启动监控服务
 
 ```bash
-cd /home/docker-compose/codebase-index/share/monitoring
+cd /home/docker-compose/codebase-index/monitoring
 docker-compose -f docker-compose.monitoring.yml up -d
 ```
 
@@ -158,7 +158,7 @@ curl http://localhost:3000         # Grafana
 ### 2. 然后启动 NebulaGraph 服务
 
 ```bash
-cd /home/docker-compose/codebase-index/share/nebula
+cd /home/docker-compose/codebase-index/nebula
 docker-compose up -d
 ```
 
@@ -177,7 +177,7 @@ nebula-console -u root -p nebula --address=127.0.0.1 --port=9669 -e "SHOW HOSTS"
 ### 3. 最后启动 Qdrant 服务
 
 ```bash
-cd /home/docker-compose/codebase-index/share/qdrant
+cd /home/docker-compose/codebase-index/qdrant
 docker-compose -f docker-compose.qdrant.yml up -d
 ```
 
@@ -211,20 +211,20 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(prome
 
 ```bash
 # 按启动顺序逆序停止
-cd /home/docker-compose/codebase-index/share/qdrant && docker-compose down
-cd /home/docker-compose/codebase-index/share/nebula && docker-compose down
-cd /home/docker-compose/codebase-index/share/monitoring && docker-compose -f docker-compose.monitoring.yml down
+cd /home/docker-compose/codebase-index/qdrant && docker-compose down
+cd /home/docker-compose/codebase-index/nebula && docker-compose down
+cd /home/docker-compose/codebase-index/monitoring && docker-compose -f docker-compose.monitoring.yml down
 ```
 
 ### 重启特定服务
 
 ```bash
 # 重启NebulaGraph
-cd /home/docker-compose/codebase-index/share/nebula
+cd /home/docker-compose/codebase-index/nebula
 docker-compose restart
 
 # 重启监控服务
-cd /home/docker-compose/codebase-index/share/monitoring
+cd /home/docker-compose/codebase-index/monitoring
 docker-compose -f docker-compose.monitoring.yml restart
 ```
 
@@ -270,9 +270,9 @@ docker-compose -f docker-compose.monitoring.yml restart
 
 ```bash
 # 查看所有服务日志
-cd /home/docker-compose/codebase-index/share/monitoring && docker-compose logs
-cd /home/docker-compose/codebase-index/share/nebula && docker-compose logs
-cd /home/docker-compose/codebase-index/share/qdrant && docker-compose logs
+cd /home/docker-compose/codebase-index/monitoring && docker-compose logs
+cd /home/docker-compose/codebase-index/nebula && docker-compose logs
+cd /home/docker-compose/codebase-index/qdrant && docker-compose logs
 
 # 查看特定服务日志
 docker logs prometheus
@@ -284,8 +284,8 @@ docker logs qdrant
 
 所有数据都配置了持久化存储：
 - **监控数据**：存储在Docker volumes中
-- **NebulaGraph数据**：存储在本地目录 `/home/docker-compose/codebase-index/share/nebula/data/`
-- **Qdrant数据**：存储在本地目录 `/home/docker-compose/codebase-index/share/qdrant/storage/`
+- **NebulaGraph数据**：存储在本地目录 `/home/docker-compose/codebase-index/nebula/data/`
+- **Qdrant数据**：存储在本地目录 `/home/docker-compose/codebase-index/qdrant/storage/`
 
 ## 备份和恢复
 
@@ -297,7 +297,7 @@ docker exec -it graphd bash
 nebula> CREATE SNAPSHOT;
 
 # 备份Qdrant数据（复制存储目录）
-cp -r /home/docker-compose/codebase-index/share/qdrant/storage/ /backup/qdrant-backup/
+cp -r /home/docker-compose/codebase-index/qdrant/storage/ /backup/qdrant-backup/
 ```
 
 ### 恢复数据
@@ -308,7 +308,7 @@ docker exec -it graphd bash
 nebula> RESTORE SNAPSHOT your_snapshot;
 
 # 恢复Qdrant数据
-cp -r /backup/qdrant-backup/ /home/docker-compose/codebase-index/share/qdrant/storage/
+cp -r /backup/qdrant-backup/ /home/docker-compose/codebase-index/qdrant/storage/
 ```
 
 ## 性能优化建议
