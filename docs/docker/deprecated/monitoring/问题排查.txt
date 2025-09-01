@@ -1,2 +1,34 @@
 先看Prometheus的stat>target health
 (http://127.0.0.1:9090/targets)
+
+dial tcp: lookup graphd on 127.0.0.11:53: no such host：
+docker-compose文件末尾的network设置为：
+networks:
+  monitoring:
+    driver: bridge
+    // 可省
+    external: true
+    // 用于解决该问题。
+    // 若不配置，docker-compose创建时可以看到启动列表里存在创建自己的网络的过程，无法正确使用全局的monitoring网络
+
+检验：
+docker ps
+docker network inspect monitoring
+docker inspect qdrant_server
+--
+
+
+让ai查找文档后发现nebula指标服务可以使用/stats和/metrics
+--ws_http_port 用于WebSocket服务（提供/stats端点）
+--metric_port 用于Prometheus指标服务（提供/metrics端点）
+不能使用同一端口，且端口必须是设置了映射的端口
+
+prometheus.yml中设置prometheus查看的端点
+
+
+qdrant的端点：由于使用的是容器间的通信，端口使用docker的，而非映射出来的
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
