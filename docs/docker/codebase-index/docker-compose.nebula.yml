@@ -189,7 +189,9 @@ services:
 
   # ==================== Nebula Stats Exporter ====================
   nebula-stats-exporter:
-    image: vesoft/nebula-stats-exporter:v3.8.0
+    # Note: Using v3.3.0 as v3.8.0 does not exist for this component
+    # See: https://hub.docker.com/r/vesoft/nebula-stats-exporter/tags
+    image: vesoft/nebula-stats-exporter:v3.3.0
     container_name: nebula-stats-exporter
     ports:
       - "9100:9100"

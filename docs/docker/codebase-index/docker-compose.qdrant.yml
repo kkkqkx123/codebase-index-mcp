@@ -11,7 +11,8 @@ services:
       - ./config/production.yaml:/qdrant/config/production.yaml
     environment:
       - QDRANT__CONFIG=/qdrant/config/production.yaml
-      - QDRANT_ENABLE_METRICS=1
+      - QDRANT__METRICS__ENABLED=true
+      - QDRANT__METRICS__PORT=9091
     restart: unless-stopped
     networks:
       - monitoring
