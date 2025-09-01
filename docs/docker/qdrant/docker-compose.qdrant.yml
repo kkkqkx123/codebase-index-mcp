@@ -7,6 +7,8 @@ services:
       - "6336:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT_ENABLE_METRICS=1
     restart: unless-stopped
     networks:
       - monitoring

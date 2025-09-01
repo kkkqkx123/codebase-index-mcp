@@ -42,12 +42,16 @@ The monitoring system provides comprehensive observability for the codebase-inde
 
 #### 2. **API Endpoints** (`src/api/routes/MonitoringRoutes.ts:16`)
 
-- `GET /api/v1/monitoring/health` - System health status
-- `GET /api/v1/monitoring/metrics` - System metrics collection
-- `GET /api/v1/monitoring/performance` - Performance reports
-- `GET /api/v1/monitoring/bottlenecks` - Real-time bottleneck detection
-- `GET /api/v1/monitoring/capacity` - Capacity planning analysis
-- `GET /api/v1/monitoring/dependencies` - Service dependency status
+- `GET /api/v1/monitoring/health` - 系统健康状态
+- `GET /api/v1/monitoring/metrics` - 系统指标收集
+- `GET /api/v1/monitoring/performance` - 性能报告
+- `GET /api/v1/monitoring/bottlenecks` - 实时瓶颈检测
+- `GET /api/v1/monitoring/capacity` - 容量规划分析
+- `GET /api/v1/monitoring/dependencies` - 服务依赖状态
+
+## Grafana控制台使用说明
+
+有关如何访问和使用Grafana控制台的详细说明，请参阅[Grafana控制台使用说明](grafana-console-usage.md)文档。该文档包含访问方式、登录步骤、基本功能介绍、数据源配置、监控仪表盘查看和自定义等详细指南。
 - `GET /api/v1/monitoring/benchmark` - Performance benchmarking
 
 ## Prerequisites

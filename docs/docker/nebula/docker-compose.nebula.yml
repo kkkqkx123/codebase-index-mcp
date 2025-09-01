@@ -214,6 +214,7 @@ services:
     ports:
       - 9669:9669
       - 19669:19669
+      - 19670:19670
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "docker", "exec", "console", "nebula-console", "-addr", "graphd", "-port", "9669", "-u", "root", "-p", "nebula", "-e", "SHOW HOSTS;"]
