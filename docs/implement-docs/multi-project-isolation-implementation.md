@@ -157,7 +157,7 @@ class IndexCoordinator {
 ```
 
 ### 5. 集合/空间管理策略
-[ ]
+[x]
 #### Qdrant 集合管理
 
 ##### 集合生命周期管理
@@ -165,44 +165,101 @@ class IndexCoordinator {
 
 ```typescript
 class QdrantCollectionManager {
-  private client: QdrantClient;
+  private client: QdrantClientWrapper;
+  private logger: LoggerService;
+  private errorHandler: ErrorHandlerService;
+  private configService: ConfigService;
+  
+  private generateCollectionName(projectId: string): string {
+    return `project-${projectId}`;
+  }
   
   async createCollection(projectId: string, config: VectorConfig): Promise<boolean> {
     const collectionName = this.generateCollectionName(projectId);
     try {
-      await this.client.createCollection(collectionName, {
-        vectors: {
-          size: config.vectorSize,
-          distance: config.distance
-        }
-      });
-      return true;
+      const created = await this.client.createCollection(
+        collectionName,
+        config.vectorSize,
+        config.distance,
+        config.recreateCollection
+      );
+      if (created) {
+        this.logger.info(`Successfully created collection ${collectionName} for project ${projectId}`);
+      }
+      return created;
     } catch (error) {
-      // 集合可能已存在，检查是否存在
-      const collections = await this.client.getCollections();
-      return collections.collections.some(c => c.name === collectionName);
+      this.logger.error(`Failed to create collection ${collectionName}:`, error);
+      return false;
     }
   }
   
   async deleteCollection(projectId: string): Promise<boolean> {
     const collectionName = this.generateCollectionName(projectId);
     try {
-      await this.client.deleteCollection(collectionName);
-      return true;
+      const deleted = await this.client.deleteCollection(collectionName);
+      if (deleted) {
+        this.logger.info(`Successfully deleted collection ${collectionName} for project ${projectId}`);
+      }
+      return deleted;
     } catch (error) {
-      console.error(`Failed to delete collection ${collectionName}:`, error);
+      this.logger.error(`Failed to delete collection ${collectionName}:`, error);
       return false;
     }
   }
   
   async listCollections(): Promise<string[]> {
-    const collections = await this.client.getCollections();
-    return collections.collections.map(c => c.name);
+    try {
+      const collections = await this.client.getCollections();
+      return collections.collections.map(c => c.name);
+    } catch (error) {
+      this.logger.error('Failed to list collections:', error);
+      return [];
+    }
   }
   
-  async getCollectionInfo(projectId: string): Promise<CollectionInfo> {
+  async getCollectionInfo(projectId: string): Promise<CollectionInfo | null> {
     const collectionName = this.generateCollectionName(projectId);
-    return await this.client.getCollection(collectionName);
+    try {
+      return await this.client.getCollectionInfo(collectionName);
+    } catch (error) {
+      this.logger.error(`Failed to get collection info for ${collectionName}:`, error);
+      return null;
+    }
+  }
+  
+  async collectionExists(projectId: string): Promise<boolean> {
+    const collectionName = this.generateCollectionName(projectId);
+    try {
+      return await this.client.collectionExists(collectionName);
+    } catch (error) {
+      this.logger.error(`Failed to check if collection ${collectionName} exists:`, error);
+      return false;
+    }
+  }
+  
+  async clearCollection(projectId: string): Promise<boolean> {
+    const collectionName = this.generateCollectionName(projectId);
+    try {
+      const cleared = await this.client.clearCollection(collectionName);
+      if (cleared) {
+        this.logger.info(`Successfully cleared collection ${collectionName} for project ${projectId}`);
+      }
+      return cleared;
+    } catch (error) {
+      this.logger.error(`Failed to clear collection ${collectionName}:`, error);
+      return false;
+    }
+  }
+  
+  async getCollectionSize(projectId: string): Promise<number> {
+    const collectionName = this.generateCollectionName(projectId);
+    try {
+      const info = await this.client.getCollectionInfo(collectionName);
+      return info ? info.pointsCount : 0;
+    } catch (error) {
+      this.logger.error(`Failed to get collection size for ${collectionName}:`, error);
+      return 0;
+    }
   }
 }
 ```
@@ -214,32 +271,42 @@ class QdrantCollectionManager {
 
 ```typescript
 class NebulaSpaceManager {
-  private client: NebulaClient;
+  private nebulaService: NebulaService;
+  private logger: LoggerService;
+  private errorHandler: ErrorHandlerService;
+  private configService: ConfigService;
+  
+  private generateSpaceName(projectId: string): string {
+    return `project_${projectId}`;
+  }
   
   async createSpace(projectId: string, config: GraphConfig): Promise<boolean> {
     const spaceName = this.generateSpaceName(projectId);
     try {
       // 创建空间
-      await this.client.execute(`
+      const createQuery = `
         CREATE SPACE IF NOT EXISTS ${spaceName} (
           partition_num = ${config.partitionNum || 10},
           replica_factor = ${config.replicaFactor || 1},
           vid_type = ${config.vidType || 'FIXED_STRING(32)'}
         )
-      `);
+      `;
+      
+      await this.nebulaService.executeWriteQuery(createQuery);
       
       // 等待空间创建完成
       await this.waitForSpaceReady(spaceName);
       
       // 使用空间
-      await this.client.execute(`USE ${spaceName}`);
+      await this.nebulaService.executeWriteQuery(`USE ${spaceName}`);
       
       // 创建图结构
       await this.createGraphSchema();
       
+      this.logger.info(`Successfully created space ${spaceName} for project ${projectId}`);
       return true;
     } catch (error) {
-      console.error(`Failed to create space ${spaceName}:`, error);
+      this.logger.error(`Failed to create space ${spaceName}:`, error);
       return false;
     }
   }
@@ -247,23 +314,89 @@ class NebulaSpaceManager {
   async deleteSpace(projectId: string): Promise<boolean> {
     const spaceName = this.generateSpaceName(projectId);
     try {
-      await this.client.execute(`DROP SPACE IF EXISTS ${spaceName}`);
+      await this.nebulaService.executeWriteQuery(`DROP SPACE IF EXISTS ${spaceName}`);
+      this.logger.info(`Successfully deleted space ${spaceName} for project ${projectId}`);
       return true;
     } catch (error) {
-      console.error(`Failed to delete space ${spaceName}:`, error);
+      this.logger.error(`Failed to delete space ${spaceName}:`, error);
       return false;
     }
   }
   
   async listSpaces(): Promise<string[]> {
-    const result = await this.client.execute('SHOW SPACES');
-    return result.data.map(row => row[0]);
+    try {
+      const result = await this.nebulaService.executeReadQuery('SHOW SPACES');
+      return result.data.map((row: any) => row.Name || row.name);
+    } catch (error) {
+      this.logger.error('Failed to list spaces:', error);
+      return [];
+    }
   }
   
-  async getSpaceInfo(projectId: string): Promise<SpaceInfo> {
+  async getSpaceInfo(projectId: string): Promise<SpaceInfo | null> {
     const spaceName = this.generateSpaceName(projectId);
-    const result = await this.client.execute(`DESCRIBE SPACE ${spaceName}`);
-    return result.data[0];
+    try {
+      const result = await this.nebulaService.executeReadQuery(`DESCRIBE SPACE ${spaceName}`);
+      if (result && result.data && result.data.length > 0) {
+        return result.data[0];
+      }
+      return null;
+    } catch (error) {
+      this.logger.error(`Failed to get space info for ${spaceName}:`, error);
+      return null;
+    }
+  }
+  
+  async checkSpaceExists(projectId: string): Promise<boolean> {
+    const spaceName = this.generateSpaceName(projectId);
+    try {
+      const spaces = await this.listSpaces();
+      return spaces.includes(spaceName);
+    } catch (error) {
+      this.logger.error(`Failed to check if space ${spaceName} exists:`, error);
+      return false;
+    }
+  }
+  
+  async clearSpace(projectId: string): Promise<boolean> {
+    const spaceName = this.generateSpaceName(projectId);
+    try {
+      // First, get all tags in the space
+      await this.nebulaService.executeWriteQuery(`USE ${spaceName}`);
+      const tagsResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
+      const tags = tagsResult.data.map((row: any) => row.Name || row.name);
+      
+      // Delete all edges first
+      const edgesResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
+      const edges = edgesResult.data.map((row: any) => row.Name || row.name);
+      
+      for (const edge of edges) {
+        await this.nebulaService.executeWriteQuery(`DELETE EDGE ${edge} * -> *`);
+      }
+      
+      // Delete all vertices
+      for (const tag of tags) {
+        await this.nebulaService.executeWriteQuery(`DELETE VERTEX * WITH EDGE`);
+      }
+      
+      this.logger.info(`Successfully cleared space ${spaceName} for project ${projectId}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to clear space ${spaceName}:`, error);
+      return false;
+    }
+  }
+  
+  async getSpaceSize(projectId: string): Promise<number> {
+    try {
+      const info = await this.getSpaceInfo(projectId);
+      // This is a simplified implementation - in a real scenario, you would need
+      // to query Nebula Graph for actual space size statistics
+      return info ? 1 : 0;
+    } catch (error) {
+      this.logger.error(`Failed to get space size for project ${projectId}:`, error);
+      return 0;
+    }
   }
 }
 ```

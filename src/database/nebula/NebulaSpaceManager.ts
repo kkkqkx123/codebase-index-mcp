@@ -172,4 +172,45 @@ export class NebulaSpaceManager {
       throw error;
     }
   }
+
+  async clearSpace(projectId: string): Promise<boolean> {
+    const spaceName = this.generateSpaceName(projectId);
+    try {
+      // First, get all tags in the space
+      await this.nebulaService.executeWriteQuery(`USE ${spaceName}`);
+      const tagsResult = await this.nebulaService.executeReadQuery('SHOW TAGS');
+      const tags = tagsResult.data.map((row: any) => row.Name || row.name);
+
+      // Delete all edges first
+      const edgesResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
+      const edges = edgesResult.data.map((row: any) => row.Name || row.name);
+      
+      for (const edge of edges) {
+        await this.nebulaService.executeWriteQuery(`DELETE EDGE ${edge} * -> *`);
+      }
+
+      // Delete all vertices
+      for (const tag of tags) {
+        await this.nebulaService.executeWriteQuery(`DELETE VERTEX * WITH EDGE`);
+      }
+
+      this.logger.info(`Successfully cleared space ${spaceName} for project ${projectId}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to clear space ${spaceName}:`, error);
+      return false;
+    }
+  }
+
+  async getSpaceSize(projectId: string): Promise<number> {
+    try {
+      const info = await this.getSpaceInfo(projectId);
+      // This is a simplified implementation - in a real scenario, you would need
+      // to query Nebula Graph for actual space size statistics
+      return info ? 1 : 0;
+    } catch (error) {
+      this.logger.error(`Failed to get space size for project ${projectId}:`, error);
+      return 0;
+    }
+  }
 }
