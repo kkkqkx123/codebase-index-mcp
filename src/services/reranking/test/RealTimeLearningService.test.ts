@@ -126,8 +126,8 @@ describe('RealTimeLearningService', () => {
       // First, save current model to history
       await realTimeLearningService.saveModel();
 
-      // Try to rollback (will fail because we don't have a real version)
-      const success = await realTimeLearningService.rollbackToVersion('1.0.0');
+      // Try to rollback to a non-existent version
+      const success = await realTimeLearningService.rollbackToVersion('2.0.0');
 
       // Should return false because version doesn't exist
       expect(success).toBe(false);

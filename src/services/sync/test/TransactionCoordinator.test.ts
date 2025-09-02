@@ -11,8 +11,8 @@ import { createMockTransaction, createMockSyncOperation } from '@test/setup';
 jest.mock('../../../core/LoggerService');
 jest.mock('../../../core/ErrorHandlerService');
 jest.mock('../EntityMappingService');
-jest.mock('../../storage/VectorStorageService');
-jest.mock('../../storage/GraphPersistenceService');
+jest.mock('../../storage/vector/VectorStorageService');
+jest.mock('../../storage/graph/GraphPersistenceService');
 
 describe('TransactionCoordinator', () => {
   let transactionCoordinator: TransactionCoordinator;

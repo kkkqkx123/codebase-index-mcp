@@ -1,3 +1,27 @@
+// Clear environment variables before importing ConfigService
+const originalEnv = { ...process.env };
+Object.keys(process.env).forEach(key => {
+  if (key.startsWith('QDRANT_') || 
+      key.startsWith('NEBULA_') || 
+      key.startsWith('EMBEDDING_') ||
+      key.startsWith('ENABLE_METRICS') ||
+      key.startsWith('OPENAI_') ||
+      key.startsWith('OLLAMA_') ||
+      key.startsWith('GEMINI_') ||
+      key.startsWith('MISTRAL_') ||
+      key.startsWith('SILICONFLOW_') ||
+      key.startsWith('CUSTOM_') ||
+      key.startsWith('LOG_') ||
+      key.startsWith('METRICS_') ||
+      key.startsWith('MAX_') ||
+      key.startsWith('SUPPORTED_') ||
+      key.startsWith('INDEX_') ||
+      key.startsWith('CHUNK_') ||
+      key.startsWith('OVERLAP_')) {
+    delete process.env[key];
+  }
+});
+
 import { ConfigService, Config } from '../ConfigService';
 
 // Mock dotenv
@@ -6,31 +30,26 @@ jest.mock('dotenv', () => ({
 }));
 
 describe('ConfigService', () => {
-  let originalEnv: NodeJS.ProcessEnv;
+  let testEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
-    // Store original environment variables
-    originalEnv = { ...process.env };
+    // Store test environment variables
+    testEnv = { ...process.env };
 
     // Set required environment variables for tests
     process.env.OPENAI_API_KEY = 'test-api-key';
     process.env.MISTRAL_API_KEY = 'test-mistral-key';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    process.env.SILICONFLOW_API_KEY = 'test-siliconflow-key';
     process.env.NODE_ENV = 'development';
-
-    // Clear test environment variables
-    Object.keys(process.env).forEach(key => {
-      if (key.startsWith('TEST_')) {
-        delete process.env[key];
-      }
-    });
 
     // Reset the singleton instance
     (ConfigService as any).instance = undefined;
   });
 
   afterEach(() => {
-    // Restore original environment variables
-    process.env = originalEnv;
+    // Restore test environment variables
+    process.env = testEnv;
   });
 
   describe('Singleton Pattern', () => {

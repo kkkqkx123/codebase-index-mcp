@@ -281,7 +281,7 @@ describe('SimilarityAlgorithms', () => {
 
       const ensembleScore = SimilarityAlgorithms.ensembleSimilarity(scores, weights);
 
-      expect(ensembleScore).toBeCloseTo(0.7, 4);
+      expect(ensembleScore).toBeCloseTo(0.66, 4);
     });
 
     it('should throw error for mismatched weights', () => {

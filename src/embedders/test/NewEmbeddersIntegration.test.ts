@@ -8,6 +8,9 @@ import { GeminiEmbedder } from '../GeminiEmbedder';
 import { MistralEmbedder } from '../MistralEmbedder';
 import { EmbeddingInput } from '../BaseEmbedder';
 
+// Store original fetch
+const originalFetch = global.fetch;
+
 // Mock classes
 class MockConfigService {
   private config: any;
@@ -322,53 +325,76 @@ describe('New Embedders Integration', () => {
     it('should respect concurrency limits', async () => {
       const input: EmbeddingInput = { text: 'test text' };
       
-      // Mock the embed method to simulate slow processing
-      jest.spyOn(openAIEmbedder, 'embed').mockImplementation(async () => {
-        // Simulate slow processing
-        await new Promise(resolve => setTimeout(resolve, 50));
-        return {
-          vector: [0.1, 0.2, 0.3],
-          dimensions: 3,
-          model: 'text-embedding-ada-002',
-          processingTime: 50
-        };
-      });
+      // Mock fetch to simulate slow processing
+      const mockFetch = jest.fn()
+        .mockImplementationOnce(async () => {
+          // First request - simulate delay
+          await new Promise(resolve => setTimeout(resolve, 50));
+          return new Response(JSON.stringify({
+            data: [{ embedding: [0.1, 0.2, 0.3] }]
+          }), { status: 200 });
+        })
+        .mockImplementationOnce(async () => {
+          // Second request - simulate delay
+          await new Promise(resolve => setTimeout(resolve, 50));
+          return new Response(JSON.stringify({
+            data: [{ embedding: [0.1, 0.2, 0.3] }]
+          }), { status: 200 });
+        })
+        .mockImplementationOnce(async () => {
+          // Third request - simulate delay
+          await new Promise(resolve => setTimeout(resolve, 50));
+          return new Response(JSON.stringify({
+            data: [{ embedding: [0.1, 0.2, 0.3] }]
+          }), { status: 200 });
+        });
       
-      // Start multiple concurrent requests
-      const start = Date.now();
-      const promises = [
-        openAIEmbedder.embed(input),
-        openAIEmbedder.embed(input),
-        openAIEmbedder.embed(input)
-      ];
+      global.fetch = mockFetch as any;
       
-      await Promise.all(promises);
-      const end = Date.now();
-      
-      // With maxConcurrentOperations = 2 and 3 requests, 
-      // the total time should be at least 100ms (50ms for first 2, then 50ms for the third)
-      expect(end - start).toBeGreaterThanOrEqual(100);
+      try {
+        // Start multiple concurrent requests
+        const start = Date.now();
+        const promises = [
+          openAIEmbedder.embed(input),
+          openAIEmbedder.embed(input),
+          openAIEmbedder.embed(input)
+        ];
+        
+        await Promise.all(promises);
+        const end = Date.now();
+        
+        // With maxConcurrentOperations = 2 and 3 requests, 
+        // the total time should be at least 100ms (50ms for first 2, then 50ms for the third)
+        expect(end - start).toBeGreaterThanOrEqual(100);
+      } finally {
+        // Restore original fetch
+        (global.fetch as any) = originalFetch;
+      }
     });
     
     it('should timeout when processing takes too long', async () => {
       const input: EmbeddingInput = { text: 'test text' };
       
-      // Mock the embed method to simulate very slow processing
-      jest.spyOn(openAIEmbedder, 'embed').mockImplementation(async () => {
-        // Simulate very slow processing
+      // Mock fetch to simulate very slow processing
+      const mockFetch = jest.fn(async () => {
+        // Simulate very slow processing that exceeds timeout
         await new Promise(resolve => setTimeout(resolve, 200));
-        return {
-          vector: [0.1, 0.2, 0.3],
-          dimensions: 3,
-          model: 'text-embedding-ada-002',
-          processingTime: 200
-        };
+        return new Response(JSON.stringify({
+          data: [{ embedding: [0.1, 0.2, 0.3] }]
+        }), { status: 200 });
       });
       
-      // The operation should timeout after 100ms
-      await expect(openAIEmbedder.embed(input))
-        .rejects
-        .toThrow('Operation timed out after 100ms');
+      global.fetch = mockFetch as any;
+      
+      try {
+        // The operation should timeout after 100ms
+        await expect(openAIEmbedder.embed(input))
+          .rejects
+          .toThrow('Operation timed out after 100ms');
+      } finally {
+        // Restore original fetch
+        (global.fetch as any) = originalFetch;
+      }
     });
   });
 });

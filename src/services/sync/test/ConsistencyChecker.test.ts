@@ -11,8 +11,8 @@ import { createMockEntityMapping, createMockConsistencyIssue } from '@test/setup
 // Mock dependencies
 jest.mock('../../../core/LoggerService');
 jest.mock('../EntityIdManager');
-jest.mock('../../storage/VectorStorageService');
-jest.mock('../../storage/GraphPersistenceService');
+jest.mock('../../storage/vector/VectorStorageService');
+jest.mock('../../storage/graph/GraphPersistenceService');
 jest.mock('../TransactionCoordinator');
 
 describe('ConsistencyChecker', () => {
