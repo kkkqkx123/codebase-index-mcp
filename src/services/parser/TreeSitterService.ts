@@ -39,7 +39,7 @@ export interface CodeChunk {
 }
 
 export interface SnippetMetadata {
-  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block';
+  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment';
   contextInfo: {
     parentFunction?: string;
     parentClass?: string;
@@ -367,8 +367,13 @@ export class TreeSitterService {
     const functionCallChains = this.extractFunctionCallChains(ast, sourceCode);
     const commentMarkedSnippets = this.extractCommentMarkedSnippets(ast, sourceCode);
     const logicBlocks = this.extractLogicBlocks(ast, sourceCode);
+    const expressionSequences = this.extractExpressionSequences(ast, sourceCode);
+    const objectArrayLiterals = this.extractObjectArrayLiterals(ast, sourceCode);
+    const arithmeticLogicalExpressions = this.extractArithmeticLogicalExpressions(ast, sourceCode);
+    const templateLiterals = this.extractTemplateLiterals(ast, sourceCode);
+    const destructuringAssignments = this.extractDestructuringAssignments(ast, sourceCode);
     
-    snippets.push(...controlStructures, ...errorHandlers, ...functionCallChains, ...commentMarkedSnippets, ...logicBlocks);
+    snippets.push(...controlStructures, ...errorHandlers, ...functionCallChains, ...commentMarkedSnippets, ...logicBlocks, ...expressionSequences, ...objectArrayLiterals, ...arithmeticLogicalExpressions, ...templateLiterals, ...destructuringAssignments);
     
     // Filter and deduplicate snippets
     return this.filterAndDeduplicateSnippets(snippets);
@@ -464,6 +469,87 @@ export class TreeSitterService {
     };
 
     findFunctionCallChains(ast);
+    return snippets;
+  }
+
+  private extractTemplateLiterals(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
+    const snippets: SnippetChunk[] = [];
+    
+    const findTemplateLiterals = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 50) return;
+
+      // Look for template literal nodes
+      if (node.type === 'template_string' || node.type === 'template_literal') {
+        const snippet = this.createSnippetFromNode(node, sourceCode, 'template_literal', nestingLevel);
+        if (snippet) {
+          snippets.push(snippet);
+        }
+      }
+
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findTemplateLiterals(child, nestingLevel + 1, depth + 1);
+        }
+      }
+    };
+
+    findTemplateLiterals(ast);
+    return snippets;
+  }
+
+  private extractObjectArrayLiterals(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
+    const snippets: SnippetChunk[] = [];
+    
+    const findObjectArrayLiterals = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 50) return;
+
+      // Look for object and array literal nodes
+      if (node.type === 'object' || node.type === 'array' || node.type === 'object_pattern' || node.type === 'array_pattern') {
+        const snippet = this.createSnippetFromNode(node, sourceCode, 'object_array_literal', nestingLevel);
+        if (snippet) {
+          snippets.push(snippet);
+        }
+      }
+
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findObjectArrayLiterals(child, nestingLevel + 1, depth + 1);
+        }
+      }
+    };
+
+    findObjectArrayLiterals(ast);
+    return snippets;
+  }
+
+  private extractExpressionSequences(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
+    const snippets: SnippetChunk[] = [];
+    
+    const findExpressionSequences = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 50) return;
+
+      // Look for sequence_expression nodes which represent comma-separated expression sequences
+      if (node.type === 'sequence_expression') {
+        const snippet = this.createSnippetFromNode(node, sourceCode, 'expression_sequence', nestingLevel);
+        if (snippet) {
+          snippets.push(snippet);
+        }
+      }
+
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findExpressionSequences(child, nestingLevel + 1, depth + 1);
+        }
+      }
+    };
+
+    findExpressionSequences(ast);
     return snippets;
   }
 
@@ -639,6 +725,64 @@ export class TreeSitterService {
     return snippets;
   }
 
+  private extractArithmeticLogicalExpressions(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
+    const snippets: SnippetChunk[] = [];
+    
+    const findArithmeticLogicalExpressions = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 50) return;
+
+      // Look for arithmetic and logical expression nodes
+      if (node.type === 'binary_expression' || node.type === 'unary_expression' || 
+          node.type === 'logical_expression' || node.type === 'comparison_expression') {
+        const snippet = this.createSnippetFromNode(node, sourceCode, 'arithmetic_logical_expression', nestingLevel);
+        if (snippet) {
+          snippets.push(snippet);
+        }
+      }
+
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findArithmeticLogicalExpressions(child, nestingLevel + 1, depth + 1);
+        }
+      }
+    };
+
+    findArithmeticLogicalExpressions(ast);
+    return snippets;
+  }
+
+  private extractDestructuringAssignments(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
+    const snippets: SnippetChunk[] = [];
+    
+    const findDestructuringAssignments = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
+      // Limit traversal depth to prevent excessive recursion
+      if (depth > 50) return;
+
+      // Look for destructuring assignment nodes
+      if (node.type === 'object_pattern' || node.type === 'array_pattern' || 
+          node.type === 'assignment_expression' && 
+          (node.childForFieldName('left')?.type === 'object_pattern' || 
+           node.childForFieldName('left')?.type === 'array_pattern')) {
+        const snippet = this.createSnippetFromNode(node, sourceCode, 'destructuring_assignment', nestingLevel);
+        if (snippet) {
+          snippets.push(snippet);
+        }
+      }
+
+      // Traverse child nodes with proper depth tracking
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          findDestructuringAssignments(child, nestingLevel + 1, depth + 1);
+        }
+      }
+    };
+
+    findDestructuringAssignments(ast);
+    return snippets;
+  }
+
   private createSnippetFromNode(
     node: Parser.SyntaxNode, 
     sourceCode: string, 
@@ -800,6 +944,9 @@ export class TreeSitterService {
         return content.includes('{') || content.includes(';');
       case 'function_call_chain':
         return content.endsWith(')');
+      case 'expression_sequence':
+        // Expression sequences should be standalone if they contain commas
+        return content.includes(',');
       case 'logic_block':
         return true;
       default:
