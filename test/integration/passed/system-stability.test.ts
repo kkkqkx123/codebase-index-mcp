@@ -113,7 +113,9 @@ describe('System Stability and Reliability', () => {
       // Perform multiple concurrent searches
       const searchPromises = [];
       for (let i = 0; i < 5; i++) {
-        const promise = indexService.search(`test function ${i}`, {
+        const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+        const projectId = projectHash.hash;
+        const promise = indexService.search(`test function ${i}`, projectId, {
           limit: 5
         });
         searchPromises.push(promise);
@@ -147,7 +149,9 @@ describe('System Stability and Reliability', () => {
 
     test('should handle search with no results gracefully', async () => {
       // Search for something that definitely won't exist
-      const results = await indexService.search('thisquerywillnotmatchanything12345', {
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
+      const results = await indexService.search('thisquerywillnotmatchanything12345', projectId, {
         limit: 10
       });
       
@@ -228,9 +232,11 @@ describe('System Stability and Reliability', () => {
     test('should handle repeated operations without memory leaks', async () => {
       // Perform multiple search operations
       const startTime = Date.now();
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
       
       for (let i = 0; i < 20; i++) {
-        const results = await indexService.search(`function${i}`, {
+        const results = await indexService.search(`function${i}`, projectId, {
           limit: 5
         });
         
@@ -258,7 +264,7 @@ describe('System Stability and Reliability', () => {
       expect(result).toBe(true);
       
       // Try to search after deletion - should still work without error
-      const results = await indexService.search('test', {
+      const results = await indexService.search('test', projectId, {
         limit: 5
       });
       

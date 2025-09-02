@@ -48,8 +48,11 @@ export class SnippetController {
     try {
       this.logger.info('Searching snippets', { query, options });
       
+      // Extract projectId from options or use default
+      const projectId = options.projectId || 'default';
+      
       // Use the index service to perform the search
-      const results = await this.indexService.search(query, { ...options, searchType: 'snippet' });
+      const results = await this.indexService.search(query, projectId, { ...options, searchType: 'snippet' });
       
       return {
         success: true,

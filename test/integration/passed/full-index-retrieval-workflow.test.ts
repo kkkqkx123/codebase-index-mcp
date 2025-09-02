@@ -111,7 +111,9 @@ describe('Full Index and Retrieval Workflow', () => {
 
     test('should be able to search for snippets', async () => {
       // Search for snippets
-      const results = await indexService.search('test function', {
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
+      const results = await indexService.search('test function', projectId, {
         limit: 10
       });
       
@@ -130,7 +132,9 @@ describe('Full Index and Retrieval Workflow', () => {
 
     test('should be able to search for snippets via coordinator', async () => {
       // Search for snippets using coordinator
-      const results = await indexService.search('test function', {
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
+      const results = await indexService.search('test function', projectId, {
         limit: 10,
         searchType: 'snippet'
       });
@@ -164,7 +168,7 @@ describe('Full Index and Retrieval Workflow', () => {
       projectId = projectHash.hash;
       
       // Get a test snippet ID from search results
-      const results = await indexService.search('test function', { limit: 1 });
+      const results = await indexService.search('test function', projectId, { limit: 1 });
       if (results.length > 0) {
         testSnippetId = results[0].id;
       }
@@ -254,7 +258,9 @@ describe('Full Index and Retrieval Workflow', () => {
       // For now, we'll skip this test as it requires direct access to IndexCoordinator
       
       // Verify the new file was indexed by searching for its content
-      const results = await indexService.search('new function', { limit: 5 });
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
+      const results = await indexService.search('new function', projectId, { limit: 5 });
       
       expect(results).toBeDefined();
       expect(Array.isArray(results)).toBe(true);
@@ -278,7 +284,9 @@ describe('Full Index and Retrieval Workflow', () => {
       // For now, we'll skip this test as it requires direct access to IndexCoordinator
       
       // Verify the file is no longer in search results
-      const results = await indexService.search('new function', { limit: 5 });
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
+      const results = await indexService.search('new function', projectId, { limit: 5 });
       
       // Note: In a real implementation, the deleted file's snippets would be removed
       // For this test, we're just verifying the function works without error

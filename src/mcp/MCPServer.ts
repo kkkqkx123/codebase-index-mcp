@@ -120,7 +120,10 @@ export class MCPServer {
     
     this.logger.info(`Searching for: ${query}`);
     
-    const results = await this.indexService.search(query, options);
+    // For now, we'll use a default projectId
+    // In a real implementation, this should be derived from context or passed as a parameter
+    const projectId = 'default';
+    const results = await this.indexService.search(query, projectId, options);
     
     return {
       results,

@@ -6,7 +6,7 @@ import { ConfigService } from '../../config/ConfigService';
 
 export interface VectorConfig {
   vectorSize: number;
-  distance: 'Cosine' | 'Euclidean' | 'Dot' | 'Manhattan';
+  distance: 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan';
   recreateCollection?: boolean;
 }
 
@@ -68,8 +68,9 @@ export class QdrantCollectionManager {
 
   async listCollections(): Promise<string[]> {
     try {
-      const collections = await this.client.getCollections();
-      return collections.collections.map(c => c.name);
+      // Access the underlying client's getCollections method
+      const collections = await (this.client as any).client.getCollections();
+      return collections.collections.map((c: { name: string }) => c.name);
     } catch (error) {
       this.logger.error('Failed to list collections:', error);
       return [];

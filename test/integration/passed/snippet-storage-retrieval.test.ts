@@ -379,12 +379,14 @@ module.exports = { testFunction, anotherFunction, TestClass };
     });
 
     test('should search for snippets', async () => {
-      if (!services.indexService) {
+      if (!services.indexService || !testProjectPath) {
         console.warn('Test skipped - index service not available');
         return;
       }
       
-      const results = await services.indexService.search('test function', {
+      const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
+      const projectId = projectHash.hash;
+      const results = await services.indexService.search('test function', projectId, {
         limit: 10
       });
       

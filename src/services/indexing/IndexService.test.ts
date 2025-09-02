@@ -138,8 +138,9 @@ describe('IndexService', () => {
 
       // Act
       const query = 'test query';
+      const projectId = 'test-project-id';
       const options = { limit: 10 };
-      const results = await indexService.search(query, options);
+      const results = await indexService.search(query, projectId, options);
       
       // Assert
       expect(Array.isArray(results)).toBe(true);

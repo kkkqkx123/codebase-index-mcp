@@ -83,12 +83,12 @@ export class IndexService {
     }
   }
 
-  async search(query: string, options: SearchOptions = {}): Promise<any[]> {
-    this.logger.info('Performing search', { query, options });
+  async search(query: string, projectId: string, options: SearchOptions = {}): Promise<any[]> {
+    this.logger.info('Performing search', { query, projectId, options });
 
     try {
       // Delegate to IndexCoordinator for search
-      const result = await this.indexCoordinator.search(query, options);
+      const result = await this.indexCoordinator.search(query, projectId, options);
       return result;
     } catch (error) {
       this.errorHandler.handleError(
@@ -99,12 +99,12 @@ export class IndexService {
     }
   }
 
-  async searchSnippets(query: string, options: SearchOptions = {}): Promise<any[]> {
-    this.logger.info('Performing snippet search', { query, options });
+  async searchSnippets(query: string, projectId: string, options: SearchOptions = {}): Promise<any[]> {
+    this.logger.info('Performing snippet search', { query, projectId, options });
 
     try {
       // Delegate to IndexCoordinator for snippet search
-      const result = await this.indexCoordinator.search(query, { ...options, searchType: 'snippet' });
+      const result = await this.indexCoordinator.search(query, projectId, { ...options, searchType: 'snippet' });
       return result;
     } catch (error) {
       this.errorHandler.handleError(
