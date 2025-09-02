@@ -5,6 +5,7 @@ import { LoggerService } from '../src/core/LoggerService';
 import { ErrorHandlerService } from '../src/core/ErrorHandlerService';
 import { EntityIdManager } from '../src/services/sync/EntityIdManager';
 import { ConfigService } from '../src/config/ConfigService';
+import { TYPES } from '../src/types';
 import { OpenAIEmbedder } from '../src/embedders/OpenAIEmbedder';
 import { OllamaEmbedder } from '../src/embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../src/embedders/GeminiEmbedder';
@@ -49,6 +50,18 @@ import { BatchPerformanceMonitor } from '../src/services/monitoring/BatchPerform
 import { BatchSizeConfigManager } from '../src/services/configuration/BatchSizeConfigManager';
 import { BatchErrorRecoveryService } from '../src/services/recovery/BatchErrorRecoveryService';
 import { TreeSitterService } from '../src/services/parser/TreeSitterService';
+import { TreeSitterCoreService } from '../src/services/parser/TreeSitterCoreService';
+import { SnippetExtractionService, SnippetExtractionRule } from '../src/services/parser/SnippetExtractionService';
+import { ControlStructureRule } from '../src/services/parser/treesitter-rule/ControlStructureRule';
+import { ErrorHandlingRule } from '../src/services/parser/treesitter-rule/ErrorHandlingRule';
+import { FunctionCallChainRule } from '../src/services/parser/treesitter-rule/FunctionCallChainRule';
+import { CommentMarkedRule } from '../src/services/parser/treesitter-rule/CommentMarkedRule';
+import { LogicBlockRule } from '../src/services/parser/treesitter-rule/LogicBlockRule';
+import { ExpressionSequenceRule } from '../src/services/parser/treesitter-rule/ExpressionSequenceRule';
+import { ObjectArrayLiteralRule } from '../src/services/parser/treesitter-rule/ObjectArrayLiteralRule';
+import { ArithmeticLogicalRule } from '../src/services/parser/treesitter-rule/ArithmeticLogicalRule';
+import { TemplateLiteralRule } from '../src/services/parser/treesitter-rule/TemplateLiteralRule';
+import { DestructuringAssignmentRule } from '../src/services/parser/treesitter-rule/DestructuringAssignmentRule';
 import { NebulaQueryBuilder } from '../src/database/nebula/NebulaQueryBuilder';
 import { GraphDatabaseErrorHandler } from '../src/core/GraphDatabaseErrorHandler';
 import { ErrorClassifier } from '../src/core/ErrorClassifier';
@@ -330,7 +343,23 @@ export const createTestContainer = () => {
   container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().inSingletonScope();
   
   // Bind parser services
+  container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
+  container.bind<SnippetExtractionService>(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
   container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope();
+  
+  // Bind snippet extraction rules
+  container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
+    new ControlStructureRule(),
+    new ErrorHandlingRule(),
+    new FunctionCallChainRule(),
+    new CommentMarkedRule(),
+    new LogicBlockRule(),
+    new ExpressionSequenceRule(),
+    new ObjectArrayLiteralRule(),
+    new ArithmeticLogicalRule(),
+    new TemplateLiteralRule(),
+    new DestructuringAssignmentRule()
+  ]);
   
   // Bind database services
   container.bind<NebulaQueryBuilder>(NebulaQueryBuilder).toSelf().inSingletonScope();

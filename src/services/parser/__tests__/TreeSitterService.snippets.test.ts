@@ -1,6 +1,7 @@
 import { TreeSitterService } from '../TreeSitterService';
 import { SnippetChunk, SnippetMetadata } from '../types';
 import Parser from 'tree-sitter';
+import { createTestContainer } from '@test/setup';
 
 // Mock tree-sitter for testing
 jest.mock('tree-sitter', () => {
@@ -209,9 +210,11 @@ function createMockAST(code: string): any {
 
 describe('TreeSitterService Snippet Extraction', () => {
   let treeSitterService: TreeSitterService;
+  let container: any;
 
   beforeEach(() => {
-    treeSitterService = new TreeSitterService();
+    container = createTestContainer();
+    treeSitterService = container.get(TreeSitterService);
   });
 
   describe('extractSnippets', () => {

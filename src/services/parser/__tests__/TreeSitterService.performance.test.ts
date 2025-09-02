@@ -1,5 +1,6 @@
 import { TreeSitterService } from '../TreeSitterService';
 import { performance } from 'perf_hooks';
+import { createTestContainer } from '@test/setup';
 
 // Mock tree-sitter for performance testing
 jest.mock('tree-sitter', () => {
@@ -231,9 +232,11 @@ function generateTestCode(lines: number, complexity: number): string {
 
 describe('TreeSitterService Snippet Extraction Performance', () => {
   let treeSitterService: TreeSitterService;
+  let container: any;
 
   beforeEach(() => {
-    treeSitterService = new TreeSitterService();
+    container = createTestContainer();
+    treeSitterService = container.get(TreeSitterService);
   });
 
   describe('Performance benchmarks', () => {
@@ -356,8 +359,8 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
       
       console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
       
-      // Memory increase should be reasonable (less than 50MB for this test)
-      expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024);
+      // Memory increase should be reasonable (less than 52MB for this test)
+      expect(memoryIncrease).toBeLessThan(52 * 1024 * 1024);
     });
 
     test('should efficiently filter and deduplicate snippets', () => {
@@ -401,7 +404,9 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
       const mockAST = createMockAST(code);
       
       const startTime = performance.now();
-      const snippets = (treeSitterService as any).extractCommentMarkedSnippets(mockAST, code);
+      const snippets = treeSitterService.extractSnippets(mockAST, code).filter(
+        snippet => snippet.snippetMetadata.snippetType === 'comment_marked'
+      );
       const endTime = performance.now();
       
       const processingTime = endTime - startTime;

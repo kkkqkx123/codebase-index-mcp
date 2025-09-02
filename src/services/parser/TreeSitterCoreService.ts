@@ -7,6 +7,7 @@ import Java from 'tree-sitter-java';
 import Go from 'tree-sitter-go';
 import Rust from 'tree-sitter-rust';
 import Cpp from 'tree-sitter-cpp';
+import { TreeSitterUtils } from './TreeSitterUtils';
 
 export interface ParserLanguage {
   name: string;
@@ -178,7 +179,7 @@ export class TreeSitterCoreService {
   }
 
   getNodeText(node: Parser.SyntaxNode, sourceCode: string): string {
-    return sourceCode.substring(node.startIndex, node.endIndex);
+    return TreeSitterUtils.getNodeText(node, sourceCode);
   }
 
   getNodeLocation(node: Parser.SyntaxNode): { 
@@ -187,33 +188,11 @@ export class TreeSitterCoreService {
     startColumn: number; 
     endColumn: number 
   } {
-    return {
-      startLine: node.startPosition.row + 1,
-      endLine: node.endPosition.row + 1,
-      startColumn: node.startPosition.column + 1,
-      endColumn: node.endPosition.column + 1
-    };
+    return TreeSitterUtils.getNodeLocation(node);
   }
 
   findNodeByType(ast: Parser.SyntaxNode, type: string): Parser.SyntaxNode[] {
-    const nodes: Parser.SyntaxNode[] = [];
-
-    const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
-      if (depth > 100) return;
-
-      if (node.type === type) {
-        nodes.push(node);
-      }
-
-      if (node.children && Array.isArray(node.children)) {
-        for (const child of node.children) {
-          traverse(child, depth + 1);
-        }
-      }
-    };
-
-    traverse(ast);
-    return nodes;
+    return TreeSitterUtils.findNodeByType(ast, type);
   }
 
   extractFunctions(ast: Parser.SyntaxNode): Parser.SyntaxNode[] {

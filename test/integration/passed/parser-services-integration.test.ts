@@ -5,6 +5,7 @@ import { ConfigService } from '../../../src/config/ConfigService';
 import { LoggerService } from '../../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
+import { TYPES } from '../../../src/types';
 import { createTestContainer } from '../../setup';
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
 import fs from 'fs/promises';
@@ -47,8 +48,8 @@ describe('Parser Services Integration Tests', () => {
     } as any;
     
     // Create real parser services
-    treeSitterService = new TreeSitterService();
-    smartCodeParser = new SmartCodeParser(treeSitterService);
+    treeSitterService = container.get(TYPES.TreeSitterService);
+    smartCodeParser = container.get(SmartCodeParser);
     
     // Create real parser service
     parserService = new ParserService(

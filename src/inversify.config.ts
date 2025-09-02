@@ -75,6 +75,16 @@ import { SmartCodeParser } from './services/parser/SmartCodeParser';
 import { TreeSitterService } from './services/parser/TreeSitterService';
 import { TreeSitterCoreService } from './services/parser/TreeSitterCoreService';
 import { SnippetExtractionService, SnippetExtractionRule } from './services/parser/SnippetExtractionService';
+import { ControlStructureRule } from './services/parser/treesitter-rule/ControlStructureRule';
+import { ErrorHandlingRule } from './services/parser/treesitter-rule/ErrorHandlingRule';
+import { FunctionCallChainRule } from './services/parser/treesitter-rule/FunctionCallChainRule';
+import { CommentMarkedRule } from './services/parser/treesitter-rule/CommentMarkedRule';
+import { LogicBlockRule } from './services/parser/treesitter-rule/LogicBlockRule';
+import { ExpressionSequenceRule } from './services/parser/treesitter-rule/ExpressionSequenceRule';
+import { ObjectArrayLiteralRule } from './services/parser/treesitter-rule/ObjectArrayLiteralRule';
+import { ArithmeticLogicalRule } from './services/parser/treesitter-rule/ArithmeticLogicalRule';
+import { TemplateLiteralRule } from './services/parser/treesitter-rule/TemplateLiteralRule';
+import { DestructuringAssignmentRule } from './services/parser/treesitter-rule/DestructuringAssignmentRule';
 import { TYPES } from './types';
 
 // Additional services
@@ -199,9 +209,19 @@ container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope()
 container.bind<TreeSitterCoreService>(TreeSitterCoreService).toSelf().inSingletonScope();
 container.bind<SnippetExtractionService>(SnippetExtractionService).toSelf().inSingletonScope();
 
-// For now, bind SnippetExtractionRules as an empty array
-// This will be populated with actual rules when they are implemented
-container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([]);
+// Bind snippet extraction rules
+container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
+  new ControlStructureRule(),
+  new ErrorHandlingRule(),
+  new FunctionCallChainRule(),
+  new CommentMarkedRule(),
+  new LogicBlockRule(),
+  new ExpressionSequenceRule(),
+  new ObjectArrayLiteralRule(),
+  new ArithmeticLogicalRule(),
+  new TemplateLiteralRule(),
+  new DestructuringAssignmentRule()
+]);
 
 // Bind deduplication services
 container.bind<HashBasedDeduplicator>(HashBasedDeduplicator).toSelf().inSingletonScope();

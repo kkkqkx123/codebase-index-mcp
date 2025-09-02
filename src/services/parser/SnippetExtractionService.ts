@@ -3,6 +3,8 @@ import Parser from 'tree-sitter';
 import { SnippetChunk } from './types';
 import { TreeSitterCoreService } from './TreeSitterCoreService';
 import { TYPES } from '../../types';
+import { TreeSitterUtils } from './TreeSitterUtils';
+import { SnippetValidationUtils } from './SnippetValidationUtils';
 
 export interface SnippetExtractionRule {
   name: string;
@@ -51,14 +53,14 @@ export class SnippetExtractionService {
     const content = this.coreService.getNodeText(node, sourceCode);
     const location = this.coreService.getNodeLocation(node);
     
-    if (!this.isValidSnippet(content, snippetType)) {
+    if (!SnippetValidationUtils.isValidSnippet(content, snippetType)) {
       return null;
     }
 
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
     
     return {
-      id: this.generateSnippetId(content, location.startLine),
+      id: TreeSitterUtils.generateSnippetId(content, location.startLine),
       content,
       startLine: location.startLine,
       endLine: location.endLine,
@@ -71,35 +73,12 @@ export class SnippetExtractionService {
       snippetMetadata: {
         snippetType,
         contextInfo,
-        languageFeatures: this.analyzeLanguageFeatures(content),
-        complexity: this.calculateComplexity(content),
-        isStandalone: this.isStandaloneSnippet(content, snippetType),
-        hasSideEffects: this.hasSideEffects(content)
+        languageFeatures: SnippetValidationUtils.analyzeLanguageFeatures(content),
+        complexity: SnippetValidationUtils.calculateComplexity(content),
+        isStandalone: SnippetValidationUtils.isStandaloneSnippet(content, snippetType),
+        hasSideEffects: SnippetValidationUtils.hasSideEffects(content)
       }
     };
-  }
-
-  private isValidSnippet(content: string, snippetType: SnippetChunk['snippetMetadata']['snippetType']): boolean {
-    if (content.length < 5) return false;
-    if (content.length > 1500) return false;
-    
-    const meaningfulContent = content.replace(/[{}[\]()\s;]/g, '');
-    if (meaningfulContent.length < 3) return false;
-    
-    switch (snippetType) {
-      case 'control_structure':
-        return /(?:if|for|while|switch|try|catch|finally)\b/.test(content);
-      case 'error_handling':
-        return /(?:try|catch|throw|finally)\b/.test(content);
-      case 'function_call_chain':
-        return /\w+\(/.test(content);
-      case 'logic_block':
-        return content.includes(';') || content.includes('{') || content.includes('function');
-      case 'comment_marked':
-        return true;
-      default:
-        return true;
-    }
   }
 
   private extractContextInfo(
@@ -143,88 +122,6 @@ export class SnippetExtractionService {
     return contextInfo;
   }
 
-  private analyzeLanguageFeatures(content: string): SnippetChunk['snippetMetadata']['languageFeatures'] {
-    return {
-      usesAsync: /\basync\b/.test(content) && /\bawait\b/.test(content),
-      usesGenerators: /\bfunction\*\b/.test(content) || /\byield\b/.test(content),
-      usesDestructuring: /[{[]\s*\w+/.test(content) || /=\s*[{[]/.test(content),
-      usesSpread: /\.\.\./.test(content),
-      usesTemplateLiterals: /`.*\$\{.*\}`/.test(content)
-    };
-  }
-
-  private calculateComplexity(content: string): number {
-    let complexity = 1;
-    
-    const controlStructures = content.match(/\b(?:if|else|for|while|switch|case|try|catch|finally)\b/g);
-    complexity += controlStructures ? controlStructures.length : 0;
-    
-    const logicalOps = content.match(/&&|\|\|/g);
-    complexity += logicalOps ? logicalOps.length : 0;
-    
-    const brackets = content.match(/[{}[\]()]/g);
-    complexity += brackets ? brackets.length * 0.5 : 0;
-    
-    const functionCalls = content.match(/\w+\s*\(/g);
-    complexity += functionCalls ? functionCalls.length * 0.3 : 0;
-    
-    return Math.round(complexity);
-  }
-
-  private isStandaloneSnippet(content: string, snippetType: SnippetChunk['snippetMetadata']['snippetType']): boolean {
-    switch (snippetType) {
-      case 'control_structure':
-      case 'error_handling':
-        return content.includes('{') || content.includes(';');
-      case 'function_call_chain':
-        return content.endsWith(')');
-      case 'expression_sequence':
-        return content.includes(',');
-      case 'logic_block':
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  private hasSideEffects(content: string): boolean {
-    const sideEffectPatterns = [
-      /\+\+|--/,
-      /\b(?:delete|new|throw)\b/,
-      /\.\w+\s*=/,
-      /\b(?:console\.log|process\.exit|process\.kill)\b/
-    ];
-    
-    const hasSideEffect = sideEffectPatterns.some(pattern => pattern.test(content));
-    
-    if (!hasSideEffect && /=/.test(content)) {
-      if (/\.\w+\s*=/.test(content)) {
-        return true;
-      }
-      
-      if (/\b(?:window|global|document|console|process|module|exports)\.\w+\s*=/.test(content)) {
-        return true;
-      }
-    }
-    
-    return hasSideEffect;
-  }
-
-  private generateSnippetId(content: string, startLine: number): string {
-    const hash = this.simpleHash(content).substring(0, 8);
-    return `snippet_${startLine}_${hash}`;
-  }
-
-  private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString(36);
-  }
-
   private filterAndDeduplicateSnippets(snippets: SnippetChunk[]): SnippetChunk[] {
     const filtered: SnippetChunk[] = [];
     const seen = new Set<string>();
@@ -240,7 +137,7 @@ export class SnippetExtractionService {
       
       let contentHash = this.snippetHashCache.get(snippet.content);
       if (!contentHash) {
-        contentHash = this.simpleHash(snippet.content);
+        contentHash = TreeSitterUtils.simpleHash(snippet.content);
         this.snippetHashCache.set(snippet.content, contentHash);
       }
       

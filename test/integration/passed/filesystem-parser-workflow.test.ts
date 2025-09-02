@@ -7,6 +7,7 @@ import { ConfigService } from '../../../src/config/ConfigService';
 import { LoggerService } from '../../../src/core/LoggerService';
 import { ErrorHandlerService } from '../../../src/core/ErrorHandlerService';
 import { Container } from 'inversify';
+import { TYPES } from '../../../src/types';
 import { createTestContainer } from '../../setup';
 import { FileWatchingTestUtils } from '../../utils/FileWatchingTestUtils';
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
@@ -54,8 +55,8 @@ describe('File System and Parser Workflow Integration Tests', () => {
 
     // Create real services
     fileSystemTraversal = new FileSystemTraversal();
-    treeSitterService = new TreeSitterService();
-    smartCodeParser = new SmartCodeParser(treeSitterService);
+    treeSitterService = container.get(TYPES.TreeSitterService);
+    smartCodeParser = container.get(SmartCodeParser);
     parserService = new ParserService(
       configService,
       loggerService,
