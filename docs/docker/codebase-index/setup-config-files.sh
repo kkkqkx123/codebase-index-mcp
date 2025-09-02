@@ -37,12 +37,6 @@ mkdir -p qdrant/storage
 
 mkdir -p qdrant/config
 
-# 检查qdrant目录中的文件
-if [ -f "config/production.yaml" ]; then
-    mv config/production.yaml qdrant/config/production.yaml
-    echo "✓ roduction.yaml 已移动到 qdrant/config/"
-fi
-
 echo "✓ qdrant目录结构创建完成"
 
 # 检查并移动现有配置文件

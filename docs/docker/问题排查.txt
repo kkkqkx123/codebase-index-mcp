@@ -23,6 +23,7 @@ docker inspect qdrant_server
 
 让ai查找文档后发现nebula指标服务只支持/stats(json格式)，不支持/metrics(文本格式)
 --ws_http_port 用于WebSocket服务（提供/stats端点）
+需要使用export来转换
 
 
 
@@ -96,3 +97,35 @@ prometheus.yml
     scrape_interval: 30s
 
 
+新问题：
+2025-09-02T02:11:00.007400Z ERROR qdrant::startup: Panic occurred in file src/common/metrics.rs at line 92: called `Result::unwrap()` on an `Err` value: Msg("MetricFamily has no metrics: MetricFamily { name: \"collection_hardware_metric_cpu\", help: \"CPU measurements of a collection\", field_type: COUNTER, metric: [] }")    
+
+Qdrant 的监控模块尝试暴露硬件指标（如 CPU 使用率）。
+在某些环境（如 Docker、容器、无权限获取硬件数据）下，这些指标采集失败，导致指标列表为空。
+Prometheus 的 Rust 客户端（prometheus-client 或 prometheus crate）要求每个 MetricFamily 至少包含一个 metric，否则视为无效。
+Qdrant 没有处理“采集不到指标”的情况，直接 .unwrap() 导致 panic。
+
+可能的解决方案：
+# docker-compose.qdrant.yml
+version: '3.8'
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.15.4
+    container_name: qdrant_codeindex
+    ports:
+      - "6335:6333"
+      - "6336:6334"
+    volumes:
+      - ./storage:/qdrant/storage
+      - ./config/production.yaml:/qdrant/config/production.yaml
+    environment:
+      - QDRANT__CONFIG=/qdrant/config/production.yaml
+      - QDRANT__TELEMETRY__DISABLED=true   # 关键修复
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    external: true

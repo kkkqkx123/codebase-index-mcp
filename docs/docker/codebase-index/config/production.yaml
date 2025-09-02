@@ -1,6 +1,8 @@
-log_level: INFO
+ loglevel: INFO
 
-service:
-  host: 0.0.0.0
-  http_port: 6333
-  grpc_port: 6334
+ service:
+   host: 0.0.0.0
+   httpport: 6333
+   grpcport: 6334
+   enable_metrics: false
+ 
