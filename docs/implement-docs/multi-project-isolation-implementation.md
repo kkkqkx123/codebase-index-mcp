@@ -402,7 +402,7 @@ class NebulaSpaceManager {
 ```
 
 ### 6. 项目映射和标识
-[ ]
+[x]
 #### 项目标识符管理
 实现统一的项目标识符管理机制：
 
@@ -411,14 +411,16 @@ class ProjectIdManager {
   private projectIdMap: Map<string, string> = new Map(); // projectPath -> projectId
   private collectionMap: Map<string, string> = new Map(); // projectId -> collectionName
   private spaceMap: Map<string, string> = new Map(); // projectId -> spaceName
+  private pathToProjectMap: Map<string, string> = new Map(); // projectId -> projectPath (reverse mapping)
   
   async generateProjectId(projectPath: string): Promise<string> {
     // 使用SHA256哈希生成项目ID
-    const hash = await HashUtils.calculateDirectoryHash(projectPath);
-    const projectId = hash.substring(0, 16);
+    const directoryHash = await HashUtils.calculateDirectoryHash(projectPath);
+    const projectId = directoryHash.hash.substring(0, 16);
     
     // 建立映射关系
     this.projectIdMap.set(projectPath, projectId);
+    this.pathToProjectMap.set(projectId, projectPath);
     
     // 生成对应的集合和空间名称
     const collectionName = `project-${projectId}`;
@@ -434,6 +436,10 @@ class ProjectIdManager {
     return this.projectIdMap.get(projectPath);
   }
   
+  getProjectPath(projectId: string): string | undefined {
+    return this.pathToProjectMap.get(projectId);
+  }
+  
   getCollectionName(projectId: string): string | undefined {
     return this.collectionMap.get(projectId);
   }
@@ -443,42 +449,70 @@ class ProjectIdManager {
   }
   
   // 持久化映射关系
- async saveMapping(): Promise<void> {
+  async saveMapping(): Promise<void> {
     const mapping = {
       projectIdMap: Object.fromEntries(this.projectIdMap),
       collectionMap: Object.fromEntries(this.collectionMap),
-      spaceMap: Object.fromEntries(this.spaceMap)
+      spaceMap: Object.fromEntries(this.spaceMap),
+      pathToProjectMap: Object.fromEntries(this.pathToProjectMap)
     };
     
     // 使用配置化的存储路径，支持不同环境
-    const storagePath = process.env.PROJECT_MAPPING_PATH || '/data/project-mapping.json';
+    const storagePath = process.env.PROJECT_MAPPING_PATH || './data/project-mapping.json';
     await fs.writeFile(storagePath, JSON.stringify(mapping, null, 2));
   }
   
   // 加载映射关系
   async loadMapping(): Promise<void> {
     try {
-      const storagePath = process.env.PROJECT_MAPPING_PATH || '/data/project-mapping.json';
+      const storagePath = process.env.PROJECT_MAPPING_PATH || './data/project-mapping.json';
       const data = await fs.readFile(storagePath, 'utf8');
       const mapping = JSON.parse(data);
       
       this.projectIdMap = new Map(Object.entries(mapping.projectIdMap));
       this.collectionMap = new Map(Object.entries(mapping.collectionMap));
       this.spaceMap = new Map(Object.entries(mapping.spaceMap));
+      this.pathToProjectMap = new Map(Object.entries(mapping.pathToProjectMap || {}));
     } catch (error) {
       console.warn('Failed to load project mapping:', error);
       // 如果映射文件不存在，初始化空映射
       this.projectIdMap = new Map();
       this.collectionMap = new Map();
       this.spaceMap = new Map();
+      this.pathToProjectMap = new Map();
     }
+  }
+  
+  // 列出所有项目
+  listAllProjects(): string[] {
+    return Array.from(this.projectIdMap.values());
+  }
+  
+  // 检查项目是否存在
+  hasProject(projectPath: string): boolean {
+    return this.projectIdMap.has(projectPath);
+  }
+  
+  // 从映射中移除项目
+  removeProject(projectPath: string): boolean {
+    const projectId = this.projectIdMap.get(projectPath);
+    if (!projectId) {
+      return false;
+    }
+    
+    this.projectIdMap.delete(projectPath);
+    this.collectionMap.delete(projectId);
+    this.spaceMap.delete(projectId);
+    this.pathToProjectMap.delete(projectId);
+    
+    return true;
   }
 }
 ```
 
 #### 反向查找机制
 实现从集合或空间名称反向查找对应项目的功能：
-[ ]
+[x]
 ```typescript
 class ProjectLookupService {
   private projectIdManager: ProjectIdManager;
@@ -500,22 +534,30 @@ class ProjectLookupService {
   }
   
   async getProjectPathByProjectId(projectId: string): Promise<string | null> {
-    // 需要维护项目路径到项目ID的反向映射
-    // 这可以通过扫描项目目录或查询数据库实现
-    const mapping = await this.loadProjectPathMapping();
-    return mapping.get(projectId) || null;
+    // 通过ProjectIdManager获取项目路径
+    return this.projectIdManager.getProjectPath(projectId) || null;
   }
   
-  private async loadProjectPathMapping(): Promise<Map<string, string>> {
-    // 从持久化存储加载项目路径映射
-    // 实现细节取决于具体的存储方案
-    return new Map();
+  async getProjectPathByCollection(collectionName: string): Promise<string | null> {
+    const projectId = await this.getProjectIdByCollection(collectionName);
+    if (!projectId) {
+      return null;
+    }
+    return this.getProjectPathByProjectId(projectId);
+  }
+  
+  async getProjectPathBySpace(spaceName: string): Promise<string | null> {
+    const projectId = await this.getProjectIdBySpace(spaceName);
+    if (!projectId) {
+      return null;
+    }
+    return this.getProjectPathByProjectId(projectId);
   }
 }
 ```
 
 ### 7. 监控模块集成
-[ ]
+[x]
 #### Prometheus 集成
 配置 Prometheus 动态发现和监控每个项目的集合和空间：
 

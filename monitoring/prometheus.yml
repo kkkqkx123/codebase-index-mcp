@@ -24,6 +24,26 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
 
+  # Project-level monitoring configuration (through file discovery)
+  - job_name: 'qdrant-projects'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/qdrant-projects.json'
+    metrics_path: '/metrics'  # Qdrant's standard monitoring endpoint
+    scrape_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__meta_filepath]
+        regex: '.*project-(.*)\.json'
+        target_label: project_id
+
+  - job_name: 'nebula-projects'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/nebula-projects.json'
+    scrape_interval: 60s
+
 alerting:
   alertmanagers:
     - static_configs:
