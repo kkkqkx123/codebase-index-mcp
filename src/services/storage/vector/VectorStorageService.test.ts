@@ -4,7 +4,7 @@ import { LoggerService } from '../../../core/LoggerService';
 import { ConfigService } from '../../../config/ConfigService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { BatchProcessingMetrics } from '../../monitoring/BatchProcessingMetrics';
-import { CodeChunk } from '../../parser/TreeSitterService';
+import { CodeChunk } from '../../parser/types';
 import { EmbedderFactory } from '../../../embedders/EmbedderFactory';
 import { BatchProcessingService } from '../BatchProcessingService';
 import { EmbeddingService } from '../EmbeddingService';

@@ -1,6 +1,6 @@
 import { SmartCodeParser } from '../SmartCodeParser';
 import { TreeSitterService } from '../TreeSitterService';
-import { SnippetChunk } from '../TreeSitterService';
+import { SnippetChunk } from '../types';
 
 // Mock TreeSitterService
 jest.mock('../TreeSitterService', () => {

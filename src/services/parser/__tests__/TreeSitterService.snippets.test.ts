@@ -1,4 +1,5 @@
-import { TreeSitterService, SnippetChunk, SnippetMetadata } from '../TreeSitterService';
+import { TreeSitterService } from '../TreeSitterService';
+import { SnippetChunk, SnippetMetadata } from '../types';
 import Parser from 'tree-sitter';
 
 // Mock tree-sitter for testing

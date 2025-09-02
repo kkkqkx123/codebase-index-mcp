@@ -6,7 +6,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { QdrantClientWrapper, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
-import { CodeChunk } from '../../services/parser/TreeSitterService';
+import { CodeChunk } from '../parser/types';
 
 export interface ParsedFile {
   filePath: string;
