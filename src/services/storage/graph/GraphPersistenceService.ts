@@ -1,5 +1,5 @@
 import { injectable, inject } from 'inversify';
-import { CodeChunk } from '../../parser/TreeSitterService';
+import { CodeChunk } from '../../parser/types';
 import { ParsedFile } from '../../parser/SmartCodeParser';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';

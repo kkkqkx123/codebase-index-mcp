@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { QdrantClientWrapper, VectorPoint, SearchOptions, SearchResult } from '../../../database/qdrant/QdrantClientWrapper';
-import { CodeChunk } from '../../parser/TreeSitterService';
+import { CodeChunk } from '../../parser/types';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { ConfigService } from '../../../config/ConfigService';

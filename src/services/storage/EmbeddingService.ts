@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { LoggerService } from '../../core/LoggerService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
-import { CodeChunk } from '../parser/TreeSitterService';
+import { CodeChunk } from '../parser/types';
 import { VectorPoint } from '../../database/qdrant/QdrantClientWrapper';
 
 export interface IndexingOptions {

@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { injectable } from 'inversify';
-import { CodeChunk } from '../parser/TreeSitterService';
+import { CodeChunk } from '../parser/types';
 
 export interface DeduplicationResult {
   uniqueChunks: CodeChunk[];

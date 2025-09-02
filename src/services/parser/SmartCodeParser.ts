@@ -1,5 +1,6 @@
 import { injectable, inject, optional } from 'inversify';
-import { TreeSitterService, CodeChunk, ParseResult, SnippetChunk } from './TreeSitterService';
+import { TreeSitterService, ParseResult } from './TreeSitterService';
+import { CodeChunk, SnippetChunk } from './types';
 import { createHash } from 'crypto';
 import path from 'path';
 

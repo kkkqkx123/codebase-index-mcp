@@ -1,4 +1,4 @@
-import { CodeChunk } from '../../parser/TreeSitterService';
+import { CodeChunk } from '../../parser/types';
 
 export class VectorStorageUtils {
   static extractUniqueFileCount(chunks: CodeChunk[]): number {

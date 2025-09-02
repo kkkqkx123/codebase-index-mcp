@@ -1,4 +1,4 @@
-import { CodeChunk } from '../../parser/TreeSitterService';
+import { CodeChunk } from '../../parser/types';
 import { VectorPoint } from '../../../database/qdrant/QdrantClientWrapper';
 import { IndexingOptions } from '../EmbeddingService';
 

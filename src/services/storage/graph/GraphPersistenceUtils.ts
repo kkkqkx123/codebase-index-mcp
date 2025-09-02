@@ -3,7 +3,7 @@ import { LoggerService } from '../../../core/LoggerService';
 import { NebulaService } from '../../../database/NebulaService';
 import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
 import { ParsedFile } from '../../parser/SmartCodeParser';
-import { CodeChunk } from '../../parser/TreeSitterService';
+import { CodeChunk } from '../../parser/types';
 import { CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 
 export interface GraphQuery {
