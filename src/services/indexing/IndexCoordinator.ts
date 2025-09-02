@@ -315,13 +315,19 @@ export class IndexCoordinator {
     }
   }
 
-  async processIncrementalChanges(changes: FileChangeEvent[]): Promise<void> {
+  async processIncrementalChanges(projectPath: string, changes: FileChangeEvent[]): Promise<void> {
     if (changes.length === 0) {
       this.logger.debug('No changes to process');
       return;
     }
 
-    this.logger.info('Processing incremental changes', { changeCount: changes.length });
+    const projectId = await HashUtils.calculateDirectoryHash(projectPath);
+    
+    this.logger.info('Processing incremental changes', {
+      projectPath,
+      projectId: projectId.hash,
+      changeCount: changes.length
+    });
 
     try {
       // Group changes by type
@@ -345,14 +351,18 @@ export class IndexCoordinator {
           language: result.language,
           metadata: result.metadata
         }));
-        await this.storageCoordinator.store(parsedFiles);
+        await this.storageCoordinator.store(parsedFiles, projectId.hash);
       }
 
-      this.logger.info('Incremental changes processed successfully', { changeCount: changes.length });
+      this.logger.info('Incremental changes processed successfully', {
+        projectId: projectId.hash,
+        changeCount: changes.length
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       this.logger.error('Failed to process incremental changes', {
+        projectId: projectId.hash,
         error: errorMessage
       });
       throw error;
@@ -484,11 +494,14 @@ export class IndexCoordinator {
     };
   }
 
-  async search(query: string, options: any = {}): Promise<any[]> {
+  async search(query: string, projectId: string, options: any = {}): Promise<any[]> {
     try {
-      // Delegate to SearchCoordinator
+      // Delegate to SearchCoordinator with project context
       const searchQuery: SearchQuery = {
         text: query,
+        filters: {
+          projectId: projectId
+        },
         options: {
           limit: options.limit,
           threshold: options.threshold,

@@ -89,7 +89,7 @@ async initializeProjectSpace(projectId: string): Promise<boolean> {
 ```
 
 ### 3. 存储协调器改造
-[ ]
+[x]
 #### 项目资源管理
 修改 `StorageCoordinator` 类，支持项目级别的资源管理：
 
@@ -130,7 +130,7 @@ class StorageCoordinator {
 ```
 
 ### 4. 索引协调器改造
-[ ]
+[x]
 #### 项目上下文管理
 修改 `IndexCoordinator` 类，确保所有操作都在正确的项目上下文中执行：
 

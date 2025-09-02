@@ -493,28 +493,37 @@ describe('IndexCoordinator', () => {
   });
 
   describe('processIncrementalChanges', () => {
+    const mockProjectPath = '/test/project';
     const mockChanges: FileChangeEvent[] = [
-      { 
-        type: 'created', 
-        path: '/test/project/newfile.ts', 
+      {
+        type: 'created',
+        path: '/test/project/newfile.ts',
         relativePath: 'newfile.ts',
         timestamp: new Date()
       },
-      { 
-        type: 'modified', 
-        path: '/test/project/existing.ts', 
+      {
+        type: 'modified',
+        path: '/test/project/existing.ts',
         relativePath: 'existing.ts',
         timestamp: new Date()
       },
-      { 
-        type: 'deleted', 
-        path: '/test/project/oldfile.ts', 
+      {
+        type: 'deleted',
+        path: '/test/project/oldfile.ts',
         relativePath: 'oldfile.ts',
         timestamp: new Date()
       }
     ];
 
     it('should successfully process incremental changes', async () => {
+      const mockProjectId: DirectoryHash = {
+        path: mockProjectPath,
+        hash: 'test_project_hash',
+        fileCount: 0,
+        files: []
+      };
+      jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
+
       const mockParseResults: ParseResult[] = [
         {
           filePath: '/test/project/newfile.ts',
@@ -551,7 +560,7 @@ describe('IndexCoordinator', () => {
         errors: []
       });
 
-      await indexCoordinator.processIncrementalChanges(mockChanges);
+      await indexCoordinator.processIncrementalChanges(mockProjectPath, mockChanges);
 
       // Verify deletions were processed first
       expect(storageCoordinator.deleteFiles).toHaveBeenCalledWith(['oldfile.ts']);
@@ -562,25 +571,29 @@ describe('IndexCoordinator', () => {
         'existing.ts'
       ]);
 
-      // Verify storage was called with processed files
+      // Verify storage was called with processed files and project ID
       expect(storageCoordinator.store).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ filePath: '/test/project/newfile.ts' }),
           expect.objectContaining({ filePath: '/test/project/existing.ts' })
-        ])
+        ]),
+        mockProjectId.hash
       );
 
       // Verify logging
       expect(loggerService.info).toHaveBeenCalledWith('Processing incremental changes', {
+        projectPath: mockProjectPath,
+        projectId: mockProjectId.hash,
         changeCount: 3
       });
       expect(loggerService.info).toHaveBeenCalledWith('Incremental changes processed successfully', {
+        projectId: mockProjectId.hash,
         changeCount: 3
       });
     });
 
     it('should handle empty changes list', async () => {
-      await indexCoordinator.processIncrementalChanges([]);
+      await indexCoordinator.processIncrementalChanges(mockProjectPath, []);
 
       // Verify no operations were performed
       expect(storageCoordinator.deleteFiles).not.toHaveBeenCalled();
