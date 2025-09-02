@@ -18,8 +18,8 @@ docker-compose -f docker-compose.monitoring.yml up -d
 
 ### 2. 访问 Grafana 控制台
 
-Grafana 服务配置在 3000 端口，您可以通过以下 URL 在浏览器中访问：
-http://127.0.0.1:3000
+Grafana 服务配置在 3100 端口【3100:3000】，您可以通过以下 URL 在浏览器中访问：
+http://127.0.0.1:3100
 
 ## 二、登录 Grafana 控制台
 

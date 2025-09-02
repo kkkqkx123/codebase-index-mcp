@@ -15,9 +15,6 @@ scrape_configs:
   - job_name: 'qdrant'
     static_configs:
       - targets: ['qdrant:6333']
-        labels:
-          service: 'qdrant'
-          type: 'vector-database'
     metrics_path: '/metrics'
     scrape_interval: 30s
 

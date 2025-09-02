@@ -6,10 +6,7 @@ services:
       - "6335:6333"  # REST API
       - "6336:6334"  # gRPC API
     volumes:
-      - qdrant_storage:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml
-    environment:
-      - QDRANT__CONFIG=/qdrant/config/production.yaml
+      - ./storage:/qdrant/storage
     restart: unless-stopped
     networks:
       - monitoring

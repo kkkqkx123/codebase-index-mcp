@@ -1,3 +1,9 @@
+剩余问题：qdrant的/metrics返回空
+
+似乎是因为另一个qdrant服务开着？另一个服务的/metrics正常
+
+
+
 从 Nebula Graph 3.0.0 版本开始，必须先使用 ADD HOSTS 添加主机，才能正常通过 Storage 服务读写数据。
 
 
