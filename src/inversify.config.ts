@@ -73,6 +73,9 @@ import { BatchProcessingMetrics } from './services/monitoring/BatchProcessingMet
 import { FileSystemTraversal } from './services/filesystem/FileSystemTraversal';
 import { SmartCodeParser } from './services/parser/SmartCodeParser';
 import { TreeSitterService } from './services/parser/TreeSitterService';
+import { TreeSitterCoreService } from './services/parser/TreeSitterCoreService';
+import { SnippetExtractionService, SnippetExtractionRule } from './services/parser/SnippetExtractionService';
+import { TYPES } from './types';
 
 // Additional services
 import { HashBasedDeduplicator } from './services/deduplication/HashBasedDeduplicator';
@@ -193,6 +196,12 @@ container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().in
 container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
 container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
 container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope();
+container.bind<TreeSitterCoreService>(TreeSitterCoreService).toSelf().inSingletonScope();
+container.bind<SnippetExtractionService>(SnippetExtractionService).toSelf().inSingletonScope();
+
+// For now, bind SnippetExtractionRules as an empty array
+// This will be populated with actual rules when they are implemented
+container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([]);
 
 // Bind deduplication services
 container.bind<HashBasedDeduplicator>(HashBasedDeduplicator).toSelf().inSingletonScope();
