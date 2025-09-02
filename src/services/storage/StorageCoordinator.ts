@@ -1,12 +1,12 @@
 import { injectable, inject } from 'inversify';
- import { VectorStorageService, IndexingResult } from './vector/VectorStorageService';
- import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from './graph/GraphPersistenceService';
- import { TransactionCoordinator } from '../sync/TransactionCoordinator';
- import { LoggerService } from '../../core/LoggerService';
- import { ErrorHandlerService } from '../../core/ErrorHandlerService';
- import { ConfigService } from '../../config/ConfigService';
- import { QdrantClientWrapper, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
- import { CodeChunk } from '../../services/parser/TreeSitterService';
+import { VectorStorageService, IndexingResult } from './vector/VectorStorageService';
+import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from './graph/GraphPersistenceService';
+import { TransactionCoordinator } from '../sync/TransactionCoordinator';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { ConfigService } from '../../config/ConfigService';
+import { QdrantClientWrapper, SearchOptions, SearchResult } from '../../database/qdrant/QdrantClientWrapper';
+import { CodeChunk } from '../../services/parser/TreeSitterService';
 
 export interface ParsedFile {
   filePath: string;
@@ -41,6 +41,10 @@ export class StorageCoordinator {
   private vectorStorage: VectorStorageService;
   private graphStorage: GraphPersistenceService;
   private transactionCoordinator: TransactionCoordinator;
+  private projectResources: Map<string, {
+    vectorStorage: VectorStorageService;
+    graphStorage: GraphPersistenceService;
+  }> = new Map();
 
   constructor(
    @inject(LoggerService) logger: LoggerService,
@@ -57,7 +61,34 @@ export class StorageCoordinator {
    this.vectorStorage = vectorStorage;
    this.graphStorage = graphStorage;
    this.transactionCoordinator = transactionCoordinator;
- }
+}
+
+  async initializeProject(projectId: string): Promise<void> {
+    // Initialize the existing vector storage service with the project ID
+    // This will ensure it uses the project-specific collection
+    await this.vectorStorage.initialize(projectId);
+    
+    // Initialize the existing graph storage service with the project ID
+    // This will ensure it uses the project-specific space
+    await this.graphStorage.initializeProjectSpace(projectId);
+    
+    // Save project resources (using the same instances but initialized for the project)
+    this.projectResources.set(projectId, {
+      vectorStorage: this.vectorStorage,
+      graphStorage: this.graphStorage
+    });
+  }
+
+  async getProjectResources(projectId: string): Promise<{
+    vectorStorage: VectorStorageService;
+    graphStorage: GraphPersistenceService;
+  }> {
+    if (!this.projectResources.has(projectId)) {
+      await this.initializeProject(projectId);
+    }
+    
+    return this.projectResources.get(projectId)!;
+  }
 
   async store(files: ParsedFile[], projectId?: string): Promise<StorageResult> {
     if (files.length === 0) {
@@ -85,6 +116,20 @@ export class StorageCoordinator {
     });
 
     try {
+      // Get project-specific resources if projectId is provided
+      let vectorStorage = this.vectorStorage;
+      let graphStorage = this.graphStorage;
+      
+      if (projectId) {
+        // Ensure project is initialized
+        if (!this.projectResources.has(projectId)) {
+          await this.initializeProject(projectId);
+        }
+        const projectResources = this.projectResources.get(projectId)!;
+        vectorStorage = projectResources.vectorStorage;
+        graphStorage = projectResources.graphStorage;
+      }
+
       // Start transaction for cross-database consistency
       await this.transactionCoordinator.beginTransaction();
       
@@ -93,14 +138,14 @@ export class StorageCoordinator {
 
       try {
         // Store chunks in vector storage
-        vectorResult = await this.vectorStorage.storeChunks(allChunks, {
+        vectorResult = await vectorStorage.storeChunks(allChunks, {
           projectId,
           overwriteExisting: true,
           batchSize: allChunks.length
         });
         
         // Store chunks in graph storage
-        graphResult = await this.graphStorage.storeChunks(allChunks, {
+        graphResult = await graphStorage.storeChunks(allChunks, {
           projectId,
           overwriteExisting: true,
           batchSize: allChunks.length
@@ -175,7 +220,7 @@ export class StorageCoordinator {
         errors: [errorMessage]
       };
     }
-  }
+ }
 
   async deleteFiles(filePaths: string[]): Promise<DeleteResult> {
     if (filePaths.length === 0) {
@@ -264,6 +309,12 @@ export class StorageCoordinator {
     this.logger.info('Deleting project from databases', { projectId });
 
     try {
+      // Ensure project is initialized to get project-specific resources
+      if (!this.projectResources.has(projectId)) {
+        await this.initializeProject(projectId);
+      }
+      const projectResources = this.projectResources.get(projectId)!;
+      
       // Get all chunk IDs for the project from vector storage
       // We need to get the collection name from the vector storage service config
       const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
@@ -342,8 +393,20 @@ export class StorageCoordinator {
 
   async searchVectors(query: string, options: any = {}): Promise<any[]> {
     try {
+      // Use project-specific vector storage if projectId is provided in options
+      let vectorStorage = this.vectorStorage;
+      
+      if (options.projectId) {
+        // Ensure project is initialized
+        if (!this.projectResources.has(options.projectId)) {
+          await this.initializeProject(options.projectId);
+        }
+        const projectResources = this.projectResources.get(options.projectId)!;
+        vectorStorage = projectResources.vectorStorage;
+      }
+      
       // Delegate to vector storage service
-      return await this.vectorStorage.search(query, options);
+      return await vectorStorage.search(query, options);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
@@ -358,8 +421,20 @@ export class StorageCoordinator {
 
   async searchGraph(query: string, options: GraphPersistenceOptions = {}): Promise<any[]> {
     try {
+      // Use project-specific graph storage if projectId is provided in options
+      let graphStorage = this.graphStorage;
+      
+      if (options.projectId) {
+        // Ensure project is initialized
+        if (!this.projectResources.has(options.projectId)) {
+          await this.initializeProject(options.projectId);
+        }
+        const projectResources = this.projectResources.get(options.projectId)!;
+        graphStorage = projectResources.graphStorage;
+      }
+      
       // Delegate to graph storage service
-      return await this.graphStorage.search(query, options);
+      return await graphStorage.search(query, options);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
@@ -373,55 +448,67 @@ export class StorageCoordinator {
   }
 
  // Add snippet statistics method
-  async getSnippetStatistics(projectId: string): Promise<{
-    totalSnippets: number;
-    processedSnippets: number;
-    duplicateSnippets: number;
-    processingRate: number;
-  }> {
-    try {
-      // Query vector storage for snippet statistics
-      const vectorStats = await this.vectorStorage.getCollectionStats();
-      
-      // Query graph storage for snippet statistics
-      const graphStats = await this.graphStorage.getGraphStats();
-      
-      // Calculate statistics based on storage data
-      const totalSnippets = vectorStats.totalPoints;
-      const processedSnippets = Math.floor(totalSnippets * 0.95); // Assume 95% are processed
-      const duplicateSnippets = totalSnippets - processedSnippets;
-      const processingRate = 45.2; // This would be calculated based on actual processing time
-      
-      return {
-        totalSnippets,
-        processedSnippets,
-        duplicateSnippets,
-        processingRate
-      };
-    } catch (error) {
-      this.logger.error('Failed to get snippet statistics', {
-        projectId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      
-      // Return default values in case of error
-      return {
-        totalSnippets: 0,
-        processedSnippets: 0,
-        duplicateSnippets: 0,
-        processingRate: 0
-      };
-    }
-  }
+ async getSnippetStatistics(projectId: string): Promise<{
+   totalSnippets: number;
+   processedSnippets: number;
+   duplicateSnippets: number;
+   processingRate: number;
+ }> {
+   try {
+     // Ensure project is initialized
+     if (!this.projectResources.has(projectId)) {
+       await this.initializeProject(projectId);
+     }
+     const projectResources = this.projectResources.get(projectId)!;
+     
+     // Query vector storage for snippet statistics
+     const vectorStats = await projectResources.vectorStorage.getCollectionStats();
+     
+     // Query graph storage for snippet statistics
+     const graphStats = await projectResources.graphStorage.getGraphStats();
+     
+     // Calculate statistics based on storage data
+     const totalSnippets = vectorStats.totalPoints;
+     const processedSnippets = Math.floor(totalSnippets * 0.95); // Assume 95% are processed
+     const duplicateSnippets = totalSnippets - processedSnippets;
+     const processingRate = 45.2; // This would be calculated based on actual processing time
+     
+     return {
+       totalSnippets,
+       processedSnippets,
+       duplicateSnippets,
+       processingRate
+     };
+   } catch (error) {
+     this.logger.error('Failed to get snippet statistics', {
+       projectId,
+       error: error instanceof Error ? error.message : String(error)
+     });
+     
+     // Return default values in case of error
+     return {
+       totalSnippets: 0,
+       processedSnippets: 0,
+       duplicateSnippets: 0,
+       processingRate: 0
+     };
+   }
+ }
 
   // Add method to find snippet by hash
   async findSnippetByHash(contentHash: string, projectId: string): Promise<any> {
     try {
+      // Ensure project is initialized
+      if (!this.projectResources.has(projectId)) {
+        await this.initializeProject(projectId);
+      }
+      const projectResources = this.projectResources.get(projectId)!;
+      
       // Search in vector storage for a snippet with the given hash
       // In a real implementation, we would generate an embedding for search
       // For now, we'll use a placeholder vector
       const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
+      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
         limit: 1,
         filter: {
           projectId: projectId,
@@ -440,7 +527,7 @@ export class StorageCoordinator {
       }
       
       // If not found in vector storage, search in graph storage
-      const graphResults = await this.graphStorage.search('', {
+      const graphResults = await projectResources.graphStorage.search('', {
         type: 'semantic',
         limit: 1
       });
@@ -466,11 +553,17 @@ export class StorageCoordinator {
   // Add method to find snippet references
   async findSnippetReferences(snippetId: string, projectId: string): Promise<string[]> {
     try {
+      // Ensure project is initialized
+      if (!this.projectResources.has(projectId)) {
+        await this.initializeProject(projectId);
+      }
+      const projectResources = this.projectResources.get(projectId)!;
+      
       // Search in vector storage for references to the given snippet
       // In a real implementation, we would generate an embedding for search
       // For now, we'll use a placeholder vector
       const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
+      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
         limit: 100,
         filter: {
           projectId: projectId
@@ -487,7 +580,7 @@ export class StorageCoordinator {
         .map(result => result.id as string);
       
       // Search in graph storage for references to the given snippet
-      const graphResults = await this.graphStorage.search('', {
+      const graphResults = await projectResources.graphStorage.search('', {
         type: 'relationship',
         limit: 100
       });
@@ -521,11 +614,17 @@ export class StorageCoordinator {
     complexity: number;
   }> {
     try {
+      // Ensure project is initialized
+      if (!this.projectResources.has(projectId)) {
+        await this.initializeProject(projectId);
+      }
+      const projectResources = this.projectResources.get(projectId)!;
+      
       // Search in vector storage for dependencies of the given snippet
       // In a real implementation, we would generate an embedding for search
       // For now, we'll use a placeholder vector
       const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
+      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
         limit: 100,
         filter: {
           projectId: projectId
@@ -555,7 +654,7 @@ export class StorageCoordinator {
       usedBy = dependentSnippets.map(result => result.id as string);
       
       // Search in graph storage for additional dependencies
-      const graphResults = await this.graphStorage.search('', {
+      const graphResults = await projectResources.graphStorage.search('', {
         type: 'relationship',
         limit: 100
       });
@@ -597,7 +696,7 @@ export class StorageCoordinator {
         complexity: 1
       };
     }
-  }
+ }
 
   // Private method to get chunk IDs for given file paths
   private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {
@@ -623,6 +722,12 @@ export class StorageCoordinator {
 
   private async getProjectChunkIds(projectId: string): Promise<string[]> {
     try {
+      // Ensure project is initialized
+      if (!this.projectResources.has(projectId)) {
+        await this.initializeProject(projectId);
+      }
+      const projectResources = this.projectResources.get(projectId)!;
+      
       const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
       return await this.qdrantClient.getChunkIdsByFiles(collectionName, [projectId]);
     } catch (error) {
@@ -635,13 +740,19 @@ export class StorageCoordinator {
   }
 
   // Add method to find snippet overlaps
-  async findSnippetOverlaps(snippetId: string, projectId: string): Promise<string[]> {
+ async findSnippetOverlaps(snippetId: string, projectId: string): Promise<string[]> {
     try {
+      // Ensure project is initialized
+      if (!this.projectResources.has(projectId)) {
+        await this.initializeProject(projectId);
+      }
+      const projectResources = this.projectResources.get(projectId)!;
+      
       // Search in vector storage for the given snippet
       // In a real implementation, we would generate an embedding for search
       // For now, we'll use a placeholder vector
       const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await this.vectorStorage.searchVectors(placeholderVector, {
+      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
         limit: 1,
         filter: {
           projectId: projectId
@@ -657,7 +768,7 @@ export class StorageCoordinator {
       // Search for similar snippets that might overlap
       // Note: SearchResult doesn't have a vector property, so we need to handle this differently
       // For now, we'll use the placeholder vector again
-      const similarSnippets = await this.vectorStorage.searchVectors(placeholderVector, {
+      const similarSnippets = await projectResources.vectorStorage.searchVectors(placeholderVector, {
         limit: 20,
         filter: {
           projectId: projectId
@@ -673,7 +784,7 @@ export class StorageCoordinator {
         .map(result => result.id as string);
       
       // Search in graph storage for additional overlaps
-      const graphResults = await this.graphStorage.search('', {
+      const graphResults = await projectResources.graphStorage.search('', {
         type: 'semantic',
         limit: 20
       });
