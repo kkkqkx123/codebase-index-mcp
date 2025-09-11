@@ -149,6 +149,54 @@ const configSchema = Joi.object({
   indexing: Joi.object({
     batchSize: Joi.number().positive().default(50),
     maxConcurrency: Joi.number().positive().default(3)
+  }),
+  semgrep: Joi.object({
+    binaryPath: Joi.string().default('semgrep'),
+    timeout: Joi.number().positive().default(30000),
+    maxMemory: Joi.number().positive().default(512),
+    maxTargetBytes: Joi.number().positive().default(1000000),
+    jobs: Joi.number().positive().default(4),
+    noGitIgnore: Joi.boolean().default(false),
+    noRewriteRuleIds: Joi.boolean().default(false),
+    strict: Joi.boolean().default(false),
+    configPaths: Joi.array().items(Joi.string()).default([
+      'auto',
+      'p/security-audit',
+      'p/secrets',
+      'p/owasp-top-ten',
+      'p/javascript',
+      'p/python',
+      'p/java',
+      'p/go',
+      'p/typescript'
+    ]),
+    customRulesPath: Joi.string().default('./rules/semgrep'),
+    outputFormat: Joi.string().valid('json', 'sarif', 'text').default('json'),
+    excludePatterns: Joi.array().items(Joi.string()).default([
+      'node_modules',
+      '.git',
+      'dist',
+      'build',
+      'coverage',
+      '*.min.js',
+      '*.min.css',
+      'vendor',
+      'test/fixtures',
+      'tests/fixtures'
+    ]),
+    includePatterns: Joi.array().items(Joi.string()).default([
+      '*.js',
+      '*.ts',
+      '*.jsx',
+      '*.tsx',
+      '*.py',
+      '*.java',
+      '*.go',
+      '*.php',
+      '*.rb',
+      '*.cs'
+    ]),
+    severityLevels: Joi.array().items(Joi.string()).default(['ERROR', 'WARNING', 'INFO'])
   })
 });
 
@@ -281,6 +329,22 @@ export interface Config {
   indexing: {
     batchSize: number;
     maxConcurrency: number;
+  };
+  semgrep: {
+    binaryPath: string;
+    timeout: number;
+    maxMemory: number;
+    maxTargetBytes: number;
+    jobs: number;
+    noGitIgnore: boolean;
+    noRewriteRuleIds: boolean;
+    strict: boolean;
+    configPaths: string[];
+    customRulesPath: string;
+    outputFormat: 'json' | 'sarif' | 'text';
+    excludePatterns: string[];
+    includePatterns: string[];
+    severityLevels: string[];
   };
   performance?: {
     cleanupInterval?: number;
@@ -428,6 +492,54 @@ export class ConfigService {
       indexing: {
         batchSize: parseInt(process.env.INDEXING_BATCH_SIZE || '50'),
         maxConcurrency: parseInt(process.env.INDEXING_MAX_CONCURRENCY || '3')
+      },
+      semgrep: {
+        binaryPath: process.env.SEMGREP_BINARY_PATH || 'semgrep',
+        timeout: parseInt(process.env.SEMGREP_TIMEOUT || '30000'),
+        maxMemory: parseInt(process.env.SEMGREP_MAX_MEMORY || '512'),
+        maxTargetBytes: parseInt(process.env.SEMGREP_MAX_TARGET_BYTES || '1000000'),
+        jobs: parseInt(process.env.SEMGREP_JOBS || '4'),
+        noGitIgnore: process.env.SEMGREP_NO_GIT_IGNORE === 'true',
+        noRewriteRuleIds: process.env.SEMGREP_NO_REWRITE_RULE_IDS === 'true',
+        strict: process.env.SEMGREP_STRICT === 'true',
+        configPaths: process.env.SEMGREP_CONFIG_PATHS ? process.env.SEMGREP_CONFIG_PATHS.split(',') : [
+          'auto',
+          'p/security-audit',
+          'p/secrets',
+          'p/owasp-top-ten',
+          'p/javascript',
+          'p/python',
+          'p/java',
+          'p/go',
+          'p/typescript'
+        ],
+        customRulesPath: process.env.SEMGREP_CUSTOM_RULES_PATH || './rules/semgrep',
+        outputFormat: (process.env.SEMGREP_OUTPUT_FORMAT as 'json' | 'sarif' | 'text') || 'json',
+        excludePatterns: process.env.SEMGREP_EXCLUDE_PATTERNS ? process.env.SEMGREP_EXCLUDE_PATTERNS.split(',') : [
+          'node_modules',
+          '.git',
+          'dist',
+          'build',
+          'coverage',
+          '*.min.js',
+          '*.min.css',
+          'vendor',
+          'test/fixtures',
+          'tests/fixtures'
+        ],
+        includePatterns: process.env.SEMGREP_INCLUDE_PATTERNS ? process.env.SEMGREP_INCLUDE_PATTERNS.split(',') : [
+          '*.js',
+          '*.ts',
+          '*.jsx',
+          '*.tsx',
+          '*.py',
+          '*.java',
+          '*.go',
+          '*.php',
+          '*.rb',
+          '*.cs'
+        ],
+        severityLevels: process.env.SEMGREP_SEVERITY_LEVELS ? process.env.SEMGREP_SEVERITY_LEVELS.split(',') : ['ERROR', 'WARNING', 'INFO']
       },
       mlReranking: process.env.ML_RERANKING_MODEL_PATH || process.env.ML_RERANKING_MODEL_TYPE || process.env.ML_RERANKING_FEATURES || process.env.ML_RERANKING_TRAINING_ENABLED ? {
       modelPath: process.env.ML_RERANKING_MODEL_PATH || undefined,

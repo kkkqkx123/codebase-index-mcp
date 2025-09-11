@@ -69,4 +69,10 @@ export const TYPES = {
   TreeSitterCoreService: Symbol.for('TreeSitterCoreService'),
   SnippetExtractionService: Symbol.for('SnippetExtractionService'),
   SnippetExtractionRules: Symbol.for('SnippetExtractionRules'),
+  
+  // Static analysis services
+  StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
+  SemgrepScanService: Symbol.for('SemgrepScanService'),
+  SemgrepResultProcessor: Symbol.for('SemgrepResultProcessor'),
+  SemgrepRuleAdapter: Symbol.for('SemgrepRuleAdapter'),
 } as const;

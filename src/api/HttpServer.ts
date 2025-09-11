@@ -5,6 +5,7 @@ import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { ConfigService } from '../config/ConfigService';
 import { SnippetRoutes } from './routes/SnippetRoutes';
 import { MonitoringRoutes } from './routes/MonitoringRoutes';
+import { StaticAnalysisRoutes } from './routes/StaticAnalysisRoutes';
 
 export class HttpServer {
   private app: Application;
@@ -71,6 +72,7 @@ export class HttpServer {
     // API routes
     this.app.use('/api/v1/snippets', new SnippetRoutes().getRouter());
     this.app.use('/api/v1/monitoring', new MonitoringRoutes().getRouter());
+    this.app.use('/api/v1/analysis', new StaticAnalysisRoutes().getRouter());
     
     // Root endpoint
     this.app.get('/', (req: Request, res: Response) => {

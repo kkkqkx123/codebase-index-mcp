@@ -175,6 +175,29 @@ export interface FeatureConfig {
   search: SearchFeatureConfig;
   monitoring: MonitoringFeatureConfig;
   api: ApiFeatureConfig;
+  staticAnalysis: StaticAnalysisFeatureConfig;
+}
+
+// Static Analysis Configuration
+export interface StaticAnalysisFeatureConfig {
+  enabled: boolean;
+  defaultTool: 'semgrep';
+  scanOnChange: boolean;
+  batchSize: number;
+  resultRetentionDays: number;
+  semgrep: SemgrepConfig;
+}
+
+export interface SemgrepConfig {
+  enabled: boolean;
+  cliPath: string;
+  rulesDir: string;
+  defaultRules: string[];
+  timeout: number;
+  maxTargetBytes: number;
+  maxConcurrentScans: number;
+  cacheEnabled: boolean;
+  cacheTtl: number;
 }
 
 export interface IndexingFeatureConfig {

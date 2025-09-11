@@ -30,6 +30,8 @@ export interface SearchResult {
 }
 
 export interface CodeMetadata {
+  id: string;
+  filePath: string;
   language: string;
   type: 'function' | 'class' | 'interface' | 'variable' | 'import' | 'export';
   name?: string;
@@ -38,6 +40,12 @@ export interface CodeMetadata {
   dependencies?: string[];
   exports?: string[];
   imports?: string[];
+  content: string;
+  astPath: string;
+  nodeType: string;
+  parentType: string;
+  children: string[];
+  metadata: Record<string, any>;
 }
 
 export interface GraphData {

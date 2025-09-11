@@ -352,6 +352,24 @@ export class ConfigFactory implements ConfigFactory {
           enabled: config.api?.authentication?.enabled ?? false,
           type: config.api?.authentication?.type || 'api-key'
         }
+      },
+      staticAnalysis: {
+        enabled: config.staticAnalysis?.enabled ?? true,
+        defaultTool: config.staticAnalysis?.defaultTool || 'semgrep',
+        scanOnChange: config.staticAnalysis?.scanOnChange ?? true,
+        batchSize: config.staticAnalysis?.batchSize || 50,
+        resultRetentionDays: config.staticAnalysis?.resultRetentionDays || 30,
+        semgrep: {
+          enabled: config.staticAnalysis?.semgrep?.enabled ?? true,
+          cliPath: config.staticAnalysis?.semgrep?.cliPath || 'semgrep',
+          rulesDir: config.staticAnalysis?.semgrep?.rulesDir || './rules',
+          defaultRules: config.staticAnalysis?.semgrep?.defaultRules || ['p/security-audit', 'p/secrets'],
+          timeout: config.staticAnalysis?.semgrep?.timeout || 30000,
+          maxTargetBytes: config.staticAnalysis?.semgrep?.maxTargetBytes || 1000000,
+          maxConcurrentScans: config.staticAnalysis?.semgrep?.maxConcurrentScans || 3,
+          cacheEnabled: config.staticAnalysis?.semgrep?.cacheEnabled ?? true,
+          cacheTtl: config.staticAnalysis?.semgrep?.cacheTtl || 3600000
+        }
       }
     };
   }

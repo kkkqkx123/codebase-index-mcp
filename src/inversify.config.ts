@@ -253,10 +253,23 @@ container.bind<ConsistencyChecker>(ConsistencyChecker).toSelf().inSingletonScope
 // Bind additional embedder services
 container.bind<DimensionAdapterService>(DimensionAdapterService).toSelf().inSingletonScope();
 
+// Bind static analysis services
+import { StaticAnalysisCoordinator } from './services/static-analysis/StaticAnalysisCoordinator';
+import { SemgrepScanService } from './services/semgrep/SemgrepScanService';
+import { SemgrepResultProcessor } from './services/semgrep/SemgrepResultProcessor';
+import { SemgrepRuleAdapter } from './services/semgrep/SemgrepRuleAdapter';
+import { StaticAnalysisRoutes } from './api/routes/StaticAnalysisRoutes';
+
+container.bind<StaticAnalysisCoordinator>(StaticAnalysisCoordinator).toSelf().inSingletonScope();
+container.bind<SemgrepScanService>(SemgrepScanService).toSelf().inSingletonScope();
+container.bind<SemgrepResultProcessor>(SemgrepResultProcessor).toSelf().inSingletonScope();
+container.bind<SemgrepRuleAdapter>(SemgrepRuleAdapter).toSelf().inSingletonScope();
+
 // Bind API services
 container.bind<HttpServer>(HttpServer).toSelf().inSingletonScope();
 container.bind<MonitoringRoutes>(MonitoringRoutes).toSelf().inSingletonScope();
 container.bind<SnippetRoutes>(SnippetRoutes).toSelf().inSingletonScope();
+container.bind<StaticAnalysisRoutes>(StaticAnalysisRoutes).toSelf().inSingletonScope();
 
 // Bind controller services
 container.bind<MonitoringController>(MonitoringController).toSelf().inSingletonScope();
@@ -278,5 +291,5 @@ container.bind<MemoryManagerOptions>('MemoryManagerOptions').toConstantValue({})
 container.bind<TraversalOptions>('TraversalOptions').toConstantValue({});
 container.bind<ChunkingOptions>('ChunkingOptions').toConstantValue({});
 
-// Export the container
-export { container };
+// Export the container and types
+export { container, DIContainer, TYPES };
