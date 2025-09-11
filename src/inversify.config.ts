@@ -74,7 +74,6 @@ import { FileSystemTraversal } from './services/filesystem/FileSystemTraversal';
 import { SmartCodeParser } from './services/parser/SmartCodeParser';
 import { TreeSitterService } from './services/parser/TreeSitterService';
 import { TreeSitterCoreService } from './services/parser/TreeSitterCoreService';
-import { SnippetExtractionService, SnippetExtractionRule } from './services/parser/SnippetExtractionService';
 import { ControlStructureRule } from './services/parser/treesitter-rule/ControlStructureRule';
 import { ErrorHandlingRule } from './services/parser/treesitter-rule/ErrorHandlingRule';
 import { FunctionCallChainRule } from './services/parser/treesitter-rule/FunctionCallChainRule';
@@ -85,7 +84,6 @@ import { ObjectArrayLiteralRule } from './services/parser/treesitter-rule/Object
 import { ArithmeticLogicalRule } from './services/parser/treesitter-rule/ArithmeticLogicalRule';
 import { TemplateLiteralRule } from './services/parser/treesitter-rule/TemplateLiteralRule';
 import { DestructuringAssignmentRule } from './services/parser/treesitter-rule/DestructuringAssignmentRule';
-import { TYPES } from './types';
 
 // Additional services
 import { HashBasedDeduplicator } from './services/deduplication/HashBasedDeduplicator';
@@ -209,7 +207,24 @@ container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope()
 container.bind<TreeSitterCoreService>(TreeSitterCoreService).toSelf().inSingletonScope();
 container.bind<SnippetExtractionService>(SnippetExtractionService).toSelf().inSingletonScope();
 
-// Bind snippet extraction rules
+// Bind snippet extraction rules with enhanced rules
+import { EnhancedRuleFactory } from './services/parser/treesitter-rule/EnhancedRuleFactory';
+
+// Import all rule classes
+import { AsyncPatternRule } from './services/parser/treesitter-rule/modern-features/AsyncPatternRule';
+import { DecoratorPatternRule } from './services/parser/treesitter-rule/modern-features/DecoratorPatternRule';
+import { GenericPatternRule } from './services/parser/treesitter-rule/modern-features/GenericPatternRule';
+import { FunctionalProgrammingRule } from './services/parser/treesitter-rule/modern-features/FunctionalProgrammingRule';
+import { PythonComprehensionRule } from './services/parser/treesitter-rule/languages/python/PythonComprehensionRule';
+import { JavaStreamRule } from './services/parser/treesitter-rule/languages/java/JavaStreamRule';
+import { JavaLambdaRule } from './services/parser/treesitter-rule/languages/java/JavaLambdaRule';
+import { GoGoroutineRule } from './services/parser/treesitter-rule/languages/go/GoGoroutineRule';
+import { GoInterfaceRule } from './services/parser/treesitter-rule/languages/go/GoInterfaceRule';
+
+// Bind core snippet extraction rules (existing ones remain for compatibility)
+import { SnippetExtractionRule } from './services/parser/treesitter-rule/SnippetExtractionRule';
+import { TYPES } from './types';
+
 container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
   new ControlStructureRule(),
   new ErrorHandlingRule(),
@@ -220,8 +235,41 @@ container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstant
   new ObjectArrayLiteralRule(),
   new ArithmeticLogicalRule(),
   new TemplateLiteralRule(),
-  new DestructuringAssignmentRule()
+  new DestructuringAssignmentRule(),
+
+  // Modern features rules
+  new AsyncPatternRule(),
+  new DecoratorPatternRule(),
+  new GenericPatternRule(),
+  new FunctionalProgrammingRule(),
+
+  // Language-specific rules
+  new PythonComprehensionRule(),
+  new JavaStreamRule(),
+  new JavaLambdaRule(),
+  new GoGoroutineRule(),
+  new GoInterfaceRule()
 ]);
+
+// Bind enhanced rule factory for dynamic rule creation
+container.bind(EnhancedRuleFactory).toSelf().inSingletonScope();
+
+// Bind rule collections for different use cases
+container.bind<SnippetExtractionRule[]>('ComprehensiveRules').toConstantValue(
+  EnhancedRuleFactory.createComprehensiveRules()
+);
+
+container.bind<SnippetExtractionRule[]>('LanguageSpecificRules').toConstantValue(
+  EnhancedRuleFactory.createLanguageSpecificRules('javascript') // Default to JavaScript
+);
+
+container.bind<SnippetExtractionRule[]>('PerformanceFocusedRules').toConstantValue(
+  EnhancedRuleFactory.createFocusedRules('performance')
+);
+
+container.bind<SnippetExtractionRule[]>('ArchitectureFocusedRules').toConstantValue(
+  EnhancedRuleFactory.createFocusedRules('architecture')
+);
 
 // Bind deduplication services
 container.bind<HashBasedDeduplicator>(HashBasedDeduplicator).toSelf().inSingletonScope();
@@ -259,6 +307,7 @@ import { SemgrepScanService } from './services/semgrep/SemgrepScanService';
 import { SemgrepResultProcessor } from './services/semgrep/SemgrepResultProcessor';
 import { SemgrepRuleAdapter } from './services/semgrep/SemgrepRuleAdapter';
 import { StaticAnalysisRoutes } from './api/routes/StaticAnalysisRoutes';
+import { SnippetExtractionService } from './services/parser/SnippetExtractionService';
 
 container.bind<StaticAnalysisCoordinator>(StaticAnalysisCoordinator).toSelf().inSingletonScope();
 container.bind<SemgrepScanService>(SemgrepScanService).toSelf().inSingletonScope();

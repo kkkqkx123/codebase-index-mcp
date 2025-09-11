@@ -1,6 +1,6 @@
 import * as Parser from 'tree-sitter';
-import { SnippetChunk } from '../../types';
-import { AbstractSnippetRule } from '../AbstractSnippetRule';
+import { SnippetChunk } from '../../../types';
+import { AbstractSnippetRule } from '../../AbstractSnippetRule';
 
 /**
  * 现代语言特性规则
@@ -11,46 +11,46 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
   readonly supportedNodeTypes = new Set([
     // 异步特性
     'async_function', 'await_expression', 'async_arrow_function',
-    
+
     // 装饰器
     'decorator', 'decorated_statement', 'decorated_class_declaration',
-    
+
     // 可选链和空值合并
     'optional_member_expression', 'optional_call_expression',
     'nullish_coalescing_expression', 'logical_or_expression',
-    
+
     // 私有字段和方法
     'private_identifier', 'private_field_definition',
     'private_method_definition', 'private_property_identifier',
-    
+
     // 解构和展开
     'rest_pattern', 'spread_element', 'spread_pattern',
-    
+
     // 类型特性
     'type_annotation', 'type_alias_declaration', 'interface_declaration',
     'generic_type', 'type_parameter_declaration', 'type_assertion',
-    
+
     // 模块特性
     'import_statement', 'export_statement', 'export_named_declaration',
     'export_default_declaration', 'export_all_declaration',
-    
+
     // 类特性
     'class_declaration', 'class_expression', 'extends_clause',
     'implements_clause', 'constructor_declaration',
-    
+
     // 高级特性
     'generator_function', 'yield_expression', 'for_await_statement',
     'dynamic_import', 'import_expression', 'big_int_literal'
   ]);
-  
+
   protected readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' = 'expression_sequence';
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
-    
+
     // 过滤过于简单的表达式
     if (content.length < 15) return false;
-    
+
     // 检查是否包含现代特性
     return this.containsModernFeature(content);
   }
@@ -148,14 +148,14 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
 
   private extractImports(node: Parser.SyntaxNode, sourceCode: string): string[] {
     const imports: string[] = [];
-    
+
     // 查找相关的import语句
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_statement') {
         const importText = this.getNodeText(n, sourceCode);
         imports.push(importText);
       }
-      
+
       if (n.children) {
         n.children.forEach(traverse);
       }
@@ -166,7 +166,7 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
     while (root && root.parent) {
       root = root.parent;
     }
-    
+
     if (root) {
       traverse(root);
     }
@@ -176,13 +176,13 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
 
   private extractExports(node: Parser.SyntaxNode, sourceCode: string): string[] {
     const exports: string[] = [];
-    
+
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'export_statement' || n.type === 'export_named_declaration') {
         const exportText = this.getNodeText(n, sourceCode);
         exports.push(exportText);
       }
-      
+
       if (n.children) {
         n.children.forEach(traverse);
       }
@@ -192,7 +192,7 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
     while (root && root.parent) {
       root = root.parent;
     }
-    
+
     if (root) {
       traverse(root);
     }
@@ -206,7 +206,7 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
       'class_declaration', 'function_declaration', 'type_alias_declaration',
       'interface_declaration', 'async_function', 'generator_function'
     ];
-    
+
     return standaloneTypes.includes(node.type);
   }
 }
@@ -286,7 +286,7 @@ export class ReactiveProgrammingRule extends AbstractSnippetRule {
 
   private extractReactiveImports(node: Parser.SyntaxNode, sourceCode: string): string[] {
     const imports: string[] = [];
-    
+
     // 查找RxJS相关的import
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_statement') {
@@ -295,7 +295,7 @@ export class ReactiveProgrammingRule extends AbstractSnippetRule {
           imports.push(importText);
         }
       }
-      
+
       if (n.children) {
         n.children.forEach(traverse);
       }
@@ -305,7 +305,7 @@ export class ReactiveProgrammingRule extends AbstractSnippetRule {
     while (root && root.parent) {
       root = root.parent;
     }
-    
+
     if (root) {
       traverse(root);
     }
@@ -391,7 +391,7 @@ export class TestCodeRule extends AbstractSnippetRule {
 
   private extractTestImports(node: Parser.SyntaxNode, sourceCode: string): string[] {
     const imports: string[] = [];
-    
+
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_statement') {
         const importText = this.getNodeText(n, sourceCode);
@@ -400,7 +400,7 @@ export class TestCodeRule extends AbstractSnippetRule {
           imports.push(importText);
         }
       }
-      
+
       if (n.children) {
         n.children.forEach(traverse);
       }
@@ -410,7 +410,7 @@ export class TestCodeRule extends AbstractSnippetRule {
     while (root && root.parent) {
       root = root.parent;
     }
-    
+
     if (root) {
       traverse(root);
     }

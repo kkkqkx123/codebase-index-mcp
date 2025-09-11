@@ -34,8 +34,8 @@ describe('File System and Parser Workflow Integration Tests', () => {
     container = createTestContainer();
 
     // Get services
-    loggerService = container.get(LoggerService);
-    errorHandlerService = container.get(ErrorHandlerService);
+    loggerService = container.get(TYPES.LoggerService);
+    errorHandlerService = container.get(TYPES.ErrorHandlerService);
 
     // Create temporary directories for testing
     tempDir = path.join(os.tmpdir(), 'codebase-index-workflow-test');
@@ -55,8 +55,8 @@ describe('File System and Parser Workflow Integration Tests', () => {
 
     // Create real services
     fileSystemTraversal = new FileSystemTraversal();
-    treeSitterService = container.get(TreeSitterService);
-    smartCodeParser = container.get(SmartCodeParser);
+    treeSitterService = container.get(TYPES.TreeSitterService);
+    smartCodeParser = container.get(TYPES.SmartCodeParser);
     parserService = new ParserService(
       configService,
       loggerService,

@@ -87,6 +87,7 @@ import { MonitoringController } from '../src/controllers/MonitoringController';
 import { MCPServer } from '../src/mcp/MCPServer';
 import { DIContainer } from '../src/core/DIContainer';
 import { QdrantService } from '../src/database/QdrantService';
+import { FileWatcherService } from '../src/services/filesystem/FileWatcherService';
 
 // Load main .env file before any other setup
 const mainEnvPath = path.join(process.cwd(), '.env');
@@ -142,7 +143,7 @@ export const createTestContainer = () => {
     error: jest.fn(),
   };
   
-  container.bind<LoggerService>(LoggerService).toConstantValue(mockLogger as any);
+  container.bind<LoggerService>(TYPES.LoggerService).toConstantValue(mockLogger as any);
   
   // Mock ErrorHandlerService with proper dependencies
   const mockErrorHandler = {
@@ -155,7 +156,7 @@ export const createTestContainer = () => {
     clearErrorReports: jest.fn(),
   };
   
-  container.bind<ErrorHandlerService>(ErrorHandlerService).toConstantValue(mockErrorHandler as any);
+  container.bind<ErrorHandlerService>(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandler as any);
   
   // Mock EntityIdManager for tests that need it
   container.bind<EntityIdManager>(EntityIdManager).toConstantValue({
@@ -379,6 +380,18 @@ export const createTestContainer = () => {
   };
   container.bind<ObjectPool<any>>(ObjectPool).toSelf().inSingletonScope();
   container.bind<PoolOptions<any>>('PoolOptions').toConstantValue(defaultPoolOptions);
+  
+  // Bind TreeSitter services for parser integration tests
+  container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
+  container.bind<SnippetExtractionService>(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
+  container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+  container.bind<SmartCodeParser>(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
+
+  
+  // Bind FileWatcherService for integration tests
+  container.bind<FileWatcherService>(FileWatcherService).toSelf().inSingletonScope();
+  container.bind<TraversalOptions>('TraversalOptions').toConstantValue({});
+  container.bind('ChunkingOptions').toConstantValue({});
   
   // Bind filesystem services
   container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
