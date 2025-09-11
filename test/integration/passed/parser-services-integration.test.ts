@@ -48,8 +48,8 @@ describe('Parser Services Integration Tests', () => {
     } as any;
     
     // Create real parser services
-    treeSitterService = container.get(TreeSitterService);
-    smartCodeParser = container.get(SmartCodeParser);
+    treeSitterService = container.get(TYPES.TreeSitterService);
+    smartCodeParser = container.get(TYPES.SmartCodeParser);
     
     // Create real parser service
     parserService = new ParserService(

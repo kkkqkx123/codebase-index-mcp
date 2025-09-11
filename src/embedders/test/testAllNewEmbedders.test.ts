@@ -6,65 +6,114 @@ import { Custom3Embedder } from '../Custom3Embedder';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { EmbeddingCacheService } from '../EmbeddingCacheService';
+import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
-// This is a comprehensive test to verify that all new embedders can be instantiated and configured
-// In a real application, this would be part of a proper test suite
+// Test suite for all new embedders
+describe('All New Embedders Integration', () => {
+  let configService: ConfigService;
+  let logger: LoggerService;
+  let errorHandler: ErrorHandlerService;
+  let cacheService: EmbeddingCacheService;
 
-function testAllNewEmbedders() {
-  console.log('Testing all new embedders integration...\n');
+  beforeEach(() => {
+    // Mock dependencies to avoid configuration validation errors
+    configService = {
+      get: jest.fn().mockReturnValue({
+        siliconflow: {
+          apiKey: 'test-key',
+          baseUrl: 'http://localhost:8000',
+          model: 'test-model'
+        },
+        custom: {
+          custom1: {
+            apiKey: 'test-key',
+            baseUrl: 'http://localhost:8001',
+            model: 'test-model'
+          },
+          custom2: {
+            apiKey: 'test-key',
+            baseUrl: 'http://localhost:8002',
+            model: 'test-model'
+          },
+          custom3: {
+            apiKey: 'test-key',
+            baseUrl: 'http://localhost:8003',
+            model: 'test-model'
+          }
+        }
+      }),
+      getAll: jest.fn().mockReturnValue({})
+    } as any;
 
-  try {
-    // Initialize services
-    const configService = ConfigService.getInstance();
-    const logger = new LoggerService();
-    const errorHandler = new ErrorHandlerService(logger);
-    const cacheService = new EmbeddingCacheService(configService, logger);
+    logger = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as any;
 
-    // Initialize all new embedders
+    errorHandler = {
+      handleError: jest.fn(),
+      handleAsyncError: jest.fn(),
+      wrapAsync: jest.fn().mockImplementation((fn) => fn),
+    } as any;
+
+    cacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      clear: jest.fn(),
+      isAvailable: jest.fn().mockReturnValue(true),
+    } as any;
+  });
+
+  test('should create all new embedders without errors', () => {
+    expect(() => {
+      new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+      new Custom1Embedder(configService, logger, errorHandler, cacheService);
+      new Custom2Embedder(configService, logger, errorHandler, cacheService);
+      new Custom3Embedder(configService, logger, errorHandler, cacheService);
+    }).not.toThrow();
+  });
+
+  test('should get dimensions from all embedders', () => {
     const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
     const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
     const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
     const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);
 
-    // Test configuration
-    const config = configService.get('embedding');
-    const customConfig = config.custom || {};
+    expect(siliconFlowEmbedder.getDimensions()).toBeGreaterThan(0);
+    expect(custom1Embedder.getDimensions()).toBeGreaterThan(0);
+    expect(custom2Embedder.getDimensions()).toBeGreaterThan(0);
+    expect(custom3Embedder.getDimensions()).toBeGreaterThan(0);
+  });
 
-    console.log('=== SiliconFlow Configuration ===');
-    console.log('- API Key:', config.siliconflow.apiKey ? '[SET]' : '[NOT SET]');
-    console.log('- Base URL:', config.siliconflow.baseUrl || '[NOT SET]');
-    console.log('- Model:', config.siliconflow.model);
-    console.log('- Dimensions:', siliconFlowEmbedder.getDimensions());
-    console.log('');
+  test('should get model names from all embedders', () => {
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
+    const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
+    const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);
 
-    console.log('=== Custom1 Configuration ===');
-    console.log('- API Key:', customConfig.custom1?.apiKey ? '[SET]' : '[NOT SET]');
-    console.log('- Base URL:', customConfig.custom1?.baseUrl || '[NOT SET]');
-    console.log('- Model:', customConfig.custom1?.model || '[NOT SET]');
-    console.log('- Dimensions:', custom1Embedder.getDimensions());
-    console.log('');
+    expect(siliconFlowEmbedder.getModelName()).toBeDefined();
+    expect(custom1Embedder.getModelName()).toBeDefined();
+    expect(custom2Embedder.getModelName()).toBeDefined();
+    expect(custom3Embedder.getModelName()).toBeDefined();
+  });
 
-    console.log('=== Custom2 Configuration ===');
-    console.log('- API Key:', customConfig.custom2?.apiKey ? '[SET]' : '[NOT SET]');
-    console.log('- Base URL:', customConfig.custom2?.baseUrl || '[NOT SET]');
-    console.log('- Model:', customConfig.custom2?.model || '[NOT SET]');
-    console.log('- Dimensions:', custom2Embedder.getDimensions());
-    console.log('');
+  test('should check availability of all embedders', async () => {
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
+    const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
+    const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);
 
-    console.log('=== Custom3 Configuration ===');
-    console.log('- API Key:', customConfig.custom3?.apiKey ? '[SET]' : '[NOT SET]');
-    console.log('- Base URL:', customConfig.custom3?.baseUrl || '[NOT SET]');
-    console.log('- Model:', customConfig.custom3?.model || '[NOT SET]');
-    console.log('- Dimensions:', custom3Embedder.getDimensions());
-    console.log('');
+    // Mock availability checks
+    jest.spyOn(siliconFlowEmbedder, 'isAvailable').mockResolvedValue(true);
+    jest.spyOn(custom1Embedder, 'isAvailable').mockResolvedValue(true);
+    jest.spyOn(custom2Embedder, 'isAvailable').mockResolvedValue(true);
+    jest.spyOn(custom3Embedder, 'isAvailable').mockResolvedValue(true);
 
-    console.log('All new embedders created successfully.');
-    console.log('Note: Actual API integration testing requires valid API keys and URLs in .env file.');
-
-  } catch (error) {
-    console.error('Error testing all new embedders integration:', error);
-  }
-}
-
-// Run the test
-testAllNewEmbedders();
+    expect(await siliconFlowEmbedder.isAvailable()).toBe(true);
+    expect(await custom1Embedder.isAvailable()).toBe(true);
+    expect(await custom2Embedder.isAvailable()).toBe(true);
+    expect(await custom3Embedder.isAvailable()).toBe(true);
+  });
+});

@@ -463,6 +463,12 @@ describe('GraphPersistenceService', () => {
       mockNebulaSpaceManager.deleteSpace.mockResolvedValue(true);
       mockNebulaSpaceManager.createSpace.mockResolvedValue(true);
       mockGraphCacheService.clearAllCache.mockReturnValue(undefined);
+      
+      // Mock the space name extraction and project ID extraction
+      graphPersistenceService['currentSpace'] = 'test_space';
+      graphPersistenceService['extractProjectIdFromCurrentSpace'] = jest.fn().mockReturnValue('test-project');
+      graphPersistenceService['generateSpaceName'] = jest.fn().mockReturnValue('test_space');
+      graphPersistenceService['waitForSpaceDeletion'] = jest.fn().mockResolvedValue(undefined);
 
       const result = await graphPersistenceService.clearGraph();
 

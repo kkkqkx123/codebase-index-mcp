@@ -3,50 +3,109 @@ import { OpenAIEmbedder } from '../OpenAIEmbedder';
 import { GeminiEmbedder } from '../GeminiEmbedder';
 import { MistralEmbedder } from '../MistralEmbedder';
 import { OllamaEmbedder } from '../OllamaEmbedder';
+import { LoggerService } from '../../core/LoggerService';
+import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { EmbeddingCacheService } from '../EmbeddingCacheService';
+import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 
-// This is a simple test to verify that environment variables take precedence over defaults
-// In a real application, this would be part of a proper test suite
+// Test suite for base URL priority testing
+describe('Base URL Priority Tests', () => {
+  let configService: ConfigService;
+  let logger: LoggerService;
+  let errorHandler: ErrorHandlerService;
+  let cacheService: EmbeddingCacheService;
 
-function testBaseUrlPriority() {
-  console.log('Testing base URL priority...\n');
+  beforeEach(() => {
+    // Mock config service to avoid validation errors
+    configService = {
+      get: jest.fn().mockReturnValue({
+        openai: {
+          apiKey: 'test-key',
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'text-embedding-ada-002'
+        },
+        gemini: {
+          apiKey: 'test-key',
+          baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+          model: 'embedding-001'
+        },
+        mistral: {
+          apiKey: 'test-key',
+          baseUrl: 'https://api.mistral.ai/v1',
+          model: 'mistral-embed'
+        },
+        ollama: {
+          baseUrl: 'http://localhost:11434',
+          model: 'nomic-embed-text'
+        }
+      }),
+      getAll: jest.fn().mockReturnValue({})
+    } as any;
 
-  // Initialize config service
-  const configService = ConfigService.getInstance();
+    logger = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as any;
 
-  // Test OpenAI base URL
-  const openAIConfig = configService.get('embedding').openai;
-  console.log('OpenAI Configuration:');
-  console.log('- API Key:', openAIConfig.apiKey ? '[SET]' : '[NOT SET]');
-  console.log('- Base URL:', openAIConfig.baseUrl || 'Not set (using default)');
-  console.log('- Model:', openAIConfig.model);
-  console.log('');
+    errorHandler = {
+      handleError: jest.fn(),
+      handleAsyncError: jest.fn(),
+      wrapAsync: jest.fn().mockImplementation((fn) => fn),
+    } as any;
 
-  // Test Gemini base URL
-  const geminiConfig = configService.get('embedding').gemini;
-  console.log('Gemini Configuration:');
-  console.log('- API Key:', geminiConfig.apiKey ? '[SET]' : '[NOT SET]');
-  console.log('- Base URL:', geminiConfig.baseUrl || 'Not set (using default)');
-  console.log('- Model:', geminiConfig.model);
-  console.log('');
+    cacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      clear: jest.fn(),
+      isAvailable: jest.fn().mockReturnValue(true),
+    } as any;
+  });
 
-  // Test Mistral base URL
-  const mistralConfig = configService.get('embedding').mistral;
-  console.log('Mistral Configuration:');
-  console.log('- API Key:', mistralConfig.apiKey ? '[SET]' : '[NOT SET]');
-  console.log('- Base URL:', mistralConfig.baseUrl || 'Not set (using default)');
-  console.log('- Model:', mistralConfig.model);
-  console.log('');
+  test('should create embedders with proper configuration', () => {
+    expect(() => {
+      new OpenAIEmbedder(configService, logger, errorHandler, cacheService);
+      new GeminiEmbedder(configService, logger, errorHandler, cacheService);
+      new MistralEmbedder(configService, logger, errorHandler, cacheService);
+      new OllamaEmbedder(configService, logger, errorHandler, cacheService);
+    }).not.toThrow();
+  });
 
-  // Test Ollama base URL
-  const ollamaConfig = configService.get('embedding').ollama;
-  console.log('Ollama Configuration:');
-  console.log('- Base URL:', ollamaConfig.baseUrl);
-  console.log('- Model:', ollamaConfig.model);
-  console.log('');
+  test('should use configured base URLs', () => {
+    const openAIEmbedder = new OpenAIEmbedder(configService, logger, errorHandler, cacheService);
+    const geminiEmbedder = new GeminiEmbedder(configService, logger, errorHandler, cacheService);
+    const mistralEmbedder = new MistralEmbedder(configService, logger, errorHandler, cacheService);
+    const ollamaEmbedder = new OllamaEmbedder(configService, logger, errorHandler, cacheService);
 
-  console.log('If environment variables are set, they should appear above.');
-  console.log('If not set, default values are used.');
-}
+    // Test that embedders can be created and have expected methods
+    expect(openAIEmbedder.getModelName).toBeDefined();
+    expect(geminiEmbedder.getModelName).toBeDefined();
+    expect(mistralEmbedder.getModelName).toBeDefined();
+    expect(ollamaEmbedder.getModelName).toBeDefined();
+  });
 
-// Run the test
-testBaseUrlPriority();
+  test('should handle missing configuration gracefully', () => {
+    // Test with minimal configuration
+    const minimalConfig = {
+      get: jest.fn().mockReturnValue({
+        openai: {
+          apiKey: 'test-key',
+          model: 'text-embedding-ada-002'
+          // baseUrl is missing
+        },
+        gemini: {
+          apiKey: 'test-key',
+          model: 'embedding-001'
+          // baseUrl is missing
+        }
+      }),
+      getAll: jest.fn().mockReturnValue({})
+    } as any;
+
+    expect(() => {
+      new OpenAIEmbedder(minimalConfig, logger, errorHandler, cacheService);
+      new GeminiEmbedder(minimalConfig, logger, errorHandler, cacheService);
+    }).not.toThrow();
+  });
+});

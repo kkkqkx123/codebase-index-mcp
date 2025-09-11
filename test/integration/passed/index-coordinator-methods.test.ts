@@ -4,6 +4,7 @@ import { createTestContainer } from '../../setup';
 import { IndexService } from '../../../src/services/indexing/IndexService';
 import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
 import { HashUtils } from '../../../src/utils/HashUtils';
+import { TYPES } from '../../../src/types';
 
 describe('Index Coordinator Methods', () => {
   let container: Container;
@@ -14,7 +15,7 @@ describe('Index Coordinator Methods', () => {
     // Initialize test container
     container = createTestContainer();
     
-    // Get services
+    // Get services using proper DI pattern
     indexService = container.get<IndexService>(IndexService);
     indexCoordinator = container.get<IndexCoordinator>(IndexCoordinator);
   });

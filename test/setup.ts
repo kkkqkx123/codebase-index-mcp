@@ -390,6 +390,18 @@ export const createTestContainer = () => {
   container.bind<EventQueueService>(EventQueueService).toSelf().inSingletonScope();
   container.bind<EventQueueOptions>('EventQueueOptions').toConstantValue({});
   
+  // Mock FileWatcherService for tests that need it
+  const mockFileWatcherService = {
+    watch: jest.fn(),
+    unwatch: jest.fn(),
+    close: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    getWatchedFiles: jest.fn().mockReturnValue([]),
+    isWatching: jest.fn().mockReturnValue(false)
+  };
+  container.bind('FileWatcherService').toConstantValue(mockFileWatcherService);
+  
   // Bind core services
   container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
   container.bind<PathUtils>(PathUtils).toSelf().inSingletonScope();
@@ -409,7 +421,7 @@ export const createTestContainer = () => {
   container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
   
   // Bind snippet extraction rules
-  container.bind<SnippetExtractionRule[]>('SnippetExtractionRules').toConstantValue([
+  container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
     new ControlStructureRule(),
     new ErrorHandlingRule(),
     new FunctionCallChainRule(),
