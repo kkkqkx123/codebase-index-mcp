@@ -175,6 +175,14 @@ export class ConsistencyChecker {
       });
     }
 
+    // Handle manual strategy by throwing an error
+    if (strategy === 'manual') {
+      throw new CodebaseIndexError('Manual repair not implemented', { 
+        component: 'ConsistencyChecker', 
+        operation: 'repairIssue' 
+      });
+    }
+
     this.logger.info('Repairing consistency issue', { issueId, strategy });
 
     try {
@@ -204,7 +212,15 @@ export class ConsistencyChecker {
     }
   }
 
-  private async performRepair(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
+  private async performRepair(issue: ConsistencyIssue, strategy: 'auto' | 'manual'): Promise<DataRepairResult> {
+    // Handle manual strategy by throwing an error for all issue types
+    if (strategy === 'manual') {
+      throw new CodebaseIndexError('Manual repair not implemented', { 
+        component: 'ConsistencyChecker', 
+        operation: 'performRepair' 
+      });
+    }
+    
     switch (issue.type) {
       case 'missing_vector':
         return await this.repairMissingVector(issue, strategy);
