@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { DIContainer, TYPES } from '../../../src/core/DIContainer';
+import { createTestContainer } from '../../setup';
 import { IndexService } from '../../../src/services/indexing/IndexService';
 import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
 import { StorageCoordinator } from '../../../src/services/storage/StorageCoordinator';
@@ -25,14 +25,14 @@ describe('System Stability and Reliability', () => {
   let testProjectPath: string;
 
   beforeAll(async () => {
-    // Initialize DI container
-    container = DIContainer.getInstance();
+    // Initialize test container
+    container = createTestContainer();
     
     // Get services
-    indexService = container.get<IndexService>(TYPES.IndexService);
-    indexCoordinator = container.get<IndexCoordinator>(TYPES.IndexCoordinator);
-    storageCoordinator = container.get<StorageCoordinator>(TYPES.StorageCoordinator);
-    parserService = container.get<ParserService>(TYPES.ParserService);
+    indexService = container.get<IndexService>(IndexService);
+    indexCoordinator = container.get<IndexCoordinator>(IndexCoordinator);
+    storageCoordinator = container.get<StorageCoordinator>(StorageCoordinator);
+    parserService = container.get<ParserService>(ParserService);
     
     // Create a temporary test project
     testProjectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'codebase-index-stability-test-'));

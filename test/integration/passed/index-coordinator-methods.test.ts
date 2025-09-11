@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { DIContainer, TYPES } from '../../../src/core/DIContainer';
+import { createTestContainer } from '../../setup';
 import { IndexService } from '../../../src/services/indexing/IndexService';
 import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
 import { HashUtils } from '../../../src/utils/HashUtils';
@@ -11,12 +11,12 @@ describe('Index Coordinator Methods', () => {
   let indexCoordinator: IndexCoordinator;
 
   beforeAll(() => {
-    // Initialize DI container
-    container = DIContainer.getInstance();
+    // Initialize test container
+    container = createTestContainer();
     
     // Get services
-    indexService = container.get<IndexService>(TYPES.IndexService);
-    indexCoordinator = container.get<IndexCoordinator>(TYPES.IndexCoordinator);
+    indexService = container.get<IndexService>(IndexService);
+    indexCoordinator = container.get<IndexCoordinator>(IndexCoordinator);
   });
 
   describe('Snippet Analysis Features', () => {

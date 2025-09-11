@@ -343,12 +343,12 @@ export const createTestContainer = () => {
   container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().inSingletonScope();
   
   // Bind parser services
-  container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
-  container.bind<SnippetExtractionService>(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
+  container.bind<TreeSitterCoreService>(TreeSitterCoreService).toSelf().inSingletonScope();
+  container.bind<SnippetExtractionService>(SnippetExtractionService).toSelf().inSingletonScope();
   container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope();
   
   // Bind snippet extraction rules
-  container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
+  container.bind<SnippetExtractionRule[]>('SnippetExtractionRules').toConstantValue([
     new ControlStructureRule(),
     new ErrorHandlingRule(),
     new FunctionCallChainRule(),

@@ -55,7 +55,7 @@ describe('File System and Parser Workflow Integration Tests', () => {
 
     // Create real services
     fileSystemTraversal = new FileSystemTraversal();
-    treeSitterService = container.get(TYPES.TreeSitterService);
+    treeSitterService = container.get(TreeSitterService);
     smartCodeParser = container.get(SmartCodeParser);
     parserService = new ParserService(
       configService,

@@ -19,7 +19,7 @@ describe('SemgrepScanService', () => {
   let service: SemgrepScanService;
 
   beforeEach(() => {
-    (mockConfigService.get as jest.Mock).mockImplementation((key: string) => {
+    (mockConfigService.get as jest.Mock).mockImplementation(((key: string) => {
       if (key === 'semgrep') {
         return {
           binaryPath: 'semgrep',
@@ -28,7 +28,7 @@ describe('SemgrepScanService', () => {
         };
       }
       return undefined;
-    });
+    }) as any);
 
     service = new SemgrepScanService(
       mockLogger as any,
