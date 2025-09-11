@@ -3,6 +3,7 @@ import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { EventQueueService } from '../EventQueueService';
 import { SemgrepScanService } from '../semgrep/SemgrepScanService';
+import { EnhancedSemgrepScanService } from '../semgrep/EnhancedSemgrepScanService';
 import { SemgrepResultProcessor } from '../semgrep/SemgrepResultProcessor';
 import { NebulaService } from '../../database/NebulaService';
 import { QdrantService } from '../../database/QdrantService';
@@ -10,6 +11,7 @@ import {
   AnalysisTask,
   SemgrepScanResult,
   SemgrepScanOptions,
+  EnhancedAnalysisResult,
 } from '../../models/StaticAnalysisTypes';
 
 /**
@@ -25,6 +27,7 @@ export class StaticAnalysisCoordinator {
     @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(TYPES.EventQueueService) private eventQueue: EventQueueService,
     @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
+    @inject(TYPES.EnhancedSemgrepScanService) private enhancedSemgrepService: EnhancedSemgrepScanService,
     @inject(TYPES.SemgrepResultProcessor) private resultProcessor: SemgrepResultProcessor,
     @inject(TYPES.NebulaService) private nebulaService: NebulaService,
     @inject(TYPES.QdrantService) private qdrantService: QdrantService
@@ -144,11 +147,18 @@ export class StaticAnalysisCoordinator {
 
       this.logger.info(`Starting static analysis task: ${task.id}`);
 
-      // 执行扫描
-      const result = await this.semgrepService.scanProject(task.projectPath, task.options);
+      // 根据配置选择使用增强型或标准扫描
+      let result: SemgrepScanResult;
+      const useEnhanced = this.configService?.get('staticAnalysis.useEnhancedSemgrep', true);
       
-      // 处理结果
-      await this.processScanResult(result);
+      if (useEnhanced) {
+        const enhancedResult = await this.enhancedSemgrepService.scanProject(task.projectPath, task.options);
+        result = this.convertEnhancedToStandardResult(enhancedResult);
+        await this.processEnhancedResults(enhancedResult);
+      } else {
+        result = await this.semgrepService.scanProject(task.projectPath, task.options);
+        await this.processScanResult(result);
+      }
 
       task.status = 'completed';
       task.completedAt = new Date();
@@ -244,6 +254,89 @@ export class StaticAnalysisCoordinator {
       this.logger.error('Error storing in vector database:', error);
       throw error;
     }
+  }
+
+  /**
+   * 处理增强型扫描结果
+   */
+  private async processEnhancedResults(enhancedResult: EnhancedAnalysisResult): Promise<void> {
+    try {
+      // 转换为图数据库格式并存储增强结果
+      const graphData = this.resultProcessor.toEnhancedGraphFormat(enhancedResult);
+      await this.storeInGraphDatabase(graphData);
+
+      // 转换为向量格式并存储
+      const vectorData = this.resultProcessor.toEnhancedVectorFormat(enhancedResult);
+      await this.storeInVectorDatabase(vectorData);
+
+      // 生成增强摘要报告
+      const summary = this.resultProcessor.generateEnhancedSummaryReport(enhancedResult);
+      this.logger.info(summary.summary);
+
+    } catch (error) {
+      this.logger.error('Error processing enhanced scan result:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 转换增强结果为标准格式
+   */
+  private convertEnhancedToStandardResult(enhancedResult: EnhancedAnalysisResult): SemgrepScanResult {
+    const findings = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
+    return {
+      id: enhancedResult.id,
+      projectPath: enhancedResult.projectPath,
+      scanTime: enhancedResult.scanTime,
+      duration: enhancedResult.duration,
+      findings: findings.map(issue => ({
+        id: `${issue.type}_${issue.location.file}_${issue.location.line}`,
+        ruleId: issue.type,
+        message: issue.message,
+        severity: issue.severity === 'HIGH' ? 'ERROR' : issue.severity === 'MEDIUM' ? 'WARNING' : 'INFO',
+        confidence: 'HIGH',
+        category: issue.type,
+        location: {
+          file: issue.location.file,
+          start: {
+            line: issue.location.line,
+            col: issue.location.column,
+            offset: 0
+          },
+          end: {
+            line: issue.location.line,
+            col: issue.location.column + 10,
+            offset: 10
+          },
+          lines: [issue.code]
+        },
+        codeContext: {
+          id: `${issue.type}_${issue.location.file}_${issue.location.line}`,
+          filePath: issue.location.file,
+          language: 'javascript',
+          type: 'variable',
+          lineStart: issue.location.line,
+          lineEnd: issue.location.line,
+          content: issue.code,
+          astPath: '',
+          nodeType: 'issue',
+          parentType: 'file',
+          children: [],
+          metadata: {
+            type: issue.type,
+            severity: issue.severity,
+            message: issue.message
+          }
+        }
+      })),
+      summary: enhancedResult.summary,
+      errors: [],
+      metadata: {
+        semgrepVersion: '1.0.0',
+        configHash: '',
+        projectHash: this.hashString(enhancedResult.projectPath)
+      }
+    };
   }
 
   /**

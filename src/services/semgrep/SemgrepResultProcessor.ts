@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
-import { SemgrepScanResult, SemgrepFinding, SemgrepError, ErrorInfo, GraphNode, VectorDocument } from '../../models/StaticAnalysisTypes';
+import { SemgrepScanResult, SemgrepFinding, SemgrepError, ErrorInfo, GraphNode, VectorDocument, EnhancedAnalysisResult } from '../../models/StaticAnalysisTypes';
 
 /**
  * Semgrep结果处理器
@@ -280,33 +280,238 @@ export class SemgrepResultProcessor {
   }
 
   /**
+   * 按类别分组结果
+   */
+  groupByCategory(findings: any[]): Record<string, any[]> {
+    const groups: Record<string, any[]> = {};
+
+    for (const finding of findings) {
+      const category = finding.category || finding.type || 'UNKNOWN';
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(finding);
+    }
+
+    return groups;
+  }
+
+  /**
    * 生成摘要报告
    */
   generateSummaryReport(result: SemgrepScanResult): {
     summary: string;
-    criticalIssues: SemgrepFinding[];
-    recommendations: string[];
+    details: any[];
   } {
-    const criticalIssues = result.findings.filter(
-      (finding: { severity: string; }) => finding.severity === 'ERROR'
-    );
-
-    const summary = `
-Semgrep Scan Summary for ${result.projectPath}
-============================================
-Total Files: ${result.summary.totalFiles}
-Total Findings: ${result.summary.totalFindings}
-Errors: ${result.summary.errorCount}
-Critical Issues: ${criticalIssues.length}
-    `.trim();
-
-    const recommendations = this.generateRecommendations(result);
-
+    const severityCounts = this.groupBySeverity(result.findings);
+    const categoryCounts = this.groupByCategory(result.findings);
+    
+    const summary = `扫描完成：发现 ${result.findings.length} 个问题，${result.summary.totalFiles} 个文件被扫描`;
+    
     return {
       summary,
-      criticalIssues,
-      recommendations,
+      details: [
+        {
+          type: 'severity',
+          counts: severityCounts,
+          description: '按严重程度分类'
+        },
+        {
+          type: 'category',
+          counts: categoryCounts,
+          description: '按类别分类'
+        }
+      ]
     };
+  }
+
+  /**
+   * 处理增强型扫描结果
+   */
+  processEnhancedResults(enhancedResult: EnhancedAnalysisResult): void {
+    const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
+    this.logger.info(`处理增强型扫描结果: ${issues.length} 个问题, ${controlFlow.nodes.length} 个控制流节点`);
+  }
+
+  /**
+   * 生成增强型摘要报告
+   */
+  generateEnhancedSummaryReport(enhancedResult: EnhancedAnalysisResult): {
+    summary: string;
+    details: any[];
+  } {
+    const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
+    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || { variables: [], flows: [], taintSources: [], taintSinks: [] };
+    
+    const severityCounts = this.groupBySeverity(issues as any);
+    const categoryCounts = this.groupByCategory(issues);
+    
+    const summary = `增强型扫描完成：发现 ${issues.length} 个问题，${controlFlow.nodes.length} 个控制流节点，${dataFlow.flows.length} 条数据流路径`;
+    
+    return {
+      summary,
+      details: [
+        {
+          type: 'severity',
+          counts: severityCounts,
+          description: '按严重程度分类'
+        },
+        {
+          type: 'category',
+          counts: categoryCounts,
+          description: '按类别分类'
+        },
+        {
+          type: 'analysis',
+          counts: {
+            controlFlowNodes: controlFlow.nodes.length,
+            dataFlowPaths: dataFlow.flows.length,
+            taintSources: dataFlow.taintSources.length,
+            taintSinks: dataFlow.taintSinks.length
+          },
+          description: '深度分析结果'
+        }
+      ]
+    };
+  }
+
+  /**
+   * 转换增强结果为图格式
+   */
+  toEnhancedGraphFormat(enhancedResult: EnhancedAnalysisResult): { nodes: any[]; edges: any[] } {
+    const nodes: GraphNode[] = [];
+    const edges: any[] = [];
+
+    const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
+    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || { variables: [], flows: [], taintSources: [], taintSinks: [] };
+
+    // 添加问题节点
+    issues.forEach((issue, index) => {
+      const nodeId = `issue_${index}`;
+      nodes.push({
+        id: nodeId,
+        type: 'finding',
+        properties: {
+          label: 'SemgrepFinding',
+          name: issue.type,
+          message: issue.message,
+          severity: issue.severity,
+          confidence: 'HIGH',
+          location: {
+            file: issue.location.file,
+            line: issue.location.line,
+            column: issue.location.column
+          },
+          cwe: [],
+          owasp: []
+        },
+        relationships: []
+      });
+    });
+
+    // 添加控制流节点
+    controlFlow.nodes.forEach((node, index) => {
+      const nodeId = `control_node_${index}`;
+      nodes.push({
+        id: nodeId,
+        type: 'control_flow_node',
+        properties: {
+          label: 'ControlFlowNode',
+          name: node.type,
+          type: node.type,
+          location: node.location,
+          content: node.content
+        },
+        relationships: []
+      });
+    });
+
+    // 添加数据流变量节点
+    dataFlow.variables.forEach((variable, index) => {
+      const nodeId = `variable_${index}`;
+      nodes.push({
+        id: nodeId,
+        type: 'variable',
+        properties: {
+          label: 'Variable',
+          name: variable.name,
+          type: variable.type,
+          scope: variable.scope,
+          definitions: variable.definitions,
+          uses: variable.uses
+        },
+        relationships: []
+      });
+    });
+
+    return { nodes, edges };
+  }
+
+  /**
+   * 转换增强结果为向量格式
+   */
+  toEnhancedVectorFormat(enhancedResult: EnhancedAnalysisResult): VectorDocument[] {
+    const documents: VectorDocument[] = [];
+
+    const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
+    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || { variables: [], flows: [], taintSources: [], taintSinks: [] };
+
+    // 为每个问题创建向量文档
+    issues.forEach((issue, index) => {
+      documents.push({
+        id: `finding_${index}`,
+        vector: [],
+        metadata: {
+          type: 'finding',
+          content: `${issue.type}: ${issue.message}`,
+          severity: issue.severity,
+          category: issue.type,
+          location: {
+            file: issue.location.file,
+            line: issue.location.line,
+            column: issue.location.column
+          },
+          cwe: [],
+          owasp: []
+        }
+      });
+    });
+
+    // 为控制流节点创建向量文档
+    controlFlow.nodes.forEach((node, index) => {
+      documents.push({
+        id: `control_node_${index}`,
+        vector: [],
+        metadata: {
+          type: 'control_flow_node',
+          content: `控制流节点: ${node.type} at ${node.location.file}:${node.location.line}`,
+          nodeType: node.type,
+          file: node.location.file,
+          line: node.location.line
+        }
+      });
+    });
+
+    // 为数据流变量创建向量文档
+    dataFlow.variables.forEach((variable, index) => {
+      documents.push({
+        id: `variable_${index}`,
+        vector: [],
+        metadata: {
+          type: 'variable',
+          content: `变量: ${variable.name} (${variable.type}) in scope ${variable.scope}`,
+          name: variable.name,
+          variableType: variable.type,
+          scope: variable.scope
+        }
+      });
+    });
+
+    return documents;
   }
 
   /**

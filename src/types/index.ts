@@ -73,6 +73,8 @@ export const TYPES = {
   // Static analysis services
   StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
   SemgrepScanService: Symbol.for('SemgrepScanService'),
+  EnhancedSemgrepScanService: Symbol.for('EnhancedSemgrepScanService'),
+  EnhancedSemgrepAnalyzer: Symbol.for('EnhancedSemgrepAnalyzer'),
   SemgrepResultProcessor: Symbol.for('SemgrepResultProcessor'),
   SemgrepRuleAdapter: Symbol.for('SemgrepRuleAdapter'),
 } as const;

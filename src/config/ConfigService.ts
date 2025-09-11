@@ -514,6 +514,12 @@ export class ConfigService {
           'p/typescript'
         ],
         customRulesPath: process.env.SEMGREP_CUSTOM_RULES_PATH || './rules/semgrep',
+        enhancedRulesPath: process.env.SEMGREP_ENHANCED_RULES_PATH || './enhanced-rules',
+        enableControlFlow: process.env.SEMGREP_ENABLE_CONTROL_FLOW !== 'false',
+        enableDataFlow: process.env.SEMGREP_ENABLE_DATA_FLOW !== 'false',
+        enableTaintAnalysis: process.env.SEMGREP_ENABLE_TAINT_ANALYSIS !== 'false',
+        securitySeverity: process.env.SEMGREP_SECURITY_SEVERITY ? 
+          process.env.SEMGREP_SECURITY_SEVERITY.split(',') : ['HIGH', 'MEDIUM'],
         outputFormat: (process.env.SEMGREP_OUTPUT_FORMAT as 'json' | 'sarif' | 'text') || 'json',
         excludePatterns: process.env.SEMGREP_EXCLUDE_PATTERNS ? process.env.SEMGREP_EXCLUDE_PATTERNS.split(',') : [
           'node_modules',

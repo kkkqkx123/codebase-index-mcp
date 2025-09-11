@@ -6,6 +6,116 @@
 import { CodeMetadata } from './IndexTypes';
 
 /**
+ * 增强分析结果接口
+ * 在基础扫描结果上增加控制流、数据流、安全分析等深度功能
+ */
+export interface EnhancedAnalysisResult extends SemgrepScanResult {
+  enhancedAnalysis?: {
+    controlFlow: {
+      nodes: Array<{
+        id: string;
+        type: string;
+        location: {
+          file: string;
+          line: number;
+          column: number;
+        };
+        content: string;
+      }>;
+      edges: Array<{
+        from: string;
+        to: string;
+        type: string;
+        condition?: string;
+      }>;
+      entryPoint: string;
+      exitPoints: string[];
+      functions: string[];
+    };
+    dataFlow: {
+      variables: Array<{
+        name: string;
+        type: string;
+        scope: string;
+        definitions: Array<{
+          file: string;
+          line: number;
+          column: number;
+        }>;
+        uses: Array<{
+          file: string;
+          line: number;
+          column: number;
+        }>;
+      }>;
+      flows: Array<{
+        from: string;
+        to: string;
+        variable: string;
+        type: string;
+      }>;
+      taintSources: string[];
+      taintSinks: string[];
+    };
+    securityIssues: {
+      issues: Array<{
+        type: string;
+        severity: 'HIGH' | 'MEDIUM' | 'LOW';
+        message: string;
+        location: {
+          file: string;
+          line: number;
+          column: number;
+        };
+        code: string;
+        remediation?: string;
+      }>;
+      summary: {
+        total: number;
+        high: number;
+        medium: number;
+        low: number;
+      };
+    };
+    metrics: {
+      linesOfCode: number;
+      cyclomaticComplexity: number;
+      maintainabilityIndex: number;
+    };
+    enhancedRules: {
+      controlFlowRules: number;
+      dataFlowRules: number;
+      securityRules: number;
+      languages: string[];
+      coverage: string;
+    };
+  };
+  summary: {
+    totalFiles: number;
+    totalFindings: number;
+    errorCount: number;
+    rulesRun: number;
+    targetBytes: number;
+    enhancedFindings: number;
+    controlFlowAnalyzed: number;
+    dataFlowTracked: number;
+    complexity: number;
+    timing: ScanTiming;
+  };
+}
+
+/**
+ * 增强Semgrep配置
+ */
+export interface EnhancedSemgrepConfig extends SemgrepConfig {
+  enhancedRulesPath: string;
+  enableControlFlow: boolean;
+  enableDataFlow: boolean;
+  enableTaintAnalysis: boolean;
+  securitySeverity: string[];
+}
+
+/**
  * 静态分析配置
  */
 export interface StaticAnalysisConfig {

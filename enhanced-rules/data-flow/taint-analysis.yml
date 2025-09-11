@@ -1,0 +1,78 @@
+rules:
+  - id: taint-source-identification
+    pattern: |
+      $DATA = req.body.$FIELD;
+    message: "污点源识别：用户输入从请求体获取"
+    languages: [javascript, typescript]
+    severity: INFO
+    metadata:
+      category: data-flow
+      technology: [taint-analysis]
+      subcategory: [source-identification]
+      taint-type: [user-input]
+
+  - id: taint-propagation
+    pattern: |
+      $USER_INPUT = req.query.$FIELD;
+      $PROCESSED = $USER_INPUT + "...";
+      query($PROCESSED);
+    message: "污点传播：用户输入经过处理后传递到查询"
+    languages: [javascript, typescript, python, java]
+    severity: WARNING
+    metadata:
+      category: data-flow
+      technology: [taint-analysis]
+      subcategory: [propagation]
+      cwe: ["CWE-89"]
+
+  - id: sql-injection-sink
+    pattern: |
+      db.query("SELECT * FROM users WHERE id = '" + $USER_INPUT + "'");
+    message: "SQL注入风险：用户输入直接拼接到SQL查询"
+    languages: [javascript, typescript, python, java]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [taint-analysis]
+      subcategory: [sql-injection]
+      cwe: ["CWE-89"]
+      owasp: ["A03:2021"]
+
+  - id: xss-sink
+    pattern: |
+      document.innerHTML = $USER_INPUT;
+    message: "XSS风险：用户输入直接设置到innerHTML"
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [taint-analysis]
+      subcategory: [xss]
+      cwe: ["CWE-79"]
+      owasp: ["A03:2021"]
+
+  - id: command-injection-sink
+    pattern: |
+      exec($USER_INPUT);
+    message: "命令注入风险：用户输入直接执行系统命令"
+    languages: [javascript, typescript, python, java]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [taint-analysis]
+      subcategory: [command-injection]
+      cwe: ["CWE-78"]
+      owasp: ["A03:2021"]
+
+  - id: path-traversal-sink
+    pattern: |
+      fs.readFileSync("/var/www/" + $USER_INPUT);
+    message: "路径遍历风险：用户输入用于文件路径"
+    languages: [javascript, typescript, python, java]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [taint-analysis]
+      subcategory: [path-traversal]
+      cwe: ["CWE-22"]
+      owasp: ["A01:2021"]

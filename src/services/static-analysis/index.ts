@@ -29,6 +29,7 @@ export class StaticAnalysisServiceFactory {
     logger: any,
     eventQueue: any,
     semgrepService: any,
+    enhancedSemgrepService: any,
     resultProcessor: any,
     nebulaService: any,
     qdrantService: any
@@ -37,6 +38,7 @@ export class StaticAnalysisServiceFactory {
       logger,
       eventQueue,
       semgrepService,
+      enhancedSemgrepService,
       resultProcessor,
       nebulaService,
       qdrantService
