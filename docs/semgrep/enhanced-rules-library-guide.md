@@ -22,77 +22,53 @@ enhanced-rules/
 
 ## 规则详细规范
 
-### 1. 控制流分析规则（8个）
+### 1. 控制流分析规则（✅已完成8个）
 
-#### 1.1 basic-cfg.yml（已存在）
-**功能**：基础控制流图构建
-**语言支持**：JavaScript, TypeScript, Python, Java, Go, C#
-**复杂度**：中等
+#### 1.1 enhanced-cfg-simple.yml ✅
+**功能**：基础控制流分析
+**状态**：已完成
+**包含规则**：
+- complex-nested-conditions：复杂嵌套条件检测
+- unreachable-code：不可达代码检测
+- missing-break-in-switch：switch语句缺失break
+- infinite-recursion：无限递归检测
 
-#### 1.2 complex-condition-analysis.yml
-**功能**：复杂条件分支分析
-**检测模式**：
-- 嵌套if语句超过3层
-- 复杂布尔表达式
-- 多重循环嵌套
+#### 1.2 js-control-flow.yml ✅
+**功能**：JavaScript控制流分析
+**状态**：已完成
+**包含规则**：
+- js-complex-nested-if：复杂嵌套if语句
+- js-empty-catch：空catch块检测
+- js-return-in-finally：finally块中的返回语句
+- js-infinite-loop：无限循环检测
+- js-unused-loop-variable：未使用的循环变量
 
-**规则示例**：
-```yaml
-rules:
-  - id: complex-nested-conditions
-    pattern: |
-      if $COND1:
-        if $COND2:
-          if $COND3:
-            ...
-    message: "Deeply nested conditions increase complexity"
-    severity: WARNING
-    metadata:
-      category: maintainability
-      complexity-threshold: 3
-```
+#### 1.3 loop-analysis-fixed.yml ✅
+**功能**：循环分析规则
+**状态**：已完成
+**包含规则**：
+- loop-invariant-code：循环不变代码检测
+- empty-loop-body：空循环体检测
+- off-by-one-error：循环边界错误
+- loop-condition-modification：循环条件变量修改
+- infinite-loop-risk：无限循环风险
 
-#### 1.3 loop-invariant-detection.yml
-**功能**：循环不变量检测
-**检测内容**：
-- 循环内重复计算的表达式
-- 可移至循环外的计算
-- 性能优化机会
-
-#### 1.4 recursion-depth-analysis.yml
-**功能**：递归深度分析
-**检测内容**：
-- 无限递归风险
-- 栈溢出潜在风险
-- 递归深度限制
-
-#### 1.5 exception-flow-analysis.yml
+#### 1.4 exception-flow-simple.yml ✅
 **功能**：异常流分析
-**检测内容**：
-- 未处理的异常路径
-- 异常处理逻辑缺陷
-- 资源清理遗漏
+**状态**：已完成
+**包含规则**：
+- empty-catch-block：空catch块
+- return-in-finally：finally块返回
+- throw-in-finally：finally块抛出异常
 
-#### 1.6 resource-leak-detection.yml
-**功能**：资源泄漏检测
-**检测内容**：
-- 文件句柄未关闭
-- 数据库连接泄漏
-- 内存泄漏模式
-
-#### 1.7 dead-code-elimination.yml
-**功能**：死代码检测
-**检测内容**：
-- 永远不会执行的代码
-- 未使用的变量和函数
-- 冗余条件判断
-
-#### 1.8 cyclomatic-complexity.yml
-**功能**：圈复杂度计算
-**检测内容**：
-- 函数复杂度评估
-- 代码可维护性指标
-- 重构建议
+#### 1.5 resource-management.yml ✅
+**功能**：资源管理分析
+**状态**：已完成
+**包含规则**：
+- resource-leak-file-handle：文件句柄泄漏
+- resource-leak-database-connection：数据库连接泄漏
+- resource-leak-memory：内存泄漏
+- resource-pool-misuse：资源池使用不当
 
 ### 2. 数据流分析规则（6个）
 

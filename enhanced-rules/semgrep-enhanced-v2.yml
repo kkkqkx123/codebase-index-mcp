@@ -1,0 +1,66 @@
+rules:
+  - id: enhanced-sql-injection
+    message: SQL injection vulnerability detected
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern: |
+      $QUERY = "SELECT * FROM users WHERE id = '" + $USER_INPUT + "'"
+    metadata:
+      category: security
+      cwe: CWE-89
+      confidence: HIGH
+
+  - id: enhanced-xss-innerhtml
+    message: XSS vulnerability via innerHTML
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern: |
+      document.getElementById(...).innerHTML = $USER_INPUT
+    metadata:
+      category: security
+      cwe: CWE-79
+      confidence: HIGH
+
+  - id: enhanced-command-exec
+    message: Command injection vulnerability
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern: |
+      require('child_process').exec($USER_INPUT)
+    metadata:
+      category: security
+      cwe: CWE-78
+      confidence: HIGH
+
+  - id: enhanced-path-join
+    message: Path traversal vulnerability
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern: |
+      require('path').join(__dirname, $USER_INPUT)
+    metadata:
+      category: security
+      cwe: CWE-22
+      confidence: HIGH
+
+  - id: enhanced-cors-origin
+    message: CORS wildcard origin configuration
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern: |
+      app.use(cors({ origin: '*' }))
+    metadata:
+      category: security
+      cwe: CWE-942
+      confidence: MEDIUM
+
+  - id: enhanced-console-log-sensitive
+    message: Sensitive data logged to console
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern: |
+      console.log($PASSWORD)
+    metadata:
+      category: security
+      cwe: CWE-532
+      confidence: MEDIUM
