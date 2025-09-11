@@ -24,6 +24,12 @@ import { JavaLambdaRule } from './languages/java/JavaLambdaRule';
 import { GoGoroutineRule } from './languages/go/GoGoroutineRule';
 import { GoInterfaceRule } from './languages/go/GoInterfaceRule';
 
+// Enhanced data flow rules
+import { EnhancedDataFlowRule } from './enhanced-data-flow/EnhancedDataFlowRule';
+import { ReactDataFlowRule } from './enhanced-data-flow/frameworks/ReactDataFlowRule';
+import { DjangoDataFlowRule } from './enhanced-data-flow/frameworks/DjangoDataFlowRule';
+import { SpringBootDataFlowRule } from './enhanced-data-flow/frameworks/SpringBootDataFlowRule';
+
 /**
  * Enhanced Rule Factory - Creates and manages rules based on language and feature requirements
  */
@@ -52,7 +58,13 @@ export class EnhancedRuleFactory {
       new ArithmeticLogicalRule(),
       new LogicBlockRule(),
       new ExpressionSequenceRule(),
-      new CommentMarkedRule()
+      new CommentMarkedRule(),
+      
+      // Enhanced data flow rules
+      new EnhancedDataFlowRule(),
+      new ReactDataFlowRule(),
+      new DjangoDataFlowRule(),
+      new SpringBootDataFlowRule()
     ];
   }
 
@@ -73,13 +85,15 @@ export class EnhancedRuleFactory {
     switch (language.toLowerCase()) {
       case 'python':
         return [
-          new PythonComprehensionRule()
+          new PythonComprehensionRule(),
+          new DjangoDataFlowRule()
         ];
       
       case 'java':
         return [
           new JavaStreamRule(),
-          new JavaLambdaRule()
+          new JavaLambdaRule(),
+          new SpringBootDataFlowRule()
         ];
       
       case 'go':
@@ -90,12 +104,13 @@ export class EnhancedRuleFactory {
       
       case 'typescript':
       case 'javascript':
-        // JavaScript/TypeScript get all modern features by default
+        // JavaScript/TypeScript get all modern features by default plus React data flow
         return [
           new AsyncPatternRule(),
           new DecoratorPatternRule(),
           new GenericPatternRule(),
-          new FunctionalProgrammingRule()
+          new FunctionalProgrammingRule(),
+          new ReactDataFlowRule()
         ];
       
       case 'csharp':
@@ -212,9 +227,10 @@ export class EnhancedRuleFactory {
       case 'react':
       case 'vue':
       case 'angular':
-        // Frontend frameworks benefit from async and decorator rules
+        // Frontend frameworks benefit from React data flow analysis
         return [
           ...baseRules,
+          new ReactDataFlowRule(),
           new AsyncPatternRule(),
           new DecoratorPatternRule(),
           new FunctionalProgrammingRule()
@@ -223,9 +239,11 @@ export class EnhancedRuleFactory {
       case 'express':
       case 'fastapi':
       case 'spring':
-        // Backend frameworks benefit from async and error handling
+      case 'spring-boot':
+        // Backend frameworks benefit from framework-specific data flow
         return [
           ...baseRules,
+          new SpringBootDataFlowRule(),
           new AsyncPatternRule(),
           new ErrorHandlingRule(),
           new DecoratorPatternRule()
@@ -233,9 +251,10 @@ export class EnhancedRuleFactory {
       
       case 'django':
       case 'flask':
-        // Python web frameworks
+        // Python web frameworks with Django-specific data flow
         return [
           ...baseRules,
+          new DjangoDataFlowRule(),
           new PythonComprehensionRule(),
           new AsyncPatternRule()
         ];
@@ -259,13 +278,14 @@ export class EnhancedRuleFactory {
       'Core': ['ControlStructureRule', 'FunctionCallChainRule', 'ErrorHandlingRule'],
       'Modern Features': ['AsyncPatternRule', 'DecoratorPatternRule', 'GenericPatternRule', 'FunctionalProgrammingRule'],
       'Language Patterns': ['TemplateLiteralRule', 'DestructuringAssignmentRule', 'ObjectArrayLiteralRule', 'ArithmeticLogicalRule'],
-      'Specialized': ['LogicBlockRule', 'ExpressionSequenceRule', 'CommentMarkedRule']
+      'Specialized': ['LogicBlockRule', 'ExpressionSequenceRule', 'CommentMarkedRule'],
+      'Data Flow': ['EnhancedDataFlowRule', 'ReactDataFlowRule', 'DjangoDataFlowRule', 'SpringBootDataFlowRule']
     };
 
     const languageSupport: Record<string, string[]> = {
-      'JavaScript/TypeScript': ['AsyncPatternRule', 'DecoratorPatternRule', 'GenericPatternRule', 'FunctionalProgrammingRule'],
-      'Python': ['PythonComprehensionRule', 'AsyncPatternRule'],
-      'Java': ['JavaStreamRule', 'JavaLambdaRule', 'GenericPatternRule'],
+      'JavaScript/TypeScript': ['AsyncPatternRule', 'DecoratorPatternRule', 'GenericPatternRule', 'FunctionalProgrammingRule', 'ReactDataFlowRule'],
+      'Python': ['PythonComprehensionRule', 'AsyncPatternRule', 'DjangoDataFlowRule'],
+      'Java': ['JavaStreamRule', 'JavaLambdaRule', 'GenericPatternRule', 'SpringBootDataFlowRule'],
       'Go': ['GoGoroutineRule', 'GoInterfaceRule'],
       'C#': ['AsyncPatternRule', 'GenericPatternRule'],
       'C++': ['GenericPatternRule', 'FunctionalProgrammingRule']
