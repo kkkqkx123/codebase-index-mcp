@@ -16,11 +16,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run typecheck` - Run TypeScript type checking without emitting files
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting with Prettier
+- `semgrep --validate --config=<rule-path>` - Validate semgrep rule configuration
+- `semgrep --config=<rule-path> <target-path>` - Run semgrep rules against target files
+
+**Note**: When adding new semgrep rules, ensure to test the rules for effectiveness using the validation and testing commands provided above.
+
+**Warning**: Semgrep may have issues with files containing non-ASCII characters on Windows systems. If you encounter encoding errors, ensure your rule files are saved in UTF-8 format and consider translating any non-English text in messege part to English.
 
 ### Testing
 - `npm test` - Run all tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
+- `node test/enhanced-semgrep/rule-validation.js` - Validate enhanced semgrep rules
 
 ### Docker Operations
 - `npm run docker:build` - Build Docker image

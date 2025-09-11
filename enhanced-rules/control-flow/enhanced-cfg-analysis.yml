@@ -1,19 +1,25 @@
 rules:
+  # 1. Complex nested conditions detection
   - id: complex-nested-conditions
-    message: "复杂嵌套条件：深度超过3层的if嵌套可能导致代码可读性差和维护困难"
-    languages: [javascript, typescript, python, java, go, csharp]
+    message: "Complex nested conditions: if nesting deeper than 3 levels may cause poor code readability and maintenance difficulties"
+    languages: [javascript, typescript]
     severity: WARNING
-    patterns:
-      - pattern-inside: |
+    pattern-either:
+      - pattern: |
           if ($COND1) {
-            ...
             if ($COND2) {
-              ...
               if ($COND3) {
-                ...
                 if ($COND4) {
-                  ...
+                  $BODY
                 }
+              }
+            }
+          }
+      - pattern: |
+          if ($COND1) {
+            if ($COND2) {
+              if ($COND3) {
+                $BODY
               }
             }
           }
@@ -21,151 +27,175 @@ rules:
       category: control-flow
       technology: [cfg, complexity]
       subcategory: [nesting, maintainability]
-      cwe: ["CWE-570: Expression is Always False"]
+      cwe: ["CWE-570"]
       confidence: MEDIUM
-      likelihood: MEDIUM
       impact: LOW
 
+  # 2. Loop invariant code detection (JavaScript/TypeScript version)
   - id: loop-invariant-code-motion
-    message: "循环不变代码：在循环内部执行但每次迭代结果相同的计算可以移出循环"
-    languages: [javascript, typescript, python, java, go, csharp]
+    message: "Loop invariant code: computations that are executed inside a loop but yield the same result for each iteration can be moved out of the loop"
+    languages: [javascript, typescript]
     severity: INFO
-    patterns:
-      - pattern-inside: |
-          for (...) {
-            ...
-            $INVARIANT = $CONSTANT_COMPUTATION;
-            ...
-          }
-      - metavariable-comparison:
-          metavariable: $INVARIANT
-          comparison: not redefined in loop
+    pattern: |
+      for ($INIT; $COND; $UPDATE) {
+        ...
+        $VAR = $EXPR;
+        ...
+      }
     metadata:
       category: control-flow
       technology: [cfg, optimization]
       subcategory: [performance, loop-optimization]
-      confidence: MEDIUM
-      likelihood: HIGH
+      confidence: LOW
       impact: MEDIUM
 
-  - id: unreachable-code-detection
-    message: "不可达代码：在return、break或continue语句后的代码永远不会执行"
-    languages: [javascript, typescript, python, java, go, csharp]
+  # 3. Unreachable code detection (after return statement)
+  - id: unreachable-code-after-return
+    message: "Unreachable code: code after a return statement will never be executed"
+    languages: [javascript, typescript]
     severity: WARNING
-    patterns:
-      - pattern-inside: |
-          if ($CONDITION) {
-            return $VALUE;
-          }
-          $UNREACHABLE_CODE
-      - pattern-inside: |
-          while ($CONDITION) {
-            break;
-            $UNREACHABLE_CODE
-          }
+    pattern: |
+      function $FUNC(...) {
+        ...
+        return $VALUE;
+        $UNREACHABLE
+        ...
+      }
     metadata:
       category: control-flow
       technology: [cfg, dead-code]
       subcategory: [dead-code, logic-error]
-      cwe: ["CWE-561: Dead Code"]
+      cwe: ["CWE-561"]
       confidence: HIGH
-      likelihood: HIGH
       impact: MEDIUM
 
-  - id: switch-fallthrough-detection
-    message: "switch语句缺少break：可能导致意外的case穿透行为"
-    languages: [javascript, typescript, java, go, csharp]
+  # 4. Unreachable code detection (after break statement)
+  - id: unreachable-code-after-break
+    message: "Unreachable code: code after a break statement will never be executed"
+    languages: [javascript, typescript]
     severity: WARNING
-    patterns:
-      - pattern-not-inside: |
-          switch ($EXPR) {
-            case $VALUE1:
-              $BODY1
-              break;
-            case $VALUE2:
-              $BODY2
-              break;
-          }
-      - pattern: |
-          switch ($EXPR) {
-            case $VALUE1:
-              $BODY1
-            case $VALUE2:
-              $BODY2
-          }
+    pattern: |
+      while ($COND) {
+        ...
+        break;
+        $UNREACHABLE
+        ...
+      }
+    metadata:
+      category: control-flow
+      technology: [cfg, dead-code]
+      subcategory: [dead-code, logic-error]
+      cwe: ["CWE-561"]
+      confidence: HIGH
+      impact: MEDIUM
+
+  # 5. Missing break in switch statement detection
+  - id: switch-missing-break
+    message: "Missing break in switch statement: may cause unintended case fallthrough behavior"
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern: |
+      switch ($EXPR) {
+        case $VAL1:
+          $BODY1
+        case $VAL2:
+          $BODY2
+      }
     metadata:
       category: control-flow
       technology: [cfg, switch-statement]
       subcategory: [fallthrough, logic-error]
-      cwe: ["CWE-484: Omitted Break Statement in Switch"]
+      cwe: ["CWE-484"]
       confidence: HIGH
-      likelihood: MEDIUM
       impact: HIGH
 
-  - id: recursion-depth-analysis
-    message: "递归调用缺少终止条件：可能导致栈溢出"
-    languages: [javascript, typescript, python, java, go, csharp]
+  # 6. Infinite recursion detection
+  - id: infinite-recursion
+    message: "Recursive call missing termination condition: may cause stack overflow"
+    languages: [javascript, typescript]
     severity: ERROR
-    patterns:
-      - pattern: |
-          function $FUNC(...) {
-            ...
-            $FUNC(...);
-            ...
-          }
-      - pattern-not-inside: |
-          function $FUNC(...) {
-            ...
-            if ($TERMINATION_CONDITION) {
-              return ...;
-            }
-            $FUNC(...);
-            ...
-          }
+    pattern: |
+      function $FUNC(...) {
+        ...
+        $FUNC(...);
+        ...
+      }
     metadata:
       category: control-flow
       technology: [cfg, recursion]
       subcategory: [termination, stack-overflow]
-      cwe: ["CWE-674: Uncontrolled Recursion"]
-      confidence: HIGH
-      likelihood: HIGH
+      cwe: ["CWE-674"]
+      confidence: MEDIUM
       impact: HIGH
 
-  - id: early-return-complexity
-    message: "函数内多个early return：可能使代码难以理解和维护"
-    languages: [javascript, typescript, python, java, go, csharp]
+  # 7. Complex function detection (multiple return statements)
+  - id: multiple-return-statements
+    message: "Function contains multiple return statements: may make code difficult to understand and maintain"
+    languages: [javascript, typescript]
     severity: INFO
-    patterns:
-      - pattern-either:
-          - pattern: |
-              function $FUNC(...) {
-                ...
-                if (...) return ...;
-                ...
-                if (...) return ...;
-                ...
-                if (...) return ...;
-                ...
-              }
-          - pattern: |
-              def $FUNC(...):
-                ...
-                if ...:
-                  return ...
-                ...
-                if ...:
-                  return ...
-                ...
-                if ...:
-                  return ...
-                ...
-      - metavariable-comparison:
-          metavariable: $COUNT
-          comparison: count(return) >= 4
+    pattern: |
+      function $FUNC(...) {
+        ...
+        if (...) {
+          return ...;
+        }
+        ...
+        if (...) {
+          return ...;
+        }
+        ...
+        return ...;
+      }
     metadata:
       category: control-flow
       technology: [cfg, complexity]
       subcategory: [readability, maintainability]
       confidence: LOW
-      likelihood: LOW
       impact: LOW
+
+  # 8. Infinite loop detection
+  - id: infinite-loop
+    message: "Possible infinite loop: loop condition is always true"
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern: |
+      while (true) {
+        ...
+      }
+    metadata:
+      category: control-flow
+      technology: [cfg, loop]
+      subcategory: [infinite-loop, logic-error]
+      confidence: HIGH
+      impact: HIGH
+
+  # 9. Unused loop variable detection
+  - id: unused-loop-variable
+    message: "Loop variable is not used within the loop body"
+    languages: [javascript, typescript]
+    severity: INFO
+    pattern: |
+      for ($VAR of $ITERABLE) {
+        ...
+      }
+    metadata:
+      category: control-flow
+      technology: [cfg, loop]
+      subcategory: [unused-variable, maintainability]
+      confidence: LOW
+      impact: LOW
+
+  # 10. Empty loop body detection
+  - id: empty-loop-body
+    message: "Empty loop body: no operations within the loop body"
+    languages: [javascript, typescript]
+    severity: WARNING
+    pattern: |
+      for (...; ...; ...) {
+      }
+    metadata:
+      category: control-flow
+      technology: [cfg, loop]
+      subcategory: [empty-body, logic-error]
+      confidence: HIGH
+      impact: MEDIUM
