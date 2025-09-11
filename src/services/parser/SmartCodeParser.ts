@@ -2,6 +2,7 @@ import { injectable, inject, optional } from 'inversify';
 import { TreeSitterService } from './TreeSitterService';
 import { TreeSitterCoreService, ParseResult } from './TreeSitterCoreService';
 import { CodeChunk, SnippetChunk } from './types';
+import { TYPES } from '../../types';
 import { createHash } from 'crypto';
 import path from 'path';
 
@@ -41,7 +42,7 @@ export class SmartCodeParser {
   private defaultOptions: Required<ChunkingOptions>;
 
   constructor(
-    @inject(TreeSitterService) treeSitterService: TreeSitterService,
+    @inject(TYPES.TreeSitterService) treeSitterService: TreeSitterService,
     @inject('ChunkingOptions') @optional() options?: ChunkingOptions
   ) {
     this.treeSitterService = treeSitterService;

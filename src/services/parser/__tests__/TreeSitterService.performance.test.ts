@@ -1,6 +1,7 @@
 import { TreeSitterService } from '../TreeSitterService';
 import { performance } from 'perf_hooks';
 import { createTestContainer } from '@test/setup';
+import { TYPES } from '../../../types';
 
 // Mock tree-sitter for performance testing
 jest.mock('tree-sitter', () => {
@@ -236,7 +237,7 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
 
   beforeEach(() => {
     container = createTestContainer();
-    treeSitterService = container.get(TreeSitterService);
+    treeSitterService = container.get(TYPES.TreeSitterService);
   });
 
   describe('Performance benchmarks', () => {

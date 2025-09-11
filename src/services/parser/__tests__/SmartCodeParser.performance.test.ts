@@ -1,6 +1,7 @@
 import { SmartCodeParser } from '../SmartCodeParser';
 import { performance } from 'perf_hooks';
 import { createTestContainer } from '@test/setup';
+import { TYPES } from '../../../types';
 
 describe('SmartCodeParser Performance Tests', () => {
   let smartCodeParser: SmartCodeParser;
@@ -8,7 +9,41 @@ describe('SmartCodeParser Performance Tests', () => {
 
   beforeEach(() => {
     container = createTestContainer();
-    smartCodeParser = container.get(SmartCodeParser);
+    
+    // Create a simpler mock TreeSitterService that doesn't require complex dependencies
+    const mockTreeSitterService = {
+      parseFile: jest.fn().mockImplementation((filePath: string, content: string) => {
+        return Promise.resolve({
+          ast: {
+            type: 'program',
+            startPosition: { row: 0, column: 0 },
+            endPosition: { row: content.split('\n').length - 1, column: 0 },
+            startIndex: 0,
+            endIndex: content.length,
+            children: []
+          },
+          language: { name: 'JavaScript', supported: true },
+          parseTime: 10,
+          success: true
+        });
+      }),
+      extractSnippets: jest.fn().mockReturnValue([]),
+      extractFunctions: jest.fn().mockReturnValue([]),
+      extractClasses: jest.fn().mockReturnValue([]),
+      extractImports: jest.fn().mockReturnValue([]),
+      extractExports: jest.fn().mockReturnValue([]),
+      getSupportedLanguages: jest.fn().mockReturnValue([]),
+      detectLanguage: jest.fn().mockReturnValue(null),
+      async parseCode(code: string, language: string) {
+        return this.parseFile('test.js', code);
+      }
+    };
+    
+    // Rebind TreeSitterService with mock
+    container.unbind(TYPES.TreeSitterService);
+    container.bind(TYPES.TreeSitterService).toConstantValue(mockTreeSitterService);
+    
+    smartCodeParser = container.get(TYPES.SmartCodeParser);
   });
 
   describe('Performance benchmarks', () => {

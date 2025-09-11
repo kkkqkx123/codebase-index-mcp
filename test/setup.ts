@@ -383,7 +383,7 @@ export const createTestContainer = () => {
   // Bind filesystem services
   container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
   container.bind<TraversalOptions>('TraversalOptions').toConstantValue({});
-  container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
+  container.bind<SmartCodeParser>(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
   container.bind<ChunkingOptions>('ChunkingOptions').toConstantValue({});
   container.bind<ChangeDetectionService>(ChangeDetectionService).toSelf().inSingletonScope();
   container.bind<ChangeDetectionOptions>('ChangeDetectionOptions').toConstantValue({});
@@ -404,9 +404,9 @@ export const createTestContainer = () => {
   container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().inSingletonScope();
   
   // Bind parser services
-  container.bind<TreeSitterCoreService>(TreeSitterCoreService).toSelf().inSingletonScope();
-  container.bind<SnippetExtractionService>(SnippetExtractionService).toSelf().inSingletonScope();
-  container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope();
+  container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
+  container.bind<SnippetExtractionService>(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
+  container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
   
   // Bind snippet extraction rules
   container.bind<SnippetExtractionRule[]>('SnippetExtractionRules').toConstantValue([

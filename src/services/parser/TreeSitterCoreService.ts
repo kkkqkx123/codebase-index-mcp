@@ -473,53 +473,58 @@ export class TreeSitterCoreService {
     const children: any[] = [];
     
     // Find control structures (if, for, while, etc.)
-    // Look for if statements
-    const ifRegex = /\bif\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;)/g;
+    // Look for if statements (more comprehensive pattern)
+    const ifRegex = /\bif\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let ifMatch;
     while ((ifMatch = ifRegex.exec(code)) !== null) {
       const matchedText = ifMatch[0];
       const startLine = code.substring(0, ifMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found if_statement: ${matchedText}`);
       children.push(createNode('if_statement', matchedText, startLine, endLine, []));
     }
     
-    // Look for else clauses
-    const elseRegex = /\belse\s*(\{[^}]*\}|[^\n;]*;)/g;
+    // Look for else clauses (more comprehensive pattern)
+    const elseRegex = /\belse\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let elseMatch;
     while ((elseMatch = elseRegex.exec(code)) !== null) {
       const matchedText = elseMatch[0];
       const startLine = code.substring(0, elseMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found else_clause: ${matchedText}`);
       children.push(createNode('else_clause', matchedText, startLine, endLine, []));
     }
     
     // Look for for statements (including for...of, for...in)
-    const forRegex = /\bfor\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;)/g;
+    const forRegex = /\bfor\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let forMatch;
     while ((forMatch = forRegex.exec(code)) !== null) {
       const matchedText = forMatch[0];
       const startLine = code.substring(0, forMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found for_statement: ${matchedText}`);
       children.push(createNode('for_statement', matchedText, startLine, endLine, []));
     }
     
     // Look for while statements
-    const whileRegex = /\bwhile\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;)/g;
+    const whileRegex = /\bwhile\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let whileMatch;
     while ((whileMatch = whileRegex.exec(code)) !== null) {
       const matchedText = whileMatch[0];
       const startLine = code.substring(0, whileMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found while_statement: ${matchedText}`);
       children.push(createNode('while_statement', matchedText, startLine, endLine, []));
     }
     
     // Look for do-while statements
-    const doWhileRegex = /\bdo\s*(\{[^}]*\}|[^\n;]*;)\s*while\s*\([^)]*\);/g;
+    const doWhileRegex = /\bdo\s*(\{[^}]*\}|[^\n;]*;?)\s*while\s*\([^)]*\);?/g;
     let doWhileMatch;
     while ((doWhileMatch = doWhileRegex.exec(code)) !== null) {
       const matchedText = doWhileMatch[0];
       const startLine = code.substring(0, doWhileMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found do_statement: ${matchedText}`);
       children.push(createNode('do_statement', matchedText, startLine, endLine, []));
     }
     
@@ -530,27 +535,30 @@ export class TreeSitterCoreService {
       const matchedText = switchMatch[0];
       const startLine = code.substring(0, switchMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found switch_statement: ${matchedText}`);
       children.push(createNode('switch_statement', matchedText, startLine, endLine, []));
     }
     
     // Find error handling structures (try, catch, throw)
-    // Look for try-catch-finally blocks
-    const tryCatchFinallyRegex = /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}\s*finally\s*\{[^}]*\}/g;
+    // Look for try-catch-finally blocks (more comprehensive pattern)
+    const tryCatchFinallyRegex = /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}\s*(?:finally\s*\{[^}]*\})?/g;
     let tryCatchFinallyMatch;
     while ((tryCatchFinallyMatch = tryCatchFinallyRegex.exec(code)) !== null) {
       const matchedText = tryCatchFinallyMatch[0];
       const startLine = code.substring(0, tryCatchFinallyMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found try_statement (try-catch-finally): ${matchedText}`);
       children.push(createNode('try_statement', matchedText, startLine, endLine, []));
     }
     
-    // Look for try-catch blocks
-    const tryCatchRegex = /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}/g;
+    // Look for try-catch blocks (more comprehensive pattern)
+    const tryCatchRegex = /\btry\s*\{[^}]*\}[\s\S]*?catch\s*\([^)]*\)\s*\{[^}]*\}/g;
     let tryCatchMatch;
     while ((tryCatchMatch = tryCatchRegex.exec(code)) !== null) {
       const matchedText = tryCatchMatch[0];
       const startLine = code.substring(0, tryCatchMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found try_statement (try-catch): ${matchedText}`);
       children.push(createNode('try_statement', matchedText, startLine, endLine, []));
     }
     
@@ -561,16 +569,18 @@ export class TreeSitterCoreService {
       const matchedText = tryMatch[0];
       const startLine = code.substring(0, tryMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found try_statement (try only): ${matchedText}`);
       children.push(createNode('try_statement', matchedText, startLine, endLine, []));
     }
     
-    // Look for throw statements
-    const throwRegex = /\bthrow\s+[^;]*;/g;
+    // Look for throw statements (more comprehensive pattern)
+    const throwRegex = /\bthrow\s+[^;\n]*;?/g;
     let throwMatch;
     while ((throwMatch = throwRegex.exec(code)) !== null) {
       const matchedText = throwMatch[0];
       const startLine = code.substring(0, throwMatch.index).split('\n').length - 1;
-      const endLine = startLine;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found throw_statement: ${matchedText}`);
       children.push(createNode('throw_statement', matchedText, startLine, endLine, []));
     }
     
@@ -582,6 +592,7 @@ export class TreeSitterCoreService {
       const matchedText = methodChainMatch[0];
       const startLine = code.substring(0, methodChainMatch.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found call_expression (method chain): ${matchedText}`);
       children.push(createNode('call_expression', matchedText, startLine, endLine, []));
     }
     
@@ -591,21 +602,10 @@ export class TreeSitterCoreService {
     while ((functionCallMatch = functionCallRegex.exec(code)) !== null) {
       const matchedText = functionCallMatch[0];
       const startLine = code.substring(0, functionCallMatch.index).split('\n').length - 1;
-      const endLine = startLine;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      // console.log(`Found call_expression (function call): ${matchedText}`);
       children.push(createNode('call_expression', matchedText, startLine, endLine, []));
     }
-    
-    // Look for await expressions with function calls
-    const awaitCallRegex = /await\s+\w+(?:\.\w+)*\([^)]*\)/g;
-    let awaitCallMatch;
-    while ((awaitCallMatch = awaitCallRegex.exec(code)) !== null) {
-      const matchedText = awaitCallMatch[0];
-      const startLine = code.substring(0, awaitCallMatch.index).split('\n').length - 1;
-      const endLine = startLine;
-      children.push(createNode('call_expression', matchedText, startLine, endLine, []));
-    }
-    
-    // Find functions, classes, imports, exports
     const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+))/g;
     let match;
     

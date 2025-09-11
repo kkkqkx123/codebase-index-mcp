@@ -34,6 +34,16 @@ export class ControlStructureRule implements SnippetExtractionRule {
 
     findControlStructures(ast);
     console.log(`ControlStructureRule found ${snippets.length} snippets`);
+    // Debug: Log all nodes to see what we're getting
+    const logAllNodes = (node: Parser.SyntaxNode, depth: number = 0) => {
+      console.log('  '.repeat(depth) + `Node type: ${node.type}`);
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          logAllNodes(child, depth + 1);
+        }
+      }
+    };
+    logAllNodes(ast);
     return snippets;
   }
 
