@@ -4,7 +4,7 @@ import { SnippetChunk } from './types';
 import { TreeSitterCoreService } from './TreeSitterCoreService';
 import { TYPES } from '../../types';
 import { TreeSitterUtils } from './TreeSitterUtils';
-import { SnippetValidationUtils } from './SnippetValidationUtils';
+import { SnippetValidationService } from './SnippetValidationService';
 
 export interface SnippetExtractionRule {
   name: string;
@@ -53,7 +53,8 @@ export class SnippetExtractionService {
     const content = this.coreService.getNodeText(node, sourceCode);
     const location = this.coreService.getNodeLocation(node);
     
-    if (!SnippetValidationUtils.isValidSnippet(content, snippetType)) {
+    // 使用增强的验证逻辑
+    if (!SnippetValidationService.enhancedIsValidSnippet(content, snippetType, 'typescript')) {
       return null;
     }
 
@@ -73,10 +74,10 @@ export class SnippetExtractionService {
       snippetMetadata: {
         snippetType,
         contextInfo,
-        languageFeatures: SnippetValidationUtils.analyzeLanguageFeatures(content),
-        complexity: SnippetValidationUtils.calculateComplexity(content),
-        isStandalone: SnippetValidationUtils.isStandaloneSnippet(content, snippetType),
-        hasSideEffects: SnippetValidationUtils.hasSideEffects(content)
+        languageFeatures: SnippetValidationService.analyzeLanguageFeatures(content),
+        complexity: SnippetValidationService.calculateComplexity(content),
+        isStandalone: SnippetValidationService.isStandaloneSnippet(content, snippetType),
+        hasSideEffects: SnippetValidationService.hasSideEffects(content)
       }
     };
   }

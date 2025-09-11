@@ -1,6 +1,7 @@
 import Parser from 'tree-sitter';
 import { SnippetExtractionRule } from './SnippetExtractionRule';
 import { SnippetChunk, SnippetMetadata } from '../types';
+import { SnippetValidationService } from '../SnippetValidationService';
 
 export class DestructuringAssignmentRule implements SnippetExtractionRule {
   name = 'DestructuringAssignmentRule';

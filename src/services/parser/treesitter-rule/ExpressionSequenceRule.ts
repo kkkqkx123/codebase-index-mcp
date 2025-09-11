@@ -1,6 +1,7 @@
 import Parser from 'tree-sitter';
 import { SnippetExtractionRule } from './SnippetExtractionRule';
 import { SnippetChunk, SnippetMetadata } from '../types';
+import { SnippetValidationService } from '../SnippetValidationService';
 
 export class ExpressionSequenceRule implements SnippetExtractionRule {
   name = 'ExpressionSequenceRule';
@@ -85,21 +86,7 @@ export class ExpressionSequenceRule implements SnippetExtractionRule {
   }
 
   private isValidSnippet(content: string, snippetType: SnippetMetadata['snippetType']): boolean {
-    // Less restrictive minimum length check for testing
-    if (content.length < 5) return false;
-
-    // Less restrictive maximum length check for testing
-    if (content.length > 1500) return false;
-
-    // Check for meaningful content (not just braces or whitespace)
-    const meaningfulContent = content.replace(/[{}[\]()\s;]/g, '');
-    if (meaningfulContent.length < 3) return false;
-
-    // Type-specific validation - less restrictive for testing
-    switch (snippetType) {
-      default:
-        return true;
-    }
+    return SnippetValidationService.enhancedIsValidSnippet(content, snippetType);
   }
 
   private extractContextInfo(
@@ -146,72 +133,19 @@ export class ExpressionSequenceRule implements SnippetExtractionRule {
   }
 
   private analyzeLanguageFeatures(content: string): SnippetMetadata['languageFeatures'] {
-    return {
-      usesAsync: /\basync\b/.test(content) && /\bawait\b/.test(content),
-      usesGenerators: /\bfunction\*\b/.test(content) || /\byield\b/.test(content),
-      usesDestructuring: /[{[]\s*\w+/.test(content) || /=\s*[{[]/.test(content),
-      usesSpread: /\.\.\./.test(content),
-      usesTemplateLiterals: /`.*\$\{.*\}`/.test(content)
-    };
+    return SnippetValidationService.analyzeLanguageFeatures(content);
   }
 
   private calculateComplexity(content: string): number {
-    let complexity = 1;
-
-    // Count control structures
-    const controlStructures = content.match(/\b(?:if|else|for|while|switch|case|try|catch|finally)\b/g);
-    complexity += controlStructures ? controlStructures.length : 0;
-
-    // Count logical operators
-    const logicalOps = content.match(/&&|\|\|/g);
-    complexity += logicalOps ? logicalOps.length : 0;
-
-    // Count nested brackets
-    const brackets = content.match(/[{}[\]()]/g);
-    complexity += brackets ? brackets.length * 0.5 : 0;
-
-    // Count function calls
-    const functionCalls = content.match(/\w+\s*\(/g);
-    complexity += functionCalls ? functionCalls.length * 0.3 : 0;
-
-    return Math.round(complexity);
+    return SnippetValidationService.calculateComplexity(content);
   }
 
   private isStandaloneSnippet(content: string, snippetType: SnippetMetadata['snippetType']): boolean {
-    // Check if the snippet can exist independently
-    switch (snippetType) {
-      case 'expression_sequence':
-        // Expression sequences should be standalone if they contain commas
-        return content.includes(',');
-      default:
-        return false;
-    }
+    return SnippetValidationService.isStandaloneSnippet(content, snippetType);
   }
 
   private hasSideEffects(content: string): boolean {
-    // Check for common side-effect patterns
-    const sideEffectPatterns = [
-      /\+\+|--/,  // Increment/decrement
-      /\b(?:delete|new|throw)\b/, // Delete, new, throw
-      /\.\w+\s*=/, // Property assignment
-      /\b(?:console\.log|process\.exit|process\.kill)\b/ // External calls
-    ];
-
-    // Special handling for assignments - only consider property assignments or assignments to undeclared variables as side effects
-    if (!sideEffectPatterns.some(pattern => pattern.test(content)) && /=/.test(content)) {
-      // Check for property assignments (more specific than the general pattern)
-      if (/\.\w+\s*=/.test(content)) {
-        return true;
-      }
-
-      // Check for assignments that look like they might be to global variables
-      // This is a heuristic - we can't know for sure without more context
-      if (/\b(?:window|global|document|console|process|module|exports)\.\w+\s*=/.test(content)) {
-        return true;
-      }
-    }
-
-    return sideEffectPatterns.some(pattern => pattern.test(content));
+    return SnippetValidationService.hasSideEffects(content);
   }
 
   private generateSnippetId(content: string, startLine: number): string {
