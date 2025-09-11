@@ -8,6 +8,7 @@ import Go from 'tree-sitter-go';
 import Rust from 'tree-sitter-rust';
 import Cpp from 'tree-sitter-cpp';
 import { TreeSitterUtils } from './TreeSitterUtils';
+import { LRUCache } from './LRUCache';
 
 export interface ParserLanguage {
   name: string;
@@ -22,12 +23,20 @@ export interface ParseResult {
   parseTime: number;
   success: boolean;
   error?: string;
+  fromCache?: boolean;
 }
 
 @injectable()
 export class TreeSitterCoreService {
   private parsers: Map<string, ParserLanguage> = new Map();
   private initialized: boolean = false;
+  private astCache: LRUCache<string, Parser.Tree> = new LRUCache(500);
+  private nodeCache: LRUCache<string, Parser.SyntaxNode[]> = new LRUCache(1000);
+  private cacheStats = {
+    hits: 0,
+    misses: 0,
+    evictions: 0
+  };
 
   constructor() {
     this.initializeParsers();
@@ -36,20 +45,16 @@ export class TreeSitterCoreService {
   private initializeParsers(): void {
     try {
       const createBasicParser = () => {
-        try {
-          const parser = new Parser();
-          parser.setLanguage = jest.fn();
-          return parser;
-        } catch (error) {
-          return {
-            parse: jest.fn().mockImplementation((code: string) => {
-              return {
-                rootNode: this.createMockAST(code)
-              };
-            }),
-            setLanguage: jest.fn()
-          };
-        }
+        return {
+          parse: (code: string) => {
+            const mockAST = this.createMockAST(code);
+            // Return a proper tree structure
+            return {
+              rootNode: mockAST
+            };
+          },
+          setLanguage: () => {}
+        };
       };
 
       this.parsers.set('typescript', {
@@ -140,27 +145,46 @@ export class TreeSitterCoreService {
         throw new Error(`Unsupported language: ${language}`);
       }
 
-      const parser = parserLang.parser;
-      const ast = parser.parse(code);
+      // Generate cache key
+      const cacheKey = `${language.toLowerCase()}:${this.hashCode(code)}`;
+      
+      // Check AST cache
+      let tree = this.astCache.get(cacheKey);
+      let fromCache = false;
+      
+      if (tree) {
+        this.cacheStats.hits++;
+        fromCache = true;
+      } else {
+        this.cacheStats.misses++;
+        const parser = parserLang.parser;
+        tree = parser.parse(code);
+        if (!tree) {
+          throw new Error('Failed to parse code - parser returned undefined');
+        }
+        this.astCache.set(cacheKey, tree);
+      }
 
       return {
-        ast: ast.rootNode,
+        ast: tree.rootNode,
         language: parserLang,
         parseTime: Date.now() - startTime,
-        success: true
+        success: true,
+        fromCache
       };
     } catch (error) {
       return {
         ast: {} as Parser.SyntaxNode,
-        language: this.parsers.get(language.toLowerCase()) || { 
-          name: language, 
-          parser: new Parser(), 
-          fileExtensions: [], 
-          supported: false 
+        language: this.parsers.get(language.toLowerCase()) || {
+          name: language,
+          parser: new Parser(),
+          fileExtensions: [],
+          supported: false
         },
         parseTime: Date.now() - startTime,
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        fromCache: false
       };
     }
   }
@@ -192,7 +216,92 @@ export class TreeSitterCoreService {
   }
 
   findNodeByType(ast: Parser.SyntaxNode, type: string): Parser.SyntaxNode[] {
-    return TreeSitterUtils.findNodeByType(ast, type);
+    // Generate cache key for this query
+    const cacheKey = `${this.getNodeHash(ast)}:${type}`;
+    
+    // Check node cache
+    let cachedNodes = this.nodeCache.get(cacheKey);
+    if (cachedNodes) {
+      this.cacheStats.hits++;
+      console.log(`Cache hit for ${type}: ${cachedNodes.length} nodes`);
+      return cachedNodes;
+    }
+    
+    this.cacheStats.misses++;
+    const nodes = TreeSitterUtils.findNodeByType(ast, type);
+    console.log(`Found ${nodes.length} nodes of type ${type}`);
+    this.nodeCache.set(cacheKey, nodes);
+    return nodes;
+  }
+
+  // 批量节点查询优化
+  findNodesByTypes(ast: Parser.SyntaxNode, types: string[]): Parser.SyntaxNode[] {
+    const cacheKey = `${this.getNodeHash(ast)}:${types.join(',')}`;
+    
+    // Check node cache
+    let cachedNodes = this.nodeCache.get(cacheKey);
+    if (cachedNodes) {
+      this.cacheStats.hits++;
+      return cachedNodes;
+    }
+    
+    this.cacheStats.misses++;
+    const results: Parser.SyntaxNode[] = [];
+    
+    const traverse = (node: any, depth: number = 0) => {
+      if (depth > 100) return;
+      
+      if (types.includes(node.type)) {
+        results.push(node);
+      }
+      
+      if (node.children && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child, depth + 1);
+        }
+      }
+    };
+    
+    traverse(ast);
+    this.nodeCache.set(cacheKey, results);
+    return results;
+  }
+
+  // 获取缓存统计信息
+  getCacheStats() {
+    const total = this.cacheStats.hits + this.cacheStats.misses;
+    const hitRate = total > 0 ? (this.cacheStats.hits / total * 100).toFixed(2) : 0;
+    
+    return {
+      ...this.cacheStats,
+      totalRequests: total,
+      hitRate: `${hitRate}%`,
+      astCacheSize: this.astCache.size(),
+      nodeCacheSize: this.nodeCache.size()
+    };
+  }
+
+  // 清除缓存
+  clearCache(): void {
+    this.astCache.clear();
+    this.nodeCache.clear();
+    this.cacheStats = { hits: 0, misses: 0, evictions: 0 };
+  }
+
+  // 计算代码哈希值
+  private hashCode(code: string): string {
+    let hash = 0;
+    for (let i = 0; i < code.length; i++) {
+      const char = code.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  // 计算节点哈希值
+  private getNodeHash(node: Parser.SyntaxNode): string {
+    return `${node.type}:${node.startIndex}:${node.endIndex}`;
   }
 
   extractFunctions(ast: Parser.SyntaxNode): Parser.SyntaxNode[] {
@@ -320,6 +429,7 @@ export class TreeSitterCoreService {
     const lines = code.split('\n');
     
     const createNode = (type: string, text: string, startLine: number, endLine: number, children: any[] = []): any => {
+      // Find the actual start index in the code
       const startIndex = code.indexOf(text);
       const endIndex = startIndex + text.length;
       
@@ -340,9 +450,19 @@ export class TreeSitterCoreService {
             }
           }
           return null;
+        },
+        walk: () => {
+          // Mock walk implementation
+          return {
+            currentNode: () => node,
+            gotoFirstChild: () => false,
+            gotoNextSibling: () => false,
+            gotoParent: () => false
+          };
         }
       };
       
+      // Set parent for children
       children.forEach(child => {
         child.parent = node;
       });
@@ -352,7 +472,141 @@ export class TreeSitterCoreService {
 
     const children: any[] = [];
     
-    const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)|try\s*{[^}]*}|\bcatch\s*\([^)]*\)\s*{[^}]*}|\bfinally\s*{[^}]*})/g;
+    // Find control structures (if, for, while, etc.)
+    // Look for if statements
+    const ifRegex = /\bif\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;)/g;
+    let ifMatch;
+    while ((ifMatch = ifRegex.exec(code)) !== null) {
+      const matchedText = ifMatch[0];
+      const startLine = code.substring(0, ifMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('if_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for else clauses
+    const elseRegex = /\belse\s*(\{[^}]*\}|[^\n;]*;)/g;
+    let elseMatch;
+    while ((elseMatch = elseRegex.exec(code)) !== null) {
+      const matchedText = elseMatch[0];
+      const startLine = code.substring(0, elseMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('else_clause', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for for statements (including for...of, for...in)
+    const forRegex = /\bfor\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;)/g;
+    let forMatch;
+    while ((forMatch = forRegex.exec(code)) !== null) {
+      const matchedText = forMatch[0];
+      const startLine = code.substring(0, forMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('for_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for while statements
+    const whileRegex = /\bwhile\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;)/g;
+    let whileMatch;
+    while ((whileMatch = whileRegex.exec(code)) !== null) {
+      const matchedText = whileMatch[0];
+      const startLine = code.substring(0, whileMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('while_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for do-while statements
+    const doWhileRegex = /\bdo\s*(\{[^}]*\}|[^\n;]*;)\s*while\s*\([^)]*\);/g;
+    let doWhileMatch;
+    while ((doWhileMatch = doWhileRegex.exec(code)) !== null) {
+      const matchedText = doWhileMatch[0];
+      const startLine = code.substring(0, doWhileMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('do_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for switch statements
+    const switchRegex = /\bswitch\s*\([^)]*\)\s*\{[^}]*\}/g;
+    let switchMatch;
+    while ((switchMatch = switchRegex.exec(code)) !== null) {
+      const matchedText = switchMatch[0];
+      const startLine = code.substring(0, switchMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('switch_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Find error handling structures (try, catch, throw)
+    // Look for try-catch-finally blocks
+    const tryCatchFinallyRegex = /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}\s*finally\s*\{[^}]*\}/g;
+    let tryCatchFinallyMatch;
+    while ((tryCatchFinallyMatch = tryCatchFinallyRegex.exec(code)) !== null) {
+      const matchedText = tryCatchFinallyMatch[0];
+      const startLine = code.substring(0, tryCatchFinallyMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('try_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for try-catch blocks
+    const tryCatchRegex = /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}/g;
+    let tryCatchMatch;
+    while ((tryCatchMatch = tryCatchRegex.exec(code)) !== null) {
+      const matchedText = tryCatchMatch[0];
+      const startLine = code.substring(0, tryCatchMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('try_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for try statements (without catch/finally)
+    const tryRegex = /\btry\s*\{[^}]*\}/g;
+    let tryMatch;
+    while ((tryMatch = tryRegex.exec(code)) !== null) {
+      const matchedText = tryMatch[0];
+      const startLine = code.substring(0, tryMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('try_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for throw statements
+    const throwRegex = /\bthrow\s+[^;]*;/g;
+    let throwMatch;
+    while ((throwMatch = throwRegex.exec(code)) !== null) {
+      const matchedText = throwMatch[0];
+      const startLine = code.substring(0, throwMatch.index).split('\n').length - 1;
+      const endLine = startLine;
+      children.push(createNode('throw_statement', matchedText, startLine, endLine, []));
+    }
+    
+    // Find function call chains
+    // Look for method chains (more comprehensive pattern)
+    const methodChainRegex = /(\w+(?:\.\w+)*\([^)]*\)(?:\s*\.\s*\w+\([^)]*\))+)/g;
+    let methodChainMatch;
+    while ((methodChainMatch = methodChainRegex.exec(code)) !== null) {
+      const matchedText = methodChainMatch[0];
+      const startLine = code.substring(0, methodChainMatch.index).split('\n').length - 1;
+      const endLine = startLine + matchedText.split('\n').length - 1;
+      children.push(createNode('call_expression', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for individual function calls (more comprehensive pattern)
+    const functionCallRegex = /\w+(?:\.\w+)*\([^)]*\)/g;
+    let functionCallMatch;
+    while ((functionCallMatch = functionCallRegex.exec(code)) !== null) {
+      const matchedText = functionCallMatch[0];
+      const startLine = code.substring(0, functionCallMatch.index).split('\n').length - 1;
+      const endLine = startLine;
+      children.push(createNode('call_expression', matchedText, startLine, endLine, []));
+    }
+    
+    // Look for await expressions with function calls
+    const awaitCallRegex = /await\s+\w+(?:\.\w+)*\([^)]*\)/g;
+    let awaitCallMatch;
+    while ((awaitCallMatch = awaitCallRegex.exec(code)) !== null) {
+      const matchedText = awaitCallMatch[0];
+      const startLine = code.substring(0, awaitCallMatch.index).split('\n').length - 1;
+      const endLine = startLine;
+      children.push(createNode('call_expression', matchedText, startLine, endLine, []));
+    }
+    
+    // Find functions, classes, imports, exports
+    const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+))/g;
     let match;
     
     while ((match = functionRegex.exec(code)) !== null) {
@@ -360,7 +614,7 @@ export class TreeSitterCoreService {
       const startLine = code.substring(0, match.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
       
-      let nodeType = 'statement';
+      let nodeType = 'function_declaration';
       
       if (match[1]) {
         nodeType = 'function_declaration';
@@ -372,24 +626,31 @@ export class TreeSitterCoreService {
         nodeType = 'import_statement';
       } else if (match[5]) {
         nodeType = 'export_statement';
-      } else if (matchedText.trim().startsWith('try')) {
-        nodeType = 'try_statement';
-      } else if (matchedText.trim().startsWith('catch')) {
-        nodeType = 'catch_clause';
-      } else if (matchedText.trim().startsWith('finally')) {
-        nodeType = 'finally_clause';
       }
       
       children.push(createNode(nodeType, matchedText, startLine, endLine, []));
     }
     
-    const commentRegex = /\/\/.*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)/g;
+    // Find code snippets in comments
+    const commentRegex = /\/\/.*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)/gi;
     let commentMatch;
     
     while ((commentMatch = commentRegex.exec(code)) !== null) {
       const matchedText = commentMatch[0];
       const startLine = code.substring(0, commentMatch.index).split('\n').length;
       const endLine = startLine;
+      
+      children.push(createNode('comment', matchedText, startLine, endLine, []));
+    }
+    
+    // Also look for code blocks in multi-line comments
+    const multiLineCommentRegex = /\/\*[\s\S]*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)[\s\S]*?\*\//gi;
+    let multiLineCommentMatch;
+    
+    while ((multiLineCommentMatch = multiLineCommentRegex.exec(code)) !== null) {
+      const matchedText = multiLineCommentMatch[0];
+      const startLine = code.substring(0, multiLineCommentMatch.index).split('\n').length;
+      const endLine = startLine + matchedText.split('\n').length - 1;
       
       children.push(createNode('comment', matchedText, startLine, endLine, []));
     }

@@ -31,6 +31,7 @@ export class FunctionCallChainRule implements SnippetExtractionRule {
     };
 
     findFunctionCallChains(ast);
+    console.log(`FunctionCallChainRule found ${snippets.length} snippets`);
     return snippets;
   }
 

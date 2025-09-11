@@ -33,6 +33,7 @@ export class ControlStructureRule implements SnippetExtractionRule {
     };
 
     findControlStructures(ast);
+    console.log(`ControlStructureRule found ${snippets.length} snippets`);
     return snippets;
   }
 

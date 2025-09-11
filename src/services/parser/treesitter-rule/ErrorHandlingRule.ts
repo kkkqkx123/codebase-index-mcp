@@ -34,6 +34,7 @@ export class ErrorHandlingRule implements SnippetExtractionRule {
     };
 
     findErrorHandling(ast);
+    console.log(`ErrorHandlingRule found ${snippets.length} snippets`);
     return snippets;
   }
 

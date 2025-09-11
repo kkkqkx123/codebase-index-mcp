@@ -53,6 +53,17 @@ export class SnippetValidationService {
     return nonCommentContent.length === 0;
   }
   
+  // 检查控制结构体是否仅包含注释
+  static hasOnlyCommentsInBody(code: string): boolean {
+    // 提取控制结构体内容（去掉if、for、while等声明部分）
+    const bodyMatch = code.match(/(?:if|for|while|switch)\s*\([^)]*\)\s*\{([\s\S]*)\}/);
+    if (!bodyMatch) return false;
+    
+    const bodyContent = bodyMatch[1].trim();
+    const nonCommentBody = bodyContent.replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, '').trim();
+    return nonCommentBody.length === 0;
+  }
+  
   // 增强的代码片段验证
   static enhancedIsValidSnippet(
     content: string, 
@@ -66,10 +77,19 @@ export class SnippetValidationService {
     const meaningfulContent = content.replace(/[{}[\]()\s;]/g, '');
     if (meaningfulContent.length < 3) return false;
     
+    // 早期检查：仅包含注释的代码应该被拒绝
+    if (this.containsOnlyComments(content)) {
+      return false;
+    }
+    
     // 类型特定的验证
     switch (snippetType) {
       case 'control_structure':
         if (!/(?:if|for|while|switch|try|catch|finally)\b/.test(content)) {
+          return false;
+        }
+        // 检查控制结构体是否仅包含注释
+        if (this.hasOnlyCommentsInBody(content)) {
           return false;
         }
         break;
@@ -137,18 +157,48 @@ export class SnippetValidationService {
     const hasSideEffect = sideEffectPatterns.some(pattern => pattern.test(content));
     
     if (!hasSideEffect && /=/.test(content)) {
-      // 检测任何赋值操作（包括简单赋值 x = 5）
+      // 检测对象属性赋值（有副作用）
       if (/\.\w+\s*=/.test(content)) {
         return true;
       }
       
+      // 检测全局对象赋值（有副作用）
       if (/\b(?:window|global|document|console|process|module|exports)\.\w+\s*=/.test(content)) {
         return true;
       }
       
-      // 检测简单变量赋值
-      if (/\b\w+\s*=/.test(content)) {
-        return true;
+      // 检测可能对外部状态产生影响的赋值
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.includes('=')) {
+          // 跳过纯函数调用的赋值（如 const result = array.map(...)）
+          if (/const\s+\w+\s*=\s*\w+\.map\(.*\)/.test(trimmedLine) ||
+              /let\s+\w+\s*=\s*\w+\.map\(.*\)/.test(trimmedLine) ||
+              /var\s+\w+\s*=\s*\w+\.map\(.*\)/.test(trimmedLine)) {
+            continue;
+          }
+          
+          // 跳过纯数学函数调用的赋值（如 const result = Math.max(...)）
+          if (/(const|let|var)\s+\w+\s*=\s*Math\.\w+\(.*\)/.test(trimmedLine)) {
+            continue;
+          }
+          
+          // 检测变量重新赋值（有副作用）
+          if (/\b[a-zA-Z_]\w*\s*=/.test(trimmedLine) && 
+              !/(const|let|var)\s+/.test(trimmedLine)) {
+            return true;
+          }
+          
+          // 其他变量声明赋值可能产生副作用
+          if (/\b(?:const|let|var)\s+\w+\s*=/.test(trimmedLine)) {
+            // 检查右侧是否包含可能产生副作用的操作
+            const rightSide = trimmedLine.split('=')[1].trim();
+            if (!/Math\.\w+\(.*\)/.test(rightSide) && !/\w+\.map\(.*\)/.test(rightSide)) {
+              return true;
+            }
+          }
+        }
       }
     }
     
@@ -162,7 +212,7 @@ export class SnippetValidationService {
       usesGenerators: /\bfunction\*\b/.test(content) || /\byield\b/.test(content),
       usesDestructuring: /[{[]\s*\w+/.test(content) || /=\s*[{[]/.test(content),
       usesSpread: /\.\.\./.test(content),
-      usesTemplateLiterals: /`.*\$\{.*\}`/.test(content)
+      usesTemplateLiterals: /`[^`]*\$\{[^}]*\}[^`]*`/.test(content)
     };
   }
 

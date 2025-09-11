@@ -21,11 +21,13 @@ export class TreeSitterUtils {
 
   static findNodeByType(ast: Parser.SyntaxNode, type: string): Parser.SyntaxNode[] {
     const nodes: Parser.SyntaxNode[] = [];
+    console.log(`Searching for nodes of type ${type} in AST`);
 
     const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
       if (depth > 100) return;
 
       if (node.type === type) {
+        console.log(`Found node of type ${type}`);
         nodes.push(node);
       }
 
@@ -37,6 +39,7 @@ export class TreeSitterUtils {
     };
 
     traverse(ast);
+    console.log(`Found ${nodes.length} nodes of type ${type}`);
     return nodes;
   }
 
