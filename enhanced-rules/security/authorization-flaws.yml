@@ -1,51 +1,45 @@
 rules:
-  - id: authorization-flaws-direct-object-reference
-    pattern: |
-      $RESULT = db.query("SELECT * FROM users WHERE id = " + req.params.id);
-    message: "授权缺陷：直接对象引用，缺少权限检查"
-    languages: [javascript, typescript, python, java]
+  - id: direct-object-reference
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Authorization flaw: Direct object reference without permission check.
+      Always verify user permissions before accessing resources.
     severity: ERROR
-    metadata:
-      category: security
-      technology: [authorization-flaws]
-      cwe: ["CWE-639"]
-      owasp: ["A01:2021"]
-      confidence: HIGH
-      likelihood: HIGH
-      impact: HIGH
+    pattern: |
+      user_id = request.GET['id']
+      ...
+      delete_file(user_id)
 
-  - id: authorization-flaws-missing-check
-    pattern: |
-      function deleteFile($FILE_ID) {
-        // 直接删除文件，没有检查用户权限
-        fs.unlinkSync("/uploads/" + $FILE_ID);
-      }
-    message: "授权缺陷：文件操作缺少权限检查"
-    languages: [javascript, typescript, python]
+  - id: file-operation-permission
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Authorization flaw: File operation without permission check.
+      Verify user permissions before file operations.
     severity: ERROR
-    metadata:
-      category: security
-      technology: [authorization-flaws]
-      cwe: ["CWE-862"]
-      owasp: ["A01:2021"]
-      confidence: HIGH
-      likelihood: HIGH
-      impact: HIGH
+    pattern: |
+      file_path = request.GET['path']
+      ...
+      os.remove(file_path)
 
-  - id: authorization-flaws-role-check
-    pattern: |
-      if ($USER.role === "admin") {
-        // 只有管理员可以访问，但没有检查用户是否登录
-        deleteAllRecords();
-      }
-    message: "授权缺陷：角色检查前缺少身份验证"
-    languages: [javascript, typescript, python]
+  - id: role-check-missing-auth
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Authorization flaw: Role check without authentication verification.
+      Ensure user is authenticated before role checks.
     severity: ERROR
-    metadata:
-      category: security
-      technology: [authorization-flaws]
-      cwe: ["CWE-306"]
-      owasp: ["A01:2021"]
-      confidence: HIGH
-      likelihood: HIGH
-      impact: HIGH
+    pattern: |
+      if user.role == 'admin':
+        ...
+        return True
