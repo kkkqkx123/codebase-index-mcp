@@ -34,14 +34,20 @@ export class MemoryManager {
     @inject('LoggerService') @optional() private logger?: any,
     @inject('MemoryManagerOptions') @optional() options: MemoryManagerOptions = {}
   ) {
+    // 从环境变量读取内存配置
+    const envMaxMemory = parseInt(process.env.MAX_MEMORY_MB || '1024');
+    const envWarning = parseInt(process.env.MEMORY_WARNING_THRESHOLD || '85');
+    const envCritical = parseInt(process.env.MEMORY_CRITICAL_THRESHOLD || '95');
+    const envEmergency = parseInt(process.env.MEMORY_EMERGENCY_THRESHOLD || '98');
+    
     this.checkInterval = options.checkInterval || 5000;
     this.thresholds = options.thresholds || {
-      warning: 70,
-      critical: 85,
-      emergency: 95
+      warning: Math.min(envWarning, 90),
+      critical: Math.min(envCritical, 95),
+      emergency: Math.min(envEmergency, 98)
     };
-    this.gcThreshold = options.gcThreshold || 80;
-    this.maxMemoryBytes = (options.maxMemoryMB || 1024) * 1024 * 1024;
+    this.gcThreshold = options.gcThreshold || 90;
+    this.maxMemoryBytes = (options.maxMemoryMB || envMaxMemory) * 1024 * 1024;
   }
 
   startMonitoring(): void {

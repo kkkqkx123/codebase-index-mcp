@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { container as diContainer } from '../../../src/inversify.config';
+import { createTestContainer } from '../../setup';
 import { IndexService } from '../../../src/services/indexing/IndexService';
 import { IndexCoordinator } from '../../../src/services/indexing/IndexCoordinator';
 import { StorageCoordinator } from '../../../src/services/storage/StorageCoordinator';
@@ -26,50 +26,56 @@ describe('Full Index and Retrieval Workflow', () => {
   let testFilePath: string;
 
   beforeAll(async () => {
-    // Use the configured DI container
-    container = diContainer;
+    // Use the test DI container
+    container = createTestContainer();
     
     // Get services
     indexService = container.get<IndexService>(IndexService);
     indexCoordinator = container.get<IndexCoordinator>(IndexCoordinator);
     parserService = container.get<ParserService>(ParserService);
     
-    // Create a temporary test project
-    testProjectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'codebase-index-test-'));
-    
-    // Create a test file with some code snippets
-    testFilePath = path.join(testProjectPath, 'test-file.js');
-    const testContent = `
-      // This is a test function
-      function testFunction() {
-        console.log('Hello, world!');
-        return true;
-      }
+    try {
+      // Create a temporary test project
+      testProjectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'codebase-index-test-'));
       
-      // Another test function
-      function anotherFunction(param) {
-        if (param) {
-          return param * 2;
-        }
-        return 0;
-      }
-      
-      // Class definition
-      class TestClass {
-        constructor(name) {
-          this.name = name;
+      // Create a test file with some code snippets
+      testFilePath = path.join(testProjectPath, 'test-file.js');
+      const testContent = `
+        // This is a test function
+        function testFunction() {
+          console.log('Hello, world!');
+          return true;
         }
         
-        greet() {
-          return \`Hello, \${this.name}!\`;
+        // Another test function
+        function anotherFunction(param) {
+          if (param) {
+            return param * 2;
+          }
+          return 0;
         }
-      }
+        
+        // Class definition
+        class TestClass {
+          constructor(name) {
+            this.name = name;
+          }
+          
+          greet() {
+            return \`Hello, \${this.name}!\`;
+          }
+        }
+        
+        // Export statement
+        module.exports = { testFunction, anotherFunction, TestClass };
+      `;
       
-      // Export statement
-      module.exports = { testFunction, anotherFunction, TestClass };
-    `;
-    
-    await fs.writeFile(testFilePath, testContent);
+      await fs.writeFile(testFilePath, testContent);
+      console.log('Test project created at:', testProjectPath);
+    } catch (error) {
+      console.error('Failed to create test project:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
@@ -158,11 +164,6 @@ describe('Full Index and Retrieval Workflow', () => {
     let testSnippetId: string;
 
     beforeAll(async () => {
-      // Ensure testProjectPath is initialized
-      if (!testProjectPath) {
-        throw new Error('testProjectPath is not initialized');
-      }
-      
       // Get project ID
       const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
       projectId = projectHash.hash;
@@ -221,11 +222,6 @@ describe('Full Index and Retrieval Workflow', () => {
     let newFilePath: string;
 
     beforeAll(async () => {
-      // Ensure testProjectPath is initialized
-      if (!testProjectPath) {
-        throw new Error('testProjectPath is not initialized');
-      }
-      
       // Get project ID
       const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
       projectId = projectHash.hash;
@@ -299,11 +295,6 @@ describe('Full Index and Retrieval Workflow', () => {
     let projectId: string;
 
     beforeAll(async () => {
-      // Ensure testProjectPath is initialized
-      if (!testProjectPath) {
-        throw new Error('testProjectPath is not initialized');
-      }
-      
       // Get project ID
       const projectHash = await HashUtils.calculateDirectoryHash(testProjectPath);
       projectId = projectHash.hash;

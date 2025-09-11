@@ -226,7 +226,7 @@ export class ConfigFactory implements ConfigFactory {
       monitoring: {
         enabled: config.monitoring?.enabled ?? true,
         checkInterval: 30000,
-        memoryThreshold: 85,
+        memoryThreshold: parseInt(process.env.MEMORY_THRESHOLD || '75'),
         cpuThreshold: 80,
         eventLoopThreshold: 100,
         metricsEnabled: true,
@@ -256,7 +256,7 @@ export class ConfigFactory implements ConfigFactory {
           maxBatchSize: config.batchProcessing?.maxBatchSize || 500,
           minBatchSize: config.batchProcessing?.adaptiveBatching?.minBatchSize || 10,
           maxConcurrentOperations: config.batchProcessing?.maxConcurrentOperations || 5,
-          memoryThreshold: config.batchProcessing?.memoryThreshold || 80,
+          memoryThreshold: parseInt(process.env.BATCH_MEMORY_THRESHOLD || String(config.batchProcessing?.memoryThreshold || 75)),
           processingTimeout: config.batchProcessing?.processingTimeout || 300000,
           retryAttempts: config.batchProcessing?.retryAttempts || 3,
           retryDelay: config.batchProcessing?.retryDelay || 1000,

@@ -214,12 +214,73 @@ export const createTestContainer = () => {
           }
         };
       }
+      if (key === 'database') {
+        return {
+          qdrant: {
+            host: process.env.QDRANT_HOST || 'localhost',
+            port: parseInt(process.env.QDRANT_PORT || '6333'),
+            collection: process.env.QDRANT_COLLECTION || 'code-snippets'
+          },
+          nebula: {
+            host: process.env.NEBULA_HOST || 'localhost',
+            port: parseInt(process.env.NEBULA_PORT || '9669'),
+            username: process.env.NEBULA_USERNAME || 'root',
+            password: process.env.NEBULA_PASSWORD || 'nebula',
+            space: process.env.NEBULA_SPACE || 'codegraph'
+          }
+        };
+      }
+      if (key === 'monitoring') {
+        return {
+          enabled: false,
+          metrics: {
+            enabled: false
+          }
+        };
+      }
+      if (key === 'memory') {
+        return {
+          maxMemoryMB: 1024,
+          warningThreshold: 85,
+          criticalThreshold: 95,
+          emergencyThreshold: 98
+        };
+      }
       return {};
     }),
     getAll: jest.fn().mockReturnValue({})
   };
   
   container.bind<ConfigService>(ConfigService).toConstantValue(mockConfig as any);
+  
+  // Add missing service bindings for integration tests
+  container.bind<MemoryManager>(MemoryManager).toSelf().inSingletonScope();
+  container.bind<IndexService>(IndexService).toSelf().inSingletonScope();
+  container.bind<IndexCoordinator>(IndexCoordinator).toSelf().inSingletonScope();
+  container.bind<StorageCoordinator>(StorageCoordinator).toSelf().inSingletonScope();
+  container.bind<ParserService>(ParserService).toSelf().inSingletonScope();
+  container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
+  container.bind<AsyncPipeline>(AsyncPipeline).toSelf().inSingletonScope();
+  container.bind<BatchProcessor>(BatchProcessor).toSelf().inSingletonScope();
+  container.bind<ObjectPool<any>>(ObjectPool).toSelf().inSingletonScope();
+  container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
+  
+  // Mock database services for testing
+  const mockQdrantService = {
+    store: jest.fn().mockResolvedValue(true),
+    search: jest.fn().mockResolvedValue([]),
+    delete: jest.fn().mockResolvedValue(true),
+    healthCheck: jest.fn().mockResolvedValue(true),
+  };
+  
+  container.bind('QdrantService').toConstantValue(mockQdrantService);
+  
+  const mockNebulaService = {
+    executeQuery: jest.fn().mockResolvedValue({}),
+    healthCheck: jest.fn().mockResolvedValue(true),
+  };
+  
+  container.bind('NebulaService').toConstantValue(mockNebulaService);
   
   // Create mock embedders
   

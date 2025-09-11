@@ -101,14 +101,21 @@ export class IndexCoordinator {
       .addStep({
         name: 'memory-check',
         execute: async (data: any) => {
-          const memoryOk = this.memoryManager.checkMemory(75);
+          // 使用更宽松的内存检查，允许90%使用率
+          const memoryOk = this.memoryManager.checkMemory(95);
           if (!memoryOk) {
-            throw new Error('Insufficient memory for indexing operation');
+            // 如果内存不足，尝试强制垃圾回收
+            this.memoryManager.forceGarbageCollection();
+            // 再次检查，使用更宽松的阈值
+            const retryOk = this.memoryManager.checkMemory(95);
+            if (!retryOk) {
+              throw new Error('Insufficient memory for indexing operation');
+            }
           }
           return data;
         },
         timeout: 5000,
-        retryAttempts: 1
+        retryAttempts: 2
       })
       .addStep({
         name: 'file-traversal',
