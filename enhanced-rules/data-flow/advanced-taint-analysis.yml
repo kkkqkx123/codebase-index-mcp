@@ -1,0 +1,185 @@
+rules:
+  - id: cross-function-taint-propagation
+    message: "跨函数污点传播：污染源数据通过函数调用链传播到敏感汇点"
+    languages: [javascript, typescript, python, java, go, csharp]
+    severity: ERROR
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.getParameter(...)
+          - pattern: req.body
+          - pattern: req.query
+          - pattern: req.params
+          - pattern: $_GET[...]
+          - pattern: $_POST[...]
+          - pattern: input(...)
+          - pattern: Scanner.nextLine()
+    pattern-sinks:
+      - pattern-either:
+          - pattern: executeQuery(...)
+          - pattern: eval(...)
+          - pattern: exec(...)
+          - pattern: system(...)
+          - pattern: Runtime.getRuntime().exec(...)
+          - pattern: response.send(...)
+          - pattern: print(...)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+      - pattern: escape(...)
+      - pattern: encodeURIComponent(...)
+      - pattern: htmlspecialchars(...)
+    metadata:
+      category: data-flow
+      technology: [taint-analysis, inter-procedural]
+      subcategory: [cross-function, propagation]
+      cwe: ["CWE-20: Improper Input Validation"]
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+
+  - id: null-pointer-dereference
+    message: "空指针解引用：可能解引用空值导致程序崩溃"
+    languages: [javascript, typescript, java, go, csharp]
+    severity: ERROR
+    patterns:
+      - pattern-inside: |
+          $VAR = null;
+          ...
+          $VAR.$METHOD(...);
+      - pattern-inside: |
+          if ($CONDITION) {
+            $VAR = null;
+          }
+          $VAR.$METHOD(...);
+      - pattern-not-inside: |
+          if ($VAR != null) {
+            $VAR.$METHOD(...);
+          }
+    metadata:
+      category: data-flow
+      technology: [null-analysis, pointer-analysis]
+      subcategory: [null-safety, crash-prevention]
+      cwe: ["CWE-476: NULL Pointer Dereference"]
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+
+  - id: resource-leak-detection
+    message: "资源泄露：打开的文件、数据库连接或网络连接未正确关闭"
+    languages: [javascript, typescript, python, java, go, csharp]
+    severity: WARNING
+    patterns:
+      - pattern-inside: |
+          $RESOURCE = open(...);
+          ...
+          # 缺少close()调用
+      - pattern-not-inside: |
+          try {
+            $RESOURCE = open(...);
+            ...
+          } finally {
+            $RESOURCE.close();
+          }
+      - pattern-not-inside: |
+          with open(...) as $RESOURCE:
+            ...
+    metadata:
+      category: data-flow
+      technology: [resource-analysis, lifetime-analysis]
+      subcategory: [resource-management, leak-prevention]
+      cwe: ["CWE-404: Improper Resource Shutdown or Release"]
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+
+  - id: buffer-overflow-detection
+    message: "缓冲区溢出：数组或缓冲区访问可能超出边界"
+    languages: [javascript, typescript, java, go, csharp, c]
+    severity: ERROR
+    patterns:
+      - pattern-inside: |
+          $ARRAY = new $TYPE[$SIZE];
+          ...
+          $ARRAY[$INDEX] = $VALUE;
+      - metavariable-comparison:
+          metavariable: $INDEX
+          comparison: $INDEX >= $SIZE
+    metadata:
+      category: data-flow
+      technology: [bounds-analysis, buffer-analysis]
+      subcategory: [bounds-checking, memory-safety]
+      cwe: ["CWE-120: Buffer Copy without Checking Size of Input"]
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+
+  - id: use-after-free
+    message: "释放后使用：对象或内存释放后仍被访问"
+    languages: [javascript, typescript, java, go, csharp, c]
+    severity: ERROR
+    patterns:
+      - pattern-inside: |
+          free($POINTER);
+          ...
+          *$POINTER = $VALUE;
+      - pattern-inside: |
+          $OBJ.close();
+          ...
+          $OBJ.$METHOD(...);
+    metadata:
+      category: data-flow
+      technology: [lifetime-analysis, memory-analysis]
+      subcategory: [memory-safety, dangling-pointer]
+      cwe: ["CWE-416: Use After Free"]
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+
+  - id: race-condition-detection
+    message: "竞态条件：共享资源在多线程环境中未正确同步访问"
+    languages: [javascript, typescript, java, go, csharp]
+    severity: ERROR
+    patterns:
+      - pattern-inside: |
+          # 多线程环境中访问共享变量
+          $SHARED_VAR = $SHARED_VAR + 1;
+          # 缺少同步机制
+      - pattern-not-inside: |
+          synchronized ($LOCK) {
+            $SHARED_VAR = $SHARED_VAR + 1;
+          }
+    metadata:
+      category: data-flow
+      technology: [concurrency-analysis, synchronization-analysis]
+      subcategory: [thread-safety, synchronization]
+      cwe: ["CWE-362: Concurrent Execution using Shared Resource"]
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+
+  - id: information-leakage
+    message: "信息泄露：敏感信息可能通过异常或日志泄露"
+    languages: [javascript, typescript, python, java, go, csharp]
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - pattern: |
+              try {
+                ...
+              } catch ($E) {
+                logger.error($E.getMessage());
+                # 可能泄露敏感信息
+              }
+          - pattern: |
+              response.send({ error: $E.message });
+              # 可能泄露堆栈信息
+          - pattern: |
+              console.log("User password: " + $PASSWORD);
+    metadata:
+      category: data-flow
+      technology: [information-flow, security-analysis]
+      subcategory: [privacy, security]
+      cwe: ["CWE-200: Information Exposure"]
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
