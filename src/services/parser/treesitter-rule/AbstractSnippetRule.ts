@@ -1,8 +1,11 @@
 import * as Parser from 'tree-sitter';
-import { SnippetChunk } from '../types';
+import { SnippetChunk, SnippetMetadata } from '../types';
 import { SnippetValidationService } from '../SnippetValidationService';
+import { SnippetExtractionRule } from './SnippetExtractionRule';
 
-// 定义缺失的接口
+
+
+// Configuration interface for rule behavior
 interface RuleConfig {
   maxDepth?: number;
   minComplexity?: number;
@@ -10,21 +13,6 @@ interface RuleConfig {
   minLines?: number;
   maxLines?: number;
 }
-
-interface ContextInfo {
-  parentFunction?: string;
-  parentClass?: string;
-  nestingLevel: number;
-  surroundingCode?: string;
-}
-
-interface SnippetExtractionRule {
-  readonly name: string;
-  readonly supportedNodeTypes: Set<string>;
-  extract(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[];
-}
-
-
 
 /**
  * 抽象基础规则类，提供通用功能实现
@@ -48,24 +36,24 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
 
   extract(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
     const snippets: SnippetChunk[] = [];
-    
+
     const traverse = (node: Parser.SyntaxNode, nestingLevel: number = 0, depth: number = 0) => {
       if (depth > this.config.maxDepth!) return;
-      
+
       if (this.shouldProcessNode(node, sourceCode)) {
         const snippet = this.createSnippet(node, sourceCode, nestingLevel);
         if (snippet && this.validateSnippet(snippet)) {
           snippets.push(snippet);
         }
       }
-      
+
       if (node.children && Array.isArray(node.children)) {
         for (const child of node.children) {
           traverse(child, nestingLevel + 1, depth + 1);
         }
       }
     };
-    
+
     traverse(ast);
     return snippets;
   }
@@ -129,8 +117,8 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
     node: Parser.SyntaxNode,
     sourceCode: string,
     nestingLevel: number
-  ): ContextInfo {
-    const context: ContextInfo = { nestingLevel };
+  ): SnippetMetadata['contextInfo'] {
+    const context: SnippetMetadata['contextInfo'] = { nestingLevel };
 
     // 查找父函数
     let parent = node.parent;
@@ -140,7 +128,7 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
         'function_declaration', 'function_definition', 'method_definition',
         'arrow_function', 'function_expression'
       ];
-      
+
       if (functionTypes.includes(parent.type)) {
         const nameNode = parent.childForFieldName('name');
         if (nameNode) {
@@ -175,10 +163,10 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
    */
   protected calculateComplexity(content: string): number {
     const lines = content.split('\n').filter(line => line.trim().length > 0);
-    const cyclomatic = Math.max(1, 
+    const cyclomatic = Math.max(1,
       (content.match(/\b(if|else|while|for|switch|case|catch|&&|\|\||\?)/g) || []).length
     );
-    
+
     return lines.length + cyclomatic;
   }
 
@@ -316,7 +304,7 @@ export class ImprovedControlStructureRule extends AbstractSnippetRule {
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
-    
+
     // 过滤过于简单的控制结构
     const lines = content.split('\n').filter(line => line.trim().length > 0);
     return lines.length > 1 || content.length > 30;
@@ -366,7 +354,7 @@ export class ImprovedFunctionCallRule extends AbstractSnippetRule {
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
-    
+
     // 确保是有意义的调用
     return this.isMeaningfulCall(content) && content.length > 10;
   }
@@ -427,7 +415,7 @@ export class RuleFactory {
 
   static createRulesForLanguage(language: string): SnippetExtractionRule[] {
     const baseRules = this.createDefaultRules();
-    
+
     // 根据语言添加特定规则
     switch (language.toLowerCase()) {
       case 'python':
@@ -440,60 +428,8 @@ export class RuleFactory {
         // 添加Go特定规则
         break;
     }
-    
+
     return baseRules;
-  }
-}
-
-/**
- * 上下文提取工具类
- */
-export class ContextExtractor {
-  static extract(
-    node: Parser.SyntaxNode,
-    sourceCode: string,
-    nestingLevel: number
-  ): ContextInfo {
-    const context: ContextInfo = { nestingLevel };
-
-    // 查找父函数
-    let parent = node.parent;
-    let depth = 0;
-    while (parent && depth < 50) {
-      const functionTypes = [
-        'function_declaration', 'function_definition', 'method_definition',
-        'arrow_function', 'function_expression', 'lambda_expression'
-      ];
-      
-      if (functionTypes.includes(parent.type)) {
-        const nameNode = parent.childForFieldName('name');
-        if (nameNode) {
-          const funcName = sourceCode.substring(nameNode.startIndex, nameNode.endIndex);
-          context.parentFunction = funcName;
-        }
-        break;
-      }
-      parent = parent.parent;
-      depth++;
-    }
-
-    // 查找父类
-    parent = node.parent;
-    depth = 0;
-    while (parent && depth < 50) {
-      if (parent.type === 'class_declaration' || parent.type === 'class_definition') {
-        const nameNode = parent.childForFieldName('name');
-        if (nameNode) {
-          const className = sourceCode.substring(nameNode.startIndex, nameNode.endIndex);
-          context.parentClass = className;
-        }
-        break;
-      }
-      parent = parent.parent;
-      depth++;
-    }
-
-    return context;
   }
 }
 

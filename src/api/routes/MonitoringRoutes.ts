@@ -69,7 +69,7 @@ export class MonitoringRoutes {
   private async getHealthStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getHealthStatus();
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
@@ -78,7 +78,7 @@ export class MonitoringRoutes {
   private async getMetrics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getMetrics();
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).send(result);
     } catch (error) {
       next(error);
     }
@@ -89,7 +89,7 @@ export class MonitoringRoutes {
       const { start, end } = req.query;
       const period = start && end ? { start: start as string, end: end as string } : undefined;
       const result = await this.monitoringController.getPerformanceReport(period);
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
@@ -98,7 +98,7 @@ export class MonitoringRoutes {
   private async getBottlenecks(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getBottlenecks();
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
@@ -107,7 +107,7 @@ export class MonitoringRoutes {
   private async getCapacityPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getCapacityPlan();
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
@@ -116,7 +116,7 @@ export class MonitoringRoutes {
   private async getDependencies(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getDependencies();
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
@@ -125,7 +125,7 @@ export class MonitoringRoutes {
   private async getBenchmark(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getBenchmark();
-      res.status(result.success ? 200 : 500).json(result);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }

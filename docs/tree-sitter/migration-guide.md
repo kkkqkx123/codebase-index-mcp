@@ -21,6 +21,7 @@ cp src/services/parser/treesitter-rule/*.ts backup/treesitter-rules/
 ### 步骤2: 安装新依赖
 
 确保项目安装了必要的依赖：
+[x]
 
 ```bash
 npm install --save tree-sitter
