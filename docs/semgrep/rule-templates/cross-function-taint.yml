@@ -1,0 +1,138 @@
+# 跨函数污点传播分析规则
+# 检测跨函数调用的数据流安全问题
+
+rules:
+  - id: cross-function-source-to-sink
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+      - go
+    message: |
+      Potential security vulnerability: user input from source function 
+      flows directly to sink function without validation
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # Python: Function returns tainted data
+          - pattern: |
+              def $SOURCE_FUNC(...):
+                ...
+                return request.$PARAM
+              
+              def $SINK_FUNC($DATA):
+                ...
+                execute($DATA)
+              
+              $USER_INPUT = $SOURCE_FUNC(...)
+              $SINK_FUNC($USER_INPUT)
+          
+          # JavaScript: Function returns tainted data
+          - pattern: |
+              function $SOURCE_FUNC(...) {
+                ...
+                return req.$PARAM;
+              }
+              
+              function $SINK_FUNC($DATA) {
+                ...
+                eval($DATA);
+              }
+              
+              const $USER_INPUT = $SOURCE_FUNC(...);
+              $SINK_FUNC($USER_INPUT);
+          
+          # Java: Method returns tainted data
+          - pattern: |
+              public String $SOURCE_METHOD(...) {
+                ...
+                return request.getParameter("$PARAM");
+              }
+              
+              public void $SINK_METHOD(String $DATA) {
+                ...
+                Runtime.getRuntime().exec($DATA);
+              }
+              
+              String $USER_INPUT = $SOURCE_METHOD(...);
+              $SINK_METHOD($USER_INPUT);
+    metadata:
+      category: security
+      technology: [python, javascript, java, go]
+      confidence: HIGH
+      cwe: CWE-20
+      references:
+        - https://owasp.org/www-community/controls/Data_Validation
+
+  - id: tainted-global-variable
+    languages:
+      - python
+      - javascript
+      - typescript
+    message: |
+      Global variable may be tainted by user input and used in security-sensitive context
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          # Python global variable
+          - pattern: |
+              $GLOBAL_VAR = request.$PARAM
+              ...
+              def $FUNC():
+                ...
+                execute($GLOBAL_VAR)
+          
+          # JavaScript global variable
+          - pattern: |
+              global.$GLOBAL_VAR = req.$PARAM;
+              ...
+              function $FUNC() {
+                ...
+                eval(global.$GLOBAL_VAR);
+              }
+    metadata:
+      category: security
+      technology: [python, javascript]
+      confidence: MEDIUM
+      cwe: CWE-20
+
+  - id: tainted-return-chain
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Tainted data returned from function may propagate to sinks
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          # Python multi-level return
+          - pattern: |
+              def $FUNC1($INPUT):
+                return $INPUT
+              
+              def $FUNC2($DATA):
+                return $FUNC1($DATA)
+              
+              $TAINTED = $FUNC2(request.$PARAM)
+              execute($TAINTED)
+          
+          # JavaScript multi-level return
+          - pattern: |
+              function $FUNC1($INPUT) {
+                return $INPUT;
+              }
+              
+              function $FUNC2($DATA) {
+                return $FUNC1($DATA);
+              }
+              
+              const $TAINTED = $FUNC2(req.$PARAM);
+              eval($TAINTED);
+    metadata:
+      category: security
+      technology: [python, javascript, java]
+      confidence: MEDIUM
+      cwe: CWE-20

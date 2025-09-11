@@ -1,0 +1,240 @@
+# 高级安全检测规则集合
+# 涵盖多种常见安全漏洞类型
+
+rules:
+  # 路径遍历检测
+  - id: path-traversal-complete
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+      - go
+    message: |
+      Path traversal vulnerability detected. User input is used directly 
+      in file path operations without proper validation.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # Python file operations
+          - pattern: open(... + $USER_INPUT, ...)
+          - pattern: open(f"...{$USER_INPUT}...", ...)
+          - pattern: pathlib.Path(... + $USER_INPUT)
+          
+          # Node.js file operations
+          - pattern: fs.readFileSync(... + $USER_INPUT)
+          - pattern: fs.writeFileSync(... + $USER_INPUT)
+          - pattern: path.join(__dirname, $USER_INPUT)
+          
+          # Java file operations
+          - pattern: new File(... + $USER_INPUT)
+          - pattern: Files.readAllLines(Paths.get(... + $USER_INPUT))
+          
+          # Go file operations
+          - pattern: os.Open(... + $USER_INPUT)
+          - pattern: ioutil.ReadFile(... + $USER_INPUT)
+    metadata:
+      category: security
+      technology: [python, javascript, java, go]
+      confidence: HIGH
+      cwe: CWE-22
+      references:
+        - https://owasp.org/www-community/attacks/Path_Traversal
+
+  # SQL注入检测
+  - id: sql-injection-advanced
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      SQL injection vulnerability detected. User input is directly concatenated 
+      into SQL queries without proper sanitization.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # Python SQL operations
+          - pattern: |
+              f"SELECT * FROM users WHERE id = {$USER_INPUT}"
+          - pattern: |
+              "SELECT * FROM users WHERE id = " + $USER_INPUT
+          - pattern: |
+              cursor.execute("SELECT * FROM users WHERE id = " + $USER_INPUT)
+          
+          # JavaScript SQL operations
+          - pattern: |
+              `SELECT * FROM users WHERE id = ${$USER_INPUT}`
+          - pattern: |
+              "SELECT * FROM users WHERE id = " + $USER_INPUT
+          
+          # Java SQL operations
+          - pattern: |
+              "SELECT * FROM users WHERE id = " + $USER_INPUT
+          - pattern: |
+              stmt.executeQuery("SELECT * FROM users WHERE id = " + $USER_INPUT)
+    metadata:
+      category: security
+      technology: [python, javascript, java]
+      confidence: HIGH
+      cwe: CWE-89
+      references:
+        - https://owasp.org/www-community/attacks/SQL_Injection
+
+  # 命令注入检测
+  - id: command-injection-advanced
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+      - go
+    message: |
+      Command injection vulnerability detected. User input is directly used 
+      in system commands without proper sanitization.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # Python command execution
+          - pattern: os.system(... + $USER_INPUT)
+          - pattern: subprocess.call(... + $USER_INPUT)
+          - pattern: subprocess.Popen(... + $USER_INPUT)
+          
+          # JavaScript command execution
+          - pattern: require('child_process').exec(... + $USER_INPUT)
+          - pattern: execSync(... + $USER_INPUT)
+          
+          # Java command execution
+          - pattern: Runtime.getRuntime().exec(... + $USER_INPUT)
+          
+          # Go command execution
+          - pattern: exec.Command(... + $USER_INPUT)
+    metadata:
+      category: security
+      technology: [python, javascript, java, go]
+      confidence: HIGH
+      cwe: CWE-78
+      references:
+        - https://owasp.org/www-community/attacks/Command_Injection
+
+  # 跨站脚本（XSS）检测
+  - id: xss-advanced-detection
+    languages:
+      - javascript
+      - typescript
+      - python
+    message: |
+      Cross-site scripting (XSS) vulnerability detected. User input is directly 
+      rendered in HTML without proper encoding.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # JavaScript/TypeScript XSS
+          - pattern: |
+              document.innerHTML = $USER_INPUT
+          - pattern: |
+              element.innerHTML = $USER_INPUT
+          - pattern: |
+              $("body").html($USER_INPUT)
+          
+          # Python web frameworks
+          - pattern: |
+              return f"<div>{$USER_INPUT}</div>"
+          - pattern: |
+              return render_template("template.html", content=$USER_INPUT)
+    metadata:
+      category: security
+      technology: [javascript, python]
+      confidence: HIGH
+      cwe: CWE-79
+      references:
+        - https://owasp.org/www-community/attacks/xss/
+
+  # 反序列化漏洞检测
+  - id: deserialization-vulnerabilities
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Insecure deserialization detected. User input is directly deserialized 
+      without proper validation, potentially leading to RCE.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # Python pickle
+          - pattern: pickle.loads($USER_INPUT)
+          - pattern: yaml.load($USER_INPUT)
+          
+          # JavaScript JSON.parse with eval-like behavior
+          - pattern: eval("(" + $USER_INPUT + ")")
+          - pattern: Function($USER_INPUT)()
+          
+          # Java deserialization
+          - pattern: new ObjectInputStream(...).readObject()
+    metadata:
+      category: security
+      technology: [python, javascript, java]
+      confidence: HIGH
+      cwe: CWE-502
+      references:
+        - https://owasp.org/www-community/vulnerabilities/Deserialization_of_untrusted_data
+
+  # 认证绕过检测
+  - id: authentication-bypass
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Potential authentication bypass detected. Weak or missing authentication 
+      checks may allow unauthorized access.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          # Missing authentication check
+          - pattern: |
+              def $HANDLER():
+                # No authentication check
+                return sensitive_data
+          
+          # Weak authentication check
+          - pattern: |
+              if request.headers.get('Authorization') == None:
+                return sensitive_data
+    metadata:
+      category: security
+      technology: [python, javascript, java]
+      confidence: MEDIUM
+      cwe: CWE-287
+      references:
+        - https://owasp.org/www-project-top-ten/2017/A2_2017-Broken_Authentication
+
+  # 敏感数据泄露检测
+  - id: sensitive-data-exposure
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Sensitive data exposure detected. Hardcoded secrets or credentials 
+      may be exposed in the code.
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          # Hardcoded passwords
+          - pattern-regex: (?i)(password|passwd|pwd)\s*=\s*['"]\w+['"]
+          - pattern-regex: (?i)(api_key|apikey|secret)\s*=\s*['"]\w+['"]
+          
+          # Database credentials
+          - pattern-regex: (?i)(db_password|db_pass)\s*=\s*['"]\w+['"]
+    metadata:
+      category: security
+      technology: [python, javascript, java]
+      confidence: HIGH
+      cwe: CWE-798
+      references:
+        - https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure

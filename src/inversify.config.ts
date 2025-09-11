@@ -308,11 +308,15 @@ import { SemgrepResultProcessor } from './services/semgrep/SemgrepResultProcesso
 import { SemgrepRuleAdapter } from './services/semgrep/SemgrepRuleAdapter';
 import { StaticAnalysisRoutes } from './api/routes/StaticAnalysisRoutes';
 import { SnippetExtractionService } from './services/parser/SnippetExtractionService';
+import { EnhancedSemgrepAnalyzer } from './services/static-analysis/EnhancedSemgrepAnalyzer';
+import { EnhancedSemgrepScanService } from './services/semgrep/EnhancedSemgrepScanService';
 
 container.bind<StaticAnalysisCoordinator>(StaticAnalysisCoordinator).toSelf().inSingletonScope();
 container.bind<SemgrepScanService>(SemgrepScanService).toSelf().inSingletonScope();
 container.bind<SemgrepResultProcessor>(SemgrepResultProcessor).toSelf().inSingletonScope();
 container.bind<SemgrepRuleAdapter>(SemgrepRuleAdapter).toSelf().inSingletonScope();
+container.bind<EnhancedSemgrepAnalyzer>(EnhancedSemgrepAnalyzer).toSelf().inSingletonScope();
+container.bind<EnhancedSemgrepScanService>(EnhancedSemgrepScanService).toSelf().inSingletonScope();
 
 // Bind API services
 container.bind<HttpServer>(HttpServer).toSelf().inSingletonScope();

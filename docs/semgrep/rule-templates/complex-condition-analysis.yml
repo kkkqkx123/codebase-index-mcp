@@ -1,0 +1,79 @@
+# 复杂条件分支分析规则
+# 检测嵌套过深的条件语句和复杂布尔表达式
+
+rules:
+  - id: complex-nested-conditions
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+      - go
+      - csharp
+    message: |
+      Deeply nested conditions (depth > 3) detected. This increases cyclomatic complexity 
+      and makes the code harder to understand and maintain.
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          # Python nested if
+          - pattern: |
+              if $COND1:
+                if $COND2:
+                  if $COND3:
+                    ...
+          # JavaScript/TypeScript nested if
+          - pattern: |
+              if ($COND1) {
+                if ($COND2) {
+                  if ($COND3) {
+                    ...
+                  }
+                }
+              }
+          # Java nested if
+          - pattern: |
+              if ($COND1) {
+                if ($COND2) {
+                  if ($COND3) {
+                    ...
+                  }
+                }
+              }
+    metadata:
+      category: maintainability
+      technology: [python, javascript, java, go, csharp]
+      confidence: HIGH
+      references:
+        - https://en.wikipedia.org/wiki/Cyclomatic_complexity
+      cwe: CWE-570
+
+  - id: complex-boolean-expression
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+      - go
+      - csharp
+    message: |
+      Complex boolean expression detected (> 4 conditions). Consider breaking this 
+      into smaller, more manageable pieces.
+    severity: INFO
+    patterns:
+      - pattern-either:
+          # Python complex boolean
+          - pattern: |
+              if $A and $B and $C and $D and $E
+          - pattern: |
+              if $A or $B or $C or $D or $E
+          # JavaScript/TypeScript complex boolean
+          - pattern: |
+              if ($A && $B && $C && $D && $E)
+          - pattern: |
+              if ($A || $B || $C || $D || $E)
+    metadata:
+      category: maintainability
+      technology: [python, javascript, java, go, csharp]
+      confidence: MEDIUM
+      cwe: CWE-570
