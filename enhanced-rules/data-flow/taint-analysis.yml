@@ -1,78 +1,70 @@
 rules:
-  - id: taint-source-identification
-    pattern: |
-      $DATA = req.body.$FIELD;
-    message: "污点源识别：用户输入从请求体获取"
-    languages: [javascript, typescript]
+  - id: taint-source-user-input
+    languages:
+      - python
+      - javascript
+      - typescript
+    message: |
+      Taint source detected: User input from request body or parameters.
+      Ensure proper validation and sanitization of user input.
     severity: INFO
-    metadata:
-      category: data-flow
-      technology: [taint-analysis]
-      subcategory: [source-identification]
-      taint-type: [user-input]
+    pattern: request.body
 
-  - id: taint-propagation
-    pattern: |
-      $USER_INPUT = req.query.$FIELD;
-      $PROCESSED = $USER_INPUT + "...";
-      query($PROCESSED);
-    message: "污点传播：用户输入经过处理后传递到查询"
-    languages: [javascript, typescript, python, java]
-    severity: WARNING
-    metadata:
-      category: data-flow
-      technology: [taint-analysis]
-      subcategory: [propagation]
-      cwe: ["CWE-89"]
+  - id: taint-propagation-processing
+    languages:
+      - python
+      - javascript
+      - typescript
+    message: |
+      Taint propagation: User input processed and passed to query.
+      Track data flow to ensure security checks are applied.
+    severity: INFO
+    pattern: process($USER_INPUT)
 
-  - id: sql-injection-sink
-    pattern: |
-      db.query("SELECT * FROM users WHERE id = '" + $USER_INPUT + "'");
-    message: "SQL注入风险：用户输入直接拼接到SQL查询"
-    languages: [javascript, typescript, python, java]
+  - id: sql-injection-risk
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      SQL injection risk: User input directly concatenated into SQL query.
+      Use parameterized queries to prevent SQL injection.
     severity: ERROR
-    metadata:
-      category: security
-      technology: [taint-analysis]
-      subcategory: [sql-injection]
-      cwe: ["CWE-89"]
-      owasp: ["A03:2021"]
-
-  - id: xss-sink
     pattern: |
-      document.innerHTML = $USER_INPUT;
-    message: "XSS风险：用户输入直接设置到innerHTML"
-    languages: [javascript, typescript]
-    severity: ERROR
-    metadata:
-      category: security
-      technology: [taint-analysis]
-      subcategory: [xss]
-      cwe: ["CWE-79"]
-      owasp: ["A03:2021"]
+      "SELECT * FROM users WHERE id = " + $USER_INPUT
 
-  - id: command-injection-sink
-    pattern: |
-      exec($USER_INPUT);
-    message: "命令注入风险：用户输入直接执行系统命令"
-    languages: [javascript, typescript, python, java]
+  - id: xss-risk
+    languages:
+      - python
+      - javascript
+      - typescript
+    message: |
+      XSS risk: User input directly assigned to innerHTML.
+      Use safe DOM manipulation methods to prevent XSS.
     severity: ERROR
-    metadata:
-      category: security
-      technology: [taint-analysis]
-      subcategory: [command-injection]
-      cwe: ["CWE-78"]
-      owasp: ["A03:2021"]
+    pattern: element.innerHTML = $USER_INPUT
 
-  - id: path-traversal-sink
-    pattern: |
-      fs.readFileSync("/var/www/" + $USER_INPUT);
-    message: "路径遍历风险：用户输入用于文件路径"
-    languages: [javascript, typescript, python, java]
+  - id: command-injection-risk
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Command injection risk: User input directly executed as system command.
+      Use safe command execution methods with proper validation.
     severity: ERROR
-    metadata:
-      category: security
-      technology: [taint-analysis]
-      subcategory: [path-traversal]
-      cwe: ["CWE-22"]
-      owasp: ["A01:2021"]
+    pattern: os.system($USER_INPUT)
+
+  - id: path-traversal-risk
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+    message: |
+      Path traversal risk: User input used for file path without validation.
+      Validate file paths to prevent directory traversal attacks.
+    severity: ERROR
+    pattern: open($USER_INPUT)

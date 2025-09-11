@@ -1,6 +1,6 @@
 import * as Parser from 'tree-sitter';
-import { SnippetChunk } from '../../../types';
-import { AbstractSnippetRule } from '../../AbstractSnippetRule';
+import { SnippetChunk } from '../../types';
+import { AbstractSnippetRule } from '../AbstractSnippetRule';
 
 /**
  * Enhanced Data Flow Analysis Rule

@@ -211,7 +211,11 @@ export class EnhancedRuleFactory {
       'ArithmeticLogicalRule': 2,
       'LogicBlockRule': 3,
       'ExpressionSequenceRule': 3,
-      'CommentMarkedRule': 2
+      'CommentMarkedRule': 2,
+      'EnhancedDataFlowRule': 9,
+      'ReactDataFlowRule': 8,
+      'DjangoDataFlowRule': 8,
+      'SpringBootDataFlowRule': 9
     };
 
     return complexityMap[rule.name] || 5;
