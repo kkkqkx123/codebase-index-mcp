@@ -93,11 +93,27 @@ export class EnhancedSemgrepAnalyzer {
   private readonly config: ConfigService;
 
   constructor(
-    @inject(TYPES.LoggerService) logger: LoggerService,
-    @inject(TYPES.ConfigService) config: ConfigService
+    @inject(TYPES.LoggerService) logger?: LoggerService,
+    @inject(TYPES.ConfigService) config?: ConfigService
   ) {
-    this.logger = logger;
-    this.config = config;
+    this.logger = logger || {
+      info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ''),
+      debug: (message: string, meta?: any) => console.log(`[DEBUG] ${message}`, meta || ''),
+      warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ''),
+      error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ''),
+    } as LoggerService;
+    
+    this.config = config || {
+      get: (key: string) => {
+        const defaults: Record<string, any> = {
+          'analysis.maxFileSize': 1048576,
+          'analysis.timeout': 30000,
+          'analysis.ignorePatterns': ['node_modules', 'dist', 'coverage'],
+          'analysis.severityThreshold': 'medium'
+        };
+        return defaults[key];
+      }
+    } as ConfigService;
   }
 
   async analyzeProject(projectPath: string): Promise<AnalysisResult> {
@@ -126,11 +142,8 @@ export class EnhancedSemgrepAnalyzer {
 
   async analyzeControlFlow(projectPath: string): Promise<CFGResult> {
     const rules = [
-      'control-flow-basic.yml',
-      'cross-function-analysis.yml',
-      'loop-detection.yml',
-      'branch-coverage.yml',
-      'function-call-graph.yml'
+      'control-flow/basic-cfg.yml',
+      'control-flow/cross-function-analysis.yml'
     ];
 
     this.logger.debug('Running control flow analysis', { rules, projectPath });
@@ -141,11 +154,7 @@ export class EnhancedSemgrepAnalyzer {
 
   async analyzeDataFlow(variablePattern?: string): Promise<DataFlowResult> {
     const rules = [
-      'dataflow-source-sink.yml',
-      'taint-analysis.yml',
-      'variable-lifecycle.yml',
-      'constant-propagation.yml',
-      'cross-scope-analysis.yml'
+      'data-flow/taint-analysis.yml'
     ];
 
     this.logger.debug('Running data flow analysis', { rules, variablePattern });
@@ -156,14 +165,14 @@ export class EnhancedSemgrepAnalyzer {
 
   async detectSecurityPatterns(projectPath?: string): Promise<SecurityResult> {
     const rules = [
-      'sql-injection.yml',
-      'xss-detection.yml',
-      'path-traversal.yml',
-      'command-injection.yml',
-      'authentication-bypass.yml',
-      'authorization-flaws.yml',
-      'cryptographic-issues.yml',
-      'insecure-deserialization.yml'
+      'security/sql-injection.yml',
+      'security/xss-detection.yml',
+      'security/path-traversal.yml',
+      'security/command-injection.yml',
+      'security/authentication-bypass.yml',
+      'security/authorization-flaws.yml',
+      'security/cryptographic-issues.yml',
+      'security/insecure-deserialization.yml'
     ];
 
     this.logger.debug('Running security pattern detection', { rules, projectPath });
@@ -293,8 +302,8 @@ export class EnhancedSemgrepAnalyzer {
     return {
       variables: Array.from(variables.values()),
       flows,
-      taintSources: [...new Set(taintSources)],
-      taintSinks: [...new Set(taintSinks)]
+      taintSources: Array.from(taintSources),
+      taintSinks: Array.from(taintSinks)
     };
   }
 

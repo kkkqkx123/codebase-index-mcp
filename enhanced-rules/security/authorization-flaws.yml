@@ -1,0 +1,51 @@
+rules:
+  - id: authorization-flaws-direct-object-reference
+    pattern: |
+      $RESULT = db.query("SELECT * FROM users WHERE id = " + req.params.id);
+    message: "授权缺陷：直接对象引用，缺少权限检查"
+    languages: [javascript, typescript, python, java]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [authorization-flaws]
+      cwe: ["CWE-639"]
+      owasp: ["A01:2021"]
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+
+  - id: authorization-flaws-missing-check
+    pattern: |
+      function deleteFile($FILE_ID) {
+        // 直接删除文件，没有检查用户权限
+        fs.unlinkSync("/uploads/" + $FILE_ID);
+      }
+    message: "授权缺陷：文件操作缺少权限检查"
+    languages: [javascript, typescript, python]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [authorization-flaws]
+      cwe: ["CWE-862"]
+      owasp: ["A01:2021"]
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+
+  - id: authorization-flaws-role-check
+    pattern: |
+      if ($USER.role === "admin") {
+        // 只有管理员可以访问，但没有检查用户是否登录
+        deleteAllRecords();
+      }
+    message: "授权缺陷：角色检查前缺少身份验证"
+    languages: [javascript, typescript, python]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [authorization-flaws]
+      cwe: ["CWE-306"]
+      owasp: ["A01:2021"]
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH

@@ -1,4 +1,4 @@
-const { EnhancedSemgrepAnalyzer } = require('../../dist/services/static-analysis/EnhancedSemgrepAnalyzer');
+const { EnhancedSemgrepAnalyzer } = require('../../src/services/static-analysis/EnhancedSemgrepAnalyzer');
 const path = require('path');
 
 async function runEnhancedAnalysis() {

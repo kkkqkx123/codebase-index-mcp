@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
-import winston from 'winston';
-import path from 'path';
+import * as winston from 'winston';
+import * as path from 'path';
 
 @injectable()
 export class LoggerService {
