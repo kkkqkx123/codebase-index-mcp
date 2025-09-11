@@ -124,7 +124,15 @@ describe('HttpServer', () => {
     app = httpServer.getApp();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Close the server if it was started
+    if (httpServer) {
+      try {
+        await httpServer.close();
+      } catch (error) {
+        // Ignore errors when closing the server
+      }
+    }
     jest.clearAllMocks();
   });
 
@@ -435,14 +443,17 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
         })
       );
 
-      // HttpServer doesn't have a stop method, so we don't need to call it
+      // Close the server after the test
+      await httpServer.close();
     });
 
     it('should gracefully stop server', async () => {
       await httpServer.start();
-      // HttpServer doesn't have a stop method, so we don't need to call it
+      // Close the server to test graceful shutdown
+      await httpServer.close();
 
-      // HttpServer doesn't have a stop method, so we don't test for this log
+      // If we reach this point without error, the server closed gracefully
+      expect(true).toBe(true);
     });
   });
 });

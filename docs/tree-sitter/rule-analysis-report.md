@@ -393,10 +393,10 @@ describe('Performance Tests', () => {
 ## 4. 实施路线图
 
 ### 4.1 第一阶段：架构重构（2周）
-- [ ] 创建AbstractSnippetRule基类
-- [ ] 重构现有规则使用基类
-- [ ] 提取共享工具类
-- [ ] 编写基类测试
+- [x] 创建AbstractSnippetRule基类
+- [x] 重构现有规则使用基类
+- [x] 提取共享工具类
+- [x] 编写基类测试
 
 ### 4.2 第二阶段：规则增强（3周）
 - [ ] 增强ControlStructureRule

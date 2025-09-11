@@ -9,6 +9,7 @@ import { StaticAnalysisRoutes } from './routes/StaticAnalysisRoutes';
 
 export class HttpServer {
   private app: Application;
+  private server: any; // Store the server instance
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
@@ -216,18 +217,33 @@ export class HttpServer {
 
   async start(): Promise<any> {
     return new Promise((resolve, reject) => {
-      const server = this.app.listen(this.port, () => {
+      this.server = this.app.listen(this.port, () => {
         this.logger.info(`HTTP server started`, {
           port: this.port,
           host: 'localhost',
           environment: this.configService.get('nodeEnv')
         });
-        resolve(server);
+        resolve(this.server);
       }).on('error', (error) => {
         this.logger.error('Failed to start HTTP Server', error);
         reject(error);
       });
     });
+  }
+
+  // Add a method to close the server
+  async close(): Promise<void> {
+    if (this.server) {
+      return new Promise((resolve, reject) => {
+        this.server.close((err: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    }
   }
 
   getApp(): Application {
