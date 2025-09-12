@@ -6,11 +6,33 @@ rule_files:
   - "alerts/*.yml"
 
 scrape_configs:
-  - job_name: 'codebase-index-mcp'
+  - job_name: 'codebase-index'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:3000']
     metrics_path: '/metrics'
     scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  - job_name: 'codebase-index-semgrep'
+    static_configs:
+      - targets: ['localhost:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      collect: ['semgrep']
+
+  - job_name: 'codebase-index-treesitter'
+    static_configs:
+      - targets: ['localhost:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      collect: ['treesitter']
 
   - job_name: 'qdrant'
     static_configs:

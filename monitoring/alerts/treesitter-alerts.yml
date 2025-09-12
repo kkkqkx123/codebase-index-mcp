@@ -1,0 +1,74 @@
+groups:
+- name: treesitter-alerts
+  rules:
+  - alert: TreeSitterHighErrorRate
+    expr: (treesitter_parse_errors_total / (treesitter_parse_count_total + 1)) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 解析错误率过高"
+      description: "Tree-sitter 解析错误率超过 10%，当前值 {{ $value | humanizePercentage }}"
+      runbook_url: "https://github.com/your-repo/docs/runbooks/treesitter-high-error-rate.md"
+
+  - alert: TreeSitterSlowParse
+    expr: histogram_quantile(0.95, rate(treesitter_parse_time_ms_bucket[5m])) > 1000
+    for: 10m
+    labels:
+      severity: warning
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 解析速度过慢"
+      description: "95% 的解析操作耗时超过 1 秒，当前值 {{ $value }}ms"
+      runbook_url: "https://github.com/your-repo/docs/runbooks/treesitter-slow-parse.md"
+
+  - alert: TreeSitterCacheInefficient
+    expr: (treesitter_cache_hits_total / (treesitter_cache_hits_total + treesitter_cache_misses_total + 1)) < 0.3
+    for: 15m
+    labels:
+      severity: info
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 缓存效率低下"
+      description: "缓存命中率低于 30%，当前值 {{ $value | humanizePercentage }}"
+
+  - alert: TreeSitterHighMemoryUsage
+    expr: treesitter_cache_size > 100000000  # 100MB
+    for: 10m
+    labels:
+      severity: warning
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 缓存占用内存过高"
+      description: "Tree-sitter 缓存大小超过 100MB，当前值 {{ $value | humanizeBytes }}"
+
+  - alert: TreeSitterServiceDown
+    expr: up{job="codebase-index-treesitter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 服务不可用"
+      description: "Tree-sitter 指标端点无法访问，请检查服务状态"
+
+  - alert: TreeSitterLanguageParseSpike
+    expr: rate(treesitter_language_parse_count[5m]) > 50
+    for: 5m
+    labels:
+      severity: info
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 语言解析频率异常"
+      description: "{{ $labels.language }} 语言解析频率异常增高，当前值 {{ $value }} 次/秒"
+
+  - alert: TreeSitterCacheEvictionHigh
+    expr: rate(treesitter_cache_evictions_total[5m]) > 10
+    for: 10m
+    labels:
+      severity: warning
+      service: treesitter
+    annotations:
+      summary: "Tree-sitter 缓存淘汰频率过高"
+      description: "缓存淘汰频率异常，可能表示缓存大小配置不当"

@@ -8,6 +8,7 @@ import { NebulaService } from '../../database/NebulaService';
 import { PerformanceMonitor } from '../query/PerformanceMonitor';
 import { BatchProcessingMetrics } from './BatchProcessingMetrics';
 import { BatchPerformanceMonitor } from './BatchPerformanceMonitor';
+import { SemgrepMetricsService } from './SemgrepMetricsService';
 
 export interface DatabaseMetrics {
   qdrant: {
@@ -47,6 +48,35 @@ export interface SystemMetrics {
   };
 }
 
+export interface SemgrepMetrics {
+  scans: {
+    total: number;
+    successful: number;
+    failed: number;
+    averageDuration: number;
+  };
+  findings: {
+    total: number;
+    bySeverity: {
+      error: number;
+      warning: number;
+      info: number;
+    };
+    byCategory: {
+      [category: string]: number;
+    };
+  };
+  rules: {
+    totalExecuted: number;
+    mostFrequent: Array<{ruleId: string; count: number}>;
+  };
+  cache: {
+    hits: number;
+    misses: number;
+    hitRate: number;
+  };
+}
+
 export interface ServiceMetrics {
   fileWatcher: {
     totalFilesProcessed: number;
@@ -68,6 +98,12 @@ export interface ServiceMetrics {
     averageLatency: number;
     activeSessions: number;
   };
+  semgrep: {
+    totalScans: number;
+    successfulScans: number;
+    averageScanDuration: number;
+    totalFindings: number;
+  };
   errors: {
     total: number;
     rate: number;
@@ -84,6 +120,7 @@ export class PrometheusMetricsService {
   private performanceMonitor: PerformanceMonitor;
   private batchMetrics: BatchProcessingMetrics;
   private batchPerformanceMonitor: BatchPerformanceMonitor;
+  private semgrepMetricsService: SemgrepMetricsService;
 
   // Prometheus metrics registry
   private registry: promClient.Registry;
@@ -115,6 +152,14 @@ export class PrometheusMetricsService {
     semanticAnalysisCount: promClient.Gauge;
     qdrantOperations: promClient.Gauge;
     nebulaOperations: promClient.Gauge;
+    semgrepScansTotal: promClient.Counter;
+    semgrepScansSuccessful: promClient.Counter;
+    semgrepScansFailed: promClient.Counter;
+    semgrepFindingsTotal: promClient.Gauge;
+    semgrepFindingsError: promClient.Gauge;
+    semgrepFindingsWarning: promClient.Gauge;
+    semgrepFindingsInfo: promClient.Gauge;
+    semgrepScanDuration: promClient.Histogram;
     errorCount: promClient.Gauge;
     errorRate: promClient.Gauge;
     fileWatcherLatency: promClient.Histogram;
@@ -136,7 +181,8 @@ export class PrometheusMetricsService {
     @inject(NebulaService) nebulaService: NebulaService,
     @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor,
     @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
-    @inject(BatchPerformanceMonitor) batchPerformanceMonitor: BatchPerformanceMonitor
+    @inject(BatchPerformanceMonitor) batchPerformanceMonitor: BatchPerformanceMonitor,
+    @inject(SemgrepMetricsService) semgrepMetricsService: SemgrepMetricsService
   ) {
     this.configService = configService;
     this.logger = logger;
@@ -146,6 +192,7 @@ export class PrometheusMetricsService {
     this.performanceMonitor = performanceMonitor;
     this.batchMetrics = batchMetrics;
     this.batchPerformanceMonitor = batchPerformanceMonitor;
+    this.semgrepMetricsService = semgrepMetricsService;
 
     // Initialize Prometheus registry
     this.registry = new promClient.Registry();
@@ -254,6 +301,47 @@ export class PrometheusMetricsService {
       nebulaOperations: new promClient.Gauge({
         name: 'nebula_operations_total',
         help: 'Total number of Nebula operations performed',
+        registers: [this.registry]
+      }),
+      semgrepScansTotal: new promClient.Counter({
+        name: 'semgrep_scans_total',
+        help: 'Total number of semgrep scans performed',
+        registers: [this.registry]
+      }),
+      semgrepScansSuccessful: new promClient.Counter({
+        name: 'semgrep_scans_successful_total',
+        help: 'Total number of successful semgrep scans',
+        registers: [this.registry]
+      }),
+      semgrepScansFailed: new promClient.Counter({
+        name: 'semgrep_scans_failed_total',
+        help: 'Total number of failed semgrep scans',
+        registers: [this.registry]
+      }),
+      semgrepFindingsTotal: new promClient.Gauge({
+        name: 'semgrep_findings_total',
+        help: 'Total number of semgrep findings',
+        registers: [this.registry]
+      }),
+      semgrepFindingsError: new promClient.Gauge({
+        name: 'semgrep_findings_error_total',
+        help: 'Total number of semgrep findings with error severity',
+        registers: [this.registry]
+      }),
+      semgrepFindingsWarning: new promClient.Gauge({
+        name: 'semgrep_findings_warning_total',
+        help: 'Total number of semgrep findings with warning severity',
+        registers: [this.registry]
+      }),
+      semgrepFindingsInfo: new promClient.Gauge({
+        name: 'semgrep_findings_info_total',
+        help: 'Total number of semgrep findings with info severity',
+        registers: [this.registry]
+      }),
+      semgrepScanDuration: new promClient.Histogram({
+        name: 'semgrep_scan_duration_seconds',
+        help: 'Semgrep scan duration in seconds',
+        buckets: [0.1, 0.5, 1, 5, 10, 30, 60],
         registers: [this.registry]
       }),
       errorCount: new promClient.Gauge({
@@ -490,12 +578,22 @@ export class PrometheusMetricsService {
         activeSessions: this.nebulaService.isConnected() ? 1 : 0
       };
 
+      // Get semgrep metrics from SemgrepMetricsService
+      const semgrepMetrics = this.semgrepMetricsService.getMetrics();
+      const semgrepStats = {
+        totalScans: semgrepMetrics.scans.total,
+        successfulScans: semgrepMetrics.scans.successful,
+        averageScanDuration: semgrepMetrics.scans.averageDuration,
+        totalFindings: semgrepMetrics.findings.total
+      };
+
       // Calculate error metrics
       const totalErrors = 0; // Placeholder - would need error tracking
       const totalOperations = fileWatcherStats.totalFilesProcessed + 
                             semanticAnalysisStats.totalAnalyses + 
                             qdrantStats.totalOperations + 
-                            nebulaStats.totalOperations;
+                            nebulaStats.totalOperations +
+                            semgrepStats.totalScans;
       
       const errorRate = totalOperations > 0 ? (totalErrors / totalOperations) * 100 : 0;
 
@@ -504,6 +602,13 @@ export class PrometheusMetricsService {
       this.serviceMetrics.semanticAnalysisCount.set(semanticAnalysisStats.totalAnalyses);
       this.serviceMetrics.qdrantOperations.set(qdrantStats.totalOperations);
       this.serviceMetrics.nebulaOperations.set(nebulaStats.totalOperations);
+      
+      // Update semgrep metrics
+      this.serviceMetrics.semgrepScansTotal.inc(semgrepStats.totalScans);
+      this.serviceMetrics.semgrepScansSuccessful.inc(semgrepStats.successfulScans);
+      this.serviceMetrics.semgrepScansFailed.inc(semgrepStats.totalScans - semgrepStats.successfulScans);
+      this.serviceMetrics.semgrepFindingsTotal.set(semgrepStats.totalFindings);
+      this.serviceMetrics.semgrepScanDuration.observe(semgrepStats.averageScanDuration);
       
       this.serviceMetrics.errorCount.set(totalErrors);
       this.serviceMetrics.errorRate.set(errorRate);
@@ -518,6 +623,7 @@ export class PrometheusMetricsService {
         semanticAnalysis: semanticAnalysisStats,
         qdrant: qdrantStats,
         nebula: nebulaStats,
+        semgrep: semgrepStats,
         errors: {
           total: totalErrors,
           rate: errorRate
