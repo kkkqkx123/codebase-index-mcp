@@ -1,0 +1,52 @@
+groups:
+- name: nebula-sessions-alerts
+  rules:
+  - alert: NebulaGraphHighSessionUsage
+    expr: nebula_num_sessions / nebula_max_sessions > 0.8
+    for: 5m
+    labels:
+      severity: warning
+      service: nebula
+    annotations:
+      summary: "NebulaGraph会话使用率过高"
+      description: "NebulaGraph会话使用率达到 {{ $value * 100 }}%，超过80%阈值"
+
+  - alert: NebulaGraphSessionLimitApproaching
+    expr: nebula_num_sessions / nebula_max_sessions > 0.9
+    for: 2m
+    labels:
+      severity: critical
+      service: nebula
+    annotations:
+      summary: "NebulaGraph会话限制即将达到"
+      description: "NebulaGraph会话使用率达到 {{ $value * 100 }}%，接近最大限制"
+
+  - alert: NebulaGraphSessionLimitReached
+    expr: nebula_num_sessions >= nebula_max_sessions
+    for: 1m
+    labels:
+      severity: emergency
+      service: nebula
+    annotations:
+      summary: "NebulaGraph会话限制已达到"
+      description: "NebulaGraph活跃会话数已达到最大限制 {{ $value }} 个"
+
+  - alert: NebulaGraphSessionIdleTimeout
+    expr: increase(nebula_session_idle_timeouts_total[5m]) > 10
+    for: 0m
+    labels:
+      severity: warning
+      service: nebula
+    annotations:
+      summary: "NebulaGraph会话空闲超时频繁"
+      description: "过去5分钟内发生了 {{ $value }} 次会话空闲超时"
+
+  - alert: NebulaGraphSessionReclaimRateHigh
+    expr: rate(nebula_session_reclaims_total[5m]) > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: nebula
+    annotations:
+      summary: "NebulaGraph会话回收率过高"
+      description: "NebulaGraph会话回收率达到 {{ $value }} 次/分钟"

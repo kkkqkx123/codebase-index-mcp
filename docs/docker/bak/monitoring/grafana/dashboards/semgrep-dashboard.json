@@ -1,0 +1,168 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Semgrep 监控仪表板",
+    "tags": ["semgrep", "static-analysis", "security", "codebase-index"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "扫描总览",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "semgrep_scans_total",
+            "legendFormat": "总扫描次数"
+          },
+          {
+            "expr": "semgrep_scans_successful_total",
+            "legendFormat": "成功扫描"
+          },
+          {
+            "expr": "semgrep_scans_failed_total",
+            "legendFormat": "失败扫描"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "扫描成功率",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(semgrep_scans_successful_total / semgrep_scans_total) * 100",
+            "legendFormat": "成功率(%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "扫描耗时分布",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(semgrep_scan_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(semgrep_scan_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(semgrep_scan_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "耗时(秒)",
+            "unit": "s"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "发现问题统计",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(semgrep_findings_total[5m])",
+            "legendFormat": "发现问题速率"
+          },
+          {
+            "expr": "semgrep_findings_error",
+            "legendFormat": "错误级别问题"
+          },
+          {
+            "expr": "semgrep_findings_warning",
+            "legendFormat": "警告级别问题"
+          },
+          {
+            "expr": "semgrep_findings_info",
+            "legendFormat": "信息级别问题"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "缓存效率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "semgrep_cache_hits_total / (semgrep_cache_hits_total + semgrep_cache_misses_total)",
+            "legendFormat": "缓存命中率"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "命中率",
+            "unit": "percentunit",
+            "max": 1
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "规则执行统计",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(semgrep_rules_executed_total[5m])",
+            "legendFormat": "规则执行速率"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "扫描错误趋势",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(semgrep_scans_failed_total[5m])",
+            "legendFormat": "错误率"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ]
+  }
+}

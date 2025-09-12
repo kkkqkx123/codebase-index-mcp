@@ -1,0 +1,184 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Tree-sitter 监控仪表板",
+    "tags": ["treesitter", "parser", "performance", "codebase-index"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "解析总览",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "treesitter_parse_count_total",
+            "legendFormat": "总解析次数"
+          },
+          {
+            "expr": "treesitter_parse_count_total - treesitter_parse_errors_total",
+            "legendFormat": "成功解析"
+          },
+          {
+            "expr": "treesitter_parse_errors_total",
+            "legendFormat": "解析错误"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "解析成功率",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "((treesitter_parse_count_total - treesitter_parse_errors_total) / treesitter_parse_count_total) * 100",
+            "legendFormat": "成功率(%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "解析耗时分布",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(treesitter_parse_time_ms_bucket[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(treesitter_parse_time_ms_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(treesitter_parse_time_ms_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "耗时(毫秒)",
+            "unit": "ms"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "语言解析统计",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "treesitter_language_parse_count",
+            "legendFormat": "{{language}}"
+          }
+        ],
+        "options": {
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "缓存效率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "treesitter_cache_hits_total / (treesitter_cache_hits_total + treesitter_cache_misses_total)",
+            "legendFormat": "缓存命中率"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "命中率",
+            "unit": "percentunit",
+            "max": 1
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "缓存大小",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "treesitter_cache_size",
+            "legendFormat": "缓存大小"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "大小(字节)",
+            "unit": "bytes"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "缓存命中/未命中",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(treesitter_cache_hits_total[5m])",
+            "legendFormat": "缓存命中"
+          },
+          {
+            "expr": "rate(treesitter_cache_misses_total[5m])",
+            "legendFormat": "缓存未命中"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "解析错误趋势",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(treesitter_parse_errors_total[5m])",
+            "legendFormat": "错误率"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      }
+    ]
+  }
+}

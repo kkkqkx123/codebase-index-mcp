@@ -1,0 +1,397 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "NebulaGraph Sessions Monitoring",
+    "tags": ["nebula", "sessions", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "nebula_active_sessions",
+            "legendFormat": "Active Sessions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 800,
+                  "color": "yellow"
+                },
+                {
+                  "value": 900,
+                  "color": "red"
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "auto"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Session Usage Percentage",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(nebula_active_sessions / 1000) * 100",
+            "legendFormat": "Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 70,
+                  "color": "yellow"
+                },
+                {
+                  "value": 80,
+                  "color": "red"
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "auto"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Sessions Trend (Last 24 Hours)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "nebula_active_sessions",
+            "legendFormat": "Active Sessions",
+            "refId": "A"
+          },
+          {
+            "expr": "nebula_idle_sessions",
+            "legendFormat": "Idle Sessions",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "Sessions",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 800,
+                  "color": "yellow"
+                },
+                {
+                  "value": 900,
+                  "color": "red"
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Session Creation Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(nebula_session_creation_total[5m])",
+            "legendFormat": "Creation Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "continuous-BlPu"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 5,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            },
+            "unit": "reqps"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["mean"]
+          },
+          "orientation": "horizontal",
+          "textMode": "auto"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 5,
+        "title": "Idle Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "nebula_idle_sessions",
+            "legendFormat": "Idle Sessions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "continuous-BuGn"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 100,
+                  "color": "yellow"
+                },
+                {
+                  "value": 200,
+                  "color": "red"
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "auto"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Session Operations",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "nebula_session_creation_total",
+            "legendFormat": "Created",
+            "refId": "A"
+          },
+          {
+            "expr": "nebula_session_cleanup_total",
+            "legendFormat": "Cleaned",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "auto"
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      }
+    ],
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Capacity Warning",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "enable": true,
+          "iconColor": "rgba(255, 96, 96, 1)",
+          "target": {
+            "expr": "nebula_active_sessions > 800",
+            "legendFormat": "High Session Usage",
+            "refId": "A"
+          },
+          "type": "tags"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "version": 1,
+    "description": "NebulaGraph Sessions Monitoring Dashboard - Track active sessions, usage percentage, and capacity trends",
+    "gnetId": null,
+    "iteration": 1719918725273,
+    "links": [],
+    "style": "dark"
+  },
+  "folderUid": "nebula",
+  "message": "NebulaGraph sessions dashboard created",
+  "overwrite": true
+}

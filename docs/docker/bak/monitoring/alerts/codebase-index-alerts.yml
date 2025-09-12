@@ -1,0 +1,97 @@
+groups:
+- name: codebase-index-alerts
+  rules:
+  # Database connection alerts
+  - alert: QdrantConnectionDown
+    expr: qdrant_connection_status == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Qdrant database connection is down"
+      description: "The service cannot connect to the Qdrant database. Immediate attention required."
+
+  - alert: NebulaConnectionDown
+    expr: nebula_connection_status == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Nebula database connection is down"
+      description: "The service cannot connect to the Nebula database. Immediate attention required."
+
+  # Performance alerts
+  - alert: HighQueryLatency
+    expr: histogram_quantile(0.95, sum(rate(service_query_latency_seconds_bucket[5m])) by (le)) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High query latency detected"
+      description: "95th percentile query latency is above 2 seconds for more than 5 minutes."
+
+  - alert: LowCacheHitRate
+    expr: service_cache_hit_rate < 50
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low cache hit rate"
+      description: "Cache hit rate has been below 50% for more than 10 minutes."
+
+  # Resource usage alerts
+  - alert: HighMemoryUsage
+    expr: system_memory_usage_percent > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage"
+      description: "System memory usage has been above 85% for more than 5 minutes."
+
+  - alert: CriticalMemoryUsage
+    expr: system_memory_usage_percent > 95
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Critical memory usage"
+      description: "System memory usage has been above 95% for more than 1 minute."
+
+  - alert: HighCPUUsage
+    expr: system_cpu_usage_percent > 80
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage has been above 80% for more than 10 minutes."
+
+  # Sync alerts
+  - alert: HighSyncDelay
+    expr: service_sync_delay_seconds > 300
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High sync delay"
+      description: "Sync delay has been above 300 seconds for more than 5 minutes."
+
+  - alert: SyncErrors
+    expr: rate(service_sync_errors_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Sync errors detected"
+      description: "Sync error rate has been above 0.1 errors per second for more than 5 minutes."
+
+  # Batch processing alerts
+  - alert: HighBatchProcessingTime
+    expr: histogram_quantile(0.95, sum(rate(service_batch_processing_time_seconds_bucket[5m])) by (le)) > 60
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High batch processing time"
+      description: "95th percentile batch processing time is above 60 seconds for more than 5 minutes."

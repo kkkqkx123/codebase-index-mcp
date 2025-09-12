@@ -1,0 +1,15 @@
+cd /home/docker-compose/codebase-index
+
+# 运行目录创建脚本
+bash setup-config-files.sh
+
+docker network create monitoring
+
+cd /home/docker-compose/codebase-index/nebula && docker-compose -f docker-compose.nebula.yml up -d
+# 需要手动add host
+nebula-console -u root -p nebula --address=127.0.0.1 --port=9669
+ADD HOSTS "storaged0":9779, "storaged1":9779, "storaged2":9779;
+
+cd /home/docker-compose/codebase-index/qdrant && docker-compose -f docker-compose.qdrant.yml up -d
+
+cd /home/docker-compose/codebase-index/monitoring && docker-compose -f docker-compose.monitoring.yml up -d

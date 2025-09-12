@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'Codebase Index Dashboards'
+    orgId: 1
+    folder: 'Codebase Index'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/dashboards

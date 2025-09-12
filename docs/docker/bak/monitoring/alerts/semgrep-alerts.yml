@@ -1,0 +1,64 @@
+groups:
+- name: semgrep-alerts
+  rules:
+  - alert: SemgrepHighErrorRate
+    expr: (semgrep_scans_failed_total / (semgrep_scans_total + 1)) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+      service: semgrep
+    annotations:
+      summary: "Semgrep 扫描错误率过高"
+      description: "Semgrep 扫描错误率超过 10%，当前值 {{ $value | humanizePercentage }}"
+      runbook_url: "https://github.com/your-repo/docs/runbooks/semgrep-high-error-rate.md"
+
+  - alert: SemgrepSlowScan
+    expr: histogram_quantile(0.95, rate(semgrep_scan_duration_seconds_bucket[5m])) > 30
+    for: 10m
+    labels:
+      severity: warning
+      service: semgrep
+    annotations:
+      summary: "Semgrep 扫描速度过慢"
+      description: "95% 的扫描操作耗时超过 30 秒，当前值 {{ $value }}s"
+      runbook_url: "https://github.com/your-repo/docs/runbooks/semgrep-slow-scan.md"
+
+  - alert: SemgrepHighFindingRate
+    expr: rate(semgrep_findings_total[5m]) > 10
+    for: 15m
+    labels:
+      severity: info
+      service: semgrep
+    annotations:
+      summary: "Semgrep 发现问题数量异常"
+      description: "当前发现问题速率为 {{ $value }} 个/秒，可能表示代码库存在安全风险"
+
+  - alert: SemgrepCacheInefficient
+    expr: (semgrep_cache_hits_total / (semgrep_cache_hits_total + semgrep_cache_misses_total + 1)) < 0.3
+    for: 15m
+    labels:
+      severity: info
+      service: semgrep
+    annotations:
+      summary: "Semgrep 缓存效率低下"
+      description: "缓存命中率低于 30%，当前值 {{ $value | humanizePercentage }}"
+
+  - alert: SemgrepServiceDown
+    expr: up{job="codebase-index-semgrep"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: semgrep
+    annotations:
+      summary: "Semgrep 服务不可用"
+      description: "Semgrep 指标端点无法访问，请检查服务状态"
+
+  - alert: SemgrepRuleExecutionSpike
+    expr: rate(semgrep_rules_executed_total[5m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+      service: semgrep
+    annotations:
+      summary: "Semgrep 规则执行频率异常"
+      description: "规则执行频率异常增高，当前值 {{ $value }} 次/秒"
