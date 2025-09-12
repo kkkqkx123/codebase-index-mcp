@@ -234,16 +234,21 @@ describe('TreeSitterService Snippet Extraction', () => {
     test('should extract control structures from code', () => {
       const code = `
 function example() {
-  if (condition) {
-    console.log('true');
+  if (user.isAuthenticated && user.hasPermission('read')) {
+    processData(user.data);
   }
   
-  for (let i = 0; i < 10; i++) {
-    console.log(i);
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].isValid) {
+      validItems.push(items[i]);
+    }
   }
   
-  while (true) {
-    break;
+  try {
+    const result = await fetchData();
+    return result.data;
+  } catch (error) {
+    handleError(error);
   }
 }
       `;

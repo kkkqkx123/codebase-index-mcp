@@ -27,9 +27,18 @@ describe('Enhanced Rule Validation', () => {
       const simpleIf = createMockNode('if_statement', `if (true) console.log('hello');`);
       const sourceCode = `if (true) console.log('hello');`;
       
-      // Check if the simple if statement would be rejected
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(sourceCode, 'control_structure');
-      expect(isValid).toBe(false);
+      // Temporarily set environment to production to test strict validation
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      
+      try {
+        // Check if the simple if statement would be rejected
+        const isValid = SnippetValidationService.enhancedIsValidSnippet(sourceCode, 'control_structure');
+        expect(isValid).toBe(false);
+      } finally {
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+      }
     });
 
     it('should retain meaningful control structures', () => {
@@ -76,8 +85,17 @@ describe('Enhanced Rule Validation', () => {
     it('should filter overly simple try-catch blocks', () => {
       const simpleTryCatch = `try {} catch (e) {}`;
       
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(simpleTryCatch, 'error_handling');
-      expect(isValid).toBe(false);
+      // Temporarily set environment to production to test strict validation
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      
+      try {
+        const isValid = SnippetValidationService.enhancedIsValidSnippet(simpleTryCatch, 'error_handling');
+        expect(isValid).toBe(false);
+      } finally {
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+      }
     });
 
     it('should retain meaningful error handling', () => {
