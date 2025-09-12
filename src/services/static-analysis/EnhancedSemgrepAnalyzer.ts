@@ -91,6 +91,7 @@ export interface AnalysisResult {
 export class EnhancedSemgrepAnalyzer {
   private readonly logger: LoggerService;
   private readonly config: ConfigService;
+  private readonly enhancedRulesPath: string;
 
   constructor(
     @inject(TYPES.LoggerService) logger?: LoggerService,
@@ -109,11 +110,14 @@ export class EnhancedSemgrepAnalyzer {
           'analysis.maxFileSize': 1048576,
           'analysis.timeout': 30000,
           'analysis.ignorePatterns': ['node_modules', 'dist', 'coverage'],
-          'analysis.severityThreshold': 'medium'
+          'analysis.severityThreshold': 'medium',
+          'semgrep.enhancedRulesPath': './enhanced-rules'
         };
         return defaults[key];
       }
     } as ConfigService;
+    
+    this.enhancedRulesPath = this.config.get('semgrep').enhancedRulesPath || './enhanced-rules';
   }
 
   async analyzeProject(projectPath: string): Promise<AnalysisResult> {
@@ -187,9 +191,8 @@ export class EnhancedSemgrepAnalyzer {
     variablePattern?: string
   ): Promise<any[]> {
     const semgrepPath = (this.config.get('staticAnalysis' as any) as any)?.semgrep?.cliPath || 'semgrep';
-    const enhancedRulesPath = './enhanced-rules';
     
-    const rulePaths = rules.map(rule => `${enhancedRulesPath}/${rule}`);
+    const rulePaths = rules.map(rule => `${this.enhancedRulesPath}/${rule}`);
     
     const { execSync } = require('child_process');
     const command = [

@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { LoggerService } from '../../core/LoggerService';
+import { ConfigService } from '../../config/ConfigService';
 
 export interface SemanticAnalysisConfig {
   projectPath: string;
@@ -24,9 +25,14 @@ export interface AnalysisMetrics {
 
 @injectable()
 export class SemanticAnalysisBaseService {
+  private enhancedRulesPath: string;
+
   constructor(
-    @inject(LoggerService) private logger: LoggerService
-  ) {}
+    @inject(LoggerService) private logger: LoggerService,
+    @inject(ConfigService) private configService: ConfigService
+  ) {
+    this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath;
+  }
 
   async runSemanticAnalysis(config: SemanticAnalysisConfig): Promise<SemanticAnalysisResult> {
     try {
@@ -101,10 +107,10 @@ export class SemanticAnalysisBaseService {
       this.logger.info('Integrating existing semgrep rules');
 
       const rules = [
-        'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-        'enhanced-rules/data-flow/advanced-taint-analysis.yml',
-        'enhanced-rules/security/sql-injection-detailed.yml',
-        'enhanced-rules/security/xss-detection.yml'
+        `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`,
+        `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
+        `${this.enhancedRulesPath}/security/sql-injection-detailed.yml`,
+        `${this.enhancedRulesPath}/security/xss-detection.yml`
       ];
       const results = [];
 
@@ -250,12 +256,12 @@ export class SemanticAnalysisBaseService {
 
   private getAvailableSemgrepRules(): string[] {
     return [
-      'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-      'enhanced-rules/control-flow/complex-nested-conditions.yml',
-      'enhanced-rules/control-flow/loop-invariant-code.yml',
-      'enhanced-rules/data-flow/advanced-taint-analysis.yml',
-      'enhanced-rules/data-flow/cross-function-taint.yml',
-      'enhanced-rules/data-flow/resource-leak-detection.yml'
+      `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`,
+      `${this.enhancedRulesPath}/control-flow/complex-nested-conditions.yml`,
+      `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`,
+      `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
+      `${this.enhancedRulesPath}/data-flow/cross-function-taint.yml`,
+      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`
     ];
   }
 

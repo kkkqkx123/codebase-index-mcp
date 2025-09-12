@@ -1,6 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { SemgrepScanService } from './SemgrepScanService';
 import { LoggerService } from '../../core/LoggerService';
+import { ConfigService } from '../../config/ConfigService';
 import { TYPES } from '../../inversify.config';
 
 export interface EnhancedSemgrepResult {
@@ -87,10 +88,15 @@ export interface SemanticAnalysisOptions {
 
 @injectable()
 export class SemanticSemgrepService {
+  private enhancedRulesPath: string;
+
   constructor(
     @inject(SemgrepScanService) private semgrepService: SemgrepScanService,
-    @inject(LoggerService) private logger: LoggerService
-  ) {}
+    @inject(LoggerService) private logger: LoggerService,
+    @inject(ConfigService) private configService: ConfigService
+  ) {
+    this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath;
+  }
 
   async runSemanticAnalysis(
     projectPath: string,
@@ -127,9 +133,9 @@ export class SemanticSemgrepService {
     options: Partial<SemanticAnalysisOptions> = {}
   ): Promise<EnhancedSemgrepResult> {
     const rules = [
-      'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-      'enhanced-rules/control-flow/complex-nested-conditions.yml',
-      'enhanced-rules/control-flow/loop-invariant-code.yml'
+      `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`,
+      `${this.enhancedRulesPath}/control-flow/complex-nested-conditions.yml`,
+      `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`
     ];
 
     return this.runRuleAnalysis(projectPath, rules, 'control-flow', {
@@ -143,9 +149,9 @@ export class SemanticSemgrepService {
     options: Partial<SemanticAnalysisOptions> = {}
   ): Promise<EnhancedSemgrepResult> {
     const rules = [
-      'enhanced-rules/data-flow/advanced-taint-analysis.yml',
-      'enhanced-rules/data-flow/cross-function-taint.yml',
-      'enhanced-rules/data-flow/resource-leak-detection.yml'
+      `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
+      `${this.enhancedRulesPath}/data-flow/cross-function-taint.yml`,
+      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`
     ];
 
     return this.runRuleAnalysis(projectPath, rules, 'data-flow', {
@@ -172,15 +178,15 @@ export class SemanticSemgrepService {
 
     if (options.includeControlFlow) {
       rules.push(
-        { path: 'enhanced-rules/control-flow/', type: 'control-flow' },
-        { path: 'enhanced-rules/control-flow/enhanced-cfg-analysis.yml', type: 'cfg' }
+        { path: `${this.enhancedRulesPath}/control-flow/`, type: 'control-flow' },
+        { path: `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`, type: 'cfg' }
       );
     }
 
     if (options.includeDataFlow) {
       rules.push(
-        { path: 'enhanced-rules/data-flow/', type: 'data-flow' },
-        { path: 'enhanced-rules/data-flow/advanced-taint-analysis.yml', type: 'taint' }
+        { path: `${this.enhancedRulesPath}/data-flow/`, type: 'data-flow' },
+        { path: `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`, type: 'taint' }
       );
     }
 
@@ -273,19 +279,19 @@ export class SemanticSemgrepService {
 
   async getAvailableSemanticRules(): Promise<string[]> {
     const controlFlowRules = [
-      'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-      'enhanced-rules/control-flow/complex-nested-conditions.yml',
-      'enhanced-rules/control-flow/loop-invariant-code.yml',
-      'enhanced-rules/control-flow/missing-break-in-switch.yml',
-      'enhanced-rules/control-flow/unreachable-code-after-return.yml'
+      `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`,
+      `${this.enhancedRulesPath}/control-flow/complex-nested-conditions.yml`,
+      `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`,
+      `${this.enhancedRulesPath}/control-flow/missing-break-in-switch.yml`,
+      `${this.enhancedRulesPath}/control-flow/unreachable-code-after-return.yml`
     ];
 
     const dataFlowRules = [
-      'enhanced-rules/data-flow/advanced-taint-analysis.yml',
-      'enhanced-rules/data-flow/cross-function-taint.yml',
-      'enhanced-rules/data-flow/resource-leak-detection.yml',
-      'enhanced-rules/data-flow/null-pointer-dereference.yml',
-      'enhanced-rules/data-flow/buffer-overflow-detection.yml'
+      `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
+      `${this.enhancedRulesPath}/data-flow/cross-function-taint.yml`,
+      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`,
+      `${this.enhancedRulesPath}/data-flow/null-pointer-dereference.yml`,
+      `${this.enhancedRulesPath}/data-flow/buffer-overflow-detection.yml`
     ];
 
     return [...controlFlowRules, ...dataFlowRules];

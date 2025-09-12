@@ -35,7 +35,7 @@
 
 #### ✅ 语法验证
 ```bash
-semgrep --validate --config=enhanced-rules/control-flow/enhanced-cfg-analysis.yml
+semgrep --validate --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/enhanced-cfg-analysis.yml
 # 结果：Configuration is valid - 0 errors, 8 rules
 ```
 
@@ -43,7 +43,7 @@ semgrep --validate --config=enhanced-rules/control-flow/enhanced-cfg-analysis.ym
 使用测试文件 `control-flow-test.js` 验证：
 
 ```bash
-semgrep --config=enhanced-rules/control-flow/enhanced-cfg-analysis.yml test/enhanced-semgrep/test-cases/control-flow-test.js
+semgrep --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/enhanced-cfg-analysis.yml test/enhanced-semgrep/test-cases/control-flow-test.js
 ```
 
 **检测结果**：
@@ -61,22 +61,22 @@ semgrep --config=enhanced-rules/control-flow/enhanced-cfg-analysis.yml test/enha
 
 #### 验证规则
 ```bash
-semgrep --validate --config=enhanced-rules/control-flow/enhanced-cfg-analysis.yml
+semgrep --validate --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/enhanced-cfg-analysis.yml
 ```
 
 #### 运行检测
 ```bash
 # 检测单个文件
-semgrep --config=enhanced-rules/control-flow/enhanced-cfg-analysis.yml your-code.js
+semgrep --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/enhanced-cfg-analysis.yml your-code.js
 
 # 检测整个项目
-semgrep --config=enhanced-rules/control-flow/enhanced-cfg-analysis.yml src/
+semgrep --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/enhanced-cfg-analysis.yml src/
 ```
 
 #### 与其他规则组合使用
 ```bash
 # 组合所有控制流规则
-semgrep --config=enhanced-rules/control-flow/ your-code.js
+semgrep --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/ your-code.js
 ```
 
 ### 规则特点

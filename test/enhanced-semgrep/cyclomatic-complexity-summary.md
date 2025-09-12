@@ -50,17 +50,17 @@
 ### 基本使用
 ```bash
 # 验证规则
-semgrep --validate --config=enhanced-rules/control-flow/cyclomatic-complexity.yml
+semgrep --validate --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/cyclomatic-complexity.yml
 
 # 扫描文件
-semgrep --config=enhanced-rules/control-flow/cyclomatic-complexity.yml path/to/file.js
+semgrep --config=${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/cyclomatic-complexity.yml path/to/file.js
 ```
 
 ### 集成到CI/CD
 ```yaml
 # .semgrep.yml
 rules:
-  - config: enhanced-rules/control-flow/cyclomatic-complexity.yml
+  - config: ${SEMGREP_ENHANCED_RULES_PATH:-enhanced-rules}/control-flow/cyclomatic-complexity.yml
 ```
 
 ## 规则设计说明

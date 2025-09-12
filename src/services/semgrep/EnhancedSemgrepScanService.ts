@@ -19,6 +19,8 @@ export class EnhancedSemgrepScanService {
   private readonly enhancedAnalyzer: EnhancedSemgrepAnalyzer;
   private readonly logger: LoggerService;
   private readonly semgrepService: SemgrepScanService;
+  private readonly configService: ConfigService;
+  private readonly enhancedRulesPath: string;
 
   constructor(
     @inject(TYPES.LoggerService) logger: LoggerService,
@@ -27,8 +29,10 @@ export class EnhancedSemgrepScanService {
     @inject(TYPES.SemgrepScanService) semgrepService: SemgrepScanService
   ) {
     this.logger = logger;
+    this.configService = configService;
     this.enhancedAnalyzer = enhancedAnalyzer;
     this.semgrepService = semgrepService;
+    this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath || './enhanced-rules';
   }
 
   /**
@@ -105,10 +109,10 @@ export class EnhancedSemgrepScanService {
   async quickSecurityScan(projectPath: string): Promise<EnhancedAnalysisResult> {
     return this.scanProject(projectPath, {
       rules: [
-        './enhanced-rules/security/sql-injection.yml',
-        './enhanced-rules/security/xss-detection.yml',
-        './enhanced-rules/security/path-traversal.yml',
-        './enhanced-rules/security/command-injection.yml'
+        `${this.enhancedRulesPath}/security/sql-injection.yml`,
+        `${this.enhancedRulesPath}/security/xss-detection.yml`,
+        `${this.enhancedRulesPath}/security/path-traversal.yml`,
+        `${this.enhancedRulesPath}/security/command-injection.yml`
       ],
       severity: ['ERROR', 'WARNING']
     });
@@ -120,8 +124,8 @@ export class EnhancedSemgrepScanService {
   async deepControlFlowAnalysis(projectPath: string): Promise<EnhancedAnalysisResult> {
     return this.scanProject(projectPath, {
       rules: [
-        './enhanced-rules/control-flow/basic-cfg.yml',
-        './enhanced-rules/control-flow/cross-function-analysis.yml'
+        `${this.enhancedRulesPath}/control-flow/basic-cfg.yml`,
+        `${this.enhancedRulesPath}/control-flow/cross-function-analysis.yml`
       ]
     });
   }
@@ -131,7 +135,7 @@ export class EnhancedSemgrepScanService {
    */
   async taintAnalysis(projectPath: string): Promise<EnhancedAnalysisResult> {
     return this.scanProject(projectPath, {
-      rules: ['./enhanced-rules/data-flow/taint-analysis.yml']
+      rules: [`${this.enhancedRulesPath}/data-flow/taint-analysis.yml`]
     });
   }
 }

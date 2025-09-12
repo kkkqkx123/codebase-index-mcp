@@ -12,7 +12,7 @@ async function runSemanticAnalysisTests() {
   console.log('🚀 Starting Phase 1 Semantic Analysis Tests\n');
 
   const logger = new MockLoggerService() as any;
-  const service = new SemanticAnalysisBaseService(logger);
+  const service = new SemanticAnalysisBaseService(logger, {} as any);
 
   const testConfig = {
     projectPath: './test-project',

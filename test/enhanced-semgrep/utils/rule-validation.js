@@ -11,7 +11,7 @@ const path = require('path');
 
 class SemgrepRuleValidator {
   constructor() {
-    this.rulesDir = path.join(__dirname, '../../enhanced-rules');
+    this.rulesDir = process.env.SEMGREP_ENHANCED_RULES_PATH || path.join(__dirname, '../../enhanced-rules');
     this.testDir = path.join(__dirname);
     this.results = {
       passed: [],

@@ -341,6 +341,7 @@ export interface Config {
     strict: boolean;
     configPaths: string[];
     customRulesPath: string;
+    enhancedRulesPath: string;
     outputFormat: 'json' | 'sarif' | 'text';
     excludePatterns: string[];
     includePatterns: string[];

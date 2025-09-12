@@ -288,6 +288,83 @@ export const createTestContainer = () => {
   
   container.bind('NebulaService').toConstantValue(mockNebulaService);
   
+  // Mock VectorStorageService for testing
+  const mockVectorStorage = {
+    initialize: jest.fn().mockResolvedValue(true),
+    store: jest.fn().mockResolvedValue(true),
+    search: jest.fn().mockResolvedValue([]),
+    searchVectors: jest.fn().mockResolvedValue([]),
+    delete: jest.fn().mockResolvedValue(true),
+    storeChunks: jest.fn().mockResolvedValue({
+      success: true,
+      processedFiles: 0,
+      totalChunks: 0,
+      uniqueChunks: 0,
+      duplicatesRemoved: 0,
+      processingTime: 0,
+      errors: []
+    }),
+  };
+  
+  container.bind(TYPES.VectorStorageService).toConstantValue(mockVectorStorage as any);
+  
+  // Mock ParserService for testing
+  const mockParserService = {
+    parseFile: jest.fn().mockImplementation((filePath: string) => {
+      // 模拟文件不存在的情况
+      if (filePath.includes('/invalid/path/') || filePath.includes('\\invalid\\path\\')) {
+        return Promise.reject(new Error(`文件不存在: ${filePath}`));
+      }
+      
+      // 根据文件扩展名返回正确的语言
+      let language = 'javascript';
+      if (filePath.endsWith('.ts')) {
+        language = 'typescript';
+      } else if (filePath.endsWith('.py')) {
+        language = 'python';
+      }
+      
+      return Promise.resolve({
+        language,
+        functions: [{ name: 'testFunction', parameters: [], returnType: 'void' }],
+        classes: [],
+        variables: []
+      });
+    }),
+    parseFiles: jest.fn().mockResolvedValue([{
+      filePath: 'test.js',
+      language: 'javascript',
+      functions: [{ name: 'testFunction', parameters: [], returnType: 'void' }],
+      classes: [],
+      variables: []
+    }]),
+  };
+  
+  container.bind(TYPES.ParserService).toConstantValue(mockParserService as any);
+  
+  // Mock IndexService for testing
+  const mockIndexService = {
+    createIndex: jest.fn().mockResolvedValue({
+      success: true,
+      filesProcessed: 0,
+      filesSkipped: 0,
+      chunksCreated: 0,
+      processingTime: 0,
+      errors: []
+    }),
+    updateIndex: jest.fn().mockResolvedValue({
+      success: true,
+      filesProcessed: 0,
+      filesSkipped: 0,
+      chunksCreated: 0,
+      processingTime: 0,
+      errors: []
+    }),
+    search: jest.fn().mockResolvedValue([]),
+  };
+  
+  container.bind(TYPES.IndexService).toConstantValue(mockIndexService as any);
+  
   // Create mock embedders
   
   // Create proper mock embedder classes that implement the Embedder interface
@@ -387,8 +464,8 @@ export const createTestContainer = () => {
   container.bind<PoolOptions<any>>('PoolOptions').toConstantValue(defaultPoolOptions);
   
   // Bind TreeSitter services for parser integration tests
-  container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
-  container.bind<SnippetExtractionService>(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
+  container.bind(TreeSitterCoreService).toSelf().inSingletonScope();
+  container.bind(SnippetExtractionService).toSelf().inSingletonScope();
   
   // Bind FileWatcherService for integration tests
   container.bind<FileWatcherService>(FileWatcherService).toSelf().inSingletonScope();
@@ -415,17 +492,15 @@ export const createTestContainer = () => {
   };
   container.bind('FileWatcherService').toConstantValue(mockFileWatcherService);
   
-  // Bind core services - use class types to match test file usage
-  container.bind<EnhancedSemgrepScanService>(EnhancedSemgrepScanService).toSelf().inSingletonScope();
-  container.bind<SemanticAnalysisService>(SemanticAnalysisService).toSelf().inSingletonScope();
-  container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
-  container.bind<StaticAnalysisCoordinator>(StaticAnalysisCoordinator).toSelf().inSingletonScope();
-  container.bind<EmbeddingService>(EmbeddingService).toSelf().inSingletonScope();
-  
-  // Bind additional services required by StaticAnalysisCoordinator
-  container.bind<SemgrepResultProcessor>(SemgrepResultProcessor).toSelf().inSingletonScope();
+  // Bind core services using actual TYPES symbols
+  container.bind(TYPES.EnhancedSemgrepScanService).to(EnhancedSemgrepScanService).inSingletonScope();
+  container.bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
+  container.bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+  container.bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
+  container.bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
+  container.bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
 
-  container.bind<SemgrepScanService>(SemgrepScanService).toConstantValue({
+  container.bind(TYPES.SemgrepScanService).toConstantValue({
     scanProject: jest.fn().mockResolvedValue({
       results: [],
       errors: [],
@@ -438,8 +513,8 @@ export const createTestContainer = () => {
     })
   } as any);
   
-  // 确保所有依赖都被正确绑定
-  container.bind<EnhancedSemgrepAnalyzer>(TYPES.EnhancedSemgrepAnalyzer).toConstantValue({
+  // 使用实际存在的TYPES符号
+  container.bind(TYPES.EnhancedSemgrepAnalyzer).toConstantValue({
     analyzeProject: jest.fn().mockResolvedValue({
       controlFlow: { functions: [] },
       dataFlow: { variables: [] },
@@ -447,22 +522,28 @@ export const createTestContainer = () => {
       metrics: { cyclomaticComplexity: 0 }
     })
   } as any);
-  container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
-  container.bind<PathUtils>(PathUtils).toSelf().inSingletonScope();
-  container.bind<ConfigFactory>(ConfigFactory).toSelf().inSingletonScope();
   
-  // Bind monitoring services
-  container.bind<BatchProcessingMetrics>(BatchProcessingMetrics).toSelf().inSingletonScope();
-  container.bind<ConcurrentProcessingService>(ConcurrentProcessingService).toSelf().inSingletonScope();
-  container.bind<MemoryOptimizationService>(MemoryOptimizationService).toSelf().inSingletonScope();
-  container.bind<BatchPerformanceMonitor>(BatchPerformanceMonitor).toSelf().inSingletonScope();
-  container.bind<BatchSizeConfigManager>(BatchSizeConfigManager).toSelf().inSingletonScope();
-  container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().inSingletonScope();
-  
-  // TreeSitterService is already bound above using TYPES.TreeSitterService
+  // 对于不在TYPES中的服务，使用直接类绑定
+  container.bind(HashUtils).toSelf().inSingletonScope();
+  container.bind(PathUtils).toSelf().inSingletonScope();
+  container.bind(ConfigFactory).toSelf().inSingletonScope();
+  container.bind(BatchProcessingMetrics).toSelf().inSingletonScope();
+  container.bind(ConcurrentProcessingService).toSelf().inSingletonScope();
+  container.bind(MemoryOptimizationService).toSelf().inSingletonScope();
+  container.bind(BatchPerformanceMonitor).toSelf().inSingletonScope();
+  container.bind(BatchSizeConfigManager).toSelf().inSingletonScope();
+  container.bind(BatchErrorRecoveryService).toSelf().inSingletonScope();
+  container.bind(HttpServer).toSelf().inSingletonScope();
+  container.bind(MonitoringRoutes).toSelf().inSingletonScope();
+  container.bind(SnippetRoutes).toSelf().inSingletonScope();
+  container.bind(MonitoringController).toSelf().inSingletonScope();
+  container.bind(SnippetController).toSelf().inSingletonScope();
+  container.bind(MCPServer).toSelf().inSingletonScope();
+  container.bind(DIContainer).toSelf().inSingletonScope();
+  container.bind(DimensionAdapterService).toSelf().inSingletonScope();
   
   // Bind snippet extraction rules
-  container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
+  container.bind(TYPES.SnippetExtractionRules).toConstantValue([
     new ControlStructureRule(),
     new ErrorHandlingRule(),
     new FunctionCallChainRule(),
@@ -476,75 +557,71 @@ export const createTestContainer = () => {
   ]);
   
   // Bind database services
-  container.bind<NebulaQueryBuilder>(NebulaQueryBuilder).toSelf().inSingletonScope();
-  container.bind<GraphDatabaseErrorHandler>(GraphDatabaseErrorHandler).toSelf().inSingletonScope();
-  container.bind<ErrorClassifier>(ErrorClassifier).toSelf().inSingletonScope();
+  container.bind(TYPES.NebulaQueryBuilder).to(NebulaQueryBuilder).inSingletonScope();
+  container.bind(TYPES.GraphDatabaseErrorHandler).to(GraphDatabaseErrorHandler).inSingletonScope();
+  container.bind(TYPES.ErrorClassifier).to(ErrorClassifier).inSingletonScope();
   
   // Bind deduplication services
-  container.bind<HashBasedDeduplicator>(HashBasedDeduplicator).toSelf().inSingletonScope();
+  container.bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
   
   // Bind graph services
-  container.bind<GraphService>(GraphService).toSelf().inSingletonScope();
-  container.bind<IGraphService>('IGraphService').toService(GraphService);
+  container.bind(TYPES.GraphService).to(GraphService).inSingletonScope();
+  container.bind('IGraphService').to(GraphService).inSingletonScope();
   
   // Bind monitoring services
-  container.bind<HealthCheckService>(HealthCheckService).toSelf().inSingletonScope();
-  container.bind<PerformanceAnalysisService>(PerformanceAnalysisService).toSelf().inSingletonScope();
-  container.bind<PrometheusMetricsService>(PrometheusMetricsService).toSelf().inSingletonScope();
+  container.bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
+  container.bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
+  container.bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
   
   // Bind query services
-  container.bind<QueryCache>(QueryCache).toSelf().inSingletonScope();
-  container.bind<QueryCoordinationService>(QueryCoordinationService).toSelf().inSingletonScope();
-  container.bind<QueryOptimizer>(QueryOptimizer).toSelf().inSingletonScope();
-  container.bind<ResultFusionEngine>(ResultFusionEngine).toSelf().inSingletonScope();
+  container.bind(TYPES.QueryCache).to(QueryCache).inSingletonScope();
+  container.bind(TYPES.QueryCoordinationService).to(QueryCoordinationService).inSingletonScope();
+  container.bind(TYPES.QueryOptimizer).to(QueryOptimizer).inSingletonScope();
+  container.bind(TYPES.ResultFusionEngine).to(ResultFusionEngine).inSingletonScope();
   
   // Bind reranking services
-  container.bind<IRerankingService>('IRerankingService').to(RerankingService).inSingletonScope();
-  container.bind<MLRerankingService>(MLRerankingService).toSelf().inSingletonScope();
-  container.bind<RealTimeLearningService>(RealTimeLearningService).toSelf().inSingletonScope();
-  container.bind<SimilarityAlgorithms>(SimilarityAlgorithms).toSelf().inSingletonScope();
+  container.bind(TYPES.RerankingService).to(RerankingService).inSingletonScope();
+  container.bind(MLRerankingService).toSelf().inSingletonScope();
+  container.bind(RealTimeLearningService).toSelf().inSingletonScope();
+  container.bind(SimilarityAlgorithms).toSelf().inSingletonScope();
   
   // Bind sync services
-  container.bind<ConsistencyChecker>(ConsistencyChecker).toSelf().inSingletonScope();
-  
-  // Bind API services
-  container.bind<HttpServer>(HttpServer).toSelf().inSingletonScope();
-  container.bind<MonitoringRoutes>(MonitoringRoutes).toSelf().inSingletonScope();
-  container.bind<SnippetRoutes>(SnippetRoutes).toSelf().inSingletonScope();
-  
-  // Bind controller services
-  container.bind<MonitoringController>(MonitoringController).toSelf().inSingletonScope();
-  container.bind<SnippetController>(SnippetController).toSelf().inSingletonScope();
-  
-  // Bind MCP services
-  container.bind<MCPServer>(MCPServer).toSelf().inSingletonScope();
-  
-  // Bind core services
-  container.bind<DIContainer>(DIContainer).toSelf().inSingletonScope();
+  container.bind(TYPES.ConsistencyChecker).to(ConsistencyChecker).inSingletonScope();
   
   // Bind database services
-  container.bind<QdrantService>(QdrantService).toSelf().inSingletonScope();
-  
-  // Bind indexing services
-  container.bind<IndexService>(IndexService).toSelf().inSingletonScope();
-  container.bind<IndexCoordinator>(IndexCoordinator).toSelf().inSingletonScope();
-  container.bind<StorageCoordinator>(StorageCoordinator).toSelf().inSingletonScope();
-  container.bind<ParserService>(ParserService).toSelf().inSingletonScope();
-  container.bind<VectorStorageService>(VectorStorageService).toSelf().inSingletonScope();
-  container.bind<GraphPersistenceService>(GraphPersistenceService).toSelf().inSingletonScope();
-  container.bind<QdrantClientWrapper>(QdrantClientWrapper).toSelf().inSingletonScope();
-  container.bind<NebulaService>(NebulaService).toSelf().inSingletonScope();
+  container.bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   
   // Bind search services
-  container.bind<SearchCoordinator>(SearchCoordinator).toSelf().inSingletonScope();
-  container.bind<SemanticSearchService>(SemanticSearchService).toSelf().inSingletonScope();
-  container.bind<HybridSearchService>(HybridSearchService).toSelf().inSingletonScope();
-  container.bind<RerankingService>(RerankingService).toSelf().inSingletonScope();
+  container.bind(TYPES.SearchCoordinator).to(SearchCoordinator).inSingletonScope();
+  container.bind(TYPES.SemanticSearchService).to(SemanticSearchService).inSingletonScope();
+  container.bind(TYPES.HybridSearchService).to(HybridSearchService).inSingletonScope();
+  container.bind(TYPES.RerankingService).to(RerankingService).inSingletonScope();
   
   // Bind sync services
-  container.bind<TransactionCoordinator>(TransactionCoordinator).toSelf().inSingletonScope();
-  container.bind<EntityMappingService>(EntityMappingService).toSelf().inSingletonScope();
+  container.bind(TYPES.TransactionCoordinator).to(TransactionCoordinator).inSingletonScope();
+  container.bind(TYPES.EntityMappingService).to(EntityMappingService).inSingletonScope();
   
+  // Bind missing services for e2e tests
+  container.bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
+  container.bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
+  container.bind(TYPES.ChangeDetectionService).to(ChangeDetectionService).inSingletonScope();
+  container.bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
+  container.bind(TYPES.AsyncPipeline).to(AsyncPipeline).inSingletonScope();
+  container.bind(TYPES.BatchProcessor).to(BatchProcessor).inSingletonScope();
+  container.bind(TYPES.MemoryManager).to(MemoryManager).inSingletonScope();
+  container.bind(TYPES.FileWatcherService).toConstantValue(mockFileWatcherService);
+  container.bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
+  container.bind(TYPES.EmbedderFactory).to(EmbedderFactory).inSingletonScope();
+  container.bind('ObjectPool').toConstantValue(new ObjectPool<string>({
+    initialSize: 100,
+    maxSize: 1000,
+    creator: () => '',
+    resetter: (path: string) => path,
+    validator: (path: string) => typeof path === 'string',
+    destroy: (path: string) => {},
+    evictionPolicy: 'lru'
+  }));
+
   return container;
 };
 
