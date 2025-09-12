@@ -25,9 +25,13 @@ import { GoInterfaceRule } from './languages/go/GoInterfaceRule';
 
 // Framework rules
 import { ReactRule } from './languages/ts/frameworks/ReactRule';
+import { VueRule } from './languages/ts/frameworks/VueRule';
+import { ExpressRule } from './languages/js/frameworks/ExpressRule';
 import { DjangoRule } from './languages/python/frameworks/DjangoRule';
-import { SpringBootRule } from './languages/java/frameworks/SpringBootRule';
 import { PyTorchRule } from './languages/python/frameworks/PyTorchRule';
+import { PytestRule } from './languages/python/testing/PytestRule';
+import { JUnitRule } from './languages/java/testing/JUnitRule';
+import { SpringBootRule } from './languages/java/frameworks/SpringBootRule';
 
 /**
  * Enhanced Rule Factory - Creates and manages snippet extraction rules
@@ -66,9 +70,13 @@ export class EnhancedRuleFactory {
 
       // Framework rules
       new ReactRule(),
+      new VueRule(),
+      new ExpressRule(),
       new DjangoRule(),
-      new SpringBootRule(),
-      new PyTorchRule()
+      new PyTorchRule(),
+      new PytestRule(),
+      new JUnitRule(),
+      new SpringBootRule()
     ];
   }
 
@@ -105,7 +113,9 @@ export class EnhancedRuleFactory {
           new DecoratorPatternRule(),
           new GenericPatternRule(),
           new FunctionalProgrammingRule(),
-          new ReactRule()
+          new ReactRule(),
+          new VueRule(),
+          new ExpressRule()
         ];
 
       case 'python':
@@ -113,7 +123,8 @@ export class EnhancedRuleFactory {
           ...baseRules,
           new PythonComprehensionRule(),
           new DjangoRule(),
-          new PyTorchRule()
+          new PyTorchRule(),
+          new PytestRule()
         ];
 
       case 'java':
@@ -121,7 +132,8 @@ export class EnhancedRuleFactory {
           ...baseRules,
           new JavaStreamRule(),
           new JavaLambdaRule(),
-          new SpringBootRule()
+          new SpringBootRule(),
+          new JUnitRule()
         ];
 
       case 'go':
@@ -155,6 +167,7 @@ export class EnhancedRuleFactory {
           new JavaStreamRule(),
           new PythonComprehensionRule(),
           new ReactRule(),
+          new VueRule(),
           new PyTorchRule()
         ];
 
@@ -165,8 +178,11 @@ export class EnhancedRuleFactory {
           new GenericPatternRule(),
           new FunctionalProgrammingRule(),
           new GoInterfaceRule(),
+          new ReactRule(),
+          new VueRule(),
           new SpringBootRule(),
-          new DjangoRule()
+          new DjangoRule(),
+          new ExpressRule()
         ];
 
       case 'security':
@@ -174,7 +190,9 @@ export class EnhancedRuleFactory {
           ...baseRules,
           new ErrorHandlingRule(),
           new FunctionCallChainRule(),
-          new TemplateLiteralRule()
+          new TemplateLiteralRule(),
+          new ExpressRule(),
+          new SpringBootRule()
         ];
 
       case 'testing':
@@ -182,7 +200,9 @@ export class EnhancedRuleFactory {
           ...baseRules,
           new CommentMarkedRule(),
           new ErrorHandlingRule(),
-          new FunctionCallChainRule()
+          new FunctionCallChainRule(),
+          new PytestRule(),
+          new JUnitRule()
         ];
 
       default:
@@ -197,6 +217,12 @@ export class EnhancedRuleFactory {
     switch (framework.toLowerCase()) {
       case 'react':
         return [new ReactRule()];
+      case 'vue':
+      case 'vuejs':
+        return [new VueRule()];
+      case 'express':
+      case 'expressjs':
+        return [new ExpressRule()];
       case 'django':
         return [new DjangoRule()];
       case 'spring':
@@ -204,6 +230,11 @@ export class EnhancedRuleFactory {
         return [new SpringBootRule()];
       case 'pytorch':
         return [new PyTorchRule()];
+      case 'pytest':
+        return [new PytestRule()];
+      case 'junit':
+      case 'junit5':
+        return [new JUnitRule()];
       default:
         return [];
     }
@@ -229,7 +260,9 @@ export class EnhancedRuleFactory {
       new DecoratorPatternRule(),
       new GenericPatternRule(),
       new FunctionalProgrammingRule(),
-      new ReactRule()
+      new ReactRule(),
+      new VueRule(),
+      new ExpressRule()
     ];
   }
 
@@ -240,7 +273,8 @@ export class EnhancedRuleFactory {
     return [
       new PythonComprehensionRule(),
       new DjangoRule(),
-      new PyTorchRule()
+      new PyTorchRule(),
+      new PytestRule()
     ];
   }
 
@@ -251,7 +285,18 @@ export class EnhancedRuleFactory {
     return [
       new JavaStreamRule(),
       new JavaLambdaRule(),
-      new SpringBootRule()
+      new SpringBootRule(),
+      new JUnitRule()
+    ];
+  }
+
+  /**
+   * Create testing framework rules
+   */
+  static createTestingRules(): SnippetExtractionRule[] {
+    return [
+      new PytestRule(),
+      new JUnitRule()
     ];
   }
 
@@ -295,6 +340,66 @@ export class EnhancedRuleFactory {
     return ruleNames
       .map(name => this.getRuleByName(name))
       .filter(rule => rule !== undefined) as SnippetExtractionRule[];
+  }
+
+  /**
+   * Get rule statistics
+   */
+  static getRuleStatistics() {
+    const allRules = this.createAllRules();
+    
+    const categories = {
+      control: 0,
+      errorHandling: 0,
+      function: 0,
+      expression: 0,
+      comment: 0,
+      logic: 0,
+      object: 0,
+      arithmetic: 0,
+      template: 0,
+      destructuring: 0,
+      modern: 0,
+      language: 0,
+      framework: 0
+    };
+
+    const languageSupport: Record<string, number> = {};
+
+    allRules.forEach(rule => {
+      // Count by category
+      if (rule.name.includes('Control')) categories.control++;
+      else if (rule.name.includes('Error')) categories.errorHandling++;
+      else if (rule.name.includes('Function')) categories.function++;
+      else if (rule.name.includes('Expression')) categories.expression++;
+      else if (rule.name.includes('Comment')) categories.comment++;
+      else if (rule.name.includes('Logic')) categories.logic++;
+      else if (rule.name.includes('Object')) categories.object++;
+      else if (rule.name.includes('Arithmetic')) categories.arithmetic++;
+      else if (rule.name.includes('Template')) categories.template++;
+      else if (rule.name.includes('Destructuring')) categories.destructuring++;
+      else if (rule.name.includes('Async') || rule.name.includes('Decorator') || rule.name.includes('Generic') || rule.name.includes('Functional')) categories.modern++;
+      else if (rule.name.includes('Python') || rule.name.includes('Java') || rule.name.includes('Go')) categories.language++;
+      else if (rule.name.includes('React') || rule.name.includes('Django') || rule.name.includes('Spring') || rule.name.includes('PyTorch')) categories.framework++;
+
+      // Count language support from supportedNodeTypes
+      rule.supportedNodeTypes.forEach(nodeType => {
+        // This is a simplified approach - in reality you'd want to map node types to languages
+        if (['javascript', 'typescript', 'python', 'java', 'go'].some(lang => rule.name.toLowerCase().includes(lang))) {
+          const lang = rule.name.toLowerCase().includes('python') ? 'python' :
+                      rule.name.toLowerCase().includes('java') ? 'java' :
+                      rule.name.toLowerCase().includes('react') || rule.name.toLowerCase().includes('typescript') ? 'typescript' :
+                      rule.name.toLowerCase().includes('go') ? 'go' : 'javascript';
+          languageSupport[lang] = (languageSupport[lang] || 0) + 1;
+        }
+      });
+    });
+
+    return {
+      totalRules: allRules.length,
+      categories,
+      languageSupport
+    };
   }
 }
 

@@ -20,7 +20,7 @@ interface RuleConfig {
 export abstract class AbstractSnippetRule implements SnippetExtractionRule {
   abstract readonly name: string;
   abstract readonly supportedNodeTypes: Set<string>;
-  protected abstract readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network';
+  protected abstract readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network' | 'vue_component' | 'express_route' | 'pytest_test' | 'junit_test';
 
   protected readonly config: RuleConfig = {
     maxDepth: 50,

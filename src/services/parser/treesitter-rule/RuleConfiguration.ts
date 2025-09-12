@@ -238,6 +238,99 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'optimizer.step\\(',
         'loss.backward\\('
       ]
+    },
+    VueRule: {
+      enabled: true,
+      priority: 11,
+      maxDepth: 50,
+      minComplexity: 3,
+      maxComplexity: 200,
+      minLines: 3,
+      maxLines: 250,
+      languages: ['javascript', 'typescript'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        'import.*vue',
+        'export default',
+        'defineComponent\\(',
+        'setup\\(',
+        'ref\\(',
+        'reactive\\(',
+        'computed\\(',
+        'watch\\(',
+        '<script setup>'
+      ]
+    },
+    ExpressRule: {
+      enabled: true,
+      priority: 12,
+      maxDepth: 50,
+      minComplexity: 2,
+      maxComplexity: 150,
+      minLines: 2,
+      maxLines: 100,
+      languages: ['javascript'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        'import.*express',
+        'express\\(\\)',
+        'app\\.(get|post|put|delete|patch)',
+        'router\\.(get|post|put|delete|patch)',
+        'app\\.use\\(',
+        'res\\.(send|json|render)',
+        'req\\.(params|query|body)'
+      ]
+    },
+    PytestRule: {
+      enabled: true,
+      priority: 13,
+      maxDepth: 50,
+      minComplexity: 2,
+      maxComplexity: 100,
+      minLines: 2,
+      maxLines: 150,
+      languages: ['python'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        'import pytest',
+        'def test_',
+        'class Test',
+        '@pytest\\.fixture',
+        '@pytest\\.mark',
+        'assert ',
+        'with pytest\\.raises',
+        '@pytest\\.parametrize'
+      ]
+    },
+    JUnitRule: {
+      enabled: true,
+      priority: 14,
+      maxDepth: 50,
+      minComplexity: 2,
+      maxComplexity: 120,
+      minLines: 2,
+      maxLines: 200,
+      languages: ['java'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        'import org.junit.jupiter',
+        '@Test',
+        '@BeforeEach',
+        '@AfterEach',
+        '@BeforeAll',
+        '@AfterAll',
+        '@ParameterizedTest',
+        'assert',
+        'Assertions\\.'
+      ]
     }
   },
   languages: {

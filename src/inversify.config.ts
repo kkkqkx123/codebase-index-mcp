@@ -227,6 +227,12 @@ import { DjangoRule } from './services/parser/treesitter-rule/languages/python/f
 import { SpringBootRule } from './services/parser/treesitter-rule/languages/java/frameworks/SpringBootRule';
 import { PyTorchRule } from './services/parser/treesitter-rule/languages/python/frameworks/PyTorchRule';
 
+// Import Phase 2 framework rules
+import { VueRule } from './services/parser/treesitter-rule/languages/ts/frameworks/VueRule';
+import { ExpressRule } from './services/parser/treesitter-rule/languages/js/frameworks/ExpressRule';
+import { PytestRule } from './services/parser/treesitter-rule/languages/python/testing/PytestRule';
+import { JUnitRule } from './services/parser/treesitter-rule/languages/java/testing/JUnitRule';
+
 // Bind core snippet extraction rules (existing ones remain for compatibility)
 import { SnippetExtractionRule } from './services/parser/treesitter-rule/SnippetExtractionRule';
 import { TYPES } from './types';
@@ -260,7 +266,13 @@ container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstant
   new ReactRule(),
   new DjangoRule(),
   new SpringBootRule(),
-  new PyTorchRule()
+  new PyTorchRule(),
+
+  // Phase 2 framework rules
+  new VueRule(),
+  new ExpressRule(),
+  new PytestRule(),
+  new JUnitRule()
 ]);
 
 // Bind enhanced rule factory for dynamic rule creation
@@ -281,6 +293,10 @@ container.bind<SnippetExtractionRule[]>('PerformanceFocusedRules').toConstantVal
 
 container.bind<SnippetExtractionRule[]>('ArchitectureFocusedRules').toConstantValue(
   EnhancedRuleFactory.createFocusedRules('architecture')
+);
+
+container.bind<SnippetExtractionRule[]>('TestingFocusedRules').toConstantValue(
+  EnhancedRuleFactory.createFocusedRules('testing')
 );
 
 // Bind deduplication services

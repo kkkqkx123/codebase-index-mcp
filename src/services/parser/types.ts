@@ -14,7 +14,7 @@ export interface CodeChunk {
 }
 
 export interface SnippetMetadata {
-  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network';
+  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network' | 'vue_component' | 'express_route' | 'pytest_test' | 'junit_test';
   contextInfo: {
     parentFunction?: string;
     parentClass?: string;
@@ -190,7 +190,7 @@ export interface SnippetMetadata {
   };
   springBootInfo?: {
     application: {
-      mainClass: string;
+      mainClass?: string;
       packages: string[];
       autoConfigurations: string[];
     };
@@ -283,6 +283,179 @@ export interface SnippetMetadata {
       usesCustomLoss: boolean;
       usesScheduler: boolean;
       usesEarlyStopping: boolean;
+    };
+  };
+  vueInfo?: {
+    componentType: 'options_api' | 'composition_api' | 'vue2' | 'vue3';
+    setupFunction: {
+      usesSetup: boolean;
+      reactiveDeclarations: string[];
+      computedProperties: string[];
+      lifecycleHooks: {
+        created: number;
+        mounted: number;
+        updated: number;
+        unmounted: number;
+      };
+    };
+    template: {
+      directives: string[];
+      componentUsage: string[];
+      eventHandling: boolean;
+      conditionalRendering: boolean;
+      listRendering: boolean;
+    };
+    stateManagement: {
+      dataProperties: string[];
+      methods: string[];
+      watchers: string[];
+      usesVuex: boolean;
+      usesPinia: boolean;
+    };
+    composition: {
+      refs: string[];
+      reactives: string[];
+      composables: string[];
+      injectProvide: boolean;
+    };
+    routing: {
+      usesVueRouter: boolean;
+      routeParams: string[];
+      navigationMethods: string[];
+    };
+  };
+  expressInfo?: {
+    routeHandlers: {
+      path: string;
+      method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ALL';
+      handlerType: 'function' | 'async_function' | 'arrow_function' | 'class_method';
+      middlewareUsed: string[];
+      parameters: {
+        routeParams: string[];
+        queryParams: string[];
+        bodyParams: string[];
+      };
+    }[];
+    middleware: {
+      global: string[];
+      routeSpecific: string[];
+      errorHandling: boolean;
+      authentication: boolean;
+      validation: boolean;
+    };
+    routing: {
+      usesExpressRouter: boolean;
+      nestedRoutes: boolean;
+      routeParameters: string[];
+      staticFiles: boolean;
+    };
+    responseHandling: {
+      jsonResponses: number;
+      renderTemplates: number;
+      statusCodes: number[];
+      streaming: boolean;
+    };
+    errorHandling: {
+      errorMiddleware: boolean;
+      customErrorHandlers: number;
+      tryCatchBlocks: number;
+      asyncErrorHandling: boolean;
+    };
+    ecosystem: {
+      bodyParser: boolean;
+      cookieParser: boolean;
+      cors: boolean;
+      session: boolean;
+      templateEngine?: string;
+    };
+  };
+  pytestInfo?: {
+    testStructure: {
+      fixtures: string[];
+      parametrizedTests: number;
+      testCases: number;
+      testModules: number;
+    };
+    patterns: {
+      usesPytestFixtures: boolean;
+      usesMarkers: boolean;
+      usesMocking: boolean;
+      usesAsserts: boolean;
+      usesFixturesScope: boolean;
+    };
+    mocking: {
+      mockObjects: string[];
+      patchCalls: string[];
+      spyUsage: boolean;
+      sideEffects: boolean;
+    };
+    configuration: {
+      customConfig: boolean;
+      commandLineArgs: string[];
+      environmentVariables: string[];
+      conftestPyUsed: boolean;
+    };
+    assertions: {
+      assertCount: number;
+      customAssertions: boolean;
+      exceptionTesting: boolean;
+      warningTesting: boolean;
+    };
+    fixtures: {
+      autouseFixtures: string[];
+      sessionFixtures: string[];
+      moduleFixtures: string[];
+      classFixtures: string[];
+      functionFixtures: string[];
+    };
+  };
+  junitInfo?: {
+    testStructure: {
+      testClasses: number;
+      testMethods: number;
+      parameterizedTests: number;
+      nestedTests: number;
+    };
+    annotations: {
+      usesTest: boolean;
+      usesBeforeEach: boolean;
+      usesAfterEach: boolean;
+      usesBeforeAll: boolean;
+      usesAfterAll: boolean;
+      usesParameterizedTest: boolean;
+      usesRepeatedTest: boolean;
+      usesTimeout: boolean;
+      usesDisabled: boolean;
+    };
+    assertions: {
+      assertCount: number;
+      customAssertions: boolean;
+      assertEqualsCount: number;
+      assertTrueCount: number;
+      assertNullCount: number;
+    };
+    lifecycle: {
+      beforeEachCount: number;
+      afterEachCount: number;
+      beforeAllCount: number;
+      afterAllCount: number;
+    };
+    parameterization: {
+      valueSources: string[];
+      methodSources: string[];
+      csvSources: string[];
+      enumSources: string[];
+    };
+    extensions: {
+      customExtensions: string[];
+      usesMockito: boolean;
+      usesAssertJ: boolean;
+      usesHamcrest: boolean;
+    };
+    performance: {
+      timeoutUsage: boolean;
+      parallelExecution: boolean;
+      repeatedTests: number;
     };
   };
 }
