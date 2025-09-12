@@ -16,7 +16,6 @@ CURRENT_DIR="$(pwd)"
 echo "=== 创建目录结构 ==="
 
 # 创建monitoring目录结构
-mkdir -p monitoring/alerts
 mkdir -p monitoring/grafana/dashboards
 mkdir -p monitoring/grafana/provisioning/dashboards
 mkdir -p monitoring/grafana/provisioning/datasources
@@ -31,7 +30,7 @@ mkdir -p nebula/logs/{metad0,metad1,metad2,storaged0,storaged1,storaged2,graphd,
 echo "✓ nebula目录结构创建完成"
 
 # 创建qdrant目录结构
-
+# 现在使用127.0.0.1的qdrant，故跳过
 echo "=== 创建Qdrant目录结构 ==="
 mkdir -p qdrant/storage
 
@@ -41,51 +40,6 @@ echo "✓ qdrant目录结构创建完成"
 
 # 检查并移动现有配置文件
 echo "=== 检查现有配置文件 ==="
-
-# 检查monitoring目录中的文件
-if [ -f "prometheus.yml" ]; then
-    mv prometheus.yml monitoring/
-    echo "✓ prometheus.yml 已移动到 monitoring/"
-fi
-
-if [ -f "alertmanager.yml" ]; then
-    mv alertmanager.yml monitoring/
-    echo "✓ alertmanager.yml 已移动到 monitoring/"
-fi
-
-if [ -f "docker-compose.monitoring.yml" ]; then
-    mv docker-compose.monitoring.yml monitoring/
-    echo "✓ docker-compose.monitoring.yml 已移动到 monitoring/"
-fi
-
-if [ -d "grafana" ]; then
-    mv grafana/* monitoring/grafana/
-    rmdir grafana
-    echo "✓ grafana配置已移动到 monitoring/grafana/"
-fi
-
-# 检查nebula目录中的文件
-echo "=== 检查NebulaGraph配置文件 ==="
-
-if [ -f "docker-compose.nebula.yml" ]; then
-    mv docker-compose.nebula.yml nebula/
-    echo "✓ docker-compose.nebula.yml 已移动到 nebula/"
-fi
-
-if [ -f "nebula-graphd.conf" ]; then
-    mv nebula-graphd.conf nebula/
-    echo "✓ nebula-graphd.conf 已移动到 nebula/"
-fi
-
-if [ -f "config/nebula-stats-exporter-config.yaml" ]; then
-    mv config/nebula-stats-exporter-config.yaml nebula/
-    echo "✓ nebula-stats-exporter-config.yaml 已移动到 nebula/"
-fi
-
-if [ -f "docker-compose.qdrant.yml" ]; then
-    mv docker-compose.qdrant.yml qdrant/
-    echo "✓ docker-compose.qdrant.yml 已移动到 qdrant/"
-fi
 
 # 设置文件权限
 echo "=== 设置文件权限 ==="

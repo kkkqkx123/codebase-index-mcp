@@ -6,22 +6,65 @@ rule_files:
   - "alerts/*.yml"
 
 scrape_configs:
-  - job_name: 'codebase-index-mcp'
+  - job_name: 'codebase-index'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:3000']
     metrics_path: '/metrics'
     scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  - job_name: 'codebase-index-semgrep'
+    static_configs:
+      - targets: ['localhost:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      collect: ['semgrep']
+
+  - job_name: 'codebase-index-treesitter'
+    static_configs:
+      - targets: ['localhost:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      collect: ['treesitter']
 
   - job_name: 'qdrant'
     static_configs:
-      - targets: ['qdrant:6333']
+      - targets: ['127.0.0.1:6333']
     metrics_path: '/metrics'
     scrape_interval: 30s
 
-  - job_name: 'nebula-stats-exporter'
+  - job_name: 'nebula-graph'
     static_configs:
-      - targets: ['nebula-stats-exporter:9100']
+      - targets: ['graphd:19669']
+    metrics_path: '/metrics'
     scrape_interval: 30s
+
+  # Project-level monitoring configuration (through file discovery)
+  - job_name: 'qdrant-projects'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/qdrant-projects.json'
+    metrics_path: '/metrics'  # Qdrant's standard monitoring endpoint
+    scrape_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__meta_filepath]
+        regex: '.*project-(.*)\.json'
+        target_label: project_id
+
+  - job_name: 'nebula-projects'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/nebula-projects.json'
+    scrape_interval: 60s
 
 alerting:
   alertmanagers:
