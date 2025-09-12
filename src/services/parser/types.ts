@@ -14,7 +14,7 @@ export interface CodeChunk {
 }
 
 export interface SnippetMetadata {
-  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface';
+  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network';
   contextInfo: {
     parentFunction?: string;
     parentClass?: string;
@@ -111,6 +111,179 @@ export interface SnippetMetadata {
     usesRecursion: boolean;
     usesImmutability: boolean;
     complexity: number;
+  };
+  reactInfo?: {
+    componentType: 'functional' | 'class';
+    hooks: {
+      useState: number;
+      useEffect: number;
+      useContext: number;
+      useReducer: number;
+      useCallback: number;
+      useMemo: number;
+      customHooks: string[];
+    };
+    jsxComplexity: {
+      elementCount: number;
+      nestedDepth: number;
+      conditionalRendering: boolean;
+      listRendering: boolean;
+    };
+    props: {
+      destructured: string[];
+      defaultValues: Record<string, any>;
+      validation: boolean;
+    };
+    state: {
+      stateVariables: string[];
+      stateUpdaters: string[];
+      complexState: boolean;
+    };
+    lifecycle: {
+      useEffectDeps: string[][];
+      cleanupFunctions: number;
+    };
+    performance: {
+      memoizedComponents: boolean;
+      memoizedCallbacks: boolean;
+      lazyComponents: boolean;
+    };
+  };
+  djangoInfo?: {
+    models: {
+      modelName: string;
+      fields: {
+        name: string;
+        type: string;
+        constraints: string[];
+        relationships: {
+          type: 'ForeignKey' | 'ManyToMany' | 'OneToOne';
+          relatedModel: string;
+        }[];
+      }[];
+      meta: {
+        dbTable?: string;
+        ordering?: string[];
+        verboseName?: string;
+      };
+    }[];
+    views: {
+      name: string;
+      type: 'function' | 'class';
+      method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      authentication: boolean;
+      permissions: string[];
+      template?: string;
+    }[];
+    orm: {
+      queryComplexity: number;
+      relationships: string[];
+      optimizedQueries: boolean;
+      nPlusOneIssues: boolean;
+    };
+    patterns: {
+      usesSignals: boolean;
+      usesMiddleware: boolean;
+      usesDecorators: boolean;
+      usesGenericViews: boolean;
+    };
+  };
+  springBootInfo?: {
+    application: {
+      mainClass: string;
+      packages: string[];
+      autoConfigurations: string[];
+    };
+    controllers: {
+      className: string;
+      type: 'RestController' | 'Controller';
+      endpoints: {
+        path: string;
+        method: string;
+        parameters: string[];
+        returnTypes: string;
+      }[];
+      requestMappings: string[];
+    }[];
+    dependencyInjection: {
+      beans: string[];
+      injections: {
+        field: string;
+        type: string;
+        qualifier?: string;
+      }[];
+      circularDependencies: boolean;
+    };
+    data: {
+      entities: {
+        name: string;
+        table: string;
+        fields: {
+          name: string;
+          type: string;
+          column: string;
+          constraints: string[];
+        }[];
+        relationships: {
+          field: string;
+          targetEntity: string;
+          type: string;
+          cascade: string[];
+        }[];
+      }[];
+      repositories: string[];
+      queries: string[];
+    };
+    transactions: {
+      transactionalMethods: string[];
+      rollbackRules: string[];
+      isolationLevels: string[];
+    };
+    performance: {
+      lazyLoading: boolean;
+      cachingEnabled: boolean;
+      connectionPooling: boolean;
+    };
+  };
+  pytorchInfo?: {
+    neuralNetwork: {
+      className: string;
+      layers: {
+        type: string;
+        inputSize: number;
+        outputSize: number;
+        parameters: Record<string, any>;
+      }[];
+      totalParameters: number;
+      trainableParameters: number;
+    };
+    training: {
+      epochs: number;
+      batchSize: number;
+      optimizer: string;
+      lossFunction: string;
+      learningRate: number;
+      device: 'cpu' | 'cuda' | 'mps';
+    };
+    data: {
+      inputShape: number[];
+      outputShape: number[];
+      datasetSize: number;
+      dataLoaders: string[];
+      augmentation: boolean;
+    };
+    performance: {
+      gpuAcceleration: boolean;
+      mixedPrecision: boolean;
+      gradientClipping: boolean;
+      checkpointing: boolean;
+    };
+    patterns: {
+      usesDistributed: boolean;
+      usesCustomLoss: boolean;
+      usesScheduler: boolean;
+      usesEarlyStopping: boolean;
+    };
   };
 }
 

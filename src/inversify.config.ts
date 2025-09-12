@@ -221,6 +221,12 @@ import { JavaLambdaRule } from './services/parser/treesitter-rule/languages/java
 import { GoGoroutineRule } from './services/parser/treesitter-rule/languages/go/GoGoroutineRule';
 import { GoInterfaceRule } from './services/parser/treesitter-rule/languages/go/GoInterfaceRule';
 
+// Import framework rules
+import { ReactRule } from './services/parser/treesitter-rule/languages/ts/frameworks/ReactRule';
+import { DjangoRule } from './services/parser/treesitter-rule/languages/python/frameworks/DjangoRule';
+import { SpringBootRule } from './services/parser/treesitter-rule/languages/java/frameworks/SpringBootRule';
+import { PyTorchRule } from './services/parser/treesitter-rule/languages/python/frameworks/PyTorchRule';
+
 // Bind core snippet extraction rules (existing ones remain for compatibility)
 import { SnippetExtractionRule } from './services/parser/treesitter-rule/SnippetExtractionRule';
 import { TYPES } from './types';
@@ -248,7 +254,13 @@ container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstant
   new JavaStreamRule(),
   new JavaLambdaRule(),
   new GoGoroutineRule(),
-  new GoInterfaceRule()
+  new GoInterfaceRule(),
+
+  // Framework rules
+  new ReactRule(),
+  new DjangoRule(),
+  new SpringBootRule(),
+  new PyTorchRule()
 ]);
 
 // Bind enhanced rule factory for dynamic rule creation

@@ -154,6 +154,90 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'assert\s*\(',
         'should\s*\('
       ]
+    },
+    ReactRule: {
+      enabled: true,
+      priority: 7,
+      maxDepth: 50,
+      minComplexity: 3,
+      maxComplexity: 150,
+      minLines: 3,
+      maxLines: 200,
+      languages: ['javascript', 'typescript'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: true,
+      customPatterns: [
+        'import.*React',
+        'useState\s*\(',
+        'useEffect\s*\(',
+        'function\s+[A-Z].*return.*<',
+        'class\s+[A-Z].*extends.*Component'
+      ]
+    },
+    DjangoRule: {
+      enabled: true,
+      priority: 8,
+      maxDepth: 50,
+      minComplexity: 2,
+      maxComplexity: 200,
+      minLines: 2,
+      maxLines: 150,
+      languages: ['python'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        'from django.db import models',
+        'class.*models.Model',
+        'def.*request.*:',
+        '@login_required',
+        'objects.filter',
+        'render\\('
+      ]
+    },
+    SpringBootRule: {
+      enabled: true,
+      priority: 9,
+      maxDepth: 50,
+      minComplexity: 3,
+      maxComplexity: 250,
+      minLines: 3,
+      maxLines: 300,
+      languages: ['java'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        '@SpringBootApplication',
+        '@RestController',
+        '@Service',
+        '@Entity',
+        '@Autowired',
+        '@GetMapping',
+        '@Transactional'
+      ]
+    },
+    PyTorchRule: {
+      enabled: true,
+      priority: 10,
+      maxDepth: 50,
+      minComplexity: 4,
+      maxComplexity: 300,
+      minLines: 5,
+      maxLines: 400,
+      languages: ['python'],
+      includeContext: true,
+      extractImports: true,
+      extractExports: false,
+      customPatterns: [
+        'import torch',
+        'class.*nn.Module',
+        'def forward\\(',
+        'model.train\\(',
+        'optimizer.step\\(',
+        'loss.backward\\('
+      ]
     }
   },
   languages: {
