@@ -83,10 +83,15 @@ rules:
     message: Potential resource leak - resource not properly closed
     languages: [java, csharp, python]
     severity: WARNING
-    pattern: |
-      $RESOURCE = new $TYPE(...)
-      ...
-      // No $RESOURCE.close() or try-with-resources
+    patterns:
+      - pattern: |
+          $RESOURCE = new $TYPE(...)
+      - pattern-not: |
+          $RESOURCE.close()
+      - pattern-not: |
+          try (...) {
+            ...
+          }
     metadata:
       category: reliability
       cwe: CWE-404

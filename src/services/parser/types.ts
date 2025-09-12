@@ -14,7 +14,7 @@ export interface CodeChunk {
 }
 
 export interface SnippetMetadata {
-  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network' | 'vue_component' | 'express_route' | 'pytest_test' | 'junit_test';
+  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network' | 'vue_component' | 'express_route' | 'pytest_test' | 'junit_test' | 'angular_component' | 'fastapi_route' | 'data_manipulation' | 'go_web_framework' | 'build_configuration' | 'package_management' | 'docker_containerization' | 'cicd_configuration';
   contextInfo: {
     parentFunction?: string;
     parentClass?: string;
@@ -456,6 +456,52 @@ export interface SnippetMetadata {
       timeoutUsage: boolean;
       parallelExecution: boolean;
       repeatedTests: number;
+    };
+  };
+  goFrameworkInfo?: {
+    complexity: number;
+    tags: string[];
+    framework: {
+      name: string;
+      version: string;
+      patterns: string[];
+      features: string[];
+    };
+    httpMethods: string[];
+    middleware: string[];
+    database: string[];
+  };
+  buildInfo?: {
+    complexity: number;
+    tags: string[];
+    buildSystem: 'maven' | 'gradle' | 'unknown';
+    buildType: string;
+    dependencies: string[];
+    plugins: string[];
+    repositories: string[];
+    properties: Record<string, string>;
+    profiles: string[];
+  };
+  fastapiInfo?: {
+    complexity: number;
+    tags: string[];
+    framework: {
+      name: string;
+      version: string;
+      patterns: string[];
+      features: string[];
+    };
+    endpointInfo?: {
+      method?: string;
+      path?: string;
+      responseModel?: string;
+      statusCode?: string;
+    };
+    dataModels: string[];
+    dependencies: string[];
+    authentication?: {
+      type?: string;
+      scheme?: string;
     };
   };
 }

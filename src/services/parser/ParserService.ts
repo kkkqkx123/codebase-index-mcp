@@ -245,4 +245,202 @@ export class ParserService {
       };
     }
   }
+
+  /**
+   * 查询AST节点 - 使用类XPath语法
+   */
+  async queryAST(filePath: string, query: string): Promise<any[]> {
+    try {
+      const parseResult = await this.parseFile(filePath, { includeAST: true });
+      if (!parseResult.ast) {
+        return [];
+      }
+      
+      // 这里可以实现类似XPath的查询逻辑
+      // 简化实现：按节点类型查询
+      const nodeType = query.replace('//', '');
+      return this.findNodesByType(parseResult.ast, nodeType);
+    } catch (error) {
+      this.logger.error('Failed to query AST', { filePath, query, error });
+      return [];
+    }
+  }
+
+  /**
+   * 按类型查找AST节点
+   */
+  private findNodesByType(ast: any, nodeType: string): any[] {
+    const results: any[] = [];
+    
+    function traverse(node: any) {
+      if (node && node.type === nodeType) {
+        results.push(node);
+      }
+      
+      if (node && node.children) {
+        node.children.forEach(traverse);
+      }
+    }
+    
+    traverse(ast);
+    return results;
+  }
+
+  /**
+   * 获取AST的简化表示
+   */
+  async getASTSummary(filePath: string): Promise<{
+    filePath: string;
+    nodeCount: number;
+    depth: number;
+    nodeTypes: Record<string, number>;
+  }> {
+    try {
+      const parseResult = await this.parseFile(filePath, { includeAST: true });
+      if (!parseResult.ast) {
+        return {
+          filePath,
+          nodeCount: 0,
+          depth: 0,
+          nodeTypes: {}
+        };
+      }
+
+      let nodeCount = 0;
+      let maxDepth = 0;
+      const nodeTypes: Record<string, number> = {};
+
+      function analyze(node: any, currentDepth: number): void {
+        if (!node) return;
+        
+        nodeCount++;
+        maxDepth = Math.max(maxDepth, currentDepth);
+        
+        const type = node.type || 'unknown';
+        nodeTypes[type] = (nodeTypes[type] || 0) + 1;
+        
+        if (node.children) {
+          node.children.forEach((child: any) => analyze(child, currentDepth + 1));
+        }
+      }
+
+      analyze(parseResult.ast, 0);
+
+      return {
+        filePath,
+        nodeCount,
+        depth: maxDepth,
+        nodeTypes
+      };
+    } catch (error) {
+      this.logger.error('Failed to get AST summary', { filePath, error });
+      throw error;
+    }
+  }
+
+  /**
+   * 比较两个文件的AST差异
+   */
+  async compareASTs(filePath1: string, filePath2: string): Promise<{
+    areIdentical: boolean;
+    differences: Array<{
+      type: 'added' | 'removed' | 'modified';
+      path: string;
+      details: string;
+    }>;
+  }> {
+    try {
+      const [ast1, ast2] = await Promise.all([
+        this.parseFile(filePath1, { includeAST: true }),
+        this.parseFile(filePath2, { includeAST: true })
+      ]);
+
+      // 简化比较：比较函数和类的数量
+      const funcDiff = Math.abs(ast1.functions.length - ast2.functions.length);
+      const classDiff = Math.abs(ast1.classes.length - ast2.classes.length);
+      
+      const differences: Array<{
+        type: 'added' | 'removed' | 'modified';
+        path: string;
+        details: string;
+      }> = [];
+      
+      if (funcDiff > 0) {
+        differences.push({
+          type: 'modified',
+          path: 'functions',
+          details: `Function count difference: ${funcDiff}`
+        });
+      }
+      
+      if (classDiff > 0) {
+        differences.push({
+          type: 'modified',
+          path: 'classes',
+          details: `Class count difference: ${classDiff}`
+        });
+      }
+
+      return {
+        areIdentical: differences.length === 0,
+        differences
+      };
+    } catch (error) {
+      this.logger.error('Failed to compare ASTs', { filePath1, filePath2, error });
+      throw error;
+    }
+  }
+
+  /**
+   * 在AST中搜索特定模式的节点
+   */
+  async searchInAST(
+    filePath: string, 
+    pattern: {
+      type?: string;
+      name?: string;
+      contains?: string;
+    }
+  ): Promise<any[]> {
+    try {
+      const parseResult = await this.parseFile(filePath, { includeAST: true });
+      if (!parseResult.ast) {
+        return [];
+      }
+
+      const results: any[] = [];
+      
+      function search(node: any): void {
+        if (!node) return;
+        
+        let matches = true;
+        
+        if (pattern.type && node.type !== pattern.type) {
+          matches = false;
+        }
+        
+        if (pattern.name && node.name !== pattern.name) {
+          matches = false;
+        }
+        
+        if (pattern.contains && node.text && !node.text.includes(pattern.contains)) {
+          matches = false;
+        }
+        
+        if (matches) {
+          results.push(node);
+        }
+        
+        if (node.children) {
+          node.children.forEach(search);
+        }
+      }
+      
+      search(parseResult.ast);
+      return results;
+    } catch (error) {
+      this.logger.error('Failed to search in AST', { filePath, pattern, error });
+      return [];
+    }
+  }
 }

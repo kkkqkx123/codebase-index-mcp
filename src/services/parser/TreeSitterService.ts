@@ -73,4 +73,8 @@ export class TreeSitterService {
   findNodeByType(ast: Parser.SyntaxNode, type: string): Parser.SyntaxNode[] {
     return this.coreService.findNodeByType(ast, type);
   }
+
+  queryTree(ast: Parser.SyntaxNode, pattern: string): Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> {
+    return this.coreService.queryTree(ast, pattern);
+  }
 }

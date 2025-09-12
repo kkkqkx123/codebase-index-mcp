@@ -26,12 +26,22 @@ import { GoInterfaceRule } from './languages/go/GoInterfaceRule';
 // Framework rules
 import { ReactRule } from './languages/ts/frameworks/ReactRule';
 import { VueRule } from './languages/ts/frameworks/VueRule';
+import { AngularRule } from './languages/ts/frameworks/AngularRule';
 import { ExpressRule } from './languages/js/frameworks/ExpressRule';
 import { DjangoRule } from './languages/python/frameworks/DjangoRule';
+import { FastAPIRule } from './languages/python/frameworks/FastAPIRule';
 import { PyTorchRule } from './languages/python/frameworks/PyTorchRule';
+import { PandasNumpyRule } from './languages/python/frameworks/PandasNumpyRule';
 import { PytestRule } from './languages/python/testing/PytestRule';
 import { JUnitRule } from './languages/java/testing/JUnitRule';
 import { SpringBootRule } from './languages/java/frameworks/SpringBootRule';
+import { GoFrameworkRule } from './languages/go/GoFrameworkRule';
+
+// Build and Tooling rules
+import { JavaBuildSystemsRule } from './languages/java/build/JavaBuildSystemsRule';
+import { NpmYarnPackageManagementRule } from './languages/js/package-management/NpmYarnPackageManagementRule';
+import { DockerContainerizationRule } from './languages/docker/DockerContainerizationRule';
+import { CICDConfigurationRule } from './languages/js/cicd/CICDConfigurationRule';
 
 /**
  * Enhanced Rule Factory - Creates and manages snippet extraction rules
@@ -71,12 +81,22 @@ export class EnhancedRuleFactory {
       // Framework rules
       new ReactRule(),
       new VueRule(),
+      new AngularRule(),
       new ExpressRule(),
       new DjangoRule(),
+      new FastAPIRule(),
       new PyTorchRule(),
+      new PandasNumpyRule(),
       new PytestRule(),
       new JUnitRule(),
-      new SpringBootRule()
+      new SpringBootRule(),
+      new GoFrameworkRule(),
+
+      // Build and Tooling rules
+      new JavaBuildSystemsRule(),
+      new NpmYarnPackageManagementRule(),
+      new DockerContainerizationRule(),
+      new CICDConfigurationRule()
     ];
   }
 
@@ -115,7 +135,11 @@ export class EnhancedRuleFactory {
           new FunctionalProgrammingRule(),
           new ReactRule(),
           new VueRule(),
-          new ExpressRule()
+          new AngularRule(),
+          new ExpressRule(),
+          new NpmYarnPackageManagementRule(),
+          new DockerContainerizationRule(),
+          new CICDConfigurationRule()
         ];
 
       case 'python':
@@ -123,7 +147,9 @@ export class EnhancedRuleFactory {
           ...baseRules,
           new PythonComprehensionRule(),
           new DjangoRule(),
+          new FastAPIRule(),
           new PyTorchRule(),
+          new PandasNumpyRule(),
           new PytestRule()
         ];
 
@@ -133,14 +159,16 @@ export class EnhancedRuleFactory {
           new JavaStreamRule(),
           new JavaLambdaRule(),
           new SpringBootRule(),
-          new JUnitRule()
+          new JUnitRule(),
+          new JavaBuildSystemsRule()
         ];
 
       case 'go':
         return [
           ...baseRules,
           new GoGoroutineRule(),
-          new GoInterfaceRule()
+          new GoInterfaceRule(),
+          new GoFrameworkRule()
         ];
 
       default:
@@ -168,7 +196,8 @@ export class EnhancedRuleFactory {
           new PythonComprehensionRule(),
           new ReactRule(),
           new VueRule(),
-          new PyTorchRule()
+          new PyTorchRule(),
+          new PandasNumpyRule()
         ];
 
       case 'architecture':
@@ -178,11 +207,18 @@ export class EnhancedRuleFactory {
           new GenericPatternRule(),
           new FunctionalProgrammingRule(),
           new GoInterfaceRule(),
+          new GoFrameworkRule(),
           new ReactRule(),
           new VueRule(),
+          new AngularRule(),
           new SpringBootRule(),
           new DjangoRule(),
-          new ExpressRule()
+          new FastAPIRule(),
+          new ExpressRule(),
+          new JavaBuildSystemsRule(),
+          new NpmYarnPackageManagementRule(),
+          new DockerContainerizationRule(),
+          new CICDConfigurationRule()
         ];
 
       case 'security':
@@ -192,7 +228,11 @@ export class EnhancedRuleFactory {
           new FunctionCallChainRule(),
           new TemplateLiteralRule(),
           new ExpressRule(),
-          new SpringBootRule()
+          new SpringBootRule(),
+          new FastAPIRule(),
+          new DjangoRule(),
+          new DockerContainerizationRule(),
+          new CICDConfigurationRule()
         ];
 
       case 'testing':
@@ -220,21 +260,48 @@ export class EnhancedRuleFactory {
       case 'vue':
       case 'vuejs':
         return [new VueRule()];
+      case 'angular':
+        return [new AngularRule()];
       case 'express':
       case 'expressjs':
         return [new ExpressRule()];
       case 'django':
         return [new DjangoRule()];
+      case 'fastapi':
+        return [new FastAPIRule()];
       case 'spring':
       case 'springboot':
         return [new SpringBootRule()];
       case 'pytorch':
         return [new PyTorchRule()];
+      case 'pandas':
+      case 'numpy':
+      case 'pandasnumpy':
+        return [new PandasNumpyRule()];
+      case 'gin':
+      case 'echo':
+      case 'goframework':
+        return [new GoFrameworkRule()];
       case 'pytest':
         return [new PytestRule()];
       case 'junit':
       case 'junit5':
         return [new JUnitRule()];
+      case 'maven':
+      case 'gradle':
+      case 'javabuild':
+        return [new JavaBuildSystemsRule()];
+      case 'npm':
+      case 'yarn':
+      case 'package':
+        return [new NpmYarnPackageManagementRule()];
+      case 'docker':
+      case 'container':
+        return [new DockerContainerizationRule()];
+      case 'cicd':
+      case 'ci':
+      case 'cd':
+        return [new CICDConfigurationRule()];
       default:
         return [];
     }
@@ -273,7 +340,9 @@ export class EnhancedRuleFactory {
     return [
       new PythonComprehensionRule(),
       new DjangoRule(),
+      new FastAPIRule(),
       new PyTorchRule(),
+      new PandasNumpyRule(),
       new PytestRule()
     ];
   }
