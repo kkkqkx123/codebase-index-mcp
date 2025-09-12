@@ -423,4 +423,107 @@ export class NebulaConnectionManager {
       throw error;
     }
   }
+
+  /**
+   * 获取当前活跃会话信息
+   */
+  async getActiveSessions(): Promise<any> {
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      // 执行SHOW SESSIONS命令获取所有活跃会话
+      const sessionsResult = await this.client.execute('SHOW SESSIONS', false);
+      
+      // 执行SHOW LOCAL SESSIONS命令获取本地会话
+      const localSessionsResult = await this.client.execute('SHOW LOCAL SESSIONS', false);
+      
+      return {
+        allSessions: sessionsResult.data || [],
+        localSessions: localSessionsResult.data || [],
+        totalCount: sessionsResult.data ? sessionsResult.data.length : 0,
+        localCount: localSessionsResult.data ? localSessionsResult.data.length : 0
+      };
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to get active sessions: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'getActiveSessions' }
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 清理空闲会话
+   * @param maxIdleMinutes 最大空闲时间（分钟）
+   */
+  async cleanupIdleSessions(maxIdleMinutes: number = 60): Promise<number> {
+    if (!this.isConnected || !this.client) {
+      throw new Error('Not connected to NebulaGraph');
+    }
+
+    try {
+      const currentTime = new Date();
+      const cutoffTime = new Date(currentTime.getTime() - maxIdleMinutes * 60 * 1000);
+      
+      // 获取所有会话
+      const sessionsResult = await this.client.execute('SHOW SESSIONS', false);
+      
+      if (!sessionsResult.data || sessionsResult.data.length === 0) {
+        return 0;
+      }
+
+      let cleanedCount = 0;
+      
+      // 查找并清理空闲会话
+      for (const session of sessionsResult.data) {
+        const updateTime = new Date(session[4]); // UpdateTime在第五列
+        
+        if (updateTime < cutoffTime) {
+          const sessionId = session[0]; // SessionId在第一列
+          try {
+            await this.client.execute(`KILL SESSION ${sessionId}`, false);
+            cleanedCount++;
+            this.logger.debug(`Cleaned idle session: ${sessionId}`);
+          } catch (killError) {
+            this.logger.warn(`Failed to kill session ${sessionId}: ${killError}`);
+          }
+        }
+      }
+
+      this.logger.info(`Cleaned ${cleanedCount} idle sessions older than ${maxIdleMinutes} minutes`);
+      return cleanedCount;
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(`Failed to cleanup idle sessions: ${error instanceof Error ? error.message : String(error)}`),
+        { component: 'NebulaConnectionManager', operation: 'cleanupIdleSessions' }
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 获取会话使用率统计
+   */
+  async getSessionUsageStats(): Promise<{
+    totalSessions: number;
+    maxSessions: number;
+    usagePercentage: number;
+    hasCapacity: boolean;
+  }> {
+    const sessions = await this.getActiveSessions();
+    
+    // NebulaGraph默认max_sessions_per_ip_per_user=300，当前配置为1000
+    const maxSessions = 1000; // 从配置文件中读取的实际值
+    const totalSessions = sessions.totalCount;
+    const usagePercentage = (totalSessions / maxSessions) * 100;
+    
+    return {
+      totalSessions,
+      maxSessions,
+      usagePercentage,
+      hasCapacity: usagePercentage < 80 // 使用率低于80%认为有容量
+    };
+  }
 }
