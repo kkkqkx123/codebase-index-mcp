@@ -203,9 +203,9 @@ container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().in
 // Bind additional services
 container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
 container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
-container.bind<TreeSitterService>(TreeSitterService).toSelf().inSingletonScope();
-container.bind<TreeSitterCoreService>(TreeSitterCoreService).toSelf().inSingletonScope();
-container.bind<SnippetExtractionService>(SnippetExtractionService).toSelf().inSingletonScope();
+container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
+container.bind<SnippetExtractionService>(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
 
 // Bind snippet extraction rules with enhanced rules
 import { EnhancedRuleFactory } from './services/parser/treesitter-rule/EnhancedRuleFactory';

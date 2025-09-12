@@ -77,4 +77,5 @@ export const TYPES = {
   EnhancedSemgrepAnalyzer: Symbol.for('EnhancedSemgrepAnalyzer'),
   SemgrepResultProcessor: Symbol.for('SemgrepResultProcessor'),
   SemgrepRuleAdapter: Symbol.for('SemgrepRuleAdapter'),
+  SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
 } as const;

@@ -18,6 +18,7 @@ import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
 import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService';
 import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
+import { SemgrepScanService } from '../services/semgrep/SemgrepScanService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
 import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
 import { FileWatcherService } from '../services/filesystem/FileWatcherService';
@@ -85,6 +86,7 @@ export const TYPES = {
   TreeSitterService: Symbol.for('TreeSitterService'),
   TreeSitterCoreService: Symbol.for('TreeSitterCoreService'),
   SnippetExtractionService: Symbol.for('SnippetExtractionService'),
+  SemgrepScanService: Symbol.for('SemgrepScanService'),
   SnippetExtractionRules: Symbol.for('SnippetExtractionRules'),
   SmartCodeParser: Symbol.for('SmartCodeParser'),
   FileSystemTraversal: Symbol.for('FileSystemTraversal'),
@@ -167,6 +169,7 @@ const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
   bind(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
   bind(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
+  bind(TYPES.SemgrepScanService).to(SemgrepScanService).inSingletonScope();
   bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
   bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
   bind(TYPES.FileWatcherService).to(FileWatcherService).inSingletonScope();

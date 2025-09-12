@@ -88,6 +88,13 @@ import { MCPServer } from '../src/mcp/MCPServer';
 import { DIContainer } from '../src/core/DIContainer';
 import { QdrantService } from '../src/database/QdrantService';
 import { FileWatcherService } from '../src/services/filesystem/FileWatcherService';
+import { EnhancedSemgrepScanService } from '../src/services/semgrep/EnhancedSemgrepScanService';
+import { SemgrepScanService } from '../src/services/semgrep/SemgrepScanService';
+import { SemanticAnalysisService } from '../src/services/parser/SemanticAnalysisService';
+import { StaticAnalysisCoordinator } from '../src/services/static-analysis/StaticAnalysisCoordinator';
+import { SemgrepResultProcessor } from '../src/services/semgrep/SemgrepResultProcessor';
+import { EnhancedSemgrepAnalyzer } from '../src/services/static-analysis/EnhancedSemgrepAnalyzer';
+import { EmbeddingService } from '../src/services/storage/EmbeddingService';
 
 // Load main .env file before any other setup
 const mainEnvPath = path.join(process.cwd(), '.env');
@@ -143,7 +150,7 @@ export const createTestContainer = () => {
     error: jest.fn(),
   };
   
-  container.bind<LoggerService>(TYPES.LoggerService).toConstantValue(mockLogger as any);
+  container.bind<LoggerService>(LoggerService).toConstantValue(mockLogger as any);
   
   // Mock ErrorHandlerService with proper dependencies
   const mockErrorHandler = {
@@ -156,7 +163,7 @@ export const createTestContainer = () => {
     clearErrorReports: jest.fn(),
   };
   
-  container.bind<ErrorHandlerService>(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandler as any);
+  container.bind<ErrorHandlerService>(ErrorHandlerService).toConstantValue(mockErrorHandler as any);
   
   // Mock EntityIdManager for tests that need it
   container.bind<EntityIdManager>(EntityIdManager).toConstantValue({
@@ -256,10 +263,8 @@ export const createTestContainer = () => {
   
   // Add missing service bindings for integration tests
   container.bind<MemoryManager>(MemoryManager).toSelf().inSingletonScope();
-  container.bind<IndexService>(IndexService).toSelf().inSingletonScope();
   container.bind<IndexCoordinator>(IndexCoordinator).toSelf().inSingletonScope();
   container.bind<StorageCoordinator>(StorageCoordinator).toSelf().inSingletonScope();
-  container.bind<ParserService>(ParserService).toSelf().inSingletonScope();
   container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
   container.bind<AsyncPipeline>(AsyncPipeline).toSelf().inSingletonScope();
   container.bind<BatchProcessor>(BatchProcessor).toSelf().inSingletonScope();
@@ -391,7 +396,7 @@ export const createTestContainer = () => {
   
   // Bind filesystem services
   container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
-  container.bind<SmartCodeParser>(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
+  container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
   container.bind<ChunkingOptions>('ChunkingOptions').toConstantValue({});
   container.bind<ChangeDetectionService>(ChangeDetectionService).toSelf().inSingletonScope();
   container.bind<ChangeDetectionOptions>('ChangeDetectionOptions').toConstantValue({});
@@ -410,7 +415,38 @@ export const createTestContainer = () => {
   };
   container.bind('FileWatcherService').toConstantValue(mockFileWatcherService);
   
-  // Bind core services
+  // Bind core services - use class types to match test file usage
+  container.bind<EnhancedSemgrepScanService>(EnhancedSemgrepScanService).toSelf().inSingletonScope();
+  container.bind<SemanticAnalysisService>(SemanticAnalysisService).toSelf().inSingletonScope();
+  container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+  container.bind<StaticAnalysisCoordinator>(StaticAnalysisCoordinator).toSelf().inSingletonScope();
+  container.bind<EmbeddingService>(EmbeddingService).toSelf().inSingletonScope();
+  
+  // Bind additional services required by StaticAnalysisCoordinator
+  container.bind<SemgrepResultProcessor>(SemgrepResultProcessor).toSelf().inSingletonScope();
+
+  container.bind<SemgrepScanService>(SemgrepScanService).toConstantValue({
+    scanProject: jest.fn().mockResolvedValue({
+      results: [],
+      errors: [],
+      summary: {
+        totalFiles: 0,
+        totalRules: 0,
+        totalFindings: 0,
+        timing: {}
+      }
+    })
+  } as any);
+  
+  // 确保所有依赖都被正确绑定
+  container.bind<EnhancedSemgrepAnalyzer>(TYPES.EnhancedSemgrepAnalyzer).toConstantValue({
+    analyzeProject: jest.fn().mockResolvedValue({
+      controlFlow: { functions: [] },
+      dataFlow: { variables: [] },
+      securityIssues: { issues: [] },
+      metrics: { cyclomaticComplexity: 0 }
+    })
+  } as any);
   container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
   container.bind<PathUtils>(PathUtils).toSelf().inSingletonScope();
   container.bind<ConfigFactory>(ConfigFactory).toSelf().inSingletonScope();
@@ -423,8 +459,7 @@ export const createTestContainer = () => {
   container.bind<BatchSizeConfigManager>(BatchSizeConfigManager).toSelf().inSingletonScope();
   container.bind<BatchErrorRecoveryService>(BatchErrorRecoveryService).toSelf().inSingletonScope();
   
-  // Bind parser services
-  container.bind<TreeSitterService>(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+  // TreeSitterService is already bound above using TYPES.TreeSitterService
   
   // Bind snippet extraction rules
   container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([

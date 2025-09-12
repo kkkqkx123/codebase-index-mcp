@@ -91,9 +91,9 @@ export interface SideEffect {
 @injectable()
 export class SemanticAnalysisService {
   constructor(
-    @inject(TreeSitterCoreService) private treeSitterService: TreeSitterCoreService,
-    @inject(SemgrepScanService) private semgrepService: SemgrepScanService,
-    @inject(LoggerService) private logger: LoggerService
+    @inject(TYPES.TreeSitterCoreService) private treeSitterService: TreeSitterCoreService,
+    @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
+    @inject(TYPES.LoggerService) private logger: LoggerService
   ) { }
 
   async analyzeSemanticContext(
