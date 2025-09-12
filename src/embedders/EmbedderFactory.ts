@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../types';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
@@ -20,17 +21,17 @@ export class EmbedderFactory {
   private embedders: Map<string, Embedder> = new Map();
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(OpenAIEmbedder) openAIEmbedder: OpenAIEmbedder,
-    @inject(OllamaEmbedder) ollamaEmbedder: OllamaEmbedder,
-    @inject(GeminiEmbedder) geminiEmbedder: GeminiEmbedder,
-    @inject(MistralEmbedder) mistralEmbedder: MistralEmbedder,
-    @inject(SiliconFlowEmbedder) siliconFlowEmbedder: SiliconFlowEmbedder,
-    @inject(Custom1Embedder) custom1Embedder: Custom1Embedder,
-    @inject(Custom2Embedder) custom2Embedder: Custom2Embedder,
-    @inject(Custom3Embedder) custom3Embedder: Custom3Embedder
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.OpenAIEmbedder) openAIEmbedder: OpenAIEmbedder,
+    @inject(TYPES.OllamaEmbedder) ollamaEmbedder: OllamaEmbedder,
+    @inject(TYPES.GeminiEmbedder) geminiEmbedder: GeminiEmbedder,
+    @inject(TYPES.MistralEmbedder) mistralEmbedder: MistralEmbedder,
+    @inject(TYPES.SiliconFlowEmbedder) siliconFlowEmbedder: SiliconFlowEmbedder,
+    @inject(TYPES.Custom1Embedder) custom1Embedder: Custom1Embedder,
+    @inject(TYPES.Custom2Embedder) custom2Embedder: Custom2Embedder,
+    @inject(TYPES.Custom3Embedder) custom3Embedder: Custom3Embedder
   ) {
     this.configService = configService;
     this.logger = logger;

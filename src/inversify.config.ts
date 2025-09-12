@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
+import { TYPES } from './types';
 import { ConfigService } from './config/ConfigService';
 import { ConfigFactory } from './config/ConfigFactory';
 import { LoggerService } from './core/LoggerService';
@@ -74,6 +75,7 @@ import { FileSystemTraversal } from './services/filesystem/FileSystemTraversal';
 import { SmartCodeParser } from './services/parser/SmartCodeParser';
 import { TreeSitterService } from './services/parser/TreeSitterService';
 import { TreeSitterCoreService } from './services/parser/TreeSitterCoreService';
+import { SnippetExtractionService } from './services/parser/SnippetExtractionService';
 import { ControlStructureRule } from './services/parser/treesitter-rule/ControlStructureRule';
 import { ErrorHandlingRule } from './services/parser/treesitter-rule/ErrorHandlingRule';
 import { FunctionCallChainRule } from './services/parser/treesitter-rule/FunctionCallChainRule';
@@ -235,7 +237,6 @@ import { JUnitRule } from './services/parser/treesitter-rule/languages/java/test
 
 // Bind core snippet extraction rules (existing ones remain for compatibility)
 import { SnippetExtractionRule } from './services/parser/treesitter-rule/SnippetExtractionRule';
-import { TYPES } from './types';
 
 container.bind<SnippetExtractionRule[]>(TYPES.SnippetExtractionRules).toConstantValue([
   new ControlStructureRule(),
@@ -335,7 +336,6 @@ import { SemgrepScanService } from './services/semgrep/SemgrepScanService';
 import { SemgrepResultProcessor } from './services/semgrep/SemgrepResultProcessor';
 import { SemgrepRuleAdapter } from './services/semgrep/SemgrepRuleAdapter';
 import { StaticAnalysisRoutes } from './api/routes/StaticAnalysisRoutes';
-import { SnippetExtractionService } from './services/parser/SnippetExtractionService';
 import { EnhancedSemgrepAnalyzer } from './services/static-analysis/EnhancedSemgrepAnalyzer';
 import { EnhancedSemgrepScanService } from './services/semgrep/EnhancedSemgrepScanService';
 

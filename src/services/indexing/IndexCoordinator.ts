@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ChangeDetectionService, FileChangeEvent } from '../filesystem/ChangeDetectionService';
 import { ParserService } from '../parser/ParserService';
 import { StorageCoordinator } from '../storage/StorageCoordinator';
@@ -48,17 +49,17 @@ export class IndexCoordinator {
   private currentIndexing: Map<string, boolean> = new Map();
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(ChangeDetectionService) changeDetectionService: ChangeDetectionService,
-    @inject(ParserService) parserService: ParserService,
-    @inject(StorageCoordinator) storageCoordinator: StorageCoordinator,
-    @inject(FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
-    @inject(AsyncPipeline) asyncPipeline: AsyncPipeline,
-    @inject(BatchProcessor) batchProcessor: BatchProcessor,
-    @inject(MemoryManager) memoryManager: MemoryManager,
-    @inject(SearchCoordinator) searchCoordinator: SearchCoordinator
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.ChangeDetectionService) changeDetectionService: ChangeDetectionService,
+    @inject(TYPES.ParserService) parserService: ParserService,
+    @inject(TYPES.StorageCoordinator) storageCoordinator: StorageCoordinator,
+    @inject(TYPES.FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
+    @inject(TYPES.AsyncPipeline) asyncPipeline: AsyncPipeline,
+    @inject(TYPES.BatchProcessor) batchProcessor: BatchProcessor,
+    @inject(TYPES.MemoryManager) memoryManager: MemoryManager,
+    @inject(TYPES.SearchCoordinator) searchCoordinator: SearchCoordinator
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

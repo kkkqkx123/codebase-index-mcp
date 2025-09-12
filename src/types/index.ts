@@ -78,4 +78,23 @@ export const TYPES = {
   SemgrepResultProcessor: Symbol.for('SemgrepResultProcessor'),
   SemgrepRuleAdapter: Symbol.for('SemgrepRuleAdapter'),
   SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
+  SemanticSemgrepService: Symbol.for('SemanticSemgrepService'),
+  CallGraphService: Symbol.for('CallGraphService'),
+  
+  // Embedders
+  SiliconFlowEmbedder: Symbol.for('SiliconFlowEmbedder'),
+  Custom1Embedder: Symbol.for('Custom1Embedder'),
+  Custom2Embedder: Symbol.for('Custom2Embedder'),
+  Custom3Embedder: Symbol.for('Custom3Embedder'),
+  
+  // Config and Factory
+  ConfigFactory: Symbol.for('ConfigFactory'),
+  
+  // Search and cache
+  SearchCache: Symbol.for('SearchCache'),
+  QdrantCollectionManager: Symbol.for('QdrantCollectionManager'),
+  
+  // Processing and pipeline
+  AsyncPipeline: Symbol.for('AsyncPipeline'),
+  MemoryManager: Symbol.for('MemoryManager'),
 } as const;

@@ -1,18 +1,9 @@
 import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
 import { Container } from 'inversify';
-import { createTestContainer } from '../setup';
-import { IndexService } from '../../src/services/indexing/IndexService';
-import { ParserService } from '../../src/services/parser/ParserService';
-import { EmbeddingService } from '../../src/services/storage/EmbeddingService';
-import { VectorStorageService } from '../../src/services/storage/vector/VectorStorageService';
-import { LoggerService } from '../../src/core/LoggerService';
-import { ErrorHandlerService } from '../../src/core/ErrorHandlerService';
-import { ConfigService } from '../../src/config/ConfigService';
-import { TreeSitterService } from '../../src/services/parser/TreeSitterService';
-import { SemanticAnalysisService } from '../../src/services/parser/SemanticAnalysisService';
-import { EnhancedSemgrepScanService } from '../../src/services/semgrep/EnhancedSemgrepScanService';
-import fs from 'fs';
-import path from 'path';
+import { createSimpleTestContainer } from '../setup-simple';
+import { TYPES } from '../../src/types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * 端到端测试：验证完整工作流
@@ -20,16 +11,16 @@ import path from 'path';
  */
 describe('端到端工作流测试', () => {
   let container: Container;
-  let indexService: IndexService;
-  let parserService: ParserService;
-  let embeddingService: EmbeddingService;
-  let vectorStorageService: VectorStorageService;
-  let loggerService: LoggerService;
-  let errorHandlerService: ErrorHandlerService;
-  let configService: ConfigService;
-  let treeSitterService: TreeSitterService;
-  let semanticAnalysisService: SemanticAnalysisService;
-  let semgrepScanService: EnhancedSemgrepScanService;
+  let indexService: any;
+  let parserService: any;
+  let embeddingService: any;
+  let vectorStorageService: any;
+  let loggerService: any;
+  let errorHandlerService: any;
+  let configService: any;
+  let treeSitterService: any;
+  let semanticAnalysisService: any;
+  let semgrepScanService: any;
 
   // 创建测试用的模拟项目目录
   const testProjectDir = path.join(__dirname, 'test-project');
@@ -41,20 +32,20 @@ describe('端到端工作流测试', () => {
   };
 
   beforeAll(async () => {
-    // 创建测试容器
-    container = createTestContainer();
+    // 创建简化的测试容器（避免循环依赖）
+    container = createSimpleTestContainer();
     
-    // 获取服务实例
-    indexService = container.get(IndexService);
-    parserService = container.get(ParserService);
-    embeddingService = container.get(EmbeddingService);
-    vectorStorageService = container.get(VectorStorageService);
-    loggerService = container.get(LoggerService);
-    errorHandlerService = container.get(ErrorHandlerService);
-    configService = container.get(ConfigService);
-    treeSitterService = container.get(TreeSitterService);
-    semanticAnalysisService = container.get(SemanticAnalysisService);
-    semgrepScanService = container.get(EnhancedSemgrepScanService);
+    // 获取服务实例 - 使用TYPES符号
+    indexService = container.get(TYPES.IndexService);
+    parserService = container.get(TYPES.ParserService);
+    embeddingService = container.get(TYPES.EmbeddingService);
+    vectorStorageService = container.get(TYPES.VectorStorageService);
+    loggerService = container.get(TYPES.LoggerService);
+    errorHandlerService = container.get(TYPES.ErrorHandlerService);
+    configService = container.get(TYPES.ConfigService);
+    treeSitterService = container.get(TYPES.TreeSitterService);
+    semanticAnalysisService = container.get(TYPES.SemanticAnalysisService);
+    semgrepScanService = container.get(TYPES.EnhancedSemgrepScanService);
 
     // 创建测试项目目录结构
     if (!fs.existsSync(testProjectDir)) {

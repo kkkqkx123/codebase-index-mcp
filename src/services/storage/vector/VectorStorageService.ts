@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../../types';
 import { QdrantClientWrapper, VectorPoint, SearchOptions, SearchResult } from '../../../database/qdrant/QdrantClientWrapper';
 import { CodeChunk } from '../../parser/types';
 import { LoggerService } from '../../../core/LoggerService';
@@ -60,14 +61,14 @@ export class VectorStorageService {
   }
 
   constructor(
-    @inject(QdrantClientWrapper) qdrantClient: QdrantClientWrapper,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
-    @inject(EmbedderFactory) private embedderFactory: EmbedderFactory,
-    @inject(BatchProcessingService) batchProcessingService: BatchProcessingService,
-    @inject(EmbeddingService) embeddingService: EmbeddingService
+    @inject(TYPES.QdrantClientWrapper) qdrantClient: QdrantClientWrapper,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(TYPES.EmbedderFactory) private embedderFactory: EmbedderFactory,
+    @inject(TYPES.BatchProcessingService) batchProcessingService: BatchProcessingService,
+    @inject(TYPES.EmbeddingService) embeddingService: EmbeddingService
   ) {
     this.qdrantClient = qdrantClient;
     this.logger = logger;

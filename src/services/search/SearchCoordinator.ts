@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { SemanticSearchService } from '../search/SemanticSearchService';
 import { HybridSearchService } from '../search/HybridSearchService';
 import { RerankingService } from '../reranking/RerankingService';
@@ -79,14 +80,14 @@ export class SearchCoordinator {
   private storageCoordinator: StorageCoordinator;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(ConfigFactory) configFactory: ConfigFactory,
-    @inject(SemanticSearchService) semanticSearch: SemanticSearchService,
-    @inject(HybridSearchService) hybridSearch: HybridSearchService,
-    @inject(RerankingService) rerankingService: RerankingService,
-    @inject(StorageCoordinator) storageCoordinator: StorageCoordinator
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.ConfigFactory) configFactory: ConfigFactory,
+    @inject(TYPES.SemanticSearchService) semanticSearch: SemanticSearchService,
+    @inject(TYPES.HybridSearchService) hybridSearch: HybridSearchService,
+    @inject(TYPES.RerankingService) rerankingService: RerankingService,
+    @inject(TYPES.StorageCoordinator) storageCoordinator: StorageCoordinator
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

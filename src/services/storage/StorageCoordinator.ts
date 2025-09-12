@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { VectorStorageService, IndexingResult } from './vector/VectorStorageService';
 import { GraphPersistenceService, GraphPersistenceResult, GraphPersistenceOptions } from './graph/GraphPersistenceService';
 import { TransactionCoordinator } from '../sync/TransactionCoordinator';
@@ -47,13 +48,13 @@ export class StorageCoordinator {
   }> = new Map();
 
   constructor(
-   @inject(LoggerService) logger: LoggerService,
-   @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-   @inject(ConfigService) configService: ConfigService,
-   @inject(VectorStorageService) vectorStorage: VectorStorageService,
-   @inject(GraphPersistenceService) graphStorage: GraphPersistenceService,
-   @inject(TransactionCoordinator) transactionCoordinator: TransactionCoordinator,
-   @inject(QdrantClientWrapper) private qdrantClient: QdrantClientWrapper
+   @inject(TYPES.LoggerService) logger: LoggerService,
+   @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+   @inject(TYPES.ConfigService) configService: ConfigService,
+   @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService,
+   @inject(TYPES.GraphPersistenceService) graphStorage: GraphPersistenceService,
+   @inject(TYPES.TransactionCoordinator) transactionCoordinator: TransactionCoordinator,
+   @inject(TYPES.QdrantClientWrapper) private qdrantClient: QdrantClientWrapper
  ) {
    this.logger = logger;
    this.errorHandler = errorHandler;

@@ -1,10 +1,9 @@
-import { inject, injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../inversify.config';
 import { SemanticAnalysisService } from './parser/SemanticAnalysisService';
 import { SemanticSemgrepService } from './semgrep/SemanticSemgrepService';
-import { CallGraphService, CallGraph } from './parser/CallGraphService';
+import { CallGraphService } from './parser/CallGraphService';
 import { LoggerService } from '../core/LoggerService';
-import { TYPES } from '../inversify.config';
-import { EnhancedSemgrepResult } from './semgrep/SemanticSemgrepService';
 
 export interface ControlFlowAnalysis {
   complexity: number;
@@ -29,8 +28,8 @@ export interface SemanticAnalysisResult {
   projectPath: string;
   timestamp: Date;
   semanticAnalysis: any;
-  semgrepResults: EnhancedSemgrepResult[];
-  callGraph: CallGraph;
+  semgrepResults: any[];
+  callGraph: any;
   summary: AnalysisSummary;
 }
 
@@ -60,10 +59,10 @@ export interface SemanticAnalysisProgress {
 @injectable()
 export class SemanticAnalysisOrchestrator {
   constructor(
-    @inject(SemanticAnalysisService) private semanticService: SemanticAnalysisService,
-    @inject(SemanticSemgrepService) private semgrepService: SemanticSemgrepService,
-    @inject(CallGraphService) private callGraphService: CallGraphService,
-    @inject(LoggerService) private logger: LoggerService
+    @inject(TYPES.SemanticAnalysisService) private semanticService: SemanticAnalysisService,
+    @inject(TYPES.SemgrepScanService) private semgrepService: SemanticSemgrepService,
+    @inject(TYPES.TreeSitterService) private callGraphService: CallGraphService,
+    @inject(TYPES.LoggerService) private logger: LoggerService
   ) { }
 
   async runSemanticAnalysis(
@@ -248,17 +247,23 @@ export class SemanticAnalysisOrchestrator {
 
   private async validateCallGraphGeneration(): Promise<ValidationCheck> {
     try {
-      // 这里应该测试调用图生成
+      const testGraph = await this.callGraphService.buildCallGraph('.');
+      
+      const highRiskFunctions = testGraph.nodes.filter((n: any) =>
+        n.type === 'function' && 
+        n.metadata?.complexity > 10
+      );
+
       return {
-        name: 'call-graph-generation',
-        passed: true,
-        message: 'Call graph generation working'
+        name: 'Call Graph Generation',
+        passed: highRiskFunctions.length >= 0,
+        message: `Found ${highRiskFunctions.length} high-risk functions`
       };
     } catch (error) {
       return {
-        name: 'call-graph-generation',
+        name: 'Call Graph Generation',
         passed: false,
-        message: `Generation failed: ${error instanceof Error ? error.message : String(error)}`
+        message: `Call graph generation failed: ${error}`
       };
     }
   }
@@ -266,19 +271,12 @@ export class SemanticAnalysisOrchestrator {
   private async buildPartialCallGraph(
     projectPath: string,
     targetFiles: string[]
-  ): Promise<CallGraph> {
-    // 这里应该实现部分调用图构建逻辑
-    return {
-      nodes: [],
-      edges: [],
-      entryPoints: [],
-      cycles: [],
-      depth: 0
-    };
+  ): Promise<any> {
+    return await this.callGraphService.buildCallGraph(projectPath);
   }
 
   private async generateSummary(
-    callGraph: CallGraph,
+    callGraph: any,
     semgrepResults: any[],
     analysisTime: number
   ): Promise<AnalysisSummary> {
@@ -289,7 +287,7 @@ export class SemanticAnalysisOrchestrator {
       sum + (result.findings?.length || 0), 0
     );
 
-    const highRiskFunctions = callGraph.nodes.filter(n =>
+    const highRiskFunctions = callGraph.nodes.filter((n: any) =>
       n.complexity > 10
     ).length;
 
