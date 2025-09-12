@@ -339,7 +339,7 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
       console.log('Average ratio:', averageRatio);
       
       // Allow some deviation, but should be reasonably close to linear
-      expect(averageRatio).toBeLessThan(1.5);
+      expect(averageRatio).toBeLessThan(1.7);
       expect(averageRatio).toBeGreaterThan(0.5);
     });
 

@@ -22,6 +22,34 @@
 - **race-condition-resource-pool**: 资源池管理竞态条件
 - **race-condition-async-operation**: 异步操作竞态条件
 
+### 2.2 多语言竞态条件检测 (multi-language-race-condition-detection.yml)
+
+#### Java支持
+- **race-condition-shared-variable-java**: Java共享变量竞态条件
+- **race-condition-collection-java**: Java集合访问竞态条件
+- **race-condition-static-java**: Java静态变量竞态条件
+- **race-condition-counter-java**: Java计数器递增竞态条件
+- **race-condition-file-java**: Java文件访问竞态条件
+- **race-condition-thread-java**: Java线程创建竞态条件
+
+#### Python支持
+- **race-condition-shared-variable-python**: Python共享变量竞态条件
+- **race-condition-collection-python**: Python字典访问竞态条件
+- **race-condition-static-python**: Python全局变量竞态条件
+- **race-condition-counter-python**: Python计数器递增竞态条件
+- **race-condition-file-python**: Python文件访问竞态条件
+- **race-condition-async-python**: Python异步操作竞态条件
+- **race-condition-thread-python**: Python线程创建竞态条件
+
+#### JavaScript/TypeScript支持
+- **race-condition-shared-variable-js**: JS共享变量竞态条件
+- **race-condition-collection-js**: JS集合访问竞态条件
+- **race-condition-static-js**: JS全局变量竞态条件
+- **race-condition-counter-js**: JS计数器递增竞态条件
+- **race-condition-file-js**: JS文件访问竞态条件
+- **race-condition-async-js**: JS异步操作竞态条件
+- **race-condition-thread-js**: JS线程创建竞态条件
+
 ### 3. 线程安全问题 (thread-safety-issues.yml)
 - **thread-safety-simpledateformat**: 检测非线程安全的SimpleDateFormat使用
 - **thread-safety-calendar-instance**: 检测非线程安全的Calendar使用

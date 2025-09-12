@@ -32,6 +32,17 @@ rules:
       category: concurrency
       technology: [multithreading, race-conditions, shared-variables, resource-pools]
 
+  - id: multi-language-race-condition-detection
+    message: "Multi-language race condition detection rules"
+    languages: [java, javascript, typescript, python]
+    severity: ERROR
+    pattern-regex: ".*"
+    metadata:
+      file: multi-language-race-condition-detection.yml
+      description: "Comprehensive race condition detection for Java, Python, JavaScript, and TypeScript with language-specific patterns"
+      category: concurrency
+      technology: [multithreading, race-conditions, shared-variables, collections, file-access, async-operations]
+
   - id: concurrency-thread-safety-issues
     message: "Thread safety issue detection rules"
     languages: [java]
