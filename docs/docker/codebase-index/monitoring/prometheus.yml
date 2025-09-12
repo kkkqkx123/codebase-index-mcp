@@ -40,29 +40,18 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
 
-  - job_name: 'nebula-graph-stats'
+  # 个人使用Nebula监控配置（单节点）
+  - job_name: 'nebula-personal-stats'
     static_configs:
-      - targets: ['nebula-stats-exporter:9100']
+      - targets: ['nebula-stats-exporter-personal:9100']
     metrics_path: '/metrics'
-    scrape_interval: 30s
+    scrape_interval: 60s  # 降低采集频率
 
-  - job_name: 'nebula-graphd'
+  - job_name: 'nebula-personal-graphd'
     static_configs:
-      - targets: ['graphd:19669']
+      - targets: ['nebula-personal:19669']
     metrics_path: '/stats'
-    scrape_interval: 30s
-
-  - job_name: 'nebula-metad'
-    static_configs:
-      - targets: ['metad0:19559', 'metad1:19559', 'metad2:19559']
-    metrics_path: '/stats'
-    scrape_interval: 30s
-
-  - job_name: 'nebula-storaged'
-    static_configs:
-      - targets: ['storaged0:19779', 'storaged1:19779', 'storaged2:19779']
-    metrics_path: '/stats'
-    scrape_interval: 30s
+    scrape_interval: 60s  # 降低采集频率
 
   # Project-level monitoring configuration (through file discovery)
   - job_name: 'qdrant-projects'

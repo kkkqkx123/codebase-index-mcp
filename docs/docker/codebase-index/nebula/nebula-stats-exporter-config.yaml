@@ -1,31 +1,10 @@
+# 个人使用Nebula监控配置
+# 单节点配置，只监控一个Nebula实例
+
 clusters:
-  - name: codebase-index
+  - name: nebula-personal
     instances:
-      - name: graphd
-        endpointIP: graphd
+      - name: nebula-personal
+        endpointIP: nebula-personal
         endpointPort: 19669
         componentType: graphd
-      - name: metad0
-        endpointIP: metad0
-        endpointPort: 19559
-        componentType: metad
-      - name: metad1
-        endpointIP: metad1
-        endpointPort: 19559
-        componentType: metad
-      - name: metad2
-        endpointIP: metad2
-        endpointPort: 19559
-        componentType: metad
-      - name: storaged0
-        endpointIP: storaged0
-        endpointPort: 19779
-        componentType: storaged
-      - name: storaged1
-        endpointIP: storaged1
-        endpointPort: 19779
-        componentType: storaged
-      - name: storaged2
-        endpointIP: storaged2
-        endpointPort: 19779
-        componentType: storaged
