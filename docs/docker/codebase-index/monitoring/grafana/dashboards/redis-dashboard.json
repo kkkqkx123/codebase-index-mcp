@@ -1,0 +1,141 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Redis监控面板",
+    "tags": ["redis", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Redis连接状态",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "redis_up",
+            "legendFormat": "Redis状态"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"value": 0, "text": "离线", "color": "red"},
+              {"value": 1, "text": "在线", "color": "green"}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "内存使用率",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(redis_memory_used_bytes / redis_memory_max_bytes) * 100",
+            "legendFormat": "内存使用率"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "连接客户端数",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "客户端连接数"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "每秒命令数",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(redis_commands_processed_total[5m])",
+            "legendFormat": "QPS"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 5,
+        "title": "键空间统计",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "redis_db_keys",
+            "legendFormat": "总键数"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "缓存命中率",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))) * 100",
+            "legendFormat": "命中率"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "网络输入输出",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(redis_net_input_bytes_total[5m])",
+            "legendFormat": "输入流量"
+          },
+          {
+            "expr": "rate(redis_net_output_bytes_total[5m])",
+            "legendFormat": "输出流量"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 8,
+        "title": "键过期和驱逐",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(redis_expired_keys_total[5m])",
+            "legendFormat": "过期键"
+          },
+          {
+            "expr": "rate(redis_evicted_keys_total[5m])",
+            "legendFormat": "驱逐键"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

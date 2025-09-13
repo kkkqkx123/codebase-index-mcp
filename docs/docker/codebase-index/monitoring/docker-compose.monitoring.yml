@@ -55,6 +55,17 @@ services:
     depends_on:
       - prometheus
 
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://host.docker.internal:6379
+    restart: unless-stopped
+    networks:
+      - monitoring
+
 volumes:
   prometheus_data:
   alertmanager_data:

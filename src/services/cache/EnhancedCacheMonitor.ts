@@ -238,40 +238,54 @@ export class EnhancedCacheMonitor {
     duration: number,
     error?: string
   ): void {
-    const metrics = this.metrics.get(cacheName)!;
+    const metrics = this.metrics.get(cacheName) || this.createEmptyMetrics();
     
     metrics.totalOperations++;
+    
+    switch (operation) {
+      case 'get':
+        if (success) metrics.hits++;
+        else metrics.misses++;
+        break;
+      case 'set':
+        metrics.sets++;
+        break;
+      case 'del':
+        metrics.deletes++;
+        break;
+    }
     
     if (!success) {
       metrics.errors++;
       metrics.lastError = error;
       metrics.lastErrorTime = Date.now();
-    } else {
-      switch (operation) {
-        case 'get':
-          // 注意：这里需要外部传入是否命中
-          break;
-        case 'set':
-          metrics.sets++;
-          break;
-        case 'del':
-          metrics.deletes++;
-          break;
-      }
     }
+    
+    // 更新计算字段
+    metrics.hitRate = metrics.totalOperations > 0 ? 
+      (metrics.hits / (metrics.hits + metrics.misses)) : 0;
+    metrics.errorRate = metrics.totalOperations > 0 ? 
+      (metrics.errors / metrics.totalOperations) : 0;
+    metrics.avgResponseTime = metrics.totalOperations > 0 ?
+      ((metrics.avgResponseTime * (metrics.totalOperations - 1)) + duration) / metrics.totalOperations : duration;
+    
+    this.metrics.set(cacheName, metrics);
+  }
 
-    // 更新平均响应时间
-    metrics.avgResponseTime = 
-      (metrics.avgResponseTime * (metrics.totalOperations - 1) + duration) / 
-      metrics.totalOperations;
+  /**
+   * 记录操作指标
+   */
+  recordMetric(cacheName: string, operation: string, duration: number, value?: any): void {
+    this.initializeMetrics(cacheName);
+    this.updateMetrics(cacheName, operation as any, true, duration);
+  }
 
-    // 重新计算命中率和错误率
-    metrics.hitRate = (metrics.hits + metrics.misses) > 0 
-      ? metrics.hits / (metrics.hits + metrics.misses) 
-      : 0;
-    metrics.errorRate = metrics.totalOperations > 0 
-      ? metrics.errors / metrics.totalOperations 
-      : 0;
+  /**
+   * 记录操作错误
+   */
+  recordError(cacheName: string, operation: string): void {
+    this.initializeMetrics(cacheName);
+    this.updateMetrics(cacheName, operation as any, false, 0, 'Operation failed');
   }
 
   private recordOperation(log: CacheOperationLog): void {

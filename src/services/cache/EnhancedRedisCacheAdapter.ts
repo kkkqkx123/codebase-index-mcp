@@ -2,6 +2,7 @@ import { Redis } from 'ioredis';
 import { CacheInterface, CacheStats, CacheOptions } from './CacheInterface';
 import { LoggerService } from '../../core/LoggerService';
 import { EnhancedCacheMonitor } from './EnhancedCacheMonitor';
+import { performance } from 'perf_hooks';
 
 export interface EnhancedCacheStats extends CacheStats {
   redisVersion?: string;
@@ -75,46 +76,64 @@ export class EnhancedRedisCacheAdapter implements CacheInterface {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    return this.monitor.monitorOperation(
-      this.name,
-      'get',
-      key,
-      async () => {
-        if (!this.isConnected) {
-          throw new Error('Redis连接不可用');
-        }
-
-        try {
-          const value = await this.redis.get(key);
-          if (value === null) {
-            this.monitor.updateHitMiss(this.name, false);
-            return null;
+    const startTime = performance.now();
+    try {
+      const result = await this.monitor.monitorOperation(
+        this.name,
+        'get',
+        key,
+        async () => {
+          if (!this.isConnected) {
+            throw new Error('Redis连接不可用');
           }
 
-          const parsed = JSON.parse(value) as T;
-          this.monitor.updateHitMiss(this.name, true);
-          
-          this.logger.debug(`Redis缓存命中: ${key}`, {
-            cache: this.name,
-            key,
-            size: value.length
-          });
+          try {
+            const value = await this.redis.get(key);
+            if (value === null) {
+              this.monitor.updateHitMiss(this.name, false);
+              return null;
+            }
 
-          return parsed;
-        } catch (error) {
-          if (error instanceof SyntaxError) {
-            this.logger.error(`Redis缓存数据解析失败: ${key}`, {
+            const parsed = JSON.parse(value) as T;
+            this.monitor.updateHitMiss(this.name, true);
+            
+            this.logger.debug(`Redis缓存命中: ${key}`, {
               cache: this.name,
               key,
-              error: error.message
+              size: value.length
             });
-            // 删除损坏的数据
-            await this.redis.del(key);
+
+            return parsed;
+          } catch (error) {
+            if (error instanceof SyntaxError) {
+              this.logger.error(`Redis缓存数据解析失败: ${key}`, {
+                cache: this.name,
+                key,
+                error: error.message
+              });
+              // 删除损坏的数据
+              await this.redis.del(key);
+            }
+            throw error;
           }
-          throw error;
         }
-      }
-    );
+      );
+      
+      const duration = performance.now() - startTime;
+      this.recordOperationMetrics('get', duration, result ? 1 : 0);
+      return result;
+    } catch (error) {
+      this.recordOperationError('get');
+      throw error;
+    }
+  }
+
+  private recordOperationMetrics(operation: string, duration: number, value?: any): void {
+    this.monitor.recordMetric(this.name, operation, duration, value);
+  }
+
+  private recordOperationError(operation: string): void {
+    this.monitor.recordError(this.name, operation);
   }
 
   async set<T>(key: string, value: T, options?: CacheOptions): Promise<boolean> {

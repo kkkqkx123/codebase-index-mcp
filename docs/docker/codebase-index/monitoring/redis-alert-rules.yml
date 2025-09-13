@@ -1,0 +1,38 @@
+groups:
+  - name: redis
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 5s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis instance is down"
+          description: "Redis instance at {{ $labels.instance }} is down"
+
+      - alert: RedisMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value }}% at {{ $labels.instance }}"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connections are high"
+          description: "Redis has {{ $value }} active connections at {{ $labels.instance }}"
+
+      - alert: RedisKeyEviction
+        expr: increase(redis_evicted_keys_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis keys are being evicted"
+          description: "{{ $value }} keys have been evicted from Redis at {{ $labels.instance }}"
