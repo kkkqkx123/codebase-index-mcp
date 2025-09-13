@@ -1,0 +1,2 @@
+当前qdrant、redis均独立部署，使用127.0.0.1作为host。
+如果需要捆绑部署需要修改premetueus.yml中的配置
