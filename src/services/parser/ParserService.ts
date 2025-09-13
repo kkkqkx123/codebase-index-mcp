@@ -69,7 +69,10 @@ export class ParserService {
           classes: this.treeSitterService.extractClasses(parseResult.ast),
           imports: this.treeSitterService.extractImports(parseResult.ast, content),
           exports: this.treeSitterService.extractExports(parseResult.ast, content),
-          metadata: {}
+          metadata: {
+            parseMethod: 'tree-sitter',
+            parserVersion: (parseResult.language as any)?.version || 'unknown'
+          }
         };
       } else {
         const parsedFile = await this.smartCodeParser.parseFile(filePath, content, options);
@@ -81,7 +84,10 @@ export class ParserService {
           classes: [],
           imports: parsedFile.metadata.imports,
           exports: parsedFile.metadata.exports,
-          metadata: {}
+          metadata: {
+            parseMethod: 'smart-parser',
+            parserVersion: '1.0.0'
+          }
         };
       }
 

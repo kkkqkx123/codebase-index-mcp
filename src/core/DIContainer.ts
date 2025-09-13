@@ -64,6 +64,11 @@ import { BatchProcessor } from '../services/processing/BatchProcessor';
 import { PerformanceMonitor } from '../services/monitoring/PerformanceMonitor';
 import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMetrics';
 
+// LSP services
+import { LSPService } from '../services/lsp/LSPService';
+import { LSPEnhancementPhase } from '../services/indexing/LSPEnhancementPhase';
+import { EnhancedParserService } from '../services/parser/EnhancedParserService';
+
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
 import { SnippetController } from '../controllers/SnippetController';
@@ -123,6 +128,11 @@ export const TYPES = {
 
   // Processing services
   BatchProcessor: Symbol.for('BatchProcessor'),
+
+  // LSP services
+  LSPService: Symbol.for('LSPService'),
+  LSPEnhancementPhase: Symbol.for('LSPEnhancementPhase'),
+  EnhancedParserService: Symbol.for('EnhancedParserService'),
 
   // Controllers
   MonitoringController: Symbol.for('MonitoringController'),
@@ -197,6 +207,9 @@ const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.QueryCoordinationService).to(QueryCoordinationService).inSingletonScope();
   bind(TYPES.ResultFusionEngine).to(ResultFusionEngine).inSingletonScope();
   bind(TYPES.QueryOptimizer).to(QueryOptimizer).inSingletonScope();
+  bind(TYPES.LSPService).to(LSPService).inSingletonScope();
+  bind(TYPES.LSPEnhancementPhase).to(LSPEnhancementPhase).inSingletonScope();
+  bind(TYPES.EnhancedParserService).to(EnhancedParserService).inSingletonScope();
 });
 
 const queueModule = new ContainerModule((bind: any) => {

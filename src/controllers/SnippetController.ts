@@ -179,7 +179,7 @@ export class SnippetController {
       this.logger.info('Detecting cross-references', { snippetId, projectId });
       
       // Delegate to index coordinator
-      const references = await this.indexCoordinator.detectCrossReferences(snippetId, projectId);
+      const references = await this.indexCoordinator.detectCrossReferences(projectId);
       
       return {
         success: true,
@@ -206,7 +206,7 @@ export class SnippetController {
       this.logger.info('Analyzing dependencies', { snippetId, projectId });
       
       // Delegate to index coordinator
-      const dependencies = await this.indexCoordinator.analyzeDependencies(snippetId, projectId);
+      const dependencies = await this.indexCoordinator.analyzeDependencies(projectId);
       
       return {
         success: true,
@@ -233,7 +233,7 @@ export class SnippetController {
       this.logger.info('Detecting overlaps', { snippetId, projectId });
       
       // Delegate to index coordinator
-      const overlaps = await this.indexCoordinator.detectOverlaps(snippetId, projectId);
+      const overlaps = await this.indexCoordinator.detectOverlaps(projectId);
       
       return {
         success: true,

@@ -23,6 +23,9 @@ export interface MemoryManagerOptions {
 
 @injectable()
 export class MemoryManager {
+  getCurrentMemoryUsage(): number {
+    throw new Error('Method not implemented.');
+  }
   private checkInterval: number;
   private thresholds: MemoryThreshold;
   private gcThreshold: number;

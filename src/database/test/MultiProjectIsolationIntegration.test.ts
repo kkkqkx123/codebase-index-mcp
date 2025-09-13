@@ -308,7 +308,8 @@ describe('Multi-Project Isolation Integration', () => {
         mockAsyncPipeline as any,
         mockBatchProcessor as any,
         mockMemoryManager as any,
-        mockSearchCoordinator as any
+        mockSearchCoordinator as any,
+        {} as any // LSPEnhancementPhase mock
       );
     });
 

@@ -1,8 +1,10 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { IndexCoordinator } from './IndexCoordinator';
 import { ConfigService } from '../../config/ConfigService';
+import { SearchQuery } from '../search/SearchCoordinator';
 
 export interface IndexOptions {
   recursive?: boolean;
@@ -88,7 +90,18 @@ export class IndexService {
 
     try {
       // Delegate to IndexCoordinator for search
-      const result = await this.indexCoordinator.search(query, projectId, options);
+      const searchQuery: SearchQuery = {
+        text: query,
+        filters: {
+          projectId,
+          ...options.filters
+        },
+        options: {
+          ...options,
+          searchType: 'general'
+        }
+      };
+      const result = await this.indexCoordinator.search(searchQuery);
       return result;
     } catch (error) {
       this.errorHandler.handleError(
@@ -104,7 +117,18 @@ export class IndexService {
 
     try {
       // Delegate to IndexCoordinator for snippet search
-      const result = await this.indexCoordinator.search(query, projectId, { ...options, searchType: 'snippet' });
+      const searchQuery: SearchQuery = {
+        text: query,
+        filters: {
+          projectId,
+          ...options.filters
+        },
+        options: {
+          ...options,
+          searchType: 'snippet'
+        }
+      };
+      const result = await this.indexCoordinator.search(searchQuery);
       return result;
     } catch (error) {
       this.errorHandler.handleError(
@@ -118,8 +142,17 @@ export class IndexService {
   async getStatus(projectPath: string): Promise<IndexStatus> {
     try {
       // Delegate to IndexCoordinator
-      const status = await this.indexCoordinator.getStatus(projectPath);
-      return status;
+      const status = await this.indexCoordinator.getIndexStatus(projectPath);
+
+      // Transform the result to match IndexStatus interface
+      return {
+        projectId: projectPath.split(/[/\\]/).pop() || 'unknown',
+        isIndexing: false, // TODO: Add indexing status tracking
+        lastIndexed: status.lastUpdated || undefined,
+        fileCount: status.totalFiles,
+        chunkCount: status.totalChunks,
+        status: status.exists ? 'completed' : 'idle'
+      };
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Failed to get status: ${error instanceof Error ? error.message : String(error)}`),

@@ -313,6 +313,29 @@ export class LSPClient extends EventEmitter {
     return result || [];
   }
 
+  async getTypeDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+    const uri = `file://${path.resolve(filePath)}`;
+    
+    const result = await this.sendRequest('textDocument/typeDefinition', {
+      textDocument: { uri },
+      position: position,
+    });
+
+    return result || [];
+  }
+
+  async getReferences(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+    const uri = `file://${path.resolve(filePath)}`;
+    
+    const result = await this.sendRequest('textDocument/references', {
+      textDocument: { uri },
+      position: position,
+      context: { includeDeclaration: true }
+    });
+
+    return result || [];
+  }
+
   private async sendNotification(method: string, params?: any): Promise<void> {
     const message: LSPMessage = {
       jsonrpc: '2.0',

@@ -156,13 +156,13 @@ describe('IndexService', () => {
   describe('getStatus', () => {
     it('should return index status', async () => {
       // Mock the IndexCoordinator response
-      mockIndexCoordinator.getStatus.mockResolvedValue({
-        projectId: 'test-hash-12345',
-        isIndexing: false,
-        lastIndexed: new Date(),
-        fileCount: 150,
-        chunkCount: 450,
-        status: 'completed'
+      mockIndexCoordinator.getIndexStatus.mockResolvedValue({
+        exists: true,
+        lastUpdated: new Date(),
+        totalFiles: 150,
+        totalChunks: 450,
+        totalSize: 1024000,
+        languages: ['typescript', 'javascript']
       });
 
       // Act

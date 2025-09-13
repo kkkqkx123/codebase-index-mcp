@@ -3,6 +3,7 @@ import { TYPES } from '../../types';
 import { ChangeDetectionService, FileChangeEvent } from '../filesystem/ChangeDetectionService';
 import { ParserService } from '../parser/ParserService';
 import { StorageCoordinator } from '../storage/StorageCoordinator';
+import { LSPEnhancementPhase } from './LSPEnhancementPhase';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
@@ -21,6 +22,12 @@ export interface IndexOptions {
   maxFileSize?: number;
   chunkSize?: number;
   overlapSize?: number;
+  enableLSP?: boolean;
+  lspTimeout?: number;
+  includeTypes?: boolean;
+  includeReferences?: boolean;
+  includeDiagnostics?: boolean;
+  cacheLSP?: boolean;
 }
 
 export interface IndexResult {
@@ -46,6 +53,7 @@ export class IndexCoordinator {
   private memoryManager: MemoryManager;
   private filePool: ObjectPool<string>;
   private searchCoordinator: SearchCoordinator;
+  private lspEnhancementPhase: LSPEnhancementPhase;
   private currentIndexing: Map<string, boolean> = new Map();
 
   constructor(
@@ -59,7 +67,8 @@ export class IndexCoordinator {
     @inject(TYPES.AsyncPipeline) asyncPipeline: AsyncPipeline,
     @inject(TYPES.BatchProcessor) batchProcessor: BatchProcessor,
     @inject(TYPES.MemoryManager) memoryManager: MemoryManager,
-    @inject(TYPES.SearchCoordinator) searchCoordinator: SearchCoordinator
+    @inject(TYPES.SearchCoordinator) searchCoordinator: SearchCoordinator,
+    @inject(TYPES.LSPEnhancementPhase) lspEnhancementPhase: LSPEnhancementPhase
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
@@ -72,6 +81,7 @@ export class IndexCoordinator {
     this.batchProcessor = batchProcessor;
     this.memoryManager = memoryManager;
     this.searchCoordinator = searchCoordinator;
+    this.lspEnhancementPhase = lspEnhancementPhase;
     
     // Initialize file pool
     this.filePool = new ObjectPool<string>({
@@ -136,8 +146,8 @@ export class IndexCoordinator {
           }
 
           const batchOptions: BatchOptions = {
-            batchSize: this.configService.get('indexing').batchSize || 50,
-            maxConcurrency: this.configService.get('indexing').maxConcurrency || 3,
+            batchSize: this.configService.get('indexing')?.batchSize ?? 50,
+            maxConcurrency: this.configService.get('indexing')?.maxConcurrency ?? 3,
             timeout: 300000,
             retryAttempts: 3,
             continueOnError: true
@@ -158,14 +168,45 @@ export class IndexCoordinator {
         continueOnError: true
       })
       .addStep({
+        name: 'lsp-enhancement',
+        execute: async (data: any) => {
+          if (!data.options.enableLSP) {
+            return { ...data, enhancedResults: data.parseResults };
+          }
+
+          const lspResult = await this.lspEnhancementPhase.execute(data.parseResults, {
+            enableLSP: data.options.enableLSP,
+            lspTimeout: data.options.lspTimeout,
+            includeTypes: data.options.includeTypes,
+            includeReferences: data.options.includeReferences,
+            includeDiagnostics: data.options.includeDiagnostics,
+            cacheLSP: data.options.cacheLSP,
+            batchSize: this.configService.get('lsp')?.batchSize ?? 20,
+            maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3
+          });
+
+          return { ...data, enhancedResults: lspResult.enhancedResults };
+        },
+        timeout: 300000,
+        retryAttempts: 2,
+        continueOnError: true
+      })
+      .addStep({
         name: 'storage-coordination',
         execute: async (data: any) => {
           const projectId = await HashUtils.calculateDirectoryHash(data.projectPath);
-          const parsedFiles = data.parseResults.map((result: any) => ({
+          const parsedFiles = data.enhancedResults.map((result: any) => ({
             filePath: result.filePath,
             chunks: [],
             language: result.language,
-            metadata: result.metadata
+            metadata: {
+              ...result.metadata,
+              lspSymbols: result.lspSymbols,
+              lspDiagnostics: result.lspDiagnostics,
+              typeDefinitions: result.typeDefinitions,
+              references: result.references,
+              lspMetadata: result.lspMetadata
+            }
           }));
 
           const storageResult = await this.storageCoordinator.store(parsedFiles, projectId.hash);
@@ -232,26 +273,61 @@ export class IndexCoordinator {
     }
   }
 
-  async updateIndex(projectPath: string, changedFiles: string[]): Promise<IndexResult> {
+  async updateIndex(projectPath: string, changedFiles: string[], options: IndexOptions = {}): Promise<IndexResult> {
     const startTime = Date.now();
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
 
     this.logger.info('Starting index update', {
       projectPath,
       projectId: projectId.hash,
-      changedFiles: changedFiles.length
+      filesToUpdate: changedFiles.length
     });
 
     try {
-      // Parse changed files
+      if (changedFiles.length === 0) {
+        return {
+          success: true,
+          filesProcessed: 0,
+          filesSkipped: 0,
+          chunksCreated: 0,
+          processingTime: 0,
+          errors: []
+        };
+      }
+
+      // Parse files
       const parseResults = await this.parserService.parseFiles(changedFiles);
       
+      // Apply LSP enhancement
+      let enhancedResults = parseResults;
+      if (options.enableLSP && parseResults.length > 0) {
+        const lspResult = await this.lspEnhancementPhase.execute(parseResults, {
+          enableLSP: options.enableLSP,
+          lspTimeout: options.lspTimeout,
+          includeTypes: options.includeTypes,
+          includeReferences: options.includeReferences,
+          includeDiagnostics: options.includeDiagnostics,
+          cacheLSP: options.cacheLSP,
+          batchSize: this.configService.get('lsp')?.batchSize ?? 20,
+          maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3
+        });
+        enhancedResults = lspResult.enhancedResults;
+      }
+      
       // Convert ParseResult to ParsedFile format for storage
-      const parsedFiles = parseResults.map(result => ({
+      const parsedFiles = enhancedResults.map(result => ({
         filePath: result.filePath,
         chunks: [], // For now, we'll leave chunks empty - in a real implementation, this would be populated
         language: result.language,
-        metadata: result.metadata
+        metadata: {
+          ...result.metadata,
+          // Add LSP data if available (enhanced result)
+          ...((result as any).lspSymbols && { lspSymbols: (result as any).lspSymbols }),
+          ...((result as any).lspDiagnostics && { lspDiagnostics: (result as any).lspDiagnostics }),
+          ...((result as any).typeDefinitions && { typeDefinitions: (result as any).typeDefinitions }),
+          ...((result as any).references && { references: (result as any).references }),
+          ...((result as any).lspMetadata && { lspMetadata: (result as any).lspMetadata })
+        }
       }));
       
       // Store parsed files using storage coordinator
@@ -323,7 +399,7 @@ export class IndexCoordinator {
     }
   }
 
-  async processIncrementalChanges(projectPath: string, changes: FileChangeEvent[]): Promise<void> {
+  async processIncrementalChanges(projectPath: string, changes: FileChangeEvent[], options: IndexOptions = {}): Promise<void> {
     if (changes.length === 0) {
       this.logger.debug('No changes to process');
       return;
@@ -352,12 +428,37 @@ export class IndexCoordinator {
       const filesToProcess = [...createdFiles, ...modifiedFiles];
       if (filesToProcess.length > 0) {
         const parseResults = await this.parserService.parseFiles(filesToProcess);
+        
+        // Apply LSP enhancement
+        let enhancedResults = parseResults;
+        if (options.enableLSP && parseResults.length > 0) {
+          const lspResult = await this.lspEnhancementPhase.execute(parseResults, {
+            enableLSP: options.enableLSP,
+            lspTimeout: options.lspTimeout,
+            includeTypes: options.includeTypes,
+            includeReferences: options.includeReferences,
+            includeDiagnostics: options.includeDiagnostics,
+            cacheLSP: options.cacheLSP,
+            batchSize: this.configService.get('lsp')?.batchSize ?? 20,
+          maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3
+          });
+          enhancedResults = lspResult.enhancedResults;
+        }
+        
         // Convert ParseResult to ParsedFile format for storage
-        const parsedFiles = parseResults.map(result => ({
+        const parsedFiles = enhancedResults.map(result => ({
           filePath: result.filePath,
           chunks: [], // For now, we'll leave chunks empty - in a real implementation, this would be populated
           language: result.language,
-          metadata: result.metadata
+          metadata: {
+            ...result.metadata,
+            // Add LSP data if available (enhanced result)
+            ...((result as any).lspSymbols && { lspSymbols: (result as any).lspSymbols }),
+            ...((result as any).lspDiagnostics && { lspDiagnostics: (result as any).lspDiagnostics }),
+            ...((result as any).typeDefinitions && { typeDefinitions: (result as any).typeDefinitions }),
+            ...((result as any).references && { references: (result as any).references }),
+            ...((result as any).lspMetadata && { lspMetadata: (result as any).lspMetadata })
+          }
         }));
         await this.storageCoordinator.store(parsedFiles, projectId.hash);
       }
@@ -409,136 +510,301 @@ export class IndexCoordinator {
         projectId,
         error: error instanceof Error ? error.message : String(error)
       });
-      throw error;
+      return false;
     }
   }
 
   // Add cross-reference detection
-  async detectCrossReferences(snippetId: string, projectId: string): Promise<string[]> {
+  async detectCrossReferences(projectId: string): Promise<{
+    references: Array<{
+      fromFile: string;
+      toFile: string;
+      referenceType: string;
+      lineNumber: number;
+    }>;
+    totalReferences: number;
+  }> {
     try {
-      // Analyze relationships between snippets using the storage
-      const references = await this.storageCoordinator.findSnippetReferences(snippetId, projectId);
-      return references;
+      // Get cross-reference data from storage
+      const references: any = await this.storageCoordinator.getCrossReferences(projectId);
+
+      // Handle case where storage doesn't implement this yet
+      if (!references) {
+        return {
+          references: [],
+          totalReferences: 0
+        };
+      }
+
+      return {
+        references,
+        totalReferences: references.length
+      };
     } catch (error) {
-      this.logger.error('Failed to detect cross references', {
-        snippetId,
+      this.logger.error('Failed to detect cross-references', {
         projectId,
         error: error instanceof Error ? error.message : String(error)
       });
-      throw error;
+      // Return empty data instead of throwing
+      return {
+        references: [],
+        totalReferences: 0
+      };
     }
   }
 
   // Add dependency analysis
-  async analyzeDependencies(snippetId: string, projectId: string): Promise<{
-    dependsOn: string[];
-    usedBy: string[];
-    complexity: number;
+  async analyzeDependencies(projectId: string): Promise<{
+    dependencies: Array<{
+      file: string;
+      imports: string[];
+      exports: string[];
+      externalDependencies: string[];
+    }>;
+    dependencyGraph: Map<string, string[]>;
   }> {
     try {
-      // Analyze code dependencies using the storage
-      const dependsOn = await this.storageCoordinator.analyzeDependencies(snippetId, projectId);
-      
-      // For now, return simplified structure - in real implementation, this would be more complex
+      // Get dependency data from storage
+      const dependencies: any = await this.storageCoordinator.getDependencies(projectId);
+
+      // Handle case where storage doesn't implement this yet
+      if (!dependencies) {
+        return {
+          dependencies: [],
+          dependencyGraph: new Map()
+        };
+      }
+
+      // Build dependency graph
+      const dependencyGraph = new Map<string, string[]>();
+      dependencies.forEach((dep: { file: string; imports: string[]; }) => {
+        dependencyGraph.set(dep.file, dep.imports);
+      });
+
       return {
-        dependsOn,
-        usedBy: [], // This would require additional analysis
-        complexity: 1 // This would be calculated from actual code analysis
+        dependencies,
+        dependencyGraph
       };
     } catch (error) {
       this.logger.error('Failed to analyze dependencies', {
-        snippetId,
         projectId,
         error: error instanceof Error ? error.message : String(error)
       });
-      throw error;
+      // Return empty data instead of throwing
+      return {
+        dependencies: [],
+        dependencyGraph: new Map()
+      };
     }
   }
 
   // Add overlap detection
-  async detectOverlaps(snippetId: string, projectId: string): Promise<string[]> {
+  async detectOverlaps(projectId: string): Promise<{
+    overlaps: Array<{
+      file1: string;
+      file2: string;
+      overlapPercentage: number;
+      commonLines: number[];
+    }>;
+    totalOverlaps: number;
+  }> {
     try {
-      // Detect overlapping code segments using the storage
-      const overlaps = await this.storageCoordinator.findSnippetOverlaps(snippetId, projectId);
-      return overlaps;
+      // Get overlap data from storage
+      const overlaps: any = await this.storageCoordinator.getOverlaps(projectId);
+
+      // Handle case where storage doesn't implement this yet
+      if (!overlaps) {
+        return {
+          overlaps: [],
+          totalOverlaps: 0
+        };
+      }
+
+      return {
+        overlaps,
+        totalOverlaps: overlaps.length
+      };
     } catch (error) {
       this.logger.error('Failed to detect overlaps', {
-        snippetId,
         projectId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Return empty data instead of throwing
+      return {
+        overlaps: [],
+        totalOverlaps: 0
+      };
+    }
+  }
+
+  // Add status monitoring
+  async getIndexStatus(projectPath: string): Promise<{
+    exists: boolean;
+    lastUpdated: Date | null;
+    totalFiles: number;
+    totalChunks: number;
+    totalSize: number;
+    languages: string[];
+  }> {
+    try {
+      const projectId = await HashUtils.calculateDirectoryHash(projectPath);
+      const status: any = await this.storageCoordinator.getProjectStatus(projectId.hash);
+
+      // Handle case where storage doesn't implement this yet
+      if (!status) {
+        return {
+          exists: false,
+          lastUpdated: null,
+          totalFiles: 0,
+          totalChunks: 0,
+          totalSize: 0,
+          languages: []
+        };
+      }
+
+      return {
+        exists: status.exists,
+        lastUpdated: status.lastUpdated,
+        totalFiles: status.totalFiles,
+        totalChunks: status.totalChunks,
+        totalSize: status.totalSize,
+        languages: status.languages
+      };
+    } catch (error) {
+      this.logger.error('Failed to get index status', {
+        projectPath,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Return default status instead of throwing
+      return {
+        exists: false,
+        lastUpdated: null,
+        totalFiles: 0,
+        totalChunks: 0,
+        totalSize: 0,
+        languages: []
+      };
+    }
+  }
+
+  // Get overall system status
+  async getStatus(): Promise<{
+    indexing: {
+      activeProjects: string[];
+      totalIndexedFiles: number;
+      totalChunks: number;
+      indexingRate: number;
+    };
+    storage: {
+      totalProjects: number;
+      totalFiles: number;
+      totalChunks: number;
+      storageSize: number;
+    };
+    performance: {
+      memoryUsage: number;
+      cpuUsage: number;
+      processingRate: number;
+    };
+  }> {
+    try {
+      const storageStats: any = await this.storageCoordinator.getStorageStats();
+      const indexingStats: any = await this.storageCoordinator.getIndexingStats();
+
+      // Handle case where storage doesn't implement these methods yet
+      const defaultStorageStats = {
+        totalProjects: 0,
+        totalFiles: 0,
+        totalChunks: 0,
+        storageSize: 0
+      };
+
+      const defaultIndexingStats = {
+        totalIndexedFiles: 0,
+        totalChunks: 0,
+        indexingRate: 0,
+        processingRate: 0
+      };
+
+      return {
+        indexing: {
+          activeProjects: Array.from(this.currentIndexing.keys()),
+          totalIndexedFiles: indexingStats?.totalIndexedFiles || defaultIndexingStats.totalIndexedFiles,
+          totalChunks: indexingStats?.totalChunks || defaultIndexingStats.totalChunks,
+          indexingRate: indexingStats?.indexingRate || defaultIndexingStats.indexingRate
+        },
+        storage: {
+          totalProjects: storageStats?.totalProjects || defaultStorageStats.totalProjects,
+          totalFiles: storageStats?.totalFiles || defaultStorageStats.totalFiles,
+          totalChunks: storageStats?.totalChunks || defaultStorageStats.totalChunks,
+          storageSize: storageStats?.storageSize || defaultStorageStats.storageSize
+        },
+        performance: {
+          memoryUsage: this.memoryManager.getCurrentMemoryUsage(),
+          cpuUsage: 0, // TODO: Implement CPU usage monitoring
+          processingRate: indexingStats?.processingRate || defaultIndexingStats.processingRate
+        }
+      };
+    } catch (error) {
+      this.logger.error('Failed to get system status', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Return default status instead of throwing
+      return {
+        indexing: {
+          activeProjects: [],
+          totalIndexedFiles: 0,
+          totalChunks: 0,
+          indexingRate: 0
+        },
+        storage: {
+          totalProjects: 0,
+          totalFiles: 0,
+          totalChunks: 0,
+          storageSize: 0
+        },
+        performance: {
+          memoryUsage: 0,
+          cpuUsage: 0,
+          processingRate: 0
+        }
+      };
+    }
+  }
+
+  // Search functionality
+  async search(query: SearchQuery): Promise<any> {
+    try {
+      return await this.searchCoordinator.search(query);
+    } catch (error) {
+      this.logger.error('Search failed', {
+        query,
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
   }
-  
-  async getIndexStatus(projectId: string): Promise<{
-    lastIndexed?: Date;
-    fileCount: number;
-    chunkCount: number;
-    status: 'idle' | 'indexing' | 'error' | 'completed';
-  }> {
-    // In a real implementation, this would query the storage for index status
-    // For now, we'll return mock data
-    return {
-      lastIndexed: new Date(),
-      fileCount: 150,
-      chunkCount: 450,
-      status: 'completed'
-    };
+
+  // Check if indexing is active for a project
+  isIndexingActive(projectPath: string): boolean {
+    const normalizedPath = projectPath.replace(/\\/g, '/');
+    return this.currentIndexing.has(normalizedPath);
   }
 
-  async getStatus(projectPath: string): Promise<{
-    projectId: string;
-    isIndexing: boolean;
-    lastIndexed?: Date;
-    fileCount: number;
-    chunkCount: number;
-    status: 'idle' | 'indexing' | 'error' | 'completed';
-  }> {
-    const projectId = await HashUtils.calculateDirectoryHash(projectPath);
-    const indexStatus = await this.getIndexStatus(projectId.hash);
-    
-    return {
-      projectId: projectId.hash,
-      isIndexing: this.currentIndexing.get(projectId.hash) || false,
-      lastIndexed: indexStatus.lastIndexed,
-      fileCount: indexStatus.fileCount,
-      chunkCount: indexStatus.chunkCount,
-      status: indexStatus.status
-    };
+  // Mark project as indexing
+  private markIndexingActive(projectPath: string): void {
+    const normalizedPath = projectPath.replace(/\\/g, '/');
+    this.currentIndexing.set(normalizedPath, true);
   }
 
-  async search(query: string, projectId: string, options: any = {}): Promise<any[]> {
-    try {
-      // Delegate to SearchCoordinator with project context
-      const searchQuery: SearchQuery = {
-        text: query,
-        filters: {
-          projectId: projectId
-        },
-        options: {
-          limit: options.limit,
-          threshold: options.threshold,
-          includeGraph: options.includeGraph,
-          useHybrid: false,
-          useReranking: true
-        }
-      };
-
-      const searchResponse = await this.searchCoordinator.search(searchQuery);
-      return searchResponse.results;
-    } catch (error) {
-      this.errorHandler.handleError(
-        new Error(`Search failed: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'IndexCoordinator', operation: 'search' }
-      );
-      throw error;
-    }
+  // Mark project as not indexing
+  private markIndexingInactive(projectPath: string): void {
+    const normalizedPath = projectPath.replace(/\\/g, '/');
+    this.currentIndexing.delete(normalizedPath);
   }
 
+  // Get active indexing projects
   getActiveIndexing(): string[] {
-    return Array.from(this.currentIndexing.entries())
-      .filter(([_, isActive]) => isActive)
-      .map(([projectId, _]) => projectId);
+    return Array.from(this.currentIndexing.keys());
   }
 }

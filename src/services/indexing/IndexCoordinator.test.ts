@@ -112,7 +112,8 @@ describe('IndexCoordinator', () => {
       asyncPipeline,
       batchProcessor,
       memoryManager,
-      searchCoordinator
+      searchCoordinator,
+      {} as any // LSPEnhancementPhase mock
     );
   });
 
@@ -644,10 +645,10 @@ describe('IndexCoordinator', () => {
 
       storageCoordinator.findSnippetReferences.mockResolvedValue(mockReferences);
 
-      const result = await indexCoordinator.detectCrossReferences(mockSnippetId, mockProjectId);
+      const result = await indexCoordinator.detectCrossReferences(mockProjectId);
 
       expect(result).toEqual(mockReferences);
-      expect(storageCoordinator.findSnippetReferences).toHaveBeenCalledWith(mockSnippetId, mockProjectId);
+      expect(storageCoordinator.findSnippetReferences).toHaveBeenCalledWith(mockProjectId);
     });
 
     it('should analyze dependencies', async () => {
@@ -661,10 +662,10 @@ describe('IndexCoordinator', () => {
 
       storageCoordinator.analyzeDependencies.mockResolvedValue(mockDependencies.dependsOn);
 
-      const result = await indexCoordinator.analyzeDependencies(mockSnippetId, mockProjectId);
+      const result = await indexCoordinator.analyzeDependencies(mockProjectId);
 
       expect(result).toEqual(mockDependencies);
-      expect(storageCoordinator.analyzeDependencies).toHaveBeenCalledWith(mockSnippetId, mockProjectId);
+      expect(storageCoordinator.analyzeDependencies).toHaveBeenCalledWith(mockProjectId);
     });
 
     it('should detect overlaps', async () => {
@@ -674,10 +675,10 @@ describe('IndexCoordinator', () => {
 
       storageCoordinator.findSnippetOverlaps.mockResolvedValue(mockOverlaps);
 
-      const result = await indexCoordinator.detectOverlaps(mockSnippetId, mockProjectId);
+      const result = await indexCoordinator.detectOverlaps(mockProjectId);
 
       expect(result).toEqual(mockOverlaps);
-      expect(storageCoordinator.findSnippetOverlaps).toHaveBeenCalledWith(mockSnippetId, mockProjectId);
+      expect(storageCoordinator.findSnippetOverlaps).toHaveBeenCalledWith(mockProjectId);
     });
 
     it('should get index status', async () => {

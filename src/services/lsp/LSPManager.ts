@@ -232,6 +232,64 @@ export class LSPManager extends EventEmitter {
     }
   }
 
+  async getTypeDefinitions(filePath: string, options?: { timeout?: number }): Promise<any[]> {
+    if (!this.isInitialized) {
+      return [];
+    }
+
+    const workspaceRoot = this.findWorkspaceRoot(filePath);
+    if (!workspaceRoot) {
+      return [];
+    }
+
+    let client: LSPClient | null = null;
+    
+    try {
+      client = await this.pool.acquire(workspaceRoot);
+      return await client.getTypeDefinition(filePath, { line: 0, character: 0 });
+    } catch (error) {
+      return [];
+    } finally {
+      if (client) {
+        await this.pool.release(client);
+      }
+    }
+  }
+
+  async getReferences(filePath: string, options?: { timeout?: number }): Promise<any[]> {
+    if (!this.isInitialized) {
+      return [];
+    }
+
+    const workspaceRoot = this.findWorkspaceRoot(filePath);
+    if (!workspaceRoot) {
+      return [];
+    }
+
+    let client: LSPClient | null = null;
+    
+    try {
+      client = await this.pool.acquire(workspaceRoot);
+      return await client.getReferences(filePath, { line: 0, character: 0 });
+    } catch (error) {
+      return [];
+    } finally {
+      if (client) {
+        await this.pool.release(client);
+      }
+    }
+  }
+
+  getActiveLanguageServer(filePath: string): string | undefined {
+    const workspaceRoot = this.findWorkspaceRoot(filePath);
+    if (!workspaceRoot) {
+      return undefined;
+    }
+
+    const language = this.registry.detectProjectLanguage(workspaceRoot);
+    return language?.language;
+  }
+
   private getSymbolKindName(kind: number): string {
     const symbolKinds: Record<number, string> = {
       1: 'File',
@@ -307,6 +365,25 @@ export class LSPManager extends EventEmitter {
       totalConnections: poolStats.totalConnections,
       supportedLanguages: this.registry.getSupportedLanguages().length,
     };
+  }
+
+  getSupportedLanguages(): string[] {
+    return this.registry.getSupportedLanguages();
+  }
+
+  async healthCheck(): Promise<{ healthy: boolean; error: string }> {
+    try {
+      const healthStatus = this.getHealthStatus();
+      return {
+        healthy: healthStatus.healthy,
+        error: healthStatus.healthy ? '' : 'LSP health check failed'
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   async shutdown(): Promise<void> {

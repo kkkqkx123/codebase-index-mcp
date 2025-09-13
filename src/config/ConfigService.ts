@@ -171,6 +171,41 @@ const configSchema = Joi.object({
     batchSize: Joi.number().positive().default(50),
     maxConcurrency: Joi.number().positive().default(3)
   }),
+  lsp: Joi.object({
+    enabled: Joi.boolean().default(true),
+    timeout: Joi.number().positive().default(30000),
+    retryAttempts: Joi.number().positive().default(3),
+    retryDelay: Joi.number().positive().default(1000),
+    cacheEnabled: Joi.boolean().default(true),
+    cacheTTL: Joi.number().positive().default(300),
+    batchSize: Joi.number().positive().default(20),
+    maxConcurrency: Joi.number().positive().default(5),
+    supportedLanguages: Joi.array().items(Joi.string()).default([
+      'typescript',
+      'javascript',
+      'python',
+      'java',
+      'go',
+      'rust',
+      'cpp',
+      'c',
+      'csharp',
+      'php',
+      'ruby'
+    ]),
+    languageServers: Joi.object().pattern(
+      Joi.string(),
+      Joi.object({
+        command: Joi.string().required(),
+        args: Joi.array().items(Joi.string()).default([]),
+        enabled: Joi.boolean().default(true),
+        workspaceRequired: Joi.boolean().default(true),
+        initializationOptions: Joi.object().optional(),
+        settings: Joi.object().optional()
+      })
+    ).default({})
+  }),
+
   semgrep: Joi.object({
     binaryPath: Joi.string().default('semgrep'),
     timeout: Joi.number().positive().default(30000),
@@ -355,6 +390,27 @@ export interface Config {
   indexing: {
     batchSize: number;
     maxConcurrency: number;
+  };
+  lsp: {
+    enabled: boolean;
+    timeout: number;
+    retryAttempts: number;
+    retryDelay: number;
+    cacheEnabled: boolean;
+    cacheTTL: number;
+    batchSize: number;
+    maxConcurrency: number;
+    supportedLanguages: string[];
+    languageServers: {
+      [key: string]: {
+        command: string;
+        args: string[];
+        enabled: boolean;
+        workspaceRequired: boolean;
+        initializationOptions?: any;
+        settings?: any;
+      };
+    };
   };
   semgrep: {
     binaryPath: string;

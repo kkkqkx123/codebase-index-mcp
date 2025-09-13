@@ -34,6 +34,7 @@ export interface SearchOptions {
   includeGraph?: boolean;
   useHybrid?: boolean;
   useReranking?: boolean;
+  searchType?: 'general' | 'snippet';
   weights?: {
     semantic?: number;
     keyword?: number;

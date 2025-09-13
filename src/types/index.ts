@@ -98,4 +98,17 @@ export const TYPES = {
   // Processing and pipeline
   AsyncPipeline: Symbol.for('AsyncPipeline'),
   MemoryManager: Symbol.for('MemoryManager'),
+  ObjectPool: Symbol.for('ObjectPool'),
+
+  // LSP services
+  LSPEnhancementPhase: Symbol.for('LSPEnhancementPhase'),
+  LSPManager: Symbol.for('LSPManager'),
+  LSPClient: Symbol.for('LSPClient'),
+  LSPClientPool: Symbol.for('LSPClientPool'),
+  LSPErrorHandler: Symbol.for('LSPErrorHandler'),
+  LanguageServerRegistry: Symbol.for('LanguageServerRegistry'),
+  LSPService: Symbol.for('LSPService'),
+
+  // Parser services
+  EnhancedParserService: Symbol.for('EnhancedParserService'),
 } as const;

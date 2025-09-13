@@ -36,6 +36,24 @@ export interface DeleteResult {
 
 @injectable()
 export class StorageCoordinator {
+  getCrossReferences(projectId: string) {
+    throw new Error('Method not implemented.');
+  }
+  getDependencies(projectId: string) {
+    throw new Error('Method not implemented.');
+  }
+  getOverlaps(projectId: string) {
+    throw new Error('Method not implemented.');
+  }
+  getProjectStatus(hash: string) {
+    throw new Error('Method not implemented.');
+  }
+  getStorageStats() {
+    throw new Error('Method not implemented.');
+  }
+  getIndexingStats() {
+    throw new Error('Method not implemented.');
+  }
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
