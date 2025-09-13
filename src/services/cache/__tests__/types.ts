@@ -16,6 +16,9 @@ export type MockRedis = {
   on: jest.Mock<any, [string, (...args: any[]) => void]>;
   connect: jest.Mock<Promise<void>, []>;
   disconnect: jest.Mock<void, []>;
+  keys: jest.Mock<Promise<string[]>, [string]>;
+  scan: jest.Mock<Promise<[string, string[]]>, [string, string, string, number]>;
+  dbsize: jest.Mock<Promise<number>, []>;
 };
 
 // 创建mock Redis实例的工厂函数
@@ -31,4 +34,7 @@ export const createMockRedis = (): MockRedis => ({
   on: jest.fn(),
   connect: jest.fn(),
   disconnect: jest.fn(),
+  keys: jest.fn(),
+  scan: jest.fn(),
+  dbsize: jest.fn(),
 });

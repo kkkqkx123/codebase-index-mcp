@@ -186,10 +186,12 @@ describe('Enhanced Cache System', () => {
     });
 
     test('应该清空缓存', async () => {
-      mockRedis.flushall.mockResolvedValue('OK');
+      mockRedis.keys.mockResolvedValue(['test-redis:key1', 'test-redis:key2']);
+      mockRedis.del.mockResolvedValue(2);
 
       await redisCache.clear();
-      expect(mockRedis.flushall).toHaveBeenCalled();
+      expect(mockRedis.keys).toHaveBeenCalledWith('test-redis:*');
+      expect(mockRedis.del).toHaveBeenCalledWith('test-redis:key1', 'test-redis:key2');
     });
 
     test('应该检查键是否存在', async () => {
@@ -210,8 +212,7 @@ describe('Enhanced Cache System', () => {
     test('应该处理Redis错误', async () => {
       mockRedis.get.mockRejectedValue(new Error('Redis connection error'));
 
-      const value = await redisCache.get<string>('key1');
-      expect(value).toBeNull();
+      await expect(redisCache.get<string>('key1')).rejects.toThrow('Redis connection error');
     });
   });
 
@@ -267,12 +268,14 @@ describe('Enhanced Cache System', () => {
     });
 
     test('应该清空两级缓存', async () => {
-      mockRedis.flushall.mockResolvedValue('OK');
+      mockRedis.keys.mockResolvedValue(['test-l2:key1', 'test-l2:key2']);
+      mockRedis.del.mockResolvedValue(2);
 
       await multiLevelCache.clear();
 
       expect(await mockL1.getStats()).toMatchObject({ size: 0 });
-      expect(mockRedis.flushall).toHaveBeenCalled();
+      expect(mockRedis.keys).toHaveBeenCalledWith('test-l2:*');
+      expect(mockRedis.del).toHaveBeenCalledWith('test-l2:key1', 'test-l2:key2');
     });
 
     test('应该获取多级缓存统计', async () => {
