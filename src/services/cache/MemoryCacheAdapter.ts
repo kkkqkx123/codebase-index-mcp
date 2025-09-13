@@ -14,14 +14,17 @@ export class MemoryCacheAdapter implements CacheInterface {
   private defaultTTL: number;
   private hitCount = 0;
   private missCount = 0;
+  private cleanupTimer?: NodeJS.Timeout;
 
   constructor(name: string, defaultTTL: number = 3600) {
     this.name = name;
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
     this.defaultTTL = defaultTTL;
     
-    // 启动清理过期数据的定时器
-    this.startCleanupTimer();
+    // 在非测试环境中启动清理过期数据的定时器
+    if (process.env.NODE_ENV !== 'test') {
+      this.startCleanupTimer();
+    }
   }
 
   async get<T>(key: string): Promise<T | null> {
@@ -143,6 +146,12 @@ export class MemoryCacheAdapter implements CacheInterface {
     this.cache.clear();
     this.hitCount = 0;
     this.missCount = 0;
+    
+    // 清理定时器
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
   }
 
   private isExpired(entry: CacheEntry<any>): boolean {
@@ -167,7 +176,7 @@ export class MemoryCacheAdapter implements CacheInterface {
 
   private startCleanupTimer(): void {
     // 每60秒清理一次过期数据
-    setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       this.cleanupExpired();
     }, 60000);
   }

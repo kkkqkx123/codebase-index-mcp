@@ -3,7 +3,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { RedisConfig } from '../../config/RedisConfig';
 
 export class RedisConfigManager {
-  private static logger = new LoggerService();
+  private static logger = LoggerService.getInstance();
 
   /**
    * 配置Redis实例的内存限制和其他设置

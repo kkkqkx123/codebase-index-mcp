@@ -40,7 +40,7 @@ export class EnhancedMultiLevelCache implements CacheInterface {
     this.name = name;
     this.level1 = level1;
     this.level2 = level2;
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
     this.monitor = monitor || new EnhancedCacheMonitor();
   }
 

@@ -27,7 +27,7 @@ export class EnhancedCacheFactory {
   private cacheInstances: Map<string, CacheInterface> = new Map();
 
   constructor(config?: CacheFactoryConfig) {
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
     this.monitor = new EnhancedCacheMonitor();
   }
 

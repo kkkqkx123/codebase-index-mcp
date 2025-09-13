@@ -32,7 +32,7 @@ export class EnhancedCacheMonitor {
   private maxLogs = 1000;
 
   constructor() {
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
   }
 
   /**

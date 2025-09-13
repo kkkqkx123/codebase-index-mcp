@@ -14,7 +14,7 @@ export class CacheManager {
   constructor(
     @inject(TYPES.ConfigService) private configService: ConfigService
   ) {
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
   }
 
   /**

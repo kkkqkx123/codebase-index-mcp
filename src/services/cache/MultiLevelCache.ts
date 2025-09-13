@@ -11,7 +11,7 @@ export class MultiLevelCache implements CacheInterface {
     this.name = name;
     this.level1 = level1;
     this.level2 = level2;
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
   }
 
   async get<T>(key: string): Promise<T | null> {

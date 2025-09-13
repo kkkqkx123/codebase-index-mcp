@@ -11,7 +11,7 @@ export class RedisCacheAdapter implements CacheInterface {
   constructor(name: string, redis: Redis, defaultTTL: number = 3600) {
     this.name = name;
     this.redis = redis;
-    this.logger = new LoggerService();
+    this.logger = LoggerService.getInstance();
     this.defaultTTL = defaultTTL;
   }
 
