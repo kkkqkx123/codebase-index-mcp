@@ -25,7 +25,7 @@ const configSchema = Joi.object({
   embedding: Joi.object({
     provider: Joi.string().valid('openai', 'ollama', 'gemini', 'mistral', 'siliconflow', 'custom1', 'custom2', 'custom3').default('openai'),
     openai: Joi.object({
-      apiKey: Joi.string().required(),
+      apiKey: Joi.string().when('$..provider', { is: 'openai', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('text-embedding-ada-002'),
       dimensions: Joi.number().positive().default(1536)
@@ -36,40 +36,40 @@ const configSchema = Joi.object({
       dimensions: Joi.number().positive().default(768)
     }),
     gemini: Joi.object({
-      apiKey: Joi.string().required(),
+      apiKey: Joi.string().when('$..provider', { is: 'gemini', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('embedding-001'),
       dimensions: Joi.number().positive().default(768)
     }),
     mistral: Joi.object({
-      apiKey: Joi.string().required(),
+      apiKey: Joi.string().when('$..provider', { is: 'mistral', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('mistral-embed'),
       dimensions: Joi.number().positive().default(1024)
     }),
     siliconflow: Joi.object({
-      apiKey: Joi.string().required(),
+      apiKey: Joi.string().when('$..provider', { is: 'siliconflow', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('BAAI/bge-large-en-v1.5'),
       dimensions: Joi.number().positive().default(1024)
     }),
     custom: Joi.object({
       custom1: Joi.object({
-        apiKey: Joi.string().optional(),
-        baseUrl: Joi.string().uri().optional(),
-        model: Joi.string().optional(),
+        apiKey: Joi.string().allow('').optional(),
+        baseUrl: Joi.string().uri().allow('').optional(),
+        model: Joi.string().allow('').optional(),
         dimensions: Joi.number().positive().default(768)
       }),
       custom2: Joi.object({
-        apiKey: Joi.string().optional(),
-        baseUrl: Joi.string().uri().optional(),
-        model: Joi.string().optional(),
+        apiKey: Joi.string().allow('').optional(),
+        baseUrl: Joi.string().uri().allow('').optional(),
+        model: Joi.string().allow('').optional(),
         dimensions: Joi.number().positive().default(768)
       }),
       custom3: Joi.object({
-        apiKey: Joi.string().optional(),
-        baseUrl: Joi.string().uri().optional(),
-        model: Joi.string().optional(),
+        apiKey: Joi.string().allow('').optional(),
+        baseUrl: Joi.string().uri().allow('').optional(),
+        model: Joi.string().allow('').optional(),
         dimensions: Joi.number().positive().default(768)
       })
     }).optional(),
@@ -192,6 +192,11 @@ const configSchema = Joi.object({
       'p/typescript'
     ]),
     customRulesPath: Joi.string().default('./rules/semgrep'),
+    enhancedRulesPath: Joi.string().default('./enhanced-rules'),
+    enableControlFlow: Joi.boolean().default(false),
+    enableDataFlow: Joi.boolean().default(false),
+    enableTaintAnalysis: Joi.boolean().default(false),
+    securitySeverity: Joi.array().items(Joi.string()).default(['HIGH', 'MEDIUM']),
     outputFormat: Joi.string().valid('json', 'sarif', 'text').default('json'),
     excludePatterns: Joi.array().items(Joi.string()).default([
       'node_modules',
@@ -556,7 +561,6 @@ export class ConfigService {
           'p/typescript'
         ],
         customRulesPath: process.env.SEMGREP_CUSTOM_RULES_PATH || './rules/semgrep',
-        enhancedRulesPath: process.env.SEMGREP_ENHANCED_RULES_PATH || './enhanced-rules',
         enableControlFlow: process.env.SEMGREP_ENABLE_CONTROL_FLOW !== 'false',
         enableDataFlow: process.env.SEMGREP_ENABLE_DATA_FLOW !== 'false',
         enableTaintAnalysis: process.env.SEMGREP_ENABLE_TAINT_ANALYSIS !== 'false',
@@ -587,7 +591,8 @@ export class ConfigService {
           '*.rb',
           '*.cs'
         ],
-        severityLevels: process.env.SEMGREP_SEVERITY_LEVELS ? process.env.SEMGREP_SEVERITY_LEVELS.split(',') : ['ERROR', 'WARNING', 'INFO']
+        severityLevels: process.env.SEMGREP_SEVERITY_LEVELS ? process.env.SEMGREP_SEVERITY_LEVELS.split(',') : ['ERROR', 'WARNING', 'INFO'],
+        enhancedRulesPath: process.env.SEMGREP_ENHANCED_RULES_PATH || './enhanced-rules'
       },
       mlReranking: process.env.ML_RERANKING_MODEL_PATH || process.env.ML_RERANKING_MODEL_TYPE || process.env.ML_RERANKING_FEATURES || process.env.ML_RERANKING_TRAINING_ENABLED ? {
       modelPath: process.env.ML_RERANKING_MODEL_PATH || undefined,
