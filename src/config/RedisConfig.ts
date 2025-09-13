@@ -2,6 +2,7 @@ export interface RedisConfig {
   enabled: boolean;
   url: string;
   maxmemory?: string;
+  useMultiLevel: boolean;  // 是否使用多级缓存
   ttl: {
     embedding: number;    // 嵌入向量缓存TTL（秒）
     search: number;       // 搜索结果缓存TTL
@@ -22,6 +23,7 @@ export const defaultRedisConfig: RedisConfig = {
   enabled: false,
   url: 'redis://localhost:6379',
   maxmemory: '256mb',
+  useMultiLevel: true,  // 默认启用多级缓存
   ttl: {
     embedding: 86400,  // 24小时
     search: 3600,      // 1小时

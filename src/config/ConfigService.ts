@@ -150,6 +150,7 @@ const configSchema = Joi.object({
     enabled: Joi.boolean().default(false),
     url: Joi.string().uri().default('redis://localhost:6379'),
     maxmemory: Joi.string().default('256mb'),
+    useMultiLevel: Joi.boolean().default(true),
     ttl: Joi.object({
       embedding: Joi.number().default(86400),
       search: Joi.number().default(3600),
@@ -366,6 +367,26 @@ export interface Config {
     excludePatterns: string[];
     includePatterns: string[];
     severityLevels: string[];
+  };
+  redis: {
+    enabled: boolean;
+    url: string;
+    maxmemory?: string;
+    useMultiLevel: boolean;
+    ttl: {
+      embedding: number;
+      search: number;
+      graph: number;
+      progress: number;
+    };
+    retry: {
+      attempts: number;
+      delay: number;
+    };
+    pool: {
+      min: number;
+      max: number;
+    };
   };
   performance?: {
     cleanupInterval?: number;

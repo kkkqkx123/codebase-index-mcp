@@ -3,32 +3,32 @@
  * 提供标准化的缓存操作接口，支持多级缓存实现
  */
 
-export interface CacheInterface<T> {
+export interface CacheInterface {
   /**
    * 获取缓存值
    * @param key 缓存键
    * @returns 缓存值或null
    */
-  get(key: string): Promise<T | null>;
+  get<T>(key: string): Promise<T | null>;
 
   /**
    * 设置缓存值
    * @param key 缓存键
    * @param value 缓存值
-   * @param ttl 过期时间（秒），可选
+   * @param options 缓存选项，可选
    */
-  set(key: string, value: T, ttl?: number): Promise<void>;
+  set<T>(key: string, value: T, options?: CacheOptions): Promise<boolean>;
 
   /**
    * 删除缓存键
    * @param key 缓存键
    */
-  del(key: string): Promise<void>;
+  del(key: string): Promise<boolean>;
 
   /**
    * 清空所有缓存
    */
-  clear(): Promise<void>;
+  clear(): Promise<boolean>;
 
   /**
    * 检查键是否存在
@@ -42,15 +42,28 @@ export interface CacheInterface<T> {
    * @returns 缓存统计
    */
   getStats(): Promise<CacheStats>;
+
+  /**
+   * 获取缓存名称
+   */
+  getName(): string;
+
+  /**
+   * 关闭缓存连接
+   */
+  close(): Promise<void>;
 }
 
 /**
  * 缓存统计信息
  */
 export interface CacheStats {
-  hits: number;        // 命中次数
-  misses: number;      // 未命中次数
+  name: string;        // 缓存名称
   size: number;        // 缓存大小
+  maxSize: number;     // 最大缓存大小
+  hitCount: number;    // 命中次数
+  missCount: number;   // 未命中次数
+  hitRate: number;     // 命中率（0-1之间）
   memoryUsage?: number; // 内存使用（字节）
 }
 
