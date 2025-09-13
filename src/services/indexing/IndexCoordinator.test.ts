@@ -659,12 +659,12 @@ describe('IndexCoordinator', () => {
         complexity: 5
       };
 
-      storageCoordinator.analyzeSnippetDependencies.mockResolvedValue(mockDependencies);
+      storageCoordinator.analyzeDependencies.mockResolvedValue(mockDependencies.dependsOn);
 
       const result = await indexCoordinator.analyzeDependencies(mockSnippetId, mockProjectId);
 
       expect(result).toEqual(mockDependencies);
-      expect(storageCoordinator.analyzeSnippetDependencies).toHaveBeenCalledWith(mockSnippetId, mockProjectId);
+      expect(storageCoordinator.analyzeDependencies).toHaveBeenCalledWith(mockSnippetId, mockProjectId);
     });
 
     it('should detect overlaps', async () => {

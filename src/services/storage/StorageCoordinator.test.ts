@@ -632,13 +632,9 @@ describe('StorageCoordinator', () => {
       // Mock graph storage search results
       graphStorage.search.mockResolvedValue([]);
 
-      const result = await storageCoordinator.analyzeSnippetDependencies(mockSnippetId, mockProjectId);
+      const result = await storageCoordinator.analyzeDependencies(mockSnippetId, mockProjectId);
 
-      expect(result).toEqual({
-        dependsOn: [],
-        usedBy: [],
-        complexity: 1
-      });
+      expect(result).toEqual([]);
     });
 
     it('should find snippet overlaps', async () => {

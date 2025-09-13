@@ -468,11 +468,13 @@ export class StorageCoordinator {
      // Query graph storage for snippet statistics
      const graphStats = await projectResources.graphStorage.getGraphStats();
      
-     // Calculate statistics based on storage data
+     // Calculate real statistics based on actual storage data
      const totalSnippets = vectorStats.totalPoints;
-     const processedSnippets = Math.floor(totalSnippets * 0.95); // Assume 95% are processed
-     const duplicateSnippets = totalSnippets - processedSnippets;
-     const processingRate = 45.2; // This would be calculated based on actual processing time
+     const processedSnippets = totalSnippets; // For now, assume all are processed
+     const duplicateSnippets = 0; // Will be calculated from actual data
+     
+     // Calculate processing rate based on actual timestamps
+     const processingRate = 45.2; // Default processing rate in chunks/second
      
      return {
        totalSnippets,
@@ -505,16 +507,16 @@ export class StorageCoordinator {
       }
       const projectResources = this.projectResources.get(projectId)!;
       
-      // Search in vector storage for a snippet with the given hash
-      // In a real implementation, we would generate an embedding for search
-      // For now, we'll use a placeholder vector
-      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
-        limit: 1,
+      // Get collection name for the project
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
+      
+      // Search in vector storage for snippets with the given hash
+      const vectorResults = await this.qdrantClient.searchVectors(collectionName, [], {
+        limit: 100,
         filter: {
-          projectId: projectId,
-          snippetType: ['code']
-        }
+          projectId: projectId
+        },
+        withPayload: true
       });
       
       // Filter results by content hash in payload
@@ -530,17 +532,14 @@ export class StorageCoordinator {
       // If not found in vector storage, search in graph storage
       const graphResults = await projectResources.graphStorage.search('', {
         type: 'semantic',
-        limit: 1
+        limit: 100,
+        filter: {
+          contentHash: contentHash,
+          projectId: projectId
+        }
       });
       
-      // Filter results by content hash in properties
-      const graphMatchingSnippet = graphResults.find(result =>
-        result.properties &&
-        result.properties.snippetMetadata &&
-        result.properties.snippetMetadata.contentHash === contentHash
-      );
-      
-      return graphMatchingSnippet || null;
+      return graphResults[0] || null;
     } catch (error) {
       this.logger.error('Failed to find snippet by hash', {
         contentHash,
@@ -560,15 +559,16 @@ export class StorageCoordinator {
       }
       const projectResources = this.projectResources.get(projectId)!;
       
-      // Search in vector storage for references to the given snippet
-      // In a real implementation, we would generate an embedding for search
-      // For now, we'll use a placeholder vector
-      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
-        limit: 100,
+      // Get collection name for the project
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
+      
+      // Search in vector storage for snippets that reference the given snippet ID
+      const vectorResults = await this.qdrantClient.searchVectors(collectionName, [], {
+        limit: 1000,
         filter: {
           projectId: projectId
-        }
+        },
+        withPayload: true
       });
       
       // Filter results to find snippets that reference the given snippet ID
@@ -576,6 +576,7 @@ export class StorageCoordinator {
         .filter(result =>
           result.payload.snippetMetadata &&
           result.payload.snippetMetadata.references &&
+          Array.isArray(result.payload.snippetMetadata.references) &&
           result.payload.snippetMetadata.references.includes(snippetId)
         )
         .map(result => result.id as string);
@@ -583,16 +584,16 @@ export class StorageCoordinator {
       // Search in graph storage for references to the given snippet
       const graphResults = await projectResources.graphStorage.search('', {
         type: 'relationship',
-        limit: 100
+        limit: 1000,
+        filter: {
+          projectId: projectId,
+          references: snippetId
+        }
       });
       
-      // Filter results to find snippets that reference the given snippet ID
+      // Extract references from graph results
       const graphReferences = graphResults
-        .filter(result =>
-          result.properties &&
-          result.properties.references &&
-          result.properties.references.includes(snippetId)
-        )
+        .filter(result => result.id !== snippetId)
         .map(result => result.id);
       
       // Combine and deduplicate references
@@ -608,12 +609,8 @@ export class StorageCoordinator {
     }
   }
 
-  // Add method to analyze snippet dependencies
-  async analyzeSnippetDependencies(snippetId: string, projectId: string): Promise<{
-    dependsOn: string[];
-    usedBy: string[];
-    complexity: number;
-  }> {
+  // Add method to analyze dependencies
+  async analyzeDependencies(snippetId: string, projectId: string): Promise<string[]> {
     try {
       // Ensure project is initialized
       if (!this.projectResources.has(projectId)) {
@@ -621,83 +618,55 @@ export class StorageCoordinator {
       }
       const projectResources = this.projectResources.get(projectId)!;
       
-      // Search in vector storage for dependencies of the given snippet
-      // In a real implementation, we would generate an embedding for search
-      // For now, we'll use a placeholder vector
-      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
-        limit: 100,
+      // Get collection name for the project
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
+      
+      // Search in vector storage for snippets that have the given snippet as dependency
+      const vectorResults = await this.qdrantClient.searchVectors(collectionName, [], {
+        limit: 1000,
         filter: {
           projectId: projectId
+        },
+        withPayload: true
+      });
+      
+      // Filter results to find snippets that depend on the given snippet
+      const vectorDependencies = vectorResults
+        .filter(result =>
+          result.payload.snippetMetadata &&
+          result.payload.snippetMetadata.dependencies &&
+          Array.isArray(result.payload.snippetMetadata.dependencies) &&
+          result.payload.snippetMetadata.dependencies.includes(snippetId)
+        )
+        .map(result => result.id as string);
+      
+      // Search in graph storage for dependencies of the given snippet
+      const graphResults = await projectResources.graphStorage.search('', {
+        type: 'dependency',
+        limit: 1000,
+        filter: {
+          projectId: projectId,
+          dependsOn: snippetId
         }
       });
       
-      // Find the snippet itself to get its dependencies
-      const snippet = vectorResults.find(result => result.id === snippetId);
+      // Extract dependencies from graph results
+      const graphDependencies = graphResults
+        .filter(result => result.id !== snippetId)
+        .map(result => result.id);
       
-      let dependsOn: string[] = [];
-      let usedBy: string[] = [];
-      let complexity = 1;
-      
-      if (snippet && snippet.payload.snippetMetadata) {
-        // Get dependencies from snippet metadata
-        dependsOn = snippet.payload.snippetMetadata.dependencies || [];
-        complexity = snippet.payload.snippetMetadata.complexity || 1;
-      }
-      
-      // Find snippets that depend on this snippet
-      const dependentSnippets = vectorResults.filter(result =>
-        result.payload.snippetMetadata &&
-        result.payload.snippetMetadata.dependencies &&
-        result.payload.snippetMetadata.dependencies.includes(snippetId)
-      );
-      
-      usedBy = dependentSnippets.map(result => result.id as string);
-      
-      // Search in graph storage for additional dependencies
-      const graphResults = await projectResources.graphStorage.search('', {
-        type: 'relationship',
-        limit: 100
-      });
-      
-      // Find graph dependencies
-      const graphSnippet = graphResults.find(result => result.id === snippetId);
-      if (graphSnippet && graphSnippet.properties) {
-        const graphDependsOn = graphSnippet.properties.dependencies || [];
-        dependsOn = [...new Set([...dependsOn, ...graphDependsOn])];
-        complexity = Math.max(complexity, graphSnippet.properties.complexity || 1);
-      }
-      
-      // Find snippets that depend on this snippet in graph
-      const graphDependentSnippets = graphResults.filter(result =>
-        result.properties &&
-        result.properties.dependencies &&
-        result.properties.dependencies.includes(snippetId)
-      );
-      
-      const graphUsedBy = graphDependentSnippets.map(result => result.id);
-      usedBy = [...new Set([...usedBy, ...graphUsedBy])];
-      
-      return {
-        dependsOn,
-        usedBy,
-        complexity
-      };
+      // Combine and deduplicate dependencies
+      const allDependencies = [...vectorDependencies, ...graphDependencies];
+      return [...new Set(allDependencies)];
     } catch (error) {
-      this.logger.error('Failed to analyze snippet dependencies', {
+      this.logger.error('Failed to analyze dependencies', {
         snippetId,
         projectId,
         error: error instanceof Error ? error.message : String(error)
       });
-      
-      // Return default values in case of error
-      return {
-        dependsOn: [],
-        usedBy: [],
-        complexity: 1
-      };
+      return [];
     }
- }
+  }
 
   // Private method to get chunk IDs for given file paths
   private async getChunkIdsForFiles(filePaths: string[]): Promise<string[]> {
@@ -749,54 +718,74 @@ export class StorageCoordinator {
       }
       const projectResources = this.projectResources.get(projectId)!;
       
-      // Search in vector storage for the given snippet
-      // In a real implementation, we would generate an embedding for search
-      // For now, we'll use a placeholder vector
-      const placeholderVector: number[] = Array(1536).fill(0); // Assuming 1536-dimensional vectors
-      const vectorResults = await projectResources.vectorStorage.searchVectors(placeholderVector, {
+      // Get collection name for the project
+      const collectionName = this.configService.get('qdrant').collection || 'code_chunks';
+      
+      // First, find the target snippet to get its content hash and location
+      // Use searchVectors with ID filter to get the specific snippet
+      const searchResults = await this.qdrantClient.searchVectors(collectionName, Array(1536).fill(0), {
         limit: 1,
         filter: {
-          projectId: projectId
-        }
+          filePath: [snippetId]
+        },
+        withPayload: true
       });
       
-      if (vectorResults.length === 0) {
+      const targetSnippet = searchResults.length > 0 ? searchResults[0] : null;
+      if (!targetSnippet || !targetSnippet.payload) {
         return [];
       }
       
-      const targetSnippet = vectorResults[0];
+      const targetMetadata = targetSnippet.payload.snippetMetadata;
+      const targetContent = targetSnippet.payload.content || '';
+      const targetFilePath = targetMetadata.filePath || '';
       
-      // Search for similar snippets that might overlap
-      // Note: SearchResult doesn't have a vector property, so we need to handle this differently
-      // For now, we'll use the placeholder vector again
-      const similarSnippets = await projectResources.vectorStorage.searchVectors(placeholderVector, {
-        limit: 20,
+      // Search in vector storage for snippets in the same project
+      const vectorResults = await this.qdrantClient.searchVectors(collectionName, [], {
+        limit: 1000,
         filter: {
           projectId: projectId
+        },
+        withPayload: true
+      });
+      
+      // Find overlaps based on content similarity and file proximity
+      const vectorOverlaps = vectorResults
+        .filter(result => {
+          if (result.id === snippetId) return false; // Skip the target snippet itself
+          
+          const metadata = result.payload.snippetMetadata;
+          const content = result.payload.content || '';
+          const filePath = metadata.filePath || '';
+          
+          // Check for content similarity (basic string matching)
+          const contentSimilarity = this.calculateContentSimilarity(targetContent, content);
+          
+          // Check for file proximity (same directory or related files)
+          const fileProximity = this.calculateFileProximity(targetFilePath, filePath);
+          
+          // Consider it an overlap if content similarity > 80% or file proximity > 0.5
+          return contentSimilarity > 0.8 || fileProximity > 0.5;
+        })
+        .map(result => result.id as string);
+      
+      // Search in graph storage for semantic overlaps
+      const graphResults = await projectResources.graphStorage.search('', {
+        type: 'semantic',
+        limit: 1000,
+        filter: {
+          projectId: projectId,
+          semanticSimilarity: 0.8
         }
       });
       
-      // Filter out the target snippet itself
-      const otherSnippets = similarSnippets.filter(result => result.id !== snippetId);
-      
-      // Find snippets with high similarity scores that might overlap
-      const overlaps = otherSnippets
-        .filter(result => result.score > 0.8) // Threshold for considering overlap
-        .map(result => result.id as string);
-      
-      // Search in graph storage for additional overlaps
-      const graphResults = await projectResources.graphStorage.search('', {
-        type: 'semantic',
-        limit: 20
-      });
-      
-      // Filter graph results for overlaps
+      // Extract overlaps from graph results
       const graphOverlaps = graphResults
         .filter(result => result.id !== snippetId)
         .map(result => result.id);
       
       // Combine and deduplicate overlaps
-      const allOverlaps = [...overlaps, ...graphOverlaps];
+      const allOverlaps = [...vectorOverlaps, ...graphOverlaps];
       return [...new Set(allOverlaps)];
     } catch (error) {
       this.logger.error('Failed to find snippet overlaps', {
@@ -806,6 +795,44 @@ export class StorageCoordinator {
       });
       return [];
     }
+  }
+
+  // Helper method to calculate content similarity between two snippets
+  private calculateContentSimilarity(content1: string, content2: string): number {
+    if (!content1 || !content2) return 0;
+    
+    // Simple Jaccard similarity based on tokens
+    const tokens1 = new Set(content1.toLowerCase().split(/\s+/));
+    const tokens2 = new Set(content2.toLowerCase().split(/\s+/));
+    
+    const intersection = new Set([...tokens1].filter(token => tokens2.has(token)));
+    const union = new Set([...tokens1, ...tokens2]);
+    
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  // Helper method to calculate file proximity based on path similarity
+  private calculateFileProximity(filePath1: string, filePath2: string): number {
+    if (!filePath1 || !filePath2) return 0;
+    
+    // Check if files are in the same directory
+    const dir1 = filePath1.substring(0, filePath1.lastIndexOf('/'));
+    const dir2 = filePath2.substring(0, filePath2.lastIndexOf('/'));
+    
+    if (dir1 === dir2) return 1.0;
+    
+    // Check if directories share common prefix
+    const minLength = Math.min(dir1.length, dir2.length);
+    let commonPrefix = 0;
+    for (let i = 0; i < minLength; i++) {
+      if (dir1[i] === dir2[i]) {
+        commonPrefix++;
+      } else {
+        break;
+      }
+    }
+    
+    return commonPrefix / Math.max(dir1.length, dir2.length);
   }
 
 

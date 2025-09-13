@@ -437,8 +437,14 @@ export class IndexCoordinator {
   }> {
     try {
       // Analyze code dependencies using the storage
-      const dependencies = await this.storageCoordinator.analyzeSnippetDependencies(snippetId, projectId);
-      return dependencies;
+      const dependsOn = await this.storageCoordinator.analyzeDependencies(snippetId, projectId);
+      
+      // For now, return simplified structure - in real implementation, this would be more complex
+      return {
+        dependsOn,
+        usedBy: [], // This would require additional analysis
+        complexity: 1 // This would be calculated from actual code analysis
+      };
     } catch (error) {
       this.logger.error('Failed to analyze dependencies', {
         snippetId,

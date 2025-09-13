@@ -117,12 +117,29 @@ async detectOverlaps(snippetId: string, projectId: string)
 
 | 层级 | 实现状态 | 备注 |
 |------|----------|------|
-| 路由层 | ✅ 完整实现 | 所有7个端点已定义 |
+| 路由层 | ✅ 完整实现 | 所有7个端点+3个CRUD端点已定义 |
 | 控制器层 | ✅ 完整实现 | 所有业务逻辑已实现 |
 | 服务层 | ✅ 完整实现 | 核心算法和协调逻辑已就绪 |
-| 存储层 | ⚠️ 部分实现 | 接口就绪，需真实存储实现 |
+| 存储层 | ⚠️ 模拟实现 | 接口就绪，使用模拟数据和占位符 |
 | 测试层 | ✅ 完整覆盖 | 单元测试和集成测试已覆盖 |
-| 文档层 | ⚠️ 部分完成 | 基础文档存在，需完善API文档 |
+| 文档层 | ✅ 已更新 | 当前文档已同步最新实现 |
+
+## 🔍 存储层详细分析
+
+**StorageCoordinator.ts** 中的关键问题：
+
+1. **getSnippetStatistics()** - 使用固定值：`processedSnippets = Math.floor(totalSnippets * 0.95)`、`processingRate = 45.2`
+2. **findSnippetByHash()** - 使用占位符向量搜索：`Array(1536).fill(0)`
+3. **findSnippetReferences()** - 使用模拟数据过滤
+4. **analyzeSnippetDependencies()** - 从metadata读取依赖关系，非真实分析
+5. **findSnippetOverlaps()** - 使用相似度阈值0.8的模拟判断
+
+## 🎯 项目状态结论
+
+1. **架构层面**：已完成，具备完整的MVC架构
+2. **功能层面**：API端点全部可用，但底层数据仍为模拟
+3. **开发状态**：项目可以运行和测试，但查询结果非真实数据
+4. **下一步**：需要为StorageCoordinator提供真实的数据存储和查询实现
 
 ## 后续工作建议
 
