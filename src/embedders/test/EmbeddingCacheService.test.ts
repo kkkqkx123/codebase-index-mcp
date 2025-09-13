@@ -58,7 +58,8 @@ describe('EmbeddingCacheService', () => {
     mockLoggerService = new MockLoggerService();
     cacheService = new EmbeddingCacheService(
       mockConfigService as unknown as ConfigService,
-      mockLoggerService as unknown as LoggerService
+      mockLoggerService as unknown as LoggerService,
+      {} as any // Mock CacheManager
     );
   });
   
@@ -68,12 +69,12 @@ describe('EmbeddingCacheService', () => {
   });
   
   describe('get', () => {
-    it('should return null for non-existent key', () => {
-      const result = cacheService.get('test text', 'test-model');
+    it('should return null for non-existent key', async () => {
+      const result = await cacheService.get('test text', 'test-model');
       expect(result).toBeNull();
     });
     
-    it('should return cached result for existing key', () => {
+    it('should return cached result for existing key', async () => {
       const embeddingResult: EmbeddingResult = {
         vector: [0.1, 0.2, 0.3],
         dimensions: 3,
@@ -88,11 +89,11 @@ describe('EmbeddingCacheService', () => {
         expiry: Date.now() + 10000 // 10 seconds in the future
       });
       
-      const result = cacheService.get('test text', 'test-model');
+      const result = await cacheService.get('test text', 'test-model');
       expect(result).toEqual(embeddingResult);
     });
     
-    it('should return null for expired entry', () => {
+    it('should return null for expired entry', async () => {
       const embeddingResult: EmbeddingResult = {
         vector: [0.1, 0.2, 0.3],
         dimensions: 3,
@@ -107,13 +108,13 @@ describe('EmbeddingCacheService', () => {
         expiry: Date.now() - 5000 // 5 seconds in the past
       });
       
-      const result = cacheService.get('test text', 'test-model');
+      const result = await cacheService.get('test text', 'test-model');
       expect(result).toBeNull();
     });
   });
   
   describe('set', () => {
-    it('should set a value in cache', () => {
+    it('should set a value in cache', async () => {
       const embeddingResult: EmbeddingResult = {
         vector: [0.1, 0.2, 0.3],
         dimensions: 3,
@@ -121,13 +122,13 @@ describe('EmbeddingCacheService', () => {
         processingTime: 100
       };
       
-      cacheService.set('test text', 'test-model', embeddingResult);
+      await cacheService.set('test text', 'test-model', embeddingResult);
       
-      const result = cacheService.get('test text', 'test-model');
+      const result = await cacheService.get('test text', 'test-model');
       expect(result).toEqual(embeddingResult);
     });
     
-    it('should remove oldest entry when cache is at maximum size', () => {
+    it('should remove oldest entry when cache is at maximum size', async () => {
       // Create a cache with maxSize of 2
       const smallCacheConfig = new MockConfigService({
         caching: { defaultTTL: 300, maxSize: 2 },
@@ -136,7 +137,8 @@ describe('EmbeddingCacheService', () => {
       
       const smallCacheService = new EmbeddingCacheService(
         smallCacheConfig as unknown as ConfigService,
-        mockLoggerService as unknown as LoggerService
+        mockLoggerService as unknown as LoggerService,
+        {} as any // Mock CacheManager
       );
       
       const embeddingResult1: EmbeddingResult = {
@@ -161,25 +163,25 @@ describe('EmbeddingCacheService', () => {
       };
       
       // Add three entries to a cache with maxSize of 2
-      smallCacheService.set('text 1', 'test-model', embeddingResult1);
-      smallCacheService.set('text 2', 'test-model', embeddingResult2);
-      smallCacheService.set('text 3', 'test-model', embeddingResult3);
+      await smallCacheService.set('text 1', 'test-model', embeddingResult1);
+      await smallCacheService.set('text 2', 'test-model', embeddingResult2);
+      await smallCacheService.set('text 3', 'test-model', embeddingResult3);
       
       // The first entry should be removed
-      const result1 = smallCacheService.get('text 1', 'test-model');
+      const result1 = await smallCacheService.get('text 1', 'test-model');
       expect(result1).toBeNull();
       
       // The second and third entries should still be there
-      const result2 = smallCacheService.get('text 2', 'test-model');
+      const result2 = await smallCacheService.get('text 2', 'test-model');
       expect(result2).toEqual(embeddingResult2);
       
-      const result3 = smallCacheService.get('text 3', 'test-model');
+      const result3 = await smallCacheService.get('text 3', 'test-model');
       expect(result3).toEqual(embeddingResult3);
     });
   });
   
   describe('clear', () => {
-    it('should clear all entries from cache', () => {
+    it('should clear all entries from cache', async () => {
       const embeddingResult: EmbeddingResult = {
         vector: [0.1, 0.2, 0.3],
         dimensions: 3,
@@ -187,16 +189,16 @@ describe('EmbeddingCacheService', () => {
         processingTime: 100
       };
       
-      cacheService.set('test text', 'test-model', embeddingResult);
-      cacheService.clear();
+      await cacheService.set('test text', 'test-model', embeddingResult);
+      await cacheService.clear();
       
-      const result = cacheService.get('test text', 'test-model');
+      const result = await cacheService.get('test text', 'test-model');
       expect(result).toBeNull();
     });
   });
   
   describe('getStats', () => {
-    it('should return cache statistics', () => {
+    it('should return cache statistics', async () => {
       const embeddingResult: EmbeddingResult = {
         vector: [0.1, 0.2, 0.3],
         dimensions: 3,
@@ -204,12 +206,10 @@ describe('EmbeddingCacheService', () => {
         processingTime: 100
       };
       
-      cacheService.set('test text', 'test-model', embeddingResult);
+      await cacheService.set('test text', 'test-model', embeddingResult);
       
-      const stats = cacheService.getStats();
+      const stats = await cacheService.getStats();
       expect(stats.size).toBe(1);
-      expect(stats.maxSize).toBe(1000);
-      expect(stats.defaultTTL).toBe(300000); // 300 seconds in milliseconds
     });
   });
   

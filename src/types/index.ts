@@ -93,6 +93,7 @@ export const TYPES = {
   // Search and cache
   SearchCache: Symbol.for('SearchCache'),
   QdrantCollectionManager: Symbol.for('QdrantCollectionManager'),
+  CacheManager: Symbol.for('CacheManager'),
   
   // Processing and pipeline
   AsyncPipeline: Symbol.for('AsyncPipeline'),

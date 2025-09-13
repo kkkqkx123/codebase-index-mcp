@@ -1,144 +1,107 @@
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../types';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
+import { CacheManager } from '../services/cache/CacheManager';
+import { CacheInterface } from '../services/cache/CacheInterface';
 import { EmbeddingResult } from './BaseEmbedder';
-
-interface CacheEntry {
-  result: EmbeddingResult;
-  timestamp: number;
-  expiry: number;
-}
 
 @injectable()
 export class EmbeddingCacheService {
-  private cache: Map<string, CacheEntry> = new Map();
-  private maxSize: number;
-  private defaultTTL: number;
+  private cache!: CacheInterface;
   private logger: LoggerService;
-  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
-    configService: ConfigService,
-    logger: LoggerService
+    @inject(TYPES.ConfigService) private configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.CacheManager) private cacheManager: CacheManager
   ) {
     this.logger = logger;
-    
-    // Get cache configuration
-    const cachingConfig = configService.get('caching');
-    const cacheConfig = configService.get('cache');
-    
-    // Get configuration values from either config structure
-    this.maxSize = cachingConfig?.maxSize || cacheConfig?.maxEntries || 1000;
-    this.defaultTTL = (cachingConfig?.defaultTTL || cacheConfig?.ttl || 300) * 1000; // Convert to milliseconds
-    
-    // Start cleanup interval
-    const cleanupInterval = cacheConfig?.cleanupInterval ? cacheConfig.cleanupInterval * 1000 : 60000; // Default to 1 minute
-    this.cleanupInterval = setInterval(() => this.cleanup(), cleanupInterval);
-    // Ensure interval doesn't prevent Node.js from exiting
-    if (this.cleanupInterval.unref) {
-      this.cleanupInterval.unref();
+  }
+
+  private async getCache(): Promise<CacheInterface> {
+    if (!this.cache) {
+      this.cache = await this.cacheManager.getEmbeddingCache();
     }
- }
+    return this.cache;
+  }
 
   /**
    * Generate a cache key for the given text and model
    */
   private generateKey(text: string, model: string): string {
-    return `${model}:${text}`;
+    const crypto = require('crypto');
+    const hash = crypto.createHash('md5').update(text).digest('hex');
+    return `${model}:${hash}`;
   }
 
   /**
    * Get cached embedding result
    */
-  get(text: string, model: string): EmbeddingResult | null {
-    const key = this.generateKey(text, model);
-    const entry = this.cache.get(key);
-    
-    if (!entry) {
-      return null;
-    }
-    
-    // Check if entry has expired
-    if (Date.now() > entry.expiry) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    this.logger.debug('Cache hit', { key });
-    return entry.result;
-  }
-
- /**
-   * Set embedding result in cache
-   */
-  set(text: string, model: string, result: EmbeddingResult): void {
-    // Check if cache is at maximum size
-    if (this.cache.size >= this.maxSize) {
-      // Remove oldest entry
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey) {
-        this.cache.delete(firstKey);
+  async get(text: string, model: string): Promise<EmbeddingResult | null> {
+    try {
+      const cache = await this.getCache();
+      const key = this.generateKey(text, model);
+      const result = await cache.get<EmbeddingResult>(key);
+      
+      if (result) {
+        this.logger.debug('Cache hit', { key, model });
+      } else {
+        this.logger.debug('Cache miss', { key, model });
       }
+      
+      return result;
+    } catch (error) {
+      this.logger.error('Error getting embedding from cache', { error, text: text.substring(0, 50), model });
+      return null;
     }
-    
-    const key = this.generateKey(text, model);
-    const timestamp = Date.now();
-    const expiry = timestamp + this.defaultTTL;
-    
-    this.cache.set(key, {
-      result,
-      timestamp,
-      expiry
-    });
-    
-    this.logger.debug('Cache set', { key, expiry });
   }
 
   /**
-   * Remove expired entries from cache
+   * Set embedding result in cache
    */
-  private cleanup(): void {
-    const now = Date.now();
-    let removedCount = 0;
-    
-    for (const [key, entry] of this.cache.entries()) {
-      if (now > entry.expiry) {
-        this.cache.delete(key);
-        removedCount++;
-      }
-    }
-    
-    if (removedCount > 0) {
-      this.logger.debug(`Cache cleanup removed ${removedCount} expired entries`);
+  async set(text: string, model: string, result: EmbeddingResult): Promise<void> {
+    try {
+      const cache = await this.getCache();
+      const key = this.generateKey(text, model);
+      const redisConfig = this.configService.get('redis') || { ttl: { embedding: 86400 } };
+      const ttl = redisConfig.ttl?.embedding || 86400; // 默认24小时
+      
+      await cache.set(key, result, { ttl });
+      this.logger.debug('Cache set', { key, model, ttl });
+    } catch (error) {
+      this.logger.error('Error setting embedding to cache', { error, text: text.substring(0, 50), model });
     }
   }
 
   /**
    * Clear all entries from cache
    */
-  clear(): void {
-    this.cache.clear();
-    this.logger.debug('Cache cleared');
-  }
-
-  /**
-   * Stop the cleanup interval
-   */
-  stop(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
+  async clear(): Promise<void> {
+    try {
+      const cache = await this.getCache();
+      await cache.clear();
+      this.logger.debug('Embedding cache cleared');
+    } catch (error) {
+      this.logger.error('Error clearing embedding cache', { error });
     }
   }
 
   /**
    * Get cache statistics
    */
-  getStats(): { size: number; maxSize: number; defaultTTL: number } {
-    return {
-      size: this.cache.size,
-      maxSize: this.maxSize,
-      defaultTTL: this.defaultTTL
-    };
+  async getStats(): Promise<{ size: number; hits?: number; misses?: number }> {
+    try {
+      const cache = await this.getCache();
+      const stats = await cache.getStats();
+      return {
+        size: stats.size,
+        hits: stats.hitCount,
+        misses: stats.missCount
+      };
+    } catch (error) {
+      this.logger.error('Error getting embedding cache stats', { error });
+      return { size: 0 };
+    }
   }
 }

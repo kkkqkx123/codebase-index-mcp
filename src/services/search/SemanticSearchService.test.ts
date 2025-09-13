@@ -5,6 +5,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { CacheManager } from '../cache/CacheManager';
 
 describe('SemanticSearchService', () => {
   let semanticSearchService: SemanticSearchService;
@@ -14,6 +15,7 @@ describe('SemanticSearchService', () => {
   let mockConfigService: jest.Mocked<ConfigService>;
   let mockVectorStorage: jest.Mocked<VectorStorageService>;
   let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
+  let mockCacheManager: jest.Mocked<CacheManager>;
 
   beforeEach(() => {
     // Create mocks
@@ -66,6 +68,13 @@ describe('SemanticSearchService', () => {
       createErrorContext: jest.fn(),
     } as any;
 
+    mockCacheManager = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      clear: jest.fn(),
+    } as any;
+
     // Mock setInterval to prevent hanging
     jest.useFakeTimers();
 
@@ -75,7 +84,8 @@ describe('SemanticSearchService', () => {
       mockLoggerService,
       mockErrorHandlerService,
       mockEmbedderFactory,
-      mockVectorStorage
+      mockVectorStorage,
+      mockCacheManager
     );
   });
 

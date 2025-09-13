@@ -13,9 +13,9 @@ function testSiliconFlowIntegration() {
   try {
     // Initialize services
     const configService = ConfigService.getInstance();
-    const logger = new LoggerService;
+    const logger = new LoggerService();
     const errorHandler = new ErrorHandlerService(logger);
-    const cacheService = new EmbeddingCacheService(configService, logger);
+    const cacheService = new EmbeddingCacheService(configService, logger, {} as any);
 
     // Initialize SiliconFlow embedder
     const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);

@@ -18,6 +18,7 @@ import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
 import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService';
 import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
+import { CacheManager } from '../services/cache/CacheManager';
 import { SemgrepScanService } from '../services/semgrep/SemgrepScanService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
 import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
@@ -79,6 +80,7 @@ export const TYPES = {
   NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
   EmbeddingCacheService: Symbol.for('EmbeddingCacheService'),
+  CacheManager: Symbol.for('CacheManager'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
   OllamaEmbedder: Symbol.for('OllamaEmbedder'),
   GeminiEmbedder: Symbol.for('GeminiEmbedder'),
@@ -155,6 +157,7 @@ const databaseModule = new ContainerModule((bind: any) => {
 
 const embedderModule = new ContainerModule((bind: any) => {
   bind(TYPES.EmbeddingCacheService).to(EmbeddingCacheService).inSingletonScope();
+  bind(TYPES.CacheManager).to(CacheManager).inSingletonScope();
   bind(TYPES.OpenAIEmbedder).to(OpenAIEmbedder).inSingletonScope();
   bind(TYPES.OllamaEmbedder).to(OllamaEmbedder).inSingletonScope();
   bind(TYPES.GeminiEmbedder).to(GeminiEmbedder).inSingletonScope();

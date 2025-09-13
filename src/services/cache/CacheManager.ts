@@ -67,7 +67,8 @@ export class CacheManager {
   async getAllStats(): Promise<Record<string, any>> {
     const stats: Record<string, any> = {};
     
-    for (const [name, cache] of this.caches.entries()) {
+    const entries = Array.from(this.caches.entries());
+    for (const [name, cache] of entries) {
       try {
         stats[name] = await cache.getStats();
       } catch (error) {

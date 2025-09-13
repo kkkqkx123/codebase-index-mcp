@@ -73,25 +73,23 @@ class MockErrorHandlerService implements Partial<ErrorHandlerService> {
 class MockEmbeddingCacheService implements Partial<EmbeddingCacheService> {
   private cache: Map<string, EmbeddingResult> = new Map();
   
-  get(text: string, model: string): EmbeddingResult | null {
+  async get(text: string, model: string): Promise<EmbeddingResult | null> {
     const key = `${model}:${text}`;
     return this.cache.get(key) || null;
   }
   
-  set(text: string, model: string, result: EmbeddingResult): void {
+  async set(text: string, model: string, result: EmbeddingResult): Promise<void> {
     const key = `${model}:${text}`;
     this.cache.set(key, result);
   }
   
-  clear(): void {
+  async clear(): Promise<void> {
     this.cache.clear();
   }
   
-  getStats(): { size: number; maxSize: number; defaultTTL: number } {
+  async getStats(): Promise<{ size: number; hits?: number; misses?: number }> {
     return {
-      size: this.cache.size,
-      maxSize: 1000,
-      defaultTTL: 300000
+      size: this.cache.size
     };
   }
 }

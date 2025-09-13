@@ -153,7 +153,8 @@ export class MemoryCacheAdapter implements CacheInterface {
     const now = Date.now();
     const keysToDelete: string[] = [];
     
-    for (const [key, entry] of this.cache.entries()) {
+    const entries = Array.from(this.cache.entries());
+    for (const [key, entry] of entries) {
       if (this.isExpired(entry)) {
         keysToDelete.push(key);
       }

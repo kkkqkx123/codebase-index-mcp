@@ -70,7 +70,7 @@ export abstract class BaseEmbedder implements Embedder {
     const uncachedInputs: EmbeddingInput[] = [];
     
     for (const inp of inputs) {
-      const cached = this.cacheService.get(inp.text, this.getModelName());
+      const cached = await this.cacheService.get(inp.text, this.getModelName());
       if (cached) {
         cachedResults.push(cached);
       } else {
@@ -104,9 +104,9 @@ export abstract class BaseEmbedder implements Embedder {
       });
       
       // Cache the new results
-      apiResults.forEach((embedding, index) => {
-        this.cacheService.set(uncachedInputs[index].text, this.getModelName(), embedding);
-      });
+      for (let i = 0; i < apiResults.length; i++) {
+        await this.cacheService.set(uncachedInputs[i].text, this.getModelName(), apiResults[i]);
+      }
       
       // Combine cached and new results
       const finalResult = [...cachedResults, ...apiResults];

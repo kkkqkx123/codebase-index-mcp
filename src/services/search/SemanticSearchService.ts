@@ -6,6 +6,8 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { SearchResult } from '../../database/qdrant/QdrantClientWrapper';
+import { CacheManager } from '../cache/CacheManager';
+import { CacheInterface } from '../cache/CacheInterface';
 
 export interface SemanticSearchParams {
   query: string;
@@ -65,29 +67,30 @@ export class SemanticSearchService {
   private configService: ConfigService;
   private embedderFactory: EmbedderFactory;
   private vectorStorage: VectorStorageService;
-  private searchCache: Map<string, { results: SemanticSearchResult[]; timestamp: number }> = new Map();
-  private cacheExpiryTime: number = 5 * 60 * 1000; // 5 minutes
-  private cacheCleanupInterval: NodeJS.Timeout | null = null;
+  private cacheManager: CacheManager;
+  private searchCache!: CacheInterface;
 
   constructor(
     @inject(TYPES.ConfigService) configService: ConfigService,
     @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory,
-    @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService
+    @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService,
+    @inject(TYPES.CacheManager) cacheManager: CacheManager
   ) {
     this.configService = configService;
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.embedderFactory = embedderFactory;
     this.vectorStorage = vectorStorage;
-    
-    // Clean up expired cache entries periodically
-    this.cacheCleanupInterval = setInterval(() => this.cleanupCache(), 60 * 1000); // Every minute
-    // Ensure interval doesn't prevent Node.js from exiting
-    if (this.cacheCleanupInterval.unref) {
-      this.cacheCleanupInterval.unref();
+    this.cacheManager = cacheManager;
+  }
+
+  private async getCache(): Promise<CacheInterface> {
+    if (!this.searchCache) {
+      this.searchCache = await this.cacheManager.getSearchCache();
     }
+    return this.searchCache;
   }
 
   async search(params: SemanticSearchParams): Promise<{
@@ -105,6 +108,35 @@ export class SemanticSearchService {
     });
 
     try {
+      // Check cache first
+      const cacheKey = this.getCacheKey(params);
+      const cache = await this.getCache();
+      const cachedResults = await cache.get<SemanticSearchResult[]>(cacheKey);
+      
+      if (cachedResults) {
+        this.logger.debug('Cache hit for semantic search', { 
+          queryId, 
+          cacheKey, 
+          resultCount: cachedResults.length 
+        });
+
+        const metrics: SemanticSearchMetrics = {
+          queryId,
+          executionTime: Date.now() - startTime,
+          embeddingTime: 0,
+          searchTime: 0,
+          rankingTime: 0,
+          totalResults: cachedResults.length,
+          averageSimilarity: this.calculateAverageSimilarity(cachedResults),
+          searchStrategy: 'semantic_vector_cache'
+        };
+
+        return {
+          results: cachedResults,
+          metrics
+        };
+      }
+
       // Generate query embedding
       const embeddingStartTime = Date.now();
       const queryEmbedding = await this.generateQueryEmbedding(params.query);
@@ -130,6 +162,9 @@ export class SemanticSearchService {
 
       const finalResults = this.sortAndFilterResults(enhancedResults, params);
 
+      // Cache the results
+      await cache.set(cacheKey, finalResults);
+
       const metrics: SemanticSearchMetrics = {
         queryId,
         executionTime: Date.now() - startTime,
@@ -145,7 +180,8 @@ export class SemanticSearchService {
         queryId,
         resultCount: finalResults.length,
         executionTime: metrics.executionTime,
-        averageSimilarity: metrics.averageSimilarity
+        averageSimilarity: metrics.averageSimilarity,
+        cached: false
       });
 
       return {
@@ -706,15 +742,6 @@ export class SemanticSearchService {
     return Math.abs(hash).toString(16);
   }
 
-  private cleanupCache(): void {
-    const now = Date.now();
-    for (const [key, value] of this.searchCache.entries()) {
-      if (now - value.timestamp > this.cacheExpiryTime) {
-        this.searchCache.delete(key);
-      }
-    }
-  }
-
   private getCacheKey(params: any): string {
     // Create a cache key based on the search parameters
     const keyParts = [
@@ -725,27 +752,6 @@ export class SemanticSearchService {
       JSON.stringify(params.filters || {})
     ];
     return keyParts.join('|');
-  }
-
-  private getCachedResults(params: any): SemanticSearchResult[] | null {
-    const cacheKey = this.getCacheKey(params);
-    const cached = this.searchCache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < this.cacheExpiryTime) {
-      this.logger.debug('Returning cached search results', { cacheKey });
-      return cached.results;
-    }
-    
-    return null;
-  }
-
-  private cacheResults(params: any, results: SemanticSearchResult[]): void {
-    const cacheKey = this.getCacheKey(params);
-    this.searchCache.set(cacheKey, {
-      results: [...results], // Create a copy to avoid mutation
-      timestamp: Date.now()
-    });
-    this.logger.debug('Cached search results', { cacheKey, resultCount: results.length });
   }
 
   async getSemanticSearchStats(): Promise<{
@@ -770,15 +776,5 @@ export class SemanticSearchService {
         { concept: 'error handling', searchCount: 87 }
       ]
     };
-  }
-
-  /**
-   * Stop the cache cleanup interval
-   */
-  stop(): void {
-    if (this.cacheCleanupInterval) {
-      clearInterval(this.cacheCleanupInterval);
-      this.cacheCleanupInterval = null;
-    }
   }
 }

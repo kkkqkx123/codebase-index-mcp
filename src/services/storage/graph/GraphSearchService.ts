@@ -93,9 +93,9 @@ export class GraphSearchService {
       
       // 检查缓存
       const cacheKey = this.generateCacheKey(searchParams);
-      const cachedResults = this.cacheService.getFromCache<SearchResult[]>(cacheKey);
+      const cachedResults = await this.cacheService.getFromCache<SearchResult[]>(cacheKey);
       
-      if (cachedResults) {
+      if (cachedResults && Array.isArray(cachedResults)) {
         this.performanceMonitor.updateCacheHitRate(true);
         const metrics: SearchMetrics = {
           queryTime: Date.now() - startTime,
@@ -116,7 +116,7 @@ export class GraphSearchService {
       const results = await this.executeSearch(searchParams);
       
       // 缓存结果
-      this.cacheService.setCache(cacheKey, results, 300000); // 5分钟缓存
+      await this.cacheService.setCache(cacheKey, results, 300000); // 5分钟缓存
       this.performanceMonitor.updateCacheHitRate(false);
       
       const queryTime = Date.now() - startTime;
