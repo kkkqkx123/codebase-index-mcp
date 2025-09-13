@@ -5,6 +5,7 @@ import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
+import { CacheManager } from '../cache/CacheManager';
 
 describe('HybridSearchService', () => {
   let hybridSearchService: HybridSearchService;
@@ -14,6 +15,7 @@ describe('HybridSearchService', () => {
   let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
+  let mockCacheManager: jest.Mocked<CacheManager>;
 
   beforeEach(() => {
     // Create mocks
@@ -45,6 +47,17 @@ describe('HybridSearchService', () => {
       createErrorContext: jest.fn(),
     } as any;
 
+    mockCacheManager = {
+      getSearchCache: jest.fn().mockResolvedValue({
+        get: jest.fn(),
+        set: jest.fn(),
+        delete: jest.fn(),
+        clear: jest.fn(),
+      }),
+      getGraphCache: jest.fn(),
+      getGeneralCache: jest.fn(),
+    } as any;
+
     mockLoggerService = {
       info: jest.fn(),
       error: jest.fn(),
@@ -69,7 +82,8 @@ describe('HybridSearchService', () => {
       mockErrorHandlerService,
       mockSemanticSearchService,
       mockVectorStorageService,
-      mockEmbedderFactory
+      mockEmbedderFactory,
+      mockCacheManager
     );
   });
 
@@ -82,7 +96,7 @@ describe('HybridSearchService', () => {
       const params = {
         query: 'authentication function',
         projectId: 'test-project',
-        limit: 10
+        limit: 10,
       };
 
       const semanticResults = [
@@ -102,8 +116,8 @@ describe('HybridSearchService', () => {
             contextualScore: 0.8,
             recencyScore: 0.7,
             popularityScore: 0.6,
-            finalScore: 0.9
-          }
+            finalScore: 0.9,
+          },
         },
         {
           id: '2',
@@ -121,8 +135,8 @@ describe('HybridSearchService', () => {
             contextualScore: 0.7,
             recencyScore: 0.6,
             popularityScore: 0.5,
-            finalScore: 0.8
-          }
+            finalScore: 0.8,
+          },
         },
       ];
 
@@ -138,8 +152,8 @@ describe('HybridSearchService', () => {
             startLine: 20,
             endLine: 25,
             metadata: {},
-            timestamp: new Date()
-          }
+            timestamp: new Date(),
+          },
         },
         {
           id: '1',
@@ -152,8 +166,8 @@ describe('HybridSearchService', () => {
             startLine: 1,
             endLine: 5,
             metadata: {},
-            timestamp: new Date()
-          }
+            timestamp: new Date(),
+          },
         }, // Duplicate
       ];
 
@@ -167,8 +181,8 @@ describe('HybridSearchService', () => {
           rankingTime: 20,
           totalResults: 2,
           averageSimilarity: 0.85,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       });
       mockVectorStorageService.searchVectors.mockResolvedValue(keywordResults);
 
@@ -176,7 +190,9 @@ describe('HybridSearchService', () => {
 
       expect(result).toBeDefined();
       expect(result.results).toHaveLength(2); // Actual deduplication result
-      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(expect.objectContaining({ query: params.query, projectId: params.projectId }));
+      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({ query: params.query, projectId: params.projectId })
+      );
       // Note: vectorStorageService.searchVectors is not called because HybridSearchService uses mockKeywordSearch
     });
 
@@ -184,7 +200,7 @@ describe('HybridSearchService', () => {
       const params = {
         query: 'test query',
         projectId: 'test-project',
-        limit: 10
+        limit: 10,
       };
 
       mockSemanticSearchService.search.mockResolvedValue({
@@ -197,8 +213,8 @@ describe('HybridSearchService', () => {
           rankingTime: 10,
           totalResults: 0,
           averageSimilarity: 0,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       });
 
       const result = await hybridSearchService.search(params);
@@ -212,7 +228,7 @@ describe('HybridSearchService', () => {
       const params = {
         query: 'test query',
         projectId: 'test-project',
-        limit: 10
+        limit: 10,
       };
 
       mockSemanticSearchService.search.mockRejectedValue(new Error('Search failed'));
@@ -231,7 +247,7 @@ describe('HybridSearchService', () => {
       const params: any = {
         query: 'database connection',
         projectId: 'test-project',
-        searchStrategies: ['semantic' as const]
+        searchStrategies: ['semantic' as const],
       };
 
       const searchResults = [
@@ -251,16 +267,16 @@ describe('HybridSearchService', () => {
             contextualScore: 0.8,
             recencyScore: 0.7,
             popularityScore: 0.6,
-            finalScore: 0.9
-          }
+            finalScore: 0.9,
+          },
         },
       ];
 
       const graphContext = [
-        { 
-          id: '2', 
+        {
+          id: '2',
           score: 0.8,
-          payload: { 
+          payload: {
             content: 'connection.query()',
             filePath: '/test/file2.ts',
             language: 'typescript',
@@ -268,8 +284,8 @@ describe('HybridSearchService', () => {
             startLine: 10,
             endLine: 15,
             metadata: {},
-            timestamp: new Date()
-          } 
+            timestamp: new Date(),
+          },
         },
       ];
 
@@ -283,8 +299,8 @@ describe('HybridSearchService', () => {
           rankingTime: 20,
           totalResults: 1,
           averageSimilarity: 0.9,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       });
       mockVectorStorageService.searchVectors.mockResolvedValue(graphContext);
 
@@ -302,8 +318,8 @@ describe('HybridSearchService', () => {
         projectId: 'test-project',
         limit: 10,
         filters: {
-          language: ['typescript']
-        }
+          language: ['typescript'],
+        },
       };
 
       const results = [
@@ -323,8 +339,8 @@ describe('HybridSearchService', () => {
             contextualScore: 0.8,
             recencyScore: 0.7,
             popularityScore: 0.6,
-            finalScore: 0.9
-          }
+            finalScore: 0.9,
+          },
         },
         {
           id: '2',
@@ -342,8 +358,8 @@ describe('HybridSearchService', () => {
             contextualScore: 0.7,
             recencyScore: 0.6,
             popularityScore: 0.5,
-            finalScore: 0.8
-          }
+            finalScore: 0.8,
+          },
         },
       ];
 
@@ -357,8 +373,8 @@ describe('HybridSearchService', () => {
           rankingTime: 15,
           totalResults: 2,
           averageSimilarity: 0.85,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       });
 
       const result = await hybridSearchService.search(params);
@@ -378,7 +394,7 @@ describe('HybridSearchService', () => {
       const params = {
         query: 'async function processData(data: any[]): Promise<void>',
         projectId: 'test-project',
-        limit: 5
+        limit: 5,
       };
 
       const results = [
@@ -398,8 +414,8 @@ describe('HybridSearchService', () => {
             contextualScore: 0.85,
             recencyScore: 0.75,
             popularityScore: 0.65,
-            finalScore: 0.95
-          }
+            finalScore: 0.95,
+          },
         },
       ];
 
@@ -413,8 +429,8 @@ describe('HybridSearchService', () => {
           rankingTime: 15,
           totalResults: 1,
           averageSimilarity: 0.95,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       });
 
       const result = await hybridSearchService.search(params);

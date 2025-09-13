@@ -68,11 +68,20 @@ describe('SemanticSearchService', () => {
       createErrorContext: jest.fn(),
     } as any;
 
+    // Create mock cache object
+    const mockCache = {
+      get: jest.fn().mockResolvedValue(null), // Default to cache miss
+      set: jest.fn().mockResolvedValue(undefined),
+      del: jest.fn().mockResolvedValue(undefined),
+      clear: jest.fn().mockResolvedValue(undefined),
+    };
+
     mockCacheManager = {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
       clear: jest.fn(),
+      getSearchCache: jest.fn().mockResolvedValue(mockCache),
     } as any;
 
     // Mock setInterval to prevent hanging
