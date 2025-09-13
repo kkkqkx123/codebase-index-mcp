@@ -146,6 +146,26 @@ const configSchema = Joi.object({
     maxSize: Joi.number().positive().default(1000)
   }).optional(),
   
+  redis: Joi.object({
+    enabled: Joi.boolean().default(false),
+    url: Joi.string().uri().default('redis://localhost:6379'),
+    maxmemory: Joi.string().default('256mb'),
+    ttl: Joi.object({
+      embedding: Joi.number().default(86400),
+      search: Joi.number().default(3600),
+      graph: Joi.number().default(1800),
+      progress: Joi.number().default(300)
+    }),
+    retry: Joi.object({
+      attempts: Joi.number().default(3),
+      delay: Joi.number().default(1000)
+    }),
+    pool: Joi.object({
+      min: Joi.number().default(1),
+      max: Joi.number().default(10)
+    })
+  }),
+  
   indexing: Joi.object({
     batchSize: Joi.number().positive().default(50),
     maxConcurrency: Joi.number().positive().default(3)

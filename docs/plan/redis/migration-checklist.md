@@ -3,8 +3,8 @@
 ## 迁移前准备
 
 ### 环境检查
-- [ ] 安装Redis 7.x
-- [ ] 验证Redis连接：`redis-cli ping`
+- [x] 安装Redis 7.x
+- [x] 验证Redis连接：`redis-cli ping`
 - [ ] 确认Redis配置：maxmemory=256mb, policy=allkeys-lru
 - [ ] 备份当前内存缓存数据（可选）
 
