@@ -60,6 +60,8 @@ async function testCacheSimple() {
     console.error('❌ 测试失败:', error);
     process.exit(1);
   }
+
+  process.exit(0);
 }
 
 // 运行测试

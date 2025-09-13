@@ -4,6 +4,7 @@ import { MemoryCacheAdapter } from './MemoryCacheAdapter';
 import { RedisCacheAdapter } from './RedisCacheAdapter';
 import { MultiLevelCache } from './MultiLevelCache';
 import { RedisConfig } from '../../config/RedisConfig';
+import { RedisConfigManager } from './RedisConfigManager';
 
 export class CacheFactory {
   private static redisInstance: Redis | null = null;
@@ -40,6 +41,11 @@ export class CacheFactory {
     // 确保Redis连接已创建
     if (!this.redisInstance) {
       this.redisInstance = new Redis(redisConfig.url);
+      
+      // 配置Redis内存限制
+      RedisConfigManager.configureRedis(this.redisInstance, redisConfig).catch(error => {
+        console.error('配置Redis内存限制失败:', error);
+      });
     }
 
     // 根据配置决定缓存类型
