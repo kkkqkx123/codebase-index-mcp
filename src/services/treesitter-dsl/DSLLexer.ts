@@ -3,6 +3,19 @@
  * 负责将 DSL 文本分解为词法单元
  */
 
+export interface Token {
+  type: TokenType;
+  lexeme: string;
+  literal: any;
+}
+
+export type TokenType =
+  | 'RULE' | 'DESCRIPTION' | 'TARGET' | 'CONDITION' | 'ACTION' | 'TYPE' | 'PARAMETERS'
+  | 'STRING' | 'NUMBER' | 'IDENTIFIER'
+  | 'LEFT_BRACE' | 'RIGHT_BRACE' | 'LEFT_PAREN' | 'RIGHT_PAREN'
+  | 'COLON' | 'DOT' | 'COMMA'
+  | 'NEWLINE' | 'EOF';
+
 export class DSLLexer {
   private tokens: Token[] = [];
   private current = 0;
@@ -148,37 +161,3 @@ export class DSLLexer {
     return this.source.charAt(this.current);
   }
 }
-
-export interface Token {
-  type: TokenType;
-  lexeme: string;
-  literal?: any;
-}
-
-export type TokenType =
-  // 单字符词法单元
-  | 'LEFT_BRACE'
-  | 'RIGHT_BRACE'
-  | 'LEFT_PAREN'
-  | 'RIGHT_PAREN'
-  | 'COLON'
-  | 'DOT'
-  | 'COMMA'
-  | 'NEWLINE'
-
-  // 字面量
-  | 'STRING'
-  | 'NUMBER'
-  | 'IDENTIFIER'
-
-  // 关键字
-  | 'RULE'
-  | 'DESCRIPTION'
-  | 'TARGET'
-  | 'CONDITION'
-  | 'ACTION'
-  | 'TYPE'
-  | 'PARAMETERS'
-
-  // 文件结束
-  | 'EOF';

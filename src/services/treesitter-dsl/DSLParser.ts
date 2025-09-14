@@ -14,6 +14,11 @@ export class DSLParser {
     this.tokens = lexer.tokenize(source);
     this.current = 0;
 
+    // Skip NEWLINE tokens at the beginning
+    while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+      this.current++;
+    }
+
     return this.parseRule();
   }
 
@@ -25,7 +30,7 @@ export class DSLParser {
     const description = this.parseDescription();
     const targetType = this.parseTarget();
     const conditions = this.parseConditions();
-    const actions = this.parseActions();
+    const actions = this.parseMultipleActions();
 
     this.consume('RIGHT_BRACE', 'Expected "}" after rule definition.');
 
@@ -55,11 +60,21 @@ export class DSLParser {
 
  private parseConditions(): RuleCondition[] {
     const conditions: RuleCondition[] = [];
-    
+
     this.consume('CONDITION', 'Expected "condition" keyword.');
     this.consume('LEFT_BRACE', 'Expected "{" after "condition".');
 
     while (!this.check('RIGHT_BRACE') && !this.isAtEnd()) {
+      // Skip NEWLINE tokens
+      while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+        this.current++;
+      }
+
+      // If we've reached the end or the right brace, break
+      if (this.check('RIGHT_BRACE') || this.isAtEnd()) {
+        break;
+      }
+
       conditions.push(this.parseCondition());
     }
 
@@ -94,18 +109,40 @@ export class DSLParser {
     return { type, value, operator };
   }
 
-  private parseActions(): RuleAction[] {
+  private parseMultipleActions(): RuleAction[] {
     const actions: RuleAction[] = [];
-    
+
+    // Skip NEWLINE tokens before checking for ACTION
+    while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+      this.current++;
+    }
+
+    while (this.check('ACTION') && !this.isAtEnd()) {
+      const blockActions = this.parseActionBlock();
+      actions.push(...blockActions);
+
+      // Skip NEWLINE tokens between action blocks
+      while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+        this.current++;
+      }
+    }
+
+    return actions;
+  }
+
+  private parseActionBlock(): RuleAction[] {
     this.consume('ACTION', 'Expected "action" keyword.');
     this.consume('LEFT_BRACE', 'Expected "{" after "action".');
 
-    while (!this.check('RIGHT_BRACE') && !this.isAtEnd()) {
-      actions.push(this.parseAction());
+    // Skip NEWLINE tokens
+    while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+      this.current++;
     }
 
-    this.consume('RIGHT_BRACE', 'Expected "}" after actions.');
-    return actions;
+    const action = this.parseAction();
+
+    this.consume('RIGHT_BRACE', 'Expected "}" after action.');
+    return [action];
   }
 
   private parseAction(): RuleAction {
@@ -113,29 +150,45 @@ export class DSLParser {
     this.consume('COLON', 'Expected ":" after "type".');
     const typeToken = this.consume('IDENTIFIER', 'Expected action type.');
     const type = typeToken.lexeme as 'extract' | 'highlight' | 'report';
-    
+
     // 解析参数（如果存在）
     let parameters: Record<string, any> = {};
+
+    // Skip NEWLINE tokens before checking for PARAMETERS
+    while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+      this.current++;
+    }
+
     if (this.check('PARAMETERS')) {
       this.advance(); // 消费 PARAMETERS
       this.consume('COLON', 'Expected ":" after "parameters".');
       this.consume('LEFT_BRACE', 'Expected "{" after "parameters".');
-      
+
       parameters = this.parseParameters();
-      
+
       this.consume('RIGHT_BRACE', 'Expected "}" after parameters.');
     }
-    
+
     return { type, parameters };
   }
 
   private parseParameters(): Record<string, any> {
     const parameters: Record<string, any> = {};
-    
+
     while (!this.check('RIGHT_BRACE') && !this.isAtEnd()) {
+      // Skip NEWLINE tokens
+      while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+        this.current++;
+      }
+
+      // If we've reached the right brace, break
+      if (this.check('RIGHT_BRACE')) {
+        break;
+      }
+
       const key = this.consume('IDENTIFIER', 'Expected parameter key.').lexeme;
       this.consume('COLON', 'Expected ":" after parameter key.');
-      
+
       let value: any;
       if (this.check('STRING')) {
         value = this.advance().literal;
@@ -188,6 +241,11 @@ export class DSLParser {
   }
 
   private consume(expected: TokenType | TokenType[], errorMessage: string): Token {
+    // Skip NEWLINE tokens
+    while (!this.isAtEnd() && this.tokens[this.current].type === 'NEWLINE') {
+      this.current++;
+    }
+
     if (Array.isArray(expected)) {
       for (const type of expected) {
         if (this.check(type)) {
@@ -199,7 +257,7 @@ export class DSLParser {
         return this.advance();
       }
     }
-    
+
     throw new Error(errorMessage);
   }
 
