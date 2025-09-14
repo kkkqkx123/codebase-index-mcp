@@ -9,6 +9,7 @@ import { ResultFusionEngine } from './ResultFusionEngine';
 import { QueryOptimizer } from './QueryOptimizer';
 import { QueryCache } from './QueryCache';
 import { PerformanceMonitor } from './PerformanceMonitor';
+import { ResultFormatter } from './ResultFormatter';
 
 export interface QueryRequest {
   query: string;
@@ -73,6 +74,7 @@ export class QueryCoordinationService {
   private queryOptimizer: QueryOptimizer;
   private queryCache: QueryCache;
   private performanceMonitor: PerformanceMonitor;
+  private resultFormatter: ResultFormatter;
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
@@ -84,7 +86,8 @@ export class QueryCoordinationService {
     @inject(ResultFusionEngine) resultFusion: ResultFusionEngine,
     @inject(QueryOptimizer) queryOptimizer: QueryOptimizer,
     @inject(QueryCache) queryCache: QueryCache,
-    @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor
+    @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor,
+    @inject(ResultFormatter) resultFormatter: ResultFormatter
   ) {
     this.configService = configService;
     this.logger = logger;
@@ -96,11 +99,13 @@ export class QueryCoordinationService {
     this.queryOptimizer = queryOptimizer;
     this.queryCache = queryCache;
     this.performanceMonitor = performanceMonitor;
+    this.resultFormatter = resultFormatter;
   }
 
   async executeQuery(request: QueryRequest): Promise<{
     results: QueryResult[];
     metrics: QueryMetrics;
+    formattedResults?: any;
   }> {
     const queryId = this.generateQueryId(request);
     const startTime = Date.now();
@@ -197,7 +202,8 @@ export class QueryCoordinationService {
 
       return {
         results: fusedResults,
-        metrics
+        metrics,
+        formattedResults: await this.resultFormatter.formatForLLM(fusedResults)
       };
 
     } catch (error) {
@@ -214,6 +220,7 @@ export class QueryCoordinationService {
       query: string;
       results: QueryResult[];
       metrics: QueryMetrics;
+      formattedResults?: any;
     }>;
     totalMetrics: {
       totalQueries: number;
@@ -250,11 +257,12 @@ export class QueryCoordinationService {
       });
 
       return {
-        results: results.map((result, index) => ({
+        results: await Promise.all(results.map(async (result, index) => ({
           query: requests[index].query,
           results: result.results,
-          metrics: result.metrics
-        })),
+          metrics: result.metrics,
+          formattedResults: await this.resultFormatter.formatForLLM(result.results)
+        }))),
         totalMetrics
       };
 

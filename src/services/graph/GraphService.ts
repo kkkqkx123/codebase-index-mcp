@@ -6,6 +6,7 @@ import { HashUtils } from '../../utils/HashUtils';
 import { NebulaService } from '../../database/NebulaService';
 import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
+import { ResultFormatter } from '../query/ResultFormatter';
 
 export interface GraphNode {
   id: string;
@@ -53,9 +54,10 @@ export class GraphService {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
-  private nebulaService: NebulaService;
-  private graphPersistenceService: GraphPersistenceService;
-  private nebulaQueryBuilder: NebulaQueryBuilder;
+   private nebulaService: NebulaService;
+   private graphPersistenceService: GraphPersistenceService;
+   private nebulaQueryBuilder: NebulaQueryBuilder;
+   private resultFormatter: ResultFormatter;
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
@@ -63,7 +65,8 @@ export class GraphService {
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(NebulaService) nebulaService: NebulaService,
     @inject(GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
-    @inject(NebulaQueryBuilder) nebulaQueryBuilder: NebulaQueryBuilder
+    @inject(NebulaQueryBuilder) nebulaQueryBuilder: NebulaQueryBuilder,
+    @inject(ResultFormatter) resultFormatter: ResultFormatter
   ) {
     this.configService = configService;
     this.logger = logger;
@@ -71,9 +74,13 @@ export class GraphService {
     this.nebulaService = nebulaService;
     this.graphPersistenceService = graphPersistenceService;
     this.nebulaQueryBuilder = nebulaQueryBuilder;
+    this.resultFormatter = resultFormatter;
   }
 
-  async analyzeCodebase(projectPath: string, options: GraphAnalysisOptions = {}): Promise<GraphAnalysisResult> {
+  async analyzeCodebase(projectPath: string, options: GraphAnalysisOptions = {}): Promise<{
+    result: GraphAnalysisResult;
+    formattedResult: any;
+  }> {
     const startTime = Date.now();
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
 
@@ -97,7 +104,10 @@ export class GraphService {
         duration: Date.now() - startTime
       });
 
-      return processedResult;
+      return {
+        result: processedResult,
+        formattedResult: await this.resultFormatter.formatForLLM(processedResult)
+      };
     } catch (error) {
       this.errorHandler.handleError(
         new Error(`Codebase analysis failed: ${error instanceof Error ? error.message : String(error)}`),
