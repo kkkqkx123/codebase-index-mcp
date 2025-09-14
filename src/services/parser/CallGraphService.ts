@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { ParserService } from './ParserService';
 import { LoggerService } from '../../core/LoggerService';
-import { TYPES } from '../../inversify.config';
+import { TYPES } from '../../core/DIContainer';
 import fs from 'fs/promises';
 
 export interface FunctionNode {

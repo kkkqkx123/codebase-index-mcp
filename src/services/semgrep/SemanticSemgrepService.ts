@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { SemgrepScanService } from './SemgrepScanService';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
-import { TYPES } from '../../inversify.config';
+import { TYPES } from '../../core/DIContainer';
 
 export interface EnhancedSemgrepResult {
   ruleId: string;

@@ -18,13 +18,14 @@ import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
 import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService';
 import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
-import { CacheManager } from '../services/cache/CacheManager';
 import { SemgrepScanService } from '../services/semgrep/SemgrepScanService';
+import { SemanticAnalysisService } from '../services/parser/SemanticAnalysisService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
 import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
 import { FileWatcherService } from '../services/filesystem/FileWatcherService';
 import { ChangeDetectionService } from '../services/filesystem/ChangeDetectionService';
 import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
+import { CacheManager } from '../services/cache/CacheManager';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 import { VectorStorageService } from '../services/storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../services/storage/graph/GraphPersistenceService';
@@ -77,6 +78,12 @@ import { LanguageServerRegistry } from '../services/lsp/LanguageServerRegistry';
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
 import { SnippetController } from '../controllers/SnippetController';
+
+// Additional services from inversify.config.ts
+import { SemanticAnalysisOrchestrator } from '../services/SemanticAnalysisOrchestrator';
+import { CallGraphService } from '../services/parser/CallGraphService';
+import { SemanticSemgrepService } from '../services/semgrep/SemanticSemgrepService';
+import { StaticAnalysisCoordinator } from '../services/static-analysis/StaticAnalysisCoordinator';
 
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
@@ -156,7 +163,25 @@ export const TYPES = {
   GraphQueryBuilder: Symbol.for('GraphQueryBuilder'),
   GraphSearchService: Symbol.for('GraphSearchService'),
   BatchProcessingService: Symbol.for('BatchProcessingService'),
-  EmbeddingService: Symbol.for('EmbeddingService')
+  EmbeddingService: Symbol.for('EmbeddingService'),
+
+  // Additional types from inversify.config.ts
+  SemanticAnalysisOrchestrator: Symbol.for('SemanticAnalysisOrchestrator'),
+  CallGraphService: Symbol.for('CallGraphService'),
+  SemanticSemgrepService: Symbol.for('SemanticSemgrepService'),
+  StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
+  SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
+
+  // Legacy aliases for compatibility
+  DatabaseClient: Symbol.for('DatabaseClient'),
+  CodeParserService: Symbol.for('CodeParserService'),
+  LanguageDetectionService: Symbol.for('LanguageDetectionService'),
+  SearchService: Symbol.for('SearchService'),
+  QueryService: Symbol.for('QueryService'),
+  StorageService: Symbol.for('StorageService'),
+  WebSocketService: Symbol.for('WebSocketService'),
+  HttpServer: Symbol.for('HttpServer'),
+  MCPServer: Symbol.for('MCPServer')
 };
 
 const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
@@ -193,6 +218,7 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
   bind(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
   bind(TYPES.SemgrepScanService).to(SemgrepScanService).inSingletonScope();
+  bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
   bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
   bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
   bind(TYPES.FileWatcherService).to(FileWatcherService).inSingletonScope();
@@ -221,10 +247,15 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.LSPEnhancementPhase).to(LSPEnhancementPhase).inSingletonScope();
   bind(TYPES.EnhancedParserService).to(EnhancedParserService).inSingletonScope();
   bind(TYPES.LSPManager).to(LSPManager).inSingletonScope();
-
   bind(TYPES.LSPClientPool).to(LSPClientPool).inSingletonScope();
   bind(TYPES.LSPErrorHandler).to(LSPErrorHandler).inSingletonScope();
   bind(TYPES.LanguageServerRegistry).toConstantValue(LanguageServerRegistry.getInstance());
+  
+  // Additional services from inversify.config.ts
+  bind(TYPES.SemanticAnalysisOrchestrator).to(SemanticAnalysisOrchestrator).inSingletonScope();
+  bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
+  bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
+  bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
 });
 
 const queueModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {

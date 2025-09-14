@@ -1,5 +1,5 @@
 import { injectable, inject } from 'inversify';
-import { TYPES } from '../inversify.config';
+import { TYPES } from '../core/DIContainer';
 import { SemanticAnalysisService } from './parser/SemanticAnalysisService';
 import { SemanticSemgrepService } from './semgrep/SemanticSemgrepService';
 import { CallGraphService } from './parser/CallGraphService';
