@@ -128,4 +128,15 @@ export const TYPES = {
   DataFlowAnalyzer: Symbol.for('DataFlowAnalyzer'),
   SecurityAnalyzer: Symbol.for('SecurityAnalyzer'),
   IncrementalAnalyzer: Symbol.for('IncrementalAnalyzer'),
+
+  // Additional services that need TYPES symbols
+  BatchErrorRecoveryService: Symbol.for('BatchErrorRecoveryService'),
+  BatchSizeConfigManager: Symbol.for('BatchSizeConfigManager'),
+  ConfigManager: Symbol.for('ConfigManager'),
+  MemoryOptimizationService: Symbol.for('MemoryOptimizationService'),
+  HealthChecker: Symbol.for('HealthChecker'),
+  ConcurrentProcessingService: Symbol.for('ConcurrentProcessingService'),
+  GraphPersistenceUtils: Symbol.for('GraphPersistenceUtils'),
+  EnhancedQueryBuilder: Symbol.for('EnhancedQueryBuilder'),
+  DataFlowGraph: Symbol.for('DataFlowGraph'),
 } as const;

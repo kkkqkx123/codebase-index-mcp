@@ -36,7 +36,7 @@ export class GraphPersistenceUtils {
     return `project_${projectId}`;
   }
   constructor(
-    @inject(LoggerService) private logger: LoggerService,
+    @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(TYPES.NebulaService) private nebulaService: NebulaService,
     @inject(TYPES.NebulaQueryBuilder) private queryBuilder: NebulaQueryBuilder
   ) { }

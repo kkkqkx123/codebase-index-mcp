@@ -48,12 +48,12 @@ export class HealthCheckService {
   private dependencies: ServiceDependency[] = [];
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.QdrantService) qdrantService: QdrantService,
     @inject(TYPES.NebulaService) nebulaService: NebulaService,
-    @inject(PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService
+    @inject(TYPES.PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService
   ) {
     this.configService = configService;
     this.logger = logger;

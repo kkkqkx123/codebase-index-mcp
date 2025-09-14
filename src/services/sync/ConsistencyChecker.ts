@@ -49,9 +49,9 @@ export class ConsistencyChecker {
   private transactionCoordinator: TransactionCoordinator;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
-    @inject(EntityIdManager) entityIdManager: EntityIdManager,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) _errorHandler: ErrorHandlerService,
+    @inject(TYPES.EntityIdManager) entityIdManager: EntityIdManager,
     @inject(TYPES.VectorStorageService) vectorStorageService: VectorStorageService,
     @inject(TYPES.GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
     @inject(TYPES.TransactionCoordinator) transactionCoordinator: TransactionCoordinator

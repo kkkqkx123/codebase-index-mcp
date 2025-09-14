@@ -45,9 +45,9 @@ export class TransactionCoordinator {
   private graphPersistenceService: GraphPersistenceService;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
-    @inject(EntityMappingService) _entityMappingService: EntityMappingService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) _errorHandler: ErrorHandlerService,
+    @inject(TYPES.EntityMappingService) _entityMappingService: EntityMappingService,
     @inject(TYPES.VectorStorageService) vectorStorageService: VectorStorageService,
     @inject(TYPES.GraphPersistenceService) graphPersistenceService: GraphPersistenceService
   ) {

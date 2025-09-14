@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
@@ -30,8 +31,8 @@ export class EntityIdManager {
   private idCounter: number = 0;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

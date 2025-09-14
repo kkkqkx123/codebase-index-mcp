@@ -43,7 +43,7 @@ export class SemgrepMetricsService {
   };
 
   constructor(
-    @inject(LoggerService) private logger: LoggerService,
+    @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) private errorHandler: ErrorHandlerService,
     @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
     @inject(TYPES.SemgrepResultProcessor) private resultProcessor: SemgrepResultProcessor

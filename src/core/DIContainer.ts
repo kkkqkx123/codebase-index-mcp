@@ -63,6 +63,7 @@ import { QueryOptimizer } from '../services/query/QueryOptimizer';
 import { ResultFormatter } from '../services/query/ResultFormatter';
 import { ResultFormatterCache } from '../services/query/ResultFormatterCache';
 import { ResultFormatterConfigLoader } from '../services/query/ResultFormatterConfigLoader';
+import { SemgrepResultProcessor } from '../services/semgrep/SemgrepResultProcessor';
 
 // Monitoring services
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
@@ -182,6 +183,7 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
   bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
   bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
+  bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
 
   // Phase 2: Tree-sitter Deep Analysis Services
   bind(TYPES.AdvancedTreeSitterService).to(AdvancedTreeSitterService).inSingletonScope();
