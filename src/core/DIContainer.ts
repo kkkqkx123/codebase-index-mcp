@@ -68,6 +68,11 @@ import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMe
 import { LSPService } from '../services/lsp/LSPService';
 import { LSPEnhancementPhase } from '../services/indexing/LSPEnhancementPhase';
 import { EnhancedParserService } from '../services/parser/EnhancedParserService';
+import { LSPManager } from '../services/lsp/LSPManager';
+import { LSPClient } from '../services/lsp/LSPClient';
+import { LSPClientPool } from '../services/lsp/LSPClientPool';
+import { LSPErrorHandler } from '../services/lsp/LSPErrorHandler';
+import { LanguageServerRegistry } from '../services/lsp/LanguageServerRegistry';
 
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
@@ -134,7 +139,7 @@ export const TYPES = {
   LSPEnhancementPhase: Symbol.for('LSPEnhancementPhase'),
   EnhancedParserService: Symbol.for('EnhancedParserService'),
   LSPManager: Symbol.for('LSPManager'),
-  LSPClient: Symbol.for('LSPClient'),
+
   LSPClientPool: Symbol.for('LSPClientPool'),
   LSPErrorHandler: Symbol.for('LSPErrorHandler'),
   LanguageServerRegistry: Symbol.for('LanguageServerRegistry'),
@@ -215,6 +220,11 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.LSPService).to(LSPService).inSingletonScope();
   bind(TYPES.LSPEnhancementPhase).to(LSPEnhancementPhase).inSingletonScope();
   bind(TYPES.EnhancedParserService).to(EnhancedParserService).inSingletonScope();
+  bind(TYPES.LSPManager).to(LSPManager).inSingletonScope();
+
+  bind(TYPES.LSPClientPool).to(LSPClientPool).inSingletonScope();
+  bind(TYPES.LSPErrorHandler).to(LSPErrorHandler).inSingletonScope();
+  bind(TYPES.LanguageServerRegistry).toConstantValue(LanguageServerRegistry.getInstance());
 });
 
 const queueModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
