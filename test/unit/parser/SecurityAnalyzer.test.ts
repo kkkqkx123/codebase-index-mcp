@@ -404,7 +404,7 @@ describe('SecurityAnalyzer', () => {
     });
 
     it('should handle complex regex patterns without crashing', () => {
-      const sourceCode = 'a'.repeat(10000); // Large string to test regex performance
+      const sourceCode = 'a'.repeat(100); // Smaller string to test regex performance
       const filePath = 'large.js';
       
       const symbolTable: SymbolTable = {

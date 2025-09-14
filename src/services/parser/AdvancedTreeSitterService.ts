@@ -110,15 +110,15 @@ export class AdvancedTreeSitterService {
     };
   }
 
-  async analyzeFile(filePath: string): Promise<ComprehensiveAnalysisResult> {
+  async analyzeFile(filePath: string, content?: string): Promise<ComprehensiveAnalysisResult> {
     const startTime = Date.now();
-    
-    // Read file content
-    const content = await this.readFileContent(filePath);
-    
+
+    // Read file content if not provided
+    const fileContent = content !== undefined ? content : await this.readFileContent(filePath);
+
     // Parse AST
     const parseStart = Date.now();
-    const parseResult = await this.treeSitterCore.parseFile(filePath, content);
+    const parseResult = await this.treeSitterCore.parseFile(filePath, fileContent);
     const parseTime = Date.now() - parseStart;
 
     if (!parseResult.success) {

@@ -36,8 +36,8 @@ export class SecurityAnalyzer {
         /INSERT.*INTO.*VALUES.*\+/i,
         /UPDATE.*SET.*WHERE.*\+/i,
         /DELETE.*FROM.*WHERE.*\+/i,
-        /query\s*\(\s*[^)]*\+|/i,
-        /execute\s*\(\s*[^)]*\+|/i
+        /query\s*\([^)]*\+/i,
+        /execute\s*\([^)]*\+/i
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['query', 'execute', 'exec', 'prepare', 'Statement'],
@@ -51,10 +51,10 @@ export class SecurityAnalyzer {
       patterns: [
         /innerHTML\s*=\s*[^;]*\+/i,
         /outerHTML\s*=\s*[^;]*\+/i,
-        /document\.write\s*\([^)]*\+|/i,
-        /eval\s*\([^)]*\+|/i,
-        /setTimeout\s*\([^)]*\+|/i,
-        /setInterval\s*\([^)]*\+|/i
+        /document\.write\s*\([^)]*\+/i,
+        /eval\s*\([^)]*\+/i,
+        /setTimeout\s*\([^)]*\+/i,
+        /setInterval\s*\([^)]*\+/i
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['innerHTML', 'outerHTML', 'document.write', 'eval', 'setTimeout', 'setInterval'],
@@ -66,11 +66,11 @@ export class SecurityAnalyzer {
       type: SecurityIssueType.COMMAND_INJECTION,
       severity: SecuritySeverity.CRITICAL,
       patterns: [
-        /exec\s*\([^)]*\+|/i,
-        /spawn\s*\([^)]*\+|/i,
-        /system\s*\([^)]*\+|/i,
-        /shell\s*\([^)]*\+|/i,
-        /cmd\s*\([^)]*\+|/i
+        /exec\s*\([^)]*\+/i,
+        /spawn\s*\([^)]*\+/i,
+        /system\s*\([^)]*\+/i,
+        /shell\s*\([^)]*\+/i,
+        /cmd\s*\([^)]*\+/i
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['exec', 'spawn', 'system', 'shell', 'cmd'],
@@ -82,11 +82,11 @@ export class SecurityAnalyzer {
       type: SecurityIssueType.PATH_TRAVERSAL,
       severity: SecuritySeverity.HIGH,
       patterns: [
-        /readFile\s*\([^)]*\+|/i,
-        /writeFile\s*\([^)]*\+|/i,
-        /open\s*\([^)]*\+|/i,
-        /fs\.readFile\s*\([^)]*\+|/i,
-        /fs\.writeFile\s*\([^)]*\+|/i,
+        /readFile\s*\([^)]*\+/i,
+        /writeFile\s*\([^)]*\+/i,
+        /open\s*\([^)]*\+/i,
+        /fs\.readFile\s*\([^)]*\+/i,
+        /fs\.writeFile\s*\([^)]*\+/i,
         /\.\.\//i
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
