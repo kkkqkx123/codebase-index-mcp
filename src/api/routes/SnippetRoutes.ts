@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { DIContainer, TYPES } from '../../core/DIContainer';
+import { DIContainer } from '../../core/DIContainer';
+import { TYPES } from '../../core/Types';
 import { SnippetController } from '../../controllers/SnippetController';
 
 export class SnippetRoutes {

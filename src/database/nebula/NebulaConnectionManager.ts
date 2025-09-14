@@ -1,8 +1,9 @@
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { NebulaQueryBuilder } from './NebulaQueryBuilder';
+import { TYPES } from '../../core/Types';
 
 // 使用社区贡献的NebulaGraph Node.js客户端
 // https://github.com/nebula-contrib/nebula-node
@@ -24,9 +25,9 @@ export class NebulaConnectionManager {
   private currentSpace: string = '';
 
   constructor(
-    logger: LoggerService,
-    errorHandler: ErrorHandlerService,
-    configService: ConfigService
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

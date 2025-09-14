@@ -1,5 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
-import { DIContainer, TYPES } from '../core/DIContainer';
+import { DIContainer } from '../core/DIContainer';
+import { TYPES } from '../core/Types';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { ConfigService } from '../config/ConfigService';

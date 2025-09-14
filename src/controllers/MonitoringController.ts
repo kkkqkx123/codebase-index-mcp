@@ -5,6 +5,7 @@ import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
 import { HealthCheckService } from '../services/monitoring/HealthCheckService';
 import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
+import { TYPES } from '../core/Types';
 
 @injectable()
 export class MonitoringController {
@@ -16,12 +17,12 @@ export class MonitoringController {
   private performanceAnalysisService: PerformanceAnalysisService;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService,
-    @inject(HealthCheckService) healthCheckService: HealthCheckService,
-    @inject(PerformanceAnalysisService) performanceAnalysisService: PerformanceAnalysisService
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService,
+    @inject(TYPES.HealthCheckService) healthCheckService: HealthCheckService,
+    @inject(TYPES.PerformanceAnalysisService) performanceAnalysisService: PerformanceAnalysisService
   ) {
     this.configService = configService;
     this.logger = logger;

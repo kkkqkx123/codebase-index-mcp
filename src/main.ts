@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { DIContainer, TYPES } from './core/DIContainer'; // 添加 TYPES 导入
+import { DIContainer } from './core/DIContainer';
+import { TYPES } from './core/Types';
 import { MCPServer } from './mcp/MCPServer';
 import { HttpServer } from './api/HttpServer';
 import { ConfigService } from './config/ConfigService';

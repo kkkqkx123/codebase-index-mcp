@@ -3,6 +3,7 @@ import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
+import { TYPES } from '../core/Types';
 
 @injectable()
 export class QdrantService {
@@ -11,10 +12,10 @@ export class QdrantService {
   private errorHandler: ErrorHandlerService;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(QdrantClientWrapper) qdrantClient: QdrantClientWrapper
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.QdrantClientWrapper) qdrantClient: QdrantClientWrapper
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

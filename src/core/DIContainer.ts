@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { Container, ContainerModule } from 'inversify';
+import { TYPES } from './Types';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
@@ -67,6 +68,8 @@ import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAn
 import { BatchProcessor } from '../services/processing/BatchProcessor';
 import { PerformanceMonitor } from '../services/monitoring/PerformanceMonitor';
 import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMetrics';
+import { BatchPerformanceMonitor } from '../services/monitoring/BatchPerformanceMonitor';
+import { SemgrepMetricsService } from '../services/monitoring/SemgrepMetricsService';
 
 // LSP services
 import { LSPService } from '../services/lsp/LSPService';
@@ -93,116 +96,6 @@ import { CFGBuilder } from '../services/parser/CFGBuilder';
 import { DataFlowAnalyzer } from '../services/parser/DataFlowGraph';
 import { IncrementalAnalyzer } from '../services/parser/IncrementalAnalyzer';
 import { SecurityAnalyzer } from '../services/parser/SecurityAnalyzer';
-
-export const TYPES = {
-  ConfigService: Symbol.for('ConfigService'),
-  LoggerService: Symbol.for('LoggerService'),
-  ErrorHandlerService: Symbol.for('ErrorHandlerService'),
-  IndexService: Symbol.for('IndexService'),
-  GraphService: Symbol.for('GraphService'),
-  ParserService: Symbol.for('ParserService'),
-  QdrantService: Symbol.for('QdrantService'),
-  NebulaService: Symbol.for('NebulaService'),
-  NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
-  EmbedderFactory: Symbol.for('EmbedderFactory'),
-  EmbeddingCacheService: Symbol.for('EmbeddingCacheService'),
-  CacheManager: Symbol.for('CacheManager'),
-  OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
-  OllamaEmbedder: Symbol.for('OllamaEmbedder'),
-  GeminiEmbedder: Symbol.for('GeminiEmbedder'),
-  MistralEmbedder: Symbol.for('MistralEmbedder'),
-  TreeSitterService: Symbol.for('TreeSitterService'),
-  TreeSitterCoreService: Symbol.for('TreeSitterCoreService'),
-  SnippetExtractionService: Symbol.for('SnippetExtractionService'),
-  SemgrepScanService: Symbol.for('SemgrepScanService'),
-  SnippetExtractionRules: Symbol.for('SnippetExtractionRules'),
-  SmartCodeParser: Symbol.for('SmartCodeParser'),
-  FileSystemTraversal: Symbol.for('FileSystemTraversal'),
-  FileWatcherService: Symbol.for('FileWatcherService'),
-  ChangeDetectionService: Symbol.for('ChangeDetectionService'),
-  HashBasedDeduplicator: Symbol.for('HashBasedDeduplicator'),
-  QdrantClientWrapper: Symbol.for('QdrantClientWrapper'),
-  VectorStorageService: Symbol.for('VectorStorageService'),
-  GraphPersistenceService: Symbol.for('GraphPersistenceService'),
-  EntityIdManager: Symbol.for('EntityIdManager'),
-  EntityMappingService: Symbol.for('EntityMappingService'),
-  TransactionCoordinator: Symbol.for('TransactionCoordinator'),
-  ConsistencyChecker: Symbol.for('ConsistencyChecker'),
-  EventQueueService: Symbol.for('EventQueueService'),
-  IndexCoordinator: Symbol.for('IndexCoordinator'),
-  StorageCoordinator: Symbol.for('StorageCoordinator'),
-  SemanticSearchService: Symbol.for('SemanticSearchService'),
-  SearchCoordinator: Symbol.for('SearchCoordinator'),
-  HybridSearchService: Symbol.for('HybridSearchService'),
-  RerankingService: Symbol.for('RerankingService'),
-  QueryCache: Symbol.for('QueryCache'),
-  QueryCoordinationService: Symbol.for('QueryCoordinationService'),
-  ResultFusionEngine: Symbol.for('ResultFusionEngine'),
-  QueryOptimizer: Symbol.for('QueryOptimizer'),
-  ResultFormatter: Symbol.for('ResultFormatter'),
-  ResultFormatterCache: Symbol.for('ResultFormatterCache'),
-  ResultFormatterConfigLoader: Symbol.for('ResultFormatterConfigLoader'),
-
-  // Monitoring services
-  PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
-  HealthCheckService: Symbol.for('HealthCheckService'),
-  PerformanceAnalysisService: Symbol.for('PerformanceAnalysisService'),
-  PerformanceMonitor: Symbol.for('PerformanceMonitor'),
-  BatchProcessingMetrics: Symbol.for('BatchProcessingMetrics'),
-
-  // Processing services
-  BatchProcessor: Symbol.for('BatchProcessor'),
-
-  // LSP services
-  LSPService: Symbol.for('LSPService'),
-  LSPEnhancementPhase: Symbol.for('LSPEnhancementPhase'),
-  EnhancedParserService: Symbol.for('EnhancedParserService'),
-  LSPManager: Symbol.for('LSPManager'),
-
-  LSPClientPool: Symbol.for('LSPClientPool'),
-  LSPErrorHandler: Symbol.for('LSPErrorHandler'),
-  LanguageServerRegistry: Symbol.for('LanguageServerRegistry'),
-
-  // Controllers
-  MonitoringController: Symbol.for('MonitoringController'),
-  SnippetController: Symbol.for('SnippetController'),
-  GraphDatabaseErrorHandler: Symbol.for('GraphDatabaseErrorHandler'),
-  ErrorClassifier: Symbol.for('ErrorClassifier'),
-  NebulaQueryBuilder: Symbol.for('NebulaQueryBuilder'),
-  GraphCacheService: Symbol.for('GraphCacheService'),
-  GraphPerformanceMonitor: Symbol.for('GraphPerformanceMonitor'),
-  GraphBatchOptimizer: Symbol.for('GraphBatchOptimizer'),
-  GraphQueryBuilder: Symbol.for('GraphQueryBuilder'),
-  GraphSearchService: Symbol.for('GraphSearchService'),
-  BatchProcessingService: Symbol.for('BatchProcessingService'),
-  EmbeddingService: Symbol.for('EmbeddingService'),
-
-  // Additional types from inversify.config.ts
-  SemanticAnalysisOrchestrator: Symbol.for('SemanticAnalysisOrchestrator'),
-  CallGraphService: Symbol.for('CallGraphService'),
-  SemanticSemgrepService: Symbol.for('SemanticSemgrepService'),
-  StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
-  SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
-
-  // Phase 2: Tree-sitter Deep Analysis Services
-  AdvancedTreeSitterService: Symbol.for('AdvancedTreeSitterService'),
-  SymbolTableBuilder: Symbol.for('SymbolTableBuilder'),
-  CFGBuilder: Symbol.for('CFGBuilder'),
-  DataFlowAnalyzer: Symbol.for('DataFlowAnalyzer'),
-  IncrementalAnalyzer: Symbol.for('IncrementalAnalyzer'),
-  SecurityAnalyzer: Symbol.for('SecurityAnalyzer'),
-
-  // Legacy aliases for compatibility
-  DatabaseClient: Symbol.for('DatabaseClient'),
-  CodeParserService: Symbol.for('CodeParserService'),
-  LanguageDetectionService: Symbol.for('LanguageDetectionService'),
-  SearchService: Symbol.for('SearchService'),
-  QueryService: Symbol.for('QueryService'),
-  StorageService: Symbol.for('StorageService'),
-  WebSocketService: Symbol.for('WebSocketService'),
-  HttpServer: Symbol.for('HttpServer'),
-  MCPServer: Symbol.for('MCPServer')
-};
 
 const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
@@ -305,6 +198,9 @@ const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind })
   bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
   bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
   bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics).inSingletonScope();
+  bind(TYPES.BatchPerformanceMonitor).to(BatchPerformanceMonitor).inSingletonScope();
+  bind(TYPES.SemgrepMetricsService).to(SemgrepMetricsService).inSingletonScope();
+  bind(TYPES.PerformanceMonitor).to(PerformanceMonitor).inSingletonScope();
 });
 
 const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {

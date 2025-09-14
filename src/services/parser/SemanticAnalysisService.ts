@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { TreeSitterCoreService } from './TreeSitterCoreService';
 import { SemgrepScanService } from '../semgrep/SemgrepScanService';
 import { LoggerService } from '../../core/LoggerService';
-import { TYPES } from '../../core/DIContainer';
+import { TYPES } from '../../core/Types';
 
 export interface SemanticContext {
   controlFlow: CFGAnalysis;

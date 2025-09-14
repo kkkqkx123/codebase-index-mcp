@@ -3,6 +3,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { ConfigFactory } from '../../config/ConfigFactory';
 import { MonitoringConfig } from '../../config/ConfigTypes';
+import { TYPES } from '../../core/Types';
 
 export interface PerformanceMetrics {
   timestamp: Date;
@@ -54,9 +55,9 @@ export class PerformanceMonitor {
   private healthListeners: Array<(status: HealthStatus) => void> = [];
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(ConfigFactory) configFactory: ConfigFactory,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.ConfigFactory) configFactory: ConfigFactory,
     options: MonitoringOptions = {}
   ) {
     this.logger = logger;

@@ -9,6 +9,7 @@ import { PerformanceMonitor } from '../query/PerformanceMonitor';
 import { BatchProcessingMetrics } from './BatchProcessingMetrics';
 import { BatchPerformanceMonitor } from './BatchPerformanceMonitor';
 import { SemgrepMetricsService } from './SemgrepMetricsService';
+import { TYPES } from '../../core/Types';
 
 export interface DatabaseMetrics {
   qdrant: {
@@ -174,15 +175,15 @@ export class PrometheusMetricsService {
   };
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(QdrantService) qdrantService: QdrantService,
-    @inject(NebulaService) nebulaService: NebulaService,
-    @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
-    @inject(BatchPerformanceMonitor) batchPerformanceMonitor: BatchPerformanceMonitor,
-    @inject(SemgrepMetricsService) semgrepMetricsService: SemgrepMetricsService
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.QdrantService) qdrantService: QdrantService,
+    @inject(TYPES.NebulaService) nebulaService: NebulaService,
+    @inject(TYPES.PerformanceMonitor) performanceMonitor: PerformanceMonitor,
+    @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(TYPES.BatchPerformanceMonitor) batchPerformanceMonitor: BatchPerformanceMonitor,
+    @inject(TYPES.SemgrepMetricsService) semgrepMetricsService: SemgrepMetricsService
   ) {
     this.configService = configService;
     this.logger = logger;

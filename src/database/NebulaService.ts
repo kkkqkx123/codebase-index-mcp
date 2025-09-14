@@ -2,6 +2,7 @@ import { injectable, inject } from 'inversify';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { NebulaConnectionManager } from './nebula/NebulaConnectionManager';
+import { TYPES } from '../core/Types';
 
 @injectable()
 export class NebulaService {
@@ -10,9 +11,9 @@ export class NebulaService {
   private errorHandler: ErrorHandlerService;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(NebulaConnectionManager) nebulaConnection: NebulaConnectionManager
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.NebulaConnectionManager) nebulaConnection: NebulaConnectionManager
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
