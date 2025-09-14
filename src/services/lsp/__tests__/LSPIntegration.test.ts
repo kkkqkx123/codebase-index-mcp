@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { DIContainer } from '../../../core/DIContainer';
-import { TYPES } from '../../../types';
+import { DIContainer, TYPES } from '../../../core/DIContainer';
 import { LSPService } from '../LSPService';
 import { EnhancedParserService } from '../../parser/EnhancedParserService';
 import { IndexCoordinator } from '../../indexing/IndexCoordinator';

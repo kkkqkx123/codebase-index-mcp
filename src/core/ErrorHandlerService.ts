@@ -1,5 +1,6 @@
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
 import { LoggerService } from './LoggerService';
+import { TYPES } from '../types';
 
 export interface ErrorContext {
   component: string;
@@ -45,7 +46,7 @@ export class ErrorHandlerService {
   private errorReports: Map<string, ErrorReport> = new Map();
   private errorCallbacks: Array<(error: ErrorReport) => void> = [];
 
-  constructor(logger: LoggerService) {
+  constructor(@inject(TYPES.LoggerService) logger: LoggerService) {
     this.logger = logger;
   }
 

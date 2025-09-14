@@ -472,7 +472,7 @@ export class ConfigService {
   private static instance: ConfigService;
   private config: Config;
 
-  private constructor() {
+  constructor() {
     const rawConfig = {
       nodeEnv: process.env.NODE_ENV,
       port: parseInt(process.env.PORT || '3000'),

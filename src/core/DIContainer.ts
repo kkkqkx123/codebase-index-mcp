@@ -133,6 +133,11 @@ export const TYPES = {
   LSPService: Symbol.for('LSPService'),
   LSPEnhancementPhase: Symbol.for('LSPEnhancementPhase'),
   EnhancedParserService: Symbol.for('EnhancedParserService'),
+  LSPManager: Symbol.for('LSPManager'),
+  LSPClient: Symbol.for('LSPClient'),
+  LSPClientPool: Symbol.for('LSPClientPool'),
+  LSPErrorHandler: Symbol.for('LSPErrorHandler'),
+  LanguageServerRegistry: Symbol.for('LanguageServerRegistry'),
 
   // Controllers
   MonitoringController: Symbol.for('MonitoringController'),
@@ -149,7 +154,7 @@ export const TYPES = {
   EmbeddingService: Symbol.for('EmbeddingService')
 };
 
-const coreModule = new ContainerModule((bind: any) => {
+const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
   bind(TYPES.LoggerService).to(LoggerService).inSingletonScope();
   bind(TYPES.ErrorHandlerService).to(ErrorHandlerService).inSingletonScope();
@@ -157,7 +162,7 @@ const coreModule = new ContainerModule((bind: any) => {
   bind(TYPES.ErrorClassifier).to(ErrorClassifier).inSingletonScope();
 });
 
-const databaseModule = new ContainerModule((bind: any) => {
+const databaseModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
   bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
@@ -165,7 +170,7 @@ const databaseModule = new ContainerModule((bind: any) => {
   bind(TYPES.NebulaQueryBuilder).to(NebulaQueryBuilder).inSingletonScope();
 });
 
-const embedderModule = new ContainerModule((bind: any) => {
+const embedderModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.EmbeddingCacheService).to(EmbeddingCacheService).inSingletonScope();
   bind(TYPES.CacheManager).to(CacheManager).inSingletonScope();
   bind(TYPES.OpenAIEmbedder).to(OpenAIEmbedder).inSingletonScope();
@@ -175,7 +180,7 @@ const embedderModule = new ContainerModule((bind: any) => {
   bind(TYPES.EmbedderFactory).to(EmbedderFactory).inSingletonScope();
 });
 
-const serviceModule = new ContainerModule((bind: any) => {
+const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.IndexService).to(IndexService).inSingletonScope();
   bind(TYPES.GraphService).to(GraphService).inSingletonScope();
   bind(TYPES.ParserService).to(ParserService).inSingletonScope();
@@ -212,25 +217,25 @@ const serviceModule = new ContainerModule((bind: any) => {
   bind(TYPES.EnhancedParserService).to(EnhancedParserService).inSingletonScope();
 });
 
-const queueModule = new ContainerModule((bind: any) => {
+const queueModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.EventQueueService).to(EventQueueService).inSingletonScope();
 });
 
-const syncModule = new ContainerModule((bind: any) => {
+const syncModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.EntityIdManager).to(EntityIdManager).inSingletonScope();
   bind(TYPES.EntityMappingService).to(EntityMappingService).inSingletonScope();
   bind(TYPES.TransactionCoordinator).to(TransactionCoordinator).inSingletonScope();
   bind(TYPES.ConsistencyChecker).to(ConsistencyChecker).inSingletonScope();
 });
 
-const monitoringModule = new ContainerModule((bind: any) => {
+const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
   bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
   bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
   bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics).inSingletonScope();
 });
 
-const controllerModule = new ContainerModule((bind: any) => {
+const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
   bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
   

@@ -9,13 +9,11 @@ import { TYPES } from '../../types';
 @injectable()
 export class CacheManager {
   private caches = new Map<string, CacheInterface>();
-  private logger: LoggerService;
 
   constructor(
-    @inject(TYPES.ConfigService) private configService: ConfigService
-  ) {
-    this.logger = LoggerService.getInstance();
-  }
+    @inject(TYPES.ConfigService) private configService: ConfigService,
+    @inject(TYPES.LoggerService) private logger: LoggerService
+  ) {}
 
   /**
    * 获取或创建缓存实例
