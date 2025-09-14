@@ -101,10 +101,11 @@ describe('GraphService', () => {
 
       const result = await graphService.analyzeCodebase(projectPath);
 
-      expect(result.nodes).toBeDefined();
-      expect(result.edges).toBeDefined();
-      expect(result.metrics).toBeDefined();
-      expect(result.summary).toBeDefined();
+      expect(result.result.nodes).toBeDefined();
+      expect(result.result.edges).toBeDefined();
+      expect(result.result.metrics).toBeDefined();
+      expect(result.result.summary).toBeDefined();
+      expect(result.formattedResult).toBeDefined();
       expect(mockNebulaService.executeReadQuery).toHaveBeenCalled();
     });
 

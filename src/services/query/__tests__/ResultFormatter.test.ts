@@ -100,6 +100,11 @@ const mockConfigLoader = {
   })
 };
 
+const mockMetricsService = {
+  recordAlert: jest.fn(),
+  getMetricsEndpoint: jest.fn().mockReturnValue('/metrics')
+};
+
 describe('ResultFormatter', () => {
   let resultFormatter: ResultFormatter;
 
@@ -109,7 +114,8 @@ describe('ResultFormatter', () => {
       mockLoggerService as any,
       mockErrorHandlerService as any,
       mockCache as any,
-      mockConfigLoader as any
+      mockConfigLoader as any,
+      mockMetricsService as any
     );
   });
 

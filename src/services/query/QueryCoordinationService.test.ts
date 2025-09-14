@@ -5,6 +5,7 @@ import { ResultFusionEngine } from './ResultFusionEngine';
 import { QueryOptimizer } from './QueryOptimizer';
 import { QueryCache } from './QueryCache';
 import { PerformanceMonitor } from './PerformanceMonitor';
+import { ResultFormatter } from './ResultFormatter';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -22,6 +23,7 @@ describe('QueryCoordinationService', () => {
   let mockConfigService: jest.Mocked<ConfigService>;
   let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockEmbedderFactory: jest.Mocked<EmbedderFactory>;
+  let mockResultFormatter: jest.Mocked<ResultFormatter>;
 
   beforeEach(() => {
     // Create mocks
@@ -86,6 +88,12 @@ describe('QueryCoordinationService', () => {
       stopCleanupTask: jest.fn(),
     } as any;
 
+    mockResultFormatter = {
+      formatForLLM: jest.fn(),
+      checkHealth: jest.fn(),
+      getMetrics: jest.fn(),
+    } as any;
+
     // Create service instance manually
     queryCoordinationService = new QueryCoordinationService(
       mockConfigService,
@@ -97,7 +105,8 @@ describe('QueryCoordinationService', () => {
       mockResultFusionEngine,
       mockQueryOptimizer,
       mockQueryCache,
-      mockPerformanceMonitor
+      mockPerformanceMonitor,
+      mockResultFormatter
     );
   });
 

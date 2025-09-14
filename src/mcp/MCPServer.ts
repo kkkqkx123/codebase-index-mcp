@@ -139,12 +139,13 @@ export class MCPServer {
     this.logger.info(`Analyzing graph for project: ${projectPath}`);
     
     const analysis = await this.graphService.analyzeCodebase(projectPath, options);
-    
+
     return {
       success: true,
-      nodes: analysis.nodes,
-      relationships: analysis.edges,
-      metrics: analysis.metrics,
+      nodes: analysis.result.nodes,
+      relationships: analysis.result.edges,
+      metrics: analysis.result.metrics,
+      formattedResult: analysis.formattedResult,
       timestamp: new Date().toISOString()
     };
   }

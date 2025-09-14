@@ -2,6 +2,7 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
+import { PrometheusMetricsService } from '../../services/monitoring/PrometheusMetricsService';
 import { QueryResult } from './QueryCoordinationService';
 import { GraphAnalysisResult } from '../graph/GraphService';
 import { ResultFormatterCache } from './ResultFormatterCache';
@@ -128,19 +129,22 @@ export class ResultFormatter {
    private configService: ConfigService;
    private cache: ResultFormatterCache;
    private configLoader: ResultFormatterConfigLoader;
+   private metricsService?: PrometheusMetricsService;
 
   constructor(
      @inject(ConfigService) configService: ConfigService,
      @inject(LoggerService) logger: LoggerService,
      @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
      @inject(ResultFormatterCache) cache: ResultFormatterCache,
-     @inject(ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader
+     @inject(ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader,
+     @inject('PrometheusMetricsService') metricsService?: PrometheusMetricsService
    ) {
      this.configService = configService;
      this.logger = logger;
      this.errorHandler = errorHandler;
      this.cache = cache;
      this.configLoader = configLoader;
+     this.metricsService = metricsService;
    }
 
   private getConfig(): ResultFormatterFullConfig {
@@ -159,9 +163,15 @@ export class ResultFormatter {
   ): Promise<LLMFormattedResult> {
     const startTime = Date.now();
 
+    // Simple logging for now - metrics integration can be added later
+    this.logger.info('Formatting request', {
+      provider: options.provider,
+      format: options.format
+    });
+
     // Generate cache key based on result and options
     const cacheKey = this.generateCacheKey(result, options);
-    
+
     // Check cache first
     const cachedResult = this.cache.get<LLMFormattedResult>(cacheKey);
     if (cachedResult) {
@@ -199,6 +209,14 @@ export class ResultFormatter {
 
       const processingTime = Date.now() - startTime;
 
+      // Log performance metrics
+      this.logger.info('Formatting completed', {
+        processingTime,
+        entityCount: structuredData.entities.length,
+        provider: options.provider,
+        format: options.format
+      });
+
       const resultToCache: LLMFormattedResult = {
         status: 'success',
         data: formattedResult,
@@ -220,6 +238,12 @@ export class ResultFormatter {
         operation: 'formatForLLM',
         duration: Date.now() - startTime
       };
+
+      this.logger.error('Formatting failed', {
+        error: error instanceof Error ? error.message : String(error),
+        provider: options.provider,
+        duration: errorContext.duration
+      });
 
       const errorResult = this.errorHandler.handleError(
         error instanceof Error ? error : new Error(String(error)),
@@ -486,7 +510,7 @@ export class ResultFormatter {
     const resultString = JSON.stringify(result);
     const optionsString = JSON.stringify(options);
     const combinedString = resultString + optionsString;
-    
+
     // Simple hash function
     let hash = 0;
     for (let i = 0; i < combinedString.length; i++) {
@@ -494,7 +518,76 @@ export class ResultFormatter {
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     return `llm_format_${Math.abs(hash)}`;
+  }
+
+  // Health check methods
+  async checkHealth(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    details: {
+      cache: { status: string; size: number; maxSize: number };
+      config: { status: string; loaded: boolean };
+      metrics: { status: string; available: boolean };
+    };
+    timestamp: number;
+  }> {
+    try {
+      const cacheStatus = this.cache.size() < this.cache['maxSize'] ? 'healthy' : 'warning';
+      const configStatus = this.configLoader.loadConfig() ? 'loaded' : 'failed';
+      const metricsStatus = this.metricsService ? 'available' : 'unavailable';
+
+      const overallStatus = cacheStatus === 'healthy' && configStatus === 'loaded' && metricsStatus === 'available'
+        ? 'healthy'
+        : 'unhealthy';
+
+      return {
+        status: overallStatus,
+        details: {
+          cache: {
+            status: cacheStatus,
+            size: this.cache.size(),
+            maxSize: this.cache['maxSize']
+          },
+          config: {
+            status: configStatus,
+            loaded: configStatus === 'loaded'
+          },
+          metrics: {
+            status: metricsStatus,
+            available: metricsStatus === 'available'
+          }
+        },
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        details: {
+          cache: { status: 'error', size: 0, maxSize: 0 },
+          config: { status: 'error', loaded: false },
+          metrics: { status: 'error', available: false }
+        },
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  getMetrics(): {
+    cacheSize: number;
+    cacheHitRate: number;
+    averageProcessingTime: number;
+    errorRate: number;
+    uptime: number;
+  } {
+    // This would typically aggregate metrics from the metrics service
+    // For now, we'll return basic statistics
+    return {
+      cacheSize: this.cache.size(),
+      cacheHitRate: 0.8, // Placeholder - would be calculated from actual metrics
+      averageProcessingTime: 50, // Placeholder - would be calculated from actual metrics
+      errorRate: 0.01, // Placeholder - would be calculated from actual metrics
+      uptime: process.uptime() * 1000
+    };
   }
 }

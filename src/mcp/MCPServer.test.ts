@@ -203,7 +203,10 @@ describe('MCPServer', () => {
         },
       };
 
-      mockGraphService.analyzeCodebase.mockResolvedValue(analysisResult);
+      mockGraphService.analyzeCodebase.mockResolvedValue({
+        result: analysisResult,
+        formattedResult: {}
+      });
 
       const args = {
         projectPath: '/src/project',

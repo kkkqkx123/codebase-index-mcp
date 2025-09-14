@@ -54,6 +54,9 @@ import { QueryCache } from '../services/query/QueryCache';
 import { QueryCoordinationService } from '../services/query/QueryCoordinationService';
 import { ResultFusionEngine } from '../services/query/ResultFusionEngine';
 import { QueryOptimizer } from '../services/query/QueryOptimizer';
+import { ResultFormatter } from '../services/query/ResultFormatter';
+import { ResultFormatterCache } from '../services/query/ResultFormatterCache';
+import { ResultFormatterConfigLoader } from '../services/query/ResultFormatterConfigLoader';
 
 // Monitoring services
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
@@ -136,6 +139,9 @@ export const TYPES = {
   QueryCoordinationService: Symbol.for('QueryCoordinationService'),
   ResultFusionEngine: Symbol.for('ResultFusionEngine'),
   QueryOptimizer: Symbol.for('QueryOptimizer'),
+  ResultFormatter: Symbol.for('ResultFormatter'),
+  ResultFormatterCache: Symbol.for('ResultFormatterCache'),
+  ResultFormatterConfigLoader: Symbol.for('ResultFormatterConfigLoader'),
 
   // Monitoring services
   PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
@@ -257,6 +263,9 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.QueryCoordinationService).to(QueryCoordinationService).inSingletonScope();
   bind(TYPES.ResultFusionEngine).to(ResultFusionEngine).inSingletonScope();
   bind(TYPES.QueryOptimizer).to(QueryOptimizer).inSingletonScope();
+  bind(TYPES.ResultFormatter).to(ResultFormatter).inSingletonScope();
+  bind(TYPES.ResultFormatterCache).to(ResultFormatterCache).inSingletonScope();
+  bind(TYPES.ResultFormatterConfigLoader).to(ResultFormatterConfigLoader).inSingletonScope();
   bind(TYPES.LSPService).to(LSPService).inSingletonScope();
   bind(TYPES.LSPEnhancementPhase).to(LSPEnhancementPhase).inSingletonScope();
   bind(TYPES.EnhancedParserService).to(EnhancedParserService).inSingletonScope();
