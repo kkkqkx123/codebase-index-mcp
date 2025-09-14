@@ -106,6 +106,7 @@ const parseResult = await parserService.parseFile('user.ts', {
 - [ ] 降级到Tree-sitter无中断
 
 ### 📋 阶段3: 搜索增强 (Week 6-7)
+[x] 完成
 
 #### 目标
 实现基于LSP的语义搜索功能，提升搜索准确性。
