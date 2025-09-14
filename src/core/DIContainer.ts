@@ -84,6 +84,12 @@ import { SemanticAnalysisOrchestrator } from '../services/SemanticAnalysisOrches
 import { CallGraphService } from '../services/parser/CallGraphService';
 import { SemanticSemgrepService } from '../services/semgrep/SemanticSemgrepService';
 import { StaticAnalysisCoordinator } from '../services/static-analysis/StaticAnalysisCoordinator';
+import { AdvancedTreeSitterService } from '../services/parser/AdvancedTreeSitterService';
+import { SymbolTableBuilder } from '../services/parser/SymbolTableBuilder';
+import { CFGBuilder } from '../services/parser/CFGBuilder';
+import { DataFlowAnalyzer } from '../services/parser/DataFlowGraph';
+import { IncrementalAnalyzer } from '../services/parser/IncrementalAnalyzer';
+import { SecurityAnalyzer } from '../services/parser/SecurityAnalyzer';
 
 export const TYPES = {
   ConfigService: Symbol.for('ConfigService'),
@@ -172,6 +178,14 @@ export const TYPES = {
   StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
   SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
 
+  // Phase 2: Tree-sitter Deep Analysis Services
+  AdvancedTreeSitterService: Symbol.for('AdvancedTreeSitterService'),
+  SymbolTableBuilder: Symbol.for('SymbolTableBuilder'),
+  CFGBuilder: Symbol.for('CFGBuilder'),
+  DataFlowAnalyzer: Symbol.for('DataFlowAnalyzer'),
+  IncrementalAnalyzer: Symbol.for('IncrementalAnalyzer'),
+  SecurityAnalyzer: Symbol.for('SecurityAnalyzer'),
+
   // Legacy aliases for compatibility
   DatabaseClient: Symbol.for('DatabaseClient'),
   CodeParserService: Symbol.for('CodeParserService'),
@@ -256,6 +270,14 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
   bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
   bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
+
+  // Phase 2: Tree-sitter Deep Analysis Services
+  bind(TYPES.AdvancedTreeSitterService).to(AdvancedTreeSitterService).inSingletonScope();
+  bind(TYPES.SymbolTableBuilder).to(SymbolTableBuilder).inSingletonScope();
+  bind(TYPES.CFGBuilder).to(CFGBuilder).inSingletonScope();
+  bind(TYPES.DataFlowAnalyzer).to(DataFlowAnalyzer).inSingletonScope();
+  bind(TYPES.IncrementalAnalyzer).to(IncrementalAnalyzer).inSingletonScope();
+  bind(TYPES.SecurityAnalyzer).to(SecurityAnalyzer).inSingletonScope();
 });
 
 const queueModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {

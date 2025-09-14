@@ -113,4 +113,12 @@ export const TYPES = {
 
   // Parser services
   EnhancedParserService: Symbol.for('EnhancedParserService'),
+  
+  // Advanced TreeSitter services for Phase 2
+  AdvancedTreeSitterService: Symbol.for('AdvancedTreeSitterService'),
+  SymbolTableBuilder: Symbol.for('SymbolTableBuilder'),
+  CFGBuilder: Symbol.for('CFGBuilder'),
+  DataFlowAnalyzer: Symbol.for('DataFlowAnalyzer'),
+  SecurityAnalyzer: Symbol.for('SecurityAnalyzer'),
+  IncrementalAnalyzer: Symbol.for('IncrementalAnalyzer'),
 } as const;

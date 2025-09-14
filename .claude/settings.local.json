@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "mcp__thinking__sequentialthinking"
+      "mcp__thinking__sequentialthinking",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []
