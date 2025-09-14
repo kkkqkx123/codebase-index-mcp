@@ -85,9 +85,9 @@ export class HybridSearchService {
     @inject(ConfigService) configService: ConfigService,
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(SemanticSearchService) semanticSearch: SemanticSearchService,
-    @inject(VectorStorageService) vectorStorage: VectorStorageService,
-    @inject(EmbedderFactory) embedderFactory: EmbedderFactory,
+    @inject(TYPES.SemanticSearchService) semanticSearch: SemanticSearchService,
+    @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService,
+    @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory,
     @inject(TYPES.CacheManager) cacheManager: CacheManager
   ) {
     this.configService = configService;

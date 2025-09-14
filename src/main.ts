@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { DIContainer } from './core/DIContainer';
-import { TYPES } from './core/Types';
+import { TYPES } from './types';
 import { MCPServer } from './mcp/MCPServer';
 import { HttpServer } from './api/HttpServer';
 import { ConfigService } from './config/ConfigService';

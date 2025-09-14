@@ -4,6 +4,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { TreeSitterService } from './TreeSitterService';
 import { SmartCodeParser } from './SmartCodeParser';
+import { TYPES } from '../../types';
 
 export interface ParseResult {
   filePath: string;
@@ -32,11 +33,11 @@ export class ParserService {
   private smartCodeParser: SmartCodeParser;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(TreeSitterService) treeSitterService: TreeSitterService,
-    @inject(SmartCodeParser) smartCodeParser: SmartCodeParser
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.TreeSitterService) treeSitterService: TreeSitterService,
+    @inject(TYPES.SmartCodeParser) smartCodeParser: SmartCodeParser
   ) {
     this.configService = configService;
     this.logger = logger;

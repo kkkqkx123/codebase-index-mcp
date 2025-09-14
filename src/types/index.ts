@@ -10,6 +10,7 @@ export const TYPES = {
   QdrantService: Symbol.for('QdrantService'),
   NebulaService: Symbol.for('NebulaService'),
   NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
+  NebulaSpaceManager: Symbol.for('NebulaSpaceManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
   EmbeddingCacheService: Symbol.for('EmbeddingCacheService'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),
@@ -36,10 +37,14 @@ export const TYPES = {
   SearchCoordinator: Symbol.for('SearchCoordinator'),
   HybridSearchService: Symbol.for('HybridSearchService'),
   RerankingService: Symbol.for('RerankingService'),
+  SemanticAnalysisOrchestrator: Symbol.for('SemanticAnalysisOrchestrator'),
   QueryCache: Symbol.for('QueryCache'),
   QueryCoordinationService: Symbol.for('QueryCoordinationService'),
   ResultFusionEngine: Symbol.for('ResultFusionEngine'),
   QueryOptimizer: Symbol.for('QueryOptimizer'),
+  ResultFormatter: Symbol.for('ResultFormatter'),
+  ResultFormatterCache: Symbol.for('ResultFormatterCache'),
+  ResultFormatterConfigLoader: Symbol.for('ResultFormatterConfigLoader'),
 
   // Monitoring services
   PrometheusMetricsService: Symbol.for('PrometheusMetricsService'),
@@ -47,6 +52,8 @@ export const TYPES = {
   PerformanceAnalysisService: Symbol.for('PerformanceAnalysisService'),
   PerformanceMonitor: Symbol.for('PerformanceMonitor'),
   BatchProcessingMetrics: Symbol.for('BatchProcessingMetrics'),
+  BatchPerformanceMonitor: Symbol.for('BatchPerformanceMonitor'),
+  SemgrepMetricsService: Symbol.for('SemgrepMetricsService'),
 
   // Processing services
   BatchProcessor: Symbol.for('BatchProcessor'),

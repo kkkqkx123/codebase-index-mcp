@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../types';
 import { IndexService } from '../services/indexing/IndexService';
 import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
 import { StorageCoordinator } from '../services/storage/StorageCoordinator';
@@ -18,10 +19,10 @@ export class SnippetController {
 
   constructor(
     @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(IndexService) indexService: IndexService,
-    @inject(IndexCoordinator) indexCoordinator: IndexCoordinator,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.IndexService) indexService: IndexService,
+    @inject(TYPES.IndexCoordinator) indexCoordinator: IndexCoordinator,
     @inject(StorageCoordinator) storageCoordinator: StorageCoordinator
   ) {
     this.configService = configService;

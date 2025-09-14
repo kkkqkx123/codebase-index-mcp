@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService, CodebaseIndexError, ErrorContext } from '../../core/ErrorHandlerService';
 import { FileSystemTraversal, FileInfo, TraversalOptions } from './FileSystemTraversal';
+import { TYPES } from '../../types';
 
 export interface FileWatcherOptions {
   watchPaths: string[];
@@ -58,9 +59,9 @@ export class FileWatcherService {
   private testMode: boolean = false;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
     @inject('TraversalOptions') @optional() traversalOptions?: TraversalOptions
   ) {
     this.logger = logger;

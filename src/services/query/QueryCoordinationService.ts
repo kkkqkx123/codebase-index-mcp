@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -80,14 +81,14 @@ export class QueryCoordinationService {
     @inject(ConfigService) configService: ConfigService,
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(VectorStorageService) vectorStorage: VectorStorageService,
-    @inject(GraphPersistenceService) graphStorage: GraphPersistenceService,
-    @inject(EmbedderFactory) embedderFactory: EmbedderFactory,
+    @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService,
+    @inject(TYPES.GraphPersistenceService) graphStorage: GraphPersistenceService,
+    @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory,
     @inject(ResultFusionEngine) resultFusion: ResultFusionEngine,
     @inject(QueryOptimizer) queryOptimizer: QueryOptimizer,
-    @inject(QueryCache) queryCache: QueryCache,
-    @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor,
-    @inject(ResultFormatter) resultFormatter: ResultFormatter
+    @inject(TYPES.QueryCache) queryCache: QueryCache,
+    @inject(TYPES.PerformanceMonitor) performanceMonitor: PerformanceMonitor,
+    @inject(TYPES.ResultFormatter) resultFormatter: ResultFormatter
   ) {
     this.configService = configService;
     this.logger = logger;

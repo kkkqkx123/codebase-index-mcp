@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
@@ -27,8 +28,8 @@ export class NebulaSpaceManager {
   private configService: ConfigService;
 
   constructor(
-    @inject(NebulaService) nebulaService: NebulaService,
-    @inject(LoggerService) logger: LoggerService,
+    @inject(TYPES.NebulaService) nebulaService: NebulaService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService
   ) {

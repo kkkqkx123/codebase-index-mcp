@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { SemgrepScanService } from '../semgrep/SemgrepScanService';
@@ -43,9 +44,9 @@ export class SemgrepMetricsService {
 
   constructor(
     @inject(LoggerService) private logger: LoggerService,
-    @inject(ErrorHandlerService) private errorHandler: ErrorHandlerService,
-    @inject(SemgrepScanService) private semgrepService: SemgrepScanService,
-    @inject(SemgrepResultProcessor) private resultProcessor: SemgrepResultProcessor
+    @inject(TYPES.ErrorHandlerService) private errorHandler: ErrorHandlerService,
+    @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
+    @inject(TYPES.SemgrepResultProcessor) private resultProcessor: SemgrepResultProcessor
   ) {}
 
   /**

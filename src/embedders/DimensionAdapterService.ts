@@ -4,6 +4,7 @@ import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { EmbedderFactory } from './EmbedderFactory';
 import { BaseEmbedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
+import { TYPES } from 'src/types';
 
 export interface DimensionAdapter {
   adaptEmbedding(embedding: EmbeddingResult, targetDimensions: number): Promise<EmbeddingResult>;
@@ -28,10 +29,10 @@ export class DimensionAdapterService implements DimensionAdapter {
   private strategies: Map<string, AdaptationStrategy> = new Map();
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(EmbedderFactory) embedderFactory: EmbedderFactory
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory
   ) {
     this.configService = configService;
     this.logger = logger;

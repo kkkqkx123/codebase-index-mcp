@@ -4,6 +4,7 @@ import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { EmbeddingCacheService } from './EmbeddingCacheService';
 import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
+import { TYPES } from '../types';
 
 export { Embedder, EmbeddingInput, EmbeddingResult };
 
@@ -18,7 +19,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
   protected abstract getEmbeddingEndpoint(): string;
   protected abstract getAvailabilityEndpoint(): string;
   protected abstract getComponentName(): string;
-  
+
   /**
    * Make HTTP request to embedding API
    */
@@ -27,23 +28,23 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
     if (!baseUrl) {
       throw new Error(`${this.getComponentName()} base URL is not configured`);
     }
-    
+
     const url = `${baseUrl}${this.getEmbeddingEndpoint()}`;
     const headers = this.getRequestHeaders();
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(this.getRequestBody(inputs))
     });
-    
+
     if (!response.ok) {
       throw new Error(`${this.getComponentName()} API request failed with status ${response.status}: ${await response.text()}`);
     }
-    
+
     return this.processResponse(await response.json());
   }
-  
+
   /**
    * Check availability via HTTP endpoint
    */
@@ -53,22 +54,22 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
       if (!baseUrl) {
         return false;
       }
-      
+
       const url = `${baseUrl}${this.getAvailabilityEndpoint()}`;
       const headers = this.getRequestHeaders();
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers
       });
-      
+
       return response.ok;
     } catch (error) {
       this.logger.warn(`${this.getComponentName()} availability check failed`, { error });
       return false;
     }
   }
-  
+
   /**
    * Get request headers for API calls
    */
@@ -76,15 +77,15 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    
+
     const apiKey = this.getApiKey();
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
-    
+
     return headers;
   }
-  
+
   /**
    * Get request body for embedding API
    */
@@ -94,7 +95,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
       model: this.getModel()
     };
   }
-  
+
   /**
    * Process API response and convert to EmbeddingResult[]
    */
@@ -102,7 +103,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
     if (!data.data || !Array.isArray(data.data)) {
       throw new Error('Invalid API response format');
     }
-    
+
     return data.data.map((item: any, index: number) => ({
       vector: item.embedding,
       dimensions: item.embedding.length,
@@ -123,21 +124,21 @@ export class CustomEmbedder extends HttpEmbedder implements Embedder {
   private dimensions: number;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(EmbeddingCacheService) cacheService: EmbeddingCacheService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.EmbeddingCacheService) cacheService: EmbeddingCacheService,
     name: string,
     defaultDimensions: number = 768
   ) {
     super(configService, logger, errorHandler, cacheService);
-    
+
     this.name = name;
-    
+
     const config = configService.get('embedding');
     const customConfig = (config.custom as Record<string, any>) || {};
     const providerConfig = customConfig[name] || {};
-    
+
     this.apiKey = providerConfig.apiKey || '';
     this.model = providerConfig.model || 'default-model';
     this.dimensions = providerConfig.dimensions || defaultDimensions;
@@ -147,7 +148,7 @@ export class CustomEmbedder extends HttpEmbedder implements Embedder {
     const config = this.configService.get('embedding');
     const customConfig = (config.custom as Record<string, any>) || {};
     const providerConfig = customConfig[this.name] || {};
-    
+
     // Custom embedders only read from .env, no default URL
     return providerConfig.baseUrl || '';
   }

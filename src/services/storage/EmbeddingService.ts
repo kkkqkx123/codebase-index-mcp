@@ -1,6 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { LoggerService } from '../../core/LoggerService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
+import { TYPES } from '../../types';
 import { CodeChunk } from '../parser/types';
 import { VectorPoint } from '../../database/qdrant/QdrantClientWrapper';
 
@@ -17,8 +18,8 @@ export class EmbeddingService {
   private embedderFactory: EmbedderFactory;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(EmbedderFactory) embedderFactory: EmbedderFactory
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory
   ) {
     this.logger = logger;
     this.embedderFactory = embedderFactory;

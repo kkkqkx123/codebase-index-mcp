@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { NebulaConnectionManager } from './nebula/NebulaConnectionManager';
-import { TYPES } from '../core/Types';
+import { TYPES } from '../types';
 
 @injectable()
 export class NebulaService {

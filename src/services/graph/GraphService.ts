@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -60,13 +61,13 @@ export class GraphService {
    private resultFormatter: ResultFormatter;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(NebulaService) nebulaService: NebulaService,
-    @inject(GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
-    @inject(NebulaQueryBuilder) nebulaQueryBuilder: NebulaQueryBuilder,
-    @inject(ResultFormatter) resultFormatter: ResultFormatter
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.NebulaService) nebulaService: NebulaService,
+    @inject(TYPES.GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
+    @inject(TYPES.NebulaQueryBuilder) nebulaQueryBuilder: NebulaQueryBuilder,
+    @inject(TYPES.ResultFormatter) resultFormatter: ResultFormatter
   ) {
     this.configService = configService;
     this.logger = logger;

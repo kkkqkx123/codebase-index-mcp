@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { SemgrepScanService } from './SemgrepScanService';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
-import { TYPES } from '../../core/Types';
+import { TYPES } from '../../types';
 
 export interface EnhancedSemgrepResult {
   ruleId: string;
@@ -91,8 +91,8 @@ export class SemanticSemgrepService {
   private enhancedRulesPath: string;
 
   constructor(
-    @inject(SemgrepScanService) private semgrepService: SemgrepScanService,
-    @inject(LoggerService) private logger: LoggerService,
+    @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
+    @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(ConfigService) private configService: ConfigService
   ) {
     this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath;

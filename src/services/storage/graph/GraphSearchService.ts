@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../../types';
 import { LoggerService } from '../../../core/LoggerService';
 import { NebulaService } from '../../../database/NebulaService';
 import { GraphCacheService } from './GraphCacheService';
@@ -46,8 +47,8 @@ export class GraphSearchService {
   private isInitialized: boolean = false;
 
   constructor(
-    @inject(NebulaService) nebulaService: NebulaService,
-    @inject(LoggerService) logger: LoggerService,
+    @inject(TYPES.NebulaService) nebulaService: NebulaService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(GraphCacheService) cacheService: GraphCacheService,
     @inject(GraphPerformanceMonitor) performanceMonitor: GraphPerformanceMonitor,
     @inject(GraphQueryBuilder) queryBuilder: GraphQueryBuilder

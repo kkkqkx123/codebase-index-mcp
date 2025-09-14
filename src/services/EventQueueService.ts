@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService, ErrorContext, CodebaseIndexError } from '../core/ErrorHandlerService';
 import { ChangeDetectionService, FileChangeEvent } from './filesystem/ChangeDetectionService';
+import { TYPES } from '../types';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -93,9 +94,9 @@ export class EventQueueService extends EventEmitter {
   private persistenceEnabled: boolean;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ChangeDetectionService) changeDetectionService: ChangeDetectionService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ChangeDetectionService) changeDetectionService: ChangeDetectionService,
     @inject('EventQueueOptions') @optional() options?: EventQueueOptions
   ) {
     super();

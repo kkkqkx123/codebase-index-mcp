@@ -3,7 +3,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { ConfigFactory } from '../../config/ConfigFactory';
 import { MonitoringConfig } from '../../config/ConfigTypes';
-import { TYPES } from '../../core/Types';
+import { TYPES } from '../../types';
 
 export interface PerformanceMetrics {
   timestamp: Date;

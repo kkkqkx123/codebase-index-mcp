@@ -4,6 +4,7 @@ import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { EmbeddingCacheService } from './EmbeddingCacheService';
 import { HttpEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './CustomEmbedder';
+import { TYPES } from '../types';
 
 @injectable()
 export class SiliconFlowEmbedder extends HttpEmbedder implements Embedder {
@@ -12,13 +13,13 @@ export class SiliconFlowEmbedder extends HttpEmbedder implements Embedder {
   private dimensions: number;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(EmbeddingCacheService) cacheService: EmbeddingCacheService
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.EmbeddingCacheService) cacheService: EmbeddingCacheService
   ) {
     super(configService, logger, errorHandler, cacheService);
-    
+
     const config = configService.get('embedding');
     this.apiKey = config.siliconflow.apiKey;
     this.model = config.siliconflow.model || 'BAAI/bge-large-en-v1.5';

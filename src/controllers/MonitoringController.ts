@@ -5,7 +5,7 @@ import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
 import { HealthCheckService } from '../services/monitoring/HealthCheckService';
 import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
-import { TYPES } from '../core/Types';
+import { TYPES } from '../types';
 
 @injectable()
 export class MonitoringController {

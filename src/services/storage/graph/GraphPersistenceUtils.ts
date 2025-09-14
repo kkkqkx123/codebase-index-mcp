@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../../types';
 import { LoggerService } from '../../../core/LoggerService';
 import { NebulaService } from '../../../database/NebulaService';
 import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
@@ -36,8 +37,8 @@ export class GraphPersistenceUtils {
   }
   constructor(
     @inject(LoggerService) private logger: LoggerService,
-    @inject(NebulaService) private nebulaService: NebulaService,
-    @inject(NebulaQueryBuilder) private queryBuilder: NebulaQueryBuilder
+    @inject(TYPES.NebulaService) private nebulaService: NebulaService,
+    @inject(TYPES.NebulaQueryBuilder) private queryBuilder: NebulaQueryBuilder
   ) { }
 
   createProjectNode(projectId: string): GraphQuery {

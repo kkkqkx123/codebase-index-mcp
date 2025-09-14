@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { DIContainer } from '../core/DIContainer';
-import { TYPES } from '../core/Types';
+import { TYPES } from '../types';
 import { LoggerService } from '../core/LoggerService';
 import { IndexService } from '../services/indexing/IndexService';
 import { GraphService } from '../services/graph/GraphService';

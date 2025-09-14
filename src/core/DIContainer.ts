@@ -1,9 +1,10 @@
 import 'reflect-metadata';
 import { Container, ContainerModule } from 'inversify';
-import { TYPES } from './Types';
+import { TYPES } from '../types';
 import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
+import { ConfigFactory } from '../config/ConfigFactory';
 import { IndexService } from '../services/indexing/IndexService';
 import { GraphService } from '../services/graph/GraphService';
 import { ParserService } from '../services/parser/ParserService';
@@ -14,6 +15,10 @@ import { OpenAIEmbedder } from '../embedders/OpenAIEmbedder';
 import { OllamaEmbedder } from '../embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../embedders/GeminiEmbedder';
 import { MistralEmbedder } from '../embedders/MistralEmbedder';
+import { SiliconFlowEmbedder } from '../embedders/SiliconFlowEmbedder';
+import { Custom1Embedder } from '../embedders/Custom1Embedder';
+import { Custom2Embedder } from '../embedders/Custom2Embedder';
+import { Custom3Embedder } from '../embedders/Custom3Embedder';
 import { EmbedderFactory } from '../embedders/EmbedderFactory';
 import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
@@ -103,6 +108,7 @@ const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.ErrorHandlerService).to(ErrorHandlerService).inSingletonScope();
   bind(TYPES.GraphDatabaseErrorHandler).to(GraphDatabaseErrorHandler).inSingletonScope();
   bind(TYPES.ErrorClassifier).to(ErrorClassifier).inSingletonScope();
+  bind(TYPES.ConfigFactory).to(ConfigFactory).inSingletonScope();
 });
 
 const databaseModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
@@ -120,6 +126,10 @@ const embedderModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =
   bind(TYPES.OllamaEmbedder).to(OllamaEmbedder).inSingletonScope();
   bind(TYPES.GeminiEmbedder).to(GeminiEmbedder).inSingletonScope();
   bind(TYPES.MistralEmbedder).to(MistralEmbedder).inSingletonScope();
+  bind(TYPES.SiliconFlowEmbedder).to(SiliconFlowEmbedder).inSingletonScope();
+  bind(TYPES.Custom1Embedder).to(Custom1Embedder).inSingletonScope();
+  bind(TYPES.Custom2Embedder).to(Custom2Embedder).inSingletonScope();
+  bind(TYPES.Custom3Embedder).to(Custom3Embedder).inSingletonScope();
   bind(TYPES.EmbedderFactory).to(EmbedderFactory).inSingletonScope();
 });
 
@@ -211,6 +221,7 @@ const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind })
   bind(TYPES.BatchProcessor).to(BatchProcessor).inSingletonScope();
 });
 
+export { TYPES };
 export class DIContainer {
   private static instance: Container | null = null;
 

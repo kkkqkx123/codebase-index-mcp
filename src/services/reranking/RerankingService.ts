@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -27,9 +28,9 @@ export class RerankingService implements IRerankingService {
   constructor(
     @inject(ConfigService) configService: ConfigService,
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(GraphPersistenceService) graphStorage: GraphPersistenceService,
-    @inject(SemanticSearchService) semanticSearch: SemanticSearchService
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.GraphPersistenceService) graphStorage: GraphPersistenceService,
+    @inject(TYPES.SemanticSearchService) semanticSearch: SemanticSearchService
   ) {
     this.configService = configService;
     this.logger = logger;

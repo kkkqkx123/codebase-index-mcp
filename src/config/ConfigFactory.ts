@@ -2,14 +2,15 @@ import { injectable, inject } from 'inversify';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { ConfigService } from './ConfigService';
-import { 
-  CompleteConfig, 
-  ConfigSection, 
+import {
+  CompleteConfig,
+  ConfigSection,
   EnvironmentConfig,
   ServiceConfig,
   FeatureConfig,
   SecurityConfig
 } from './ConfigTypes';
+import { TYPES } from '../types';
 
 @injectable()
 export class ConfigFactory implements ConfigFactory {
@@ -20,9 +21,9 @@ export class ConfigFactory implements ConfigFactory {
   private configListeners: Map<string, Array<(config: any) => void>> = new Map();
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

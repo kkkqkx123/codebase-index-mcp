@@ -1,6 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorClassifier } from './ErrorClassifier';
+import { TYPES } from '../types';
 
 export interface ErrorContext {
   component: string;
@@ -41,6 +42,7 @@ export interface RecoveryResult {
 @injectable()
 export class GraphDatabaseErrorHandler {
   private logger: LoggerService;
+  private errorClassifier: ErrorClassifier;
   private recoveryStrategies: Map<string, RecoveryStrategy> = new Map();
   private errorHistory: Array<{
     timestamp: Date;
@@ -52,10 +54,11 @@ export class GraphDatabaseErrorHandler {
   }> = [];
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    private errorClassifier: ErrorClassifier
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorClassifier) errorClassifier: ErrorClassifier
   ) {
     this.logger = logger;
+    this.errorClassifier = errorClassifier;
     this.initializeRecoveryStrategies();
   }
 

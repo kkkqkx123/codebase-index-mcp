@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { QdrantClientWrapper, CollectionInfo } from './QdrantClientWrapper';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -18,8 +19,8 @@ export class QdrantCollectionManager {
   private configService: ConfigService;
 
   constructor(
-    @inject(QdrantClientWrapper) client: QdrantClientWrapper,
-    @inject(LoggerService) logger: LoggerService,
+    @inject(TYPES.QdrantClientWrapper) client: QdrantClientWrapper,
+    @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(ConfigService) configService: ConfigService
   ) {

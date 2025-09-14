@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -49,9 +50,9 @@ export class HealthCheckService {
   constructor(
     @inject(ConfigService) configService: ConfigService,
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(QdrantService) qdrantService: QdrantService,
-    @inject(NebulaService) nebulaService: NebulaService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.QdrantService) qdrantService: QdrantService,
+    @inject(TYPES.NebulaService) nebulaService: NebulaService,
     @inject(PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService
   ) {
     this.configService = configService;

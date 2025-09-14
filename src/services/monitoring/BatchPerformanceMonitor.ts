@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -106,8 +107,8 @@ export class BatchPerformanceMonitor {
   constructor(
     @inject(ConfigService) configService: ConfigService,
     @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics
   ) {
     this.configService = configService;
     this.logger = logger;

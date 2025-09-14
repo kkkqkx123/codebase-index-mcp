@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 import { PerformanceMonitor, HealthStatus } from './PerformanceMonitor';
@@ -38,8 +39,8 @@ export class HealthChecker {
 
   constructor(
     @inject(LoggerService) logger: LoggerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.PerformanceMonitor) performanceMonitor: PerformanceMonitor
   ) {
     this.logger = logger;
     this.configService = configService;

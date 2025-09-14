@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../../types';
 import { CodeChunk } from '../../parser/types';
 import { ParsedFile } from '../../parser/SmartCodeParser';
 import { LoggerService } from '../../../core/LoggerService';
@@ -87,13 +88,13 @@ export class GraphPersistenceService {
   private connectionPoolMonitoringInterval: NodeJS.Timeout | null = null;
 
   constructor(
-    @inject(NebulaService) nebulaService: NebulaService,
-    @inject(NebulaSpaceManager) nebulaSpaceManager: NebulaSpaceManager,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
-    @inject(NebulaQueryBuilder) queryBuilder: NebulaQueryBuilder,
+    @inject(TYPES.NebulaService) nebulaService: NebulaService,
+    @inject(TYPES.NebulaSpaceManager) nebulaSpaceManager: NebulaSpaceManager,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(TYPES.NebulaQueryBuilder) queryBuilder: NebulaQueryBuilder,
     @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler,
     @inject(GraphPersistenceUtils) persistenceUtils: GraphPersistenceUtils,
     @inject(GraphCacheService) cacheService: GraphCacheService,

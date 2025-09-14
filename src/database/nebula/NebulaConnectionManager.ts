@@ -3,7 +3,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
 import { NebulaQueryBuilder } from './NebulaQueryBuilder';
-import { TYPES } from '../../core/Types';
+import { TYPES } from '../../types';
 
 // 使用社区贡献的NebulaGraph Node.js客户端
 // https://github.com/nebula-contrib/nebula-node

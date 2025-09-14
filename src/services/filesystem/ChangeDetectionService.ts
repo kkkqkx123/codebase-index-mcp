@@ -4,6 +4,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService, ErrorContext } from '../../core/ErrorHandlerService';
 import { FileWatcherService, FileWatcherOptions, FileWatcherCallbacks } from './FileWatcherService';
 import { FileSystemTraversal, FileInfo } from './FileSystemTraversal';
+import { TYPES } from '../../types';
 import path from 'path';
 
 export interface ChangeDetectionOptions {
@@ -68,10 +69,10 @@ export class ChangeDetectionService extends EventEmitter {
   private testMode: boolean = false;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(FileWatcherService) fileWatcherService: FileWatcherService,
-    @inject(FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.FileWatcherService) fileWatcherService: FileWatcherService,
+    @inject(TYPES.FileSystemTraversal) fileSystemTraversal: FileSystemTraversal,
     @inject('ChangeDetectionOptions') @optional() options?: ChangeDetectionOptions
   ) {
     super();

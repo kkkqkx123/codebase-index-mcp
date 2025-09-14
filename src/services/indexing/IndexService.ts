@@ -58,10 +58,10 @@ export class IndexService {
   private currentIndexing: Map<string, boolean> = new Map();
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService,
-    @inject(IndexCoordinator) indexCoordinator: IndexCoordinator
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.IndexCoordinator) indexCoordinator: IndexCoordinator
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

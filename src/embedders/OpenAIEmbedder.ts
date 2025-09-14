@@ -4,6 +4,7 @@ import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { EmbeddingCacheService } from './EmbeddingCacheService';
 import { HttpEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './CustomEmbedder';
+import { TYPES } from '../types';
 
 @injectable()
 export class OpenAIEmbedder extends HttpEmbedder implements Embedder {
@@ -12,18 +13,18 @@ export class OpenAIEmbedder extends HttpEmbedder implements Embedder {
   private dimensions: number;
 
   constructor(
-      @inject(ConfigService) configService: ConfigService,
-      @inject(LoggerService) logger: LoggerService,
-      @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-      @inject(EmbeddingCacheService) cacheService: EmbeddingCacheService
-    ) {
-      super(configService, logger, errorHandler, cacheService);
-      
-      const config = configService.get('embedding');
-      this.apiKey = config.openai.apiKey;
-      this.model = config.openai.model || 'text-embedding-ada-002';
-      this.dimensions = config.openai.dimensions || 1536;
-    }
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.EmbeddingCacheService) cacheService: EmbeddingCacheService
+  ) {
+    super(configService, logger, errorHandler, cacheService);
+
+    const config = configService.get('embedding');
+    this.apiKey = config.openai.apiKey;
+    this.model = config.openai.model || 'text-embedding-ada-002';
+    this.dimensions = config.openai.dimensions || 1536;
+  }
 
   protected getBaseUrl(): string {
     const config = this.configService.get('embedding');

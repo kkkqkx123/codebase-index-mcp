@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { DIContainer } from '../../core/DIContainer';
-import { TYPES } from '../../core/Types';
+import { TYPES } from '../../types';
 import { MonitoringController } from '../../controllers/MonitoringController';
 
 export class MonitoringRoutes {

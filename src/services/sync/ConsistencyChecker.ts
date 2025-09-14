@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { CodebaseIndexError } from '../../core/ErrorHandlerService';
@@ -51,9 +52,9 @@ export class ConsistencyChecker {
     @inject(LoggerService) logger: LoggerService,
     @inject(ErrorHandlerService) _errorHandler: ErrorHandlerService,
     @inject(EntityIdManager) entityIdManager: EntityIdManager,
-    @inject(VectorStorageService) vectorStorageService: VectorStorageService,
-    @inject(GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
-    @inject(TransactionCoordinator) transactionCoordinator: TransactionCoordinator
+    @inject(TYPES.VectorStorageService) vectorStorageService: VectorStorageService,
+    @inject(TYPES.GraphPersistenceService) graphPersistenceService: GraphPersistenceService,
+    @inject(TYPES.TransactionCoordinator) transactionCoordinator: TransactionCoordinator
   ) {
     this.logger = logger;
     this.entityIdManager = entityIdManager;

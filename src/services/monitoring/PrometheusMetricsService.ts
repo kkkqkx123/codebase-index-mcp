@@ -9,7 +9,7 @@ import { PerformanceMonitor } from '../query/PerformanceMonitor';
 import { BatchProcessingMetrics } from './BatchProcessingMetrics';
 import { BatchPerformanceMonitor } from './BatchPerformanceMonitor';
 import { SemgrepMetricsService } from './SemgrepMetricsService';
-import { TYPES } from '../../core/Types';
+import { TYPES } from '../../types';
 
 export interface DatabaseMetrics {
   qdrant: {

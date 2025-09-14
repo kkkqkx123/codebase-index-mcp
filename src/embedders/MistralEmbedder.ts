@@ -4,6 +4,7 @@ import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { EmbeddingCacheService } from './EmbeddingCacheService';
 import { HttpEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './CustomEmbedder';
+import { TYPES } from '../types';
 
 @injectable()
 export class MistralEmbedder extends HttpEmbedder implements Embedder {
@@ -12,18 +13,18 @@ export class MistralEmbedder extends HttpEmbedder implements Embedder {
   private dimensions: number;
 
   constructor(
-      @inject(ConfigService) configService: ConfigService,
-      @inject(LoggerService) logger: LoggerService,
-      @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-      @inject(EmbeddingCacheService) cacheService: EmbeddingCacheService
-    ) {
-      super(configService, logger, errorHandler, cacheService);
-      
-      const config = configService.get('embedding');
-      this.apiKey = config.mistral.apiKey;
-      this.model = config.mistral.model || 'mistral-embed';
-      this.dimensions = config.mistral.dimensions || 1024;
-    }
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.EmbeddingCacheService) cacheService: EmbeddingCacheService
+  ) {
+    super(configService, logger, errorHandler, cacheService);
+
+    const config = configService.get('embedding');
+    this.apiKey = config.mistral.apiKey;
+    this.model = config.mistral.model || 'mistral-embed';
+    this.dimensions = config.mistral.dimensions || 1024;
+  }
 
   protected getBaseUrl(): string {
     const config = this.configService.get('embedding');

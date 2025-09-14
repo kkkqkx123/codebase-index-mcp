@@ -3,7 +3,7 @@ import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
-import { TYPES } from '../core/Types';
+import { TYPES } from '../types';
 
 @injectable()
 export class QdrantService {

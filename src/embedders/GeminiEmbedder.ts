@@ -4,6 +4,7 @@ import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { EmbeddingCacheService } from './EmbeddingCacheService';
 import { BaseEmbedder, Embedder, EmbeddingInput, EmbeddingResult } from './BaseEmbedder';
+import { TYPES } from '../types';
 
 @injectable()
 export class GeminiEmbedder extends BaseEmbedder implements Embedder {
@@ -12,18 +13,18 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
   private dimensions: number;
 
   constructor(
-      @inject(ConfigService) configService: ConfigService,
-      @inject(LoggerService) logger: LoggerService,
-      @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-      @inject(EmbeddingCacheService) cacheService: EmbeddingCacheService
-    ) {
-      super(configService, logger, errorHandler, cacheService);
-      
-      const config = configService.get('embedding');
-      this.apiKey = config.gemini.apiKey;
-      this.model = config.gemini.model || 'embedding-001';
-      this.dimensions = config.gemini.dimensions || 768;
-    }
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.EmbeddingCacheService) cacheService: EmbeddingCacheService
+  ) {
+    super(configService, logger, errorHandler, cacheService);
+
+    const config = configService.get('embedding');
+    this.apiKey = config.gemini.apiKey;
+    this.model = config.gemini.model || 'embedding-001';
+    this.dimensions = config.gemini.dimensions || 768;
+  }
 
   private getBaseUrl(): string {
     const config = this.configService.get('embedding');
@@ -36,7 +37,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
     const headers = {
       'Content-Type': 'application/json'
     };
-    
+
     // Process each input separately as Gemini API expects single input
     const embeddings = [];
     for (const inp of inputs) {
@@ -51,11 +52,11 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
           }
         })
       });
-      
+
       if (!response.ok) {
         throw new Error(`Gemini API request failed with status ${response.status}: ${await response.text()}`);
       }
-      
+
       const data = await response.json() as { embedding: { values: number[] } };
       embeddings.push({
         vector: data.embedding.values,
@@ -64,7 +65,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
         processingTime: 0 // Will be updated after timing
       });
     }
-    
+
     return embeddings as EmbeddingResult[];
   }
 
@@ -89,7 +90,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
       const response = await fetch(url, {
         method: 'GET'
       });
-      
+
       return response.ok;
     } catch (error) {
       this.logger.warn('Gemini availability check failed', { error });

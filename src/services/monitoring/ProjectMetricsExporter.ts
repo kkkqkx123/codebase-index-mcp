@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ProjectIdManager } from '../../database/ProjectIdManager';
 import { QdrantClientWrapper } from '../../database/qdrant/QdrantClientWrapper';
 import { NebulaService } from '../../database/NebulaService';
@@ -8,9 +9,9 @@ import { LoggerService } from '../../core/LoggerService';
 export class ProjectMetricsExporter {
   constructor(
     @inject(ProjectIdManager) private projectIdManager: ProjectIdManager,
-    @inject(QdrantClientWrapper) private qdrantClient: QdrantClientWrapper,
-    @inject(NebulaService) private nebulaClient: NebulaService,
-    @inject(LoggerService) private logger: LoggerService
+    @inject(TYPES.QdrantClientWrapper) private qdrantClient: QdrantClientWrapper,
+    @inject(TYPES.NebulaService) private nebulaClient: NebulaService,
+    @inject(TYPES.LoggerService) private logger: LoggerService
   ) {}
 
   async collectMetrics(): Promise<void> {

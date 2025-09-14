@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -70,13 +71,13 @@ export class PerformanceAnalysisService {
   private prometheusMetricsService: PrometheusMetricsService;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(PerformanceMonitor) performanceMonitor: PerformanceMonitor,
-    @inject(BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
-    @inject(BatchPerformanceMonitor) batchPerformanceMonitor: BatchPerformanceMonitor,
-    @inject(PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.PerformanceMonitor) performanceMonitor: PerformanceMonitor,
+    @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
+    @inject(TYPES.BatchPerformanceMonitor) batchPerformanceMonitor: BatchPerformanceMonitor,
+    @inject(TYPES.PrometheusMetricsService) prometheusMetricsService: PrometheusMetricsService
   ) {
     this.configService = configService;
     this.logger = logger;

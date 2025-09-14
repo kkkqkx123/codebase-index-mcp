@@ -1,4 +1,5 @@
 import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
+import { TYPES } from '../../../types';
 import { CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
 import { injectable, inject } from 'inversify';
 
@@ -34,7 +35,7 @@ export interface SearchResult {
 export class GraphQueryBuilder {
   private nebulaQueryBuilder: NebulaQueryBuilder;
 
-  constructor(@inject(NebulaQueryBuilder) nebulaQueryBuilder: NebulaQueryBuilder) {
+  constructor(@inject(TYPES.NebulaQueryBuilder) nebulaQueryBuilder: NebulaQueryBuilder) {
     this.nebulaQueryBuilder = nebulaQueryBuilder;
   }
 

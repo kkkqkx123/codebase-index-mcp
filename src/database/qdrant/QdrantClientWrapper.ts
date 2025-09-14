@@ -3,7 +3,7 @@ import { injectable, inject } from 'inversify';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { TYPES } from '../../core/Types';
+import { TYPES } from '../../types';
 
 export interface QdrantConfig {
   host: string;
