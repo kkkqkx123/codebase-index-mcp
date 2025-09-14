@@ -12,6 +12,9 @@ import { VectorStorageService } from '../src/services/storage/vector/VectorStora
 import { TreeSitterService } from '../src/services/parser/TreeSitterService';
 import { SemanticAnalysisService } from '../src/services/parser/SemanticAnalysisService';
 import { EnhancedSemgrepScanService } from '../src/services/semgrep/EnhancedSemgrepScanService';
+import { LSPManager } from '../src/services/lsp/LSPManager';
+import { LSPSearchService } from '../src/services/lsp/LSPSearchService';
+import { LanguageServerRegistry } from '../src/services/lsp/LanguageServerRegistry';
 
 // Load main .env file
 const mainEnvPath = path.join(process.cwd(), '.env');
@@ -200,6 +203,60 @@ export const createSimpleTestContainer = () => {
   };
   
   container.bind<IndexService>(TYPES.IndexService).toConstantValue(mockIndexService as any);
+  
+  // Mock LSP services
+  const mockLSPManager = {
+    initialize: jest.fn().mockResolvedValue(true),
+    isLSPAvailable: jest.fn().mockReturnValue(true),
+    getSymbols: jest.fn().mockResolvedValue({
+      filePath: '/test/file.ts',
+      symbols: [{ name: 'test', kind: 'function', range: { start: { line: 1, character: 0 }, end: { line: 5, character: 1 } } }]
+    }),
+    getDefinition: jest.fn().mockResolvedValue([]),
+    getReferences: jest.fn().mockResolvedValue([]),
+    getTypeDefinition: jest.fn().mockResolvedValue([]),
+    getImplementation: jest.fn().mockResolvedValue([]),
+    getDiagnostics: jest.fn().mockResolvedValue([]),
+    close: jest.fn().mockResolvedValue(true),
+  };
+  
+  container.bind<LSPManager>(TYPES.LSPManager).toConstantValue(mockLSPManager as any);
+  
+  const mockLSPSearchService = {
+    search: jest.fn().mockResolvedValue({
+      results: [{
+        id: 'test_symbol',
+        type: 'symbol' as const,
+        filePath: '/test/file.ts',
+        name: 'test',
+        kind: 'function',
+        range: { start: { line: 1, character: 0 }, end: { line: 5, character: 1 } },
+        score: 0.9
+      }],
+      metrics: {
+        queryId: 'test_query',
+        executionTime: 100,
+        symbolSearchTime: 50,
+        definitionSearchTime: 0,
+        referenceSearchTime: 0,
+        diagnosticSearchTime: 0,
+        totalResults: 1,
+        cacheHit: false
+      }
+    }),
+  };
+  
+  container.bind<LSPSearchService>(TYPES.LSPSearchService).toConstantValue(mockLSPSearchService as any);
+  
+  const mockLanguageServerRegistry = {
+    registerLanguageServer: jest.fn().mockResolvedValue(true),
+    isLanguageSupported: jest.fn().mockReturnValue(true),
+    getLanguageServer: jest.fn().mockReturnValue({}),
+    getSupportedLanguages: jest.fn().mockReturnValue(['typescript', 'javascript', 'python']),
+    initialize: jest.fn().mockResolvedValue(true),
+  };
+  
+  container.bind<LanguageServerRegistry>(TYPES.LanguageServerRegistry).toConstantValue(mockLanguageServerRegistry as any);
   
   return container;
 };
