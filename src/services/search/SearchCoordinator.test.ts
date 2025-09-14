@@ -50,6 +50,11 @@ describe('SearchCoordinator', () => {
       cleanupStorage: jest.fn(),
     } as unknown as jest.Mocked<StorageCoordinator>;
 
+    const mockLspEnhancedSearch = {
+      search: jest.fn(),
+      getRealTimeSuggestions: jest.fn(),
+    } as any;
+
     mockErrorHandlerService = {
       handleError: jest.fn(),
       classifyError: jest.fn(),
@@ -95,6 +100,7 @@ describe('SearchCoordinator', () => {
       mockConfigFactory,
       mockSemanticSearchService,
       mockHybridSearchService,
+      mockLspEnhancedSearch,
       mockRerankingService,
       mockStorageCoordinator
     );

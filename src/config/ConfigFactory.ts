@@ -240,11 +240,16 @@ export class ConfigFactory implements ConfigFactory {
         defaultThreshold: 0.5,
         includeGraph: true,
         useHybrid: true,
+        useLSP: false,
         useReranking: true,
+        lspSearchTypes: ['symbol', 'definition', 'reference'],
+        includeDiagnostics: false,
+        lspTimeout: 5000,
         weights: {
           semantic: 0.6,
           keyword: 0.3,
-          graph: 0.1
+          graph: 0.1,
+          lsp: 0.2
         },
         cacheEnabled: true,
         cacheTtl: 300000

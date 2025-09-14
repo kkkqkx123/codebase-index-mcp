@@ -57,6 +57,7 @@ const symbols = await lspManager.getSymbols('index.ts');
 - [ ] 单元测试覆盖率 > 80%
 
 ### 📋 阶段2: 索引集成 (Week 3-5)
+[x] 完成
 
 #### 目标
 将LSP功能集成到索引流程，实现语义增强的代码解析。

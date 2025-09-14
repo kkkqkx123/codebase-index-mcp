@@ -141,12 +141,12 @@ export class LSPManager extends EventEmitter {
     }
   }
 
-  async getDiagnostics(filePath: string, content?: string): Promise<LSPDiagnosticsResult | null> {
+  async getDiagnostics(filePath: string, projectPath?: string): Promise<LSPDiagnosticsResult | null> {
     if (!this.isInitialized) {
       return null;
     }
 
-    const workspaceRoot = this.findWorkspaceRoot(filePath);
+    const workspaceRoot = projectPath || this.findWorkspaceRoot(filePath);
     if (!workspaceRoot) {
       return null;
     }
@@ -187,12 +187,12 @@ export class LSPManager extends EventEmitter {
     }
   }
 
-  async getSymbols(filePath: string, content?: string): Promise<LSPSymbolsResult | null> {
+  async getSymbols(filePath: string, projectPath?: string): Promise<LSPSymbolsResult | null> {
     if (!this.isInitialized) {
       return null;
     }
 
-    const workspaceRoot = this.findWorkspaceRoot(filePath);
+    const workspaceRoot = projectPath || this.findWorkspaceRoot(filePath);
     if (!workspaceRoot) {
       return null;
     }
@@ -202,7 +202,7 @@ export class LSPManager extends EventEmitter {
     try {
       client = await this.pool.acquire(workspaceRoot);
       
-      const symbols = await client.getDocumentSymbols(filePath, content);
+      const symbols = await client.getDocumentSymbols(filePath);
       
       return {
         filePath,
@@ -232,23 +232,46 @@ export class LSPManager extends EventEmitter {
     }
   }
 
-  async getTypeDefinitions(filePath: string, options?: { timeout?: number }): Promise<any[]> {
+  async getWorkspaceSymbols(query: string, projectPath: string): Promise<Array<{
+    name: string;
+    kind: string;
+    range: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+    detail?: string;
+    filePath: string;
+  }> | null> {
     if (!this.isInitialized) {
-      return [];
-    }
-
-    const workspaceRoot = this.findWorkspaceRoot(filePath);
-    if (!workspaceRoot) {
-      return [];
+      return null;
     }
 
     let client: LSPClient | null = null;
     
     try {
-      client = await this.pool.acquire(workspaceRoot);
-      return await client.getTypeDefinition(filePath, { line: 0, character: 0 });
+      client = await this.pool.acquire(projectPath);
+      
+      const symbols = await client.getWorkspaceSymbols(query);
+      
+      return symbols.map(s => ({
+        name: s.name,
+        kind: this.getSymbolKindName(s.kind),
+        range: s.location ? s.location.range : s.range,
+        detail: s.detail,
+        filePath: s.location ? s.location.uri.replace('file://', '') : projectPath,
+      }));
     } catch (error) {
-      return [];
+      const language = this.registry.detectProjectLanguage(projectPath);
+      const context = this.errorHandler.createErrorContext(
+        error as Error,
+        projectPath,
+        language?.language || 'unknown',
+        'getWorkspaceSymbols',
+        query
+      );
+      
+      await this.errorHandler.handleError(context);
+      return null;
     } finally {
       if (client) {
         await this.pool.release(client);
@@ -256,29 +279,222 @@ export class LSPManager extends EventEmitter {
     }
   }
 
-  async getReferences(filePath: string, options?: { timeout?: number }): Promise<any[]> {
+  async getDefinition(
+    filePath: string,
+    position: { line: number; character: number },
+    projectPath?: string
+  ): Promise<Array<{
+    targetUri: string;
+    targetRange: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+    targetSelectionRange?: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+  }> | null> {
     if (!this.isInitialized) {
-      return [];
+      return null;
     }
 
-    const workspaceRoot = this.findWorkspaceRoot(filePath);
+    const workspaceRoot = projectPath || this.findWorkspaceRoot(filePath);
     if (!workspaceRoot) {
-      return [];
+      return null;
     }
 
     let client: LSPClient | null = null;
     
     try {
       client = await this.pool.acquire(workspaceRoot);
-      return await client.getReferences(filePath, { line: 0, character: 0 });
+      
+      const definitions = await client.getDefinition(filePath, position);
+      
+      return definitions.map(d => ({
+        targetUri: filePath,
+        targetRange: d.range,
+        targetSelectionRange: d.selectionRange,
+      }));
     } catch (error) {
-      return [];
+      const language = this.registry.detectProjectLanguage(workspaceRoot);
+      const context = this.errorHandler.createErrorContext(
+        error as Error,
+        workspaceRoot,
+        language?.language || 'unknown',
+        'getDefinition',
+        filePath
+      );
+      
+      await this.errorHandler.handleError(context);
+      return null;
     } finally {
       if (client) {
         await this.pool.release(client);
       }
     }
   }
+
+  async getReferences(
+    filePath: string,
+    position: { line: number; character: number },
+    projectPath?: string
+  ): Promise<Array<{
+    uri: string;
+    range: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+  }> | null> {
+    if (!this.isInitialized) {
+      return null;
+    }
+
+    const workspaceRoot = projectPath || this.findWorkspaceRoot(filePath);
+    if (!workspaceRoot) {
+      return null;
+    }
+
+    let client: LSPClient | null = null;
+    
+    try {
+      client = await this.pool.acquire(workspaceRoot);
+      
+      const references = await client.getReferences(filePath, position);
+      
+      return references.map(r => ({
+        uri: filePath,
+        range: r.range,
+      }));
+    } catch (error) {
+      const language = this.registry.detectProjectLanguage(workspaceRoot);
+      const context = this.errorHandler.createErrorContext(
+        error as Error,
+        workspaceRoot,
+        language?.language || 'unknown',
+        'getReferences',
+        filePath
+      );
+      
+      await this.errorHandler.handleError(context);
+      return null;
+    } finally {
+      if (client) {
+        await this.pool.release(client);
+      }
+    }
+  }
+
+  async getTypeDefinition(
+    filePath: string,
+    position: { line: number; character: number },
+    projectPath?: string
+  ): Promise<Array<{
+    targetUri: string;
+    targetRange: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+    targetSelectionRange?: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+  }> | null> {
+    if (!this.isInitialized) {
+      return null;
+    }
+
+    const workspaceRoot = projectPath || this.findWorkspaceRoot(filePath);
+    if (!workspaceRoot) {
+      return null;
+    }
+
+    let client: LSPClient | null = null;
+    
+    try {
+      client = await this.pool.acquire(workspaceRoot);
+      
+      const typeDefinitions = await client.getTypeDefinition(filePath, position);
+      
+      return typeDefinitions.map(d => ({
+        targetUri: filePath,
+        targetRange: d.range,
+        targetSelectionRange: d.selectionRange,
+      }));
+    } catch (error) {
+      const language = this.registry.detectProjectLanguage(workspaceRoot);
+      const context = this.errorHandler.createErrorContext(
+        error as Error,
+        workspaceRoot,
+        language?.language || 'unknown',
+        'getTypeDefinition',
+        filePath
+      );
+      
+      await this.errorHandler.handleError(context);
+      return null;
+    } finally {
+      if (client) {
+        await this.pool.release(client);
+      }
+    }
+  }
+
+  async getImplementation(
+    filePath: string,
+    position: { line: number; character: number },
+    projectPath?: string
+  ): Promise<Array<{
+    targetUri: string;
+    targetRange: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+    targetSelectionRange?: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+  }> | null> {
+    if (!this.isInitialized) {
+      return null;
+    }
+
+    const workspaceRoot = projectPath || this.findWorkspaceRoot(filePath);
+    if (!workspaceRoot) {
+      return null;
+    }
+
+    let client: LSPClient | null = null;
+    
+    try {
+      client = await this.pool.acquire(workspaceRoot);
+      
+      const implementations = await client.getImplementation(filePath, position);
+      
+      return implementations.map(d => ({
+        targetUri: filePath,
+        targetRange: d.range,
+        targetSelectionRange: d.selectionRange,
+      }));
+    } catch (error) {
+      const language = this.registry.detectProjectLanguage(workspaceRoot);
+      const context = this.errorHandler.createErrorContext(
+        error as Error,
+        workspaceRoot,
+        language?.language || 'unknown',
+        'getImplementation',
+        filePath
+      );
+      
+      await this.errorHandler.handleError(context);
+      return null;
+    } finally {
+      if (client) {
+        await this.pool.release(client);
+      }
+    }
+  }
+
+
 
   getActiveLanguageServer(filePath: string): string | undefined {
     const workspaceRoot = this.findWorkspaceRoot(filePath);
@@ -324,23 +540,18 @@ export class LSPManager extends EventEmitter {
   }
 
   private findWorkspaceRoot(filePath: string): string | null {
-    // 简单的实现：向上查找包含配置文件的最接近目录
-    let currentDir = path.dirname(path.resolve(filePath));
-    
-    while (currentDir !== path.dirname(currentDir)) {
-      const configFiles = ['package.json', 'tsconfig.json', 'requirements.txt'];
-      
-      for (const configFile of configFiles) {
-        const configPath = path.join(currentDir, configFile);
-        if (fs.existsSync(configPath)) {
-          return currentDir;
-        }
+    // 简化的工作空间检测
+    const parts = filePath.split(path.sep);
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const dirPath = parts.slice(0, i + 1).join(path.sep);
+      if (fs.existsSync(path.join(dirPath, 'package.json')) ||
+          fs.existsSync(path.join(dirPath, 'tsconfig.json')) ||
+          fs.existsSync(path.join(dirPath, 'pyproject.toml')) ||
+          fs.existsSync(path.join(dirPath, 'setup.py'))) {
+        return dirPath;
       }
-      
-      currentDir = path.dirname(currentDir);
     }
-    
-    return process.cwd();
+    return path.dirname(filePath);
   }
 
   getStats() {

@@ -5,7 +5,7 @@ import { LSPManager } from '../lsp/LSPManager';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
-import { LSPEnhancedParseResult, LSPParseOptions, SymbolKind } from '../lsp/types';
+import { LSPEnhancedParseResult, LSPParseOptions, SymbolKind, LSPTypeDefinition, LSPReference } from '../lsp/types';
 
 @injectable()
 export class EnhancedParserService {
@@ -114,8 +114,13 @@ export class EnhancedParserService {
             // 获取类型定义
             if (options.includeTypes !== false) {
               try {
-                const typeDefs = await this.lspManager.getTypeDefinitions(filePath);
-                enhancedResult.typeDefinitions = typeDefs;
+                const typeDefs = await this.lspManager.getTypeDefinition(filePath, { line: 0, character: 0 });
+                enhancedResult.typeDefinitions = (typeDefs || []).map(def => ({
+                  name: 'unknown',
+                  type: 'unknown',
+                  range: def.targetRange,
+                  filePath: def.targetUri
+                })) as LSPTypeDefinition[];
               } catch (error) {
                 this.logger.warn('Failed to get type definitions', {
                   filePath,
@@ -127,8 +132,8 @@ export class EnhancedParserService {
             // 获取引用信息
             if (options.includeReferences !== false) {
               try {
-                const references = await this.lspManager.getReferences(filePath);
-                enhancedResult.references = references;
+                const references = await this.lspManager.getReferences(filePath, { line: 0, character: 0 });
+                enhancedResult.references = (references || []) as LSPReference[];
               } catch (error) {
                 this.logger.warn('Failed to get references', {
                   filePath,

@@ -94,11 +94,16 @@ export interface SearchConfig {
   defaultThreshold: number;
   includeGraph: boolean;
   useHybrid: boolean;
+  useLSP: boolean;
   useReranking: boolean;
+  lspSearchTypes: ('symbol' | 'definition' | 'reference' | 'diagnostic')[];
+  includeDiagnostics: boolean;
+  lspTimeout: number;
   weights: {
     semantic: number;
     keyword: number;
     graph: number;
+    lsp: number;
   };
   cacheEnabled: boolean;
   cacheTtl: number;

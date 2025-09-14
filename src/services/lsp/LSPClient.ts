@@ -38,11 +38,18 @@ export interface LSPSymbol {
     start: { line: number; character: number };
     end: { line: number; character: number };
   };
-  selectionRange: {
+  selectionRange?: {
     start: { line: number; character: number };
     end: { line: number; character: number };
   };
   detail?: string;
+  location?: {
+    uri: string;
+    range: {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+  };
 }
 
 export class LSPError extends Error {
@@ -259,37 +266,23 @@ export class LSPClient extends EventEmitter {
     }
   }
 
-  async getDiagnostics(filePath: string): Promise<LSPDiagnostic[]> {
+  async getDiagnostics(filePath: string, content?: string): Promise<LSPDiagnostic[]> {
     const uri = `file://${path.resolve(filePath)}`;
     
     await this.sendNotification('textDocument/didOpen', {
       textDocument: {
         uri,
-        languageId: 'typescript',
+        languageId: this.getLanguageId(filePath),
         version: 1,
-        text: '', // 实际文本应该由调用者提供
+        text: content || '',
       },
     });
 
-    // 等待诊断结果
-    return new Promise((resolve) => {
-      const onNotification = (message: LSPMessage) => {
-        if (message.method === 'textDocument/publishDiagnostics') {
-          if (message.params?.uri === uri) {
-            this.removeListener('notification', onNotification);
-            resolve(message.params.diagnostics || []);
-          }
-        }
-      };
-      
-      this.on('notification', onNotification);
-      
-      // 超时处理
-      setTimeout(() => {
-        this.removeListener('notification', onNotification);
-        resolve([]);
-      }, 5000);
+    const response = await this.sendRequest('textDocument/diagnostic', {
+      textDocument: { uri },
     });
+
+    return response?.items || [];
   }
 
   async getDocumentSymbols(filePath: string, content?: string): Promise<LSPSymbol[]> {
@@ -299,41 +292,42 @@ export class LSPClient extends EventEmitter {
       await this.sendNotification('textDocument/didOpen', {
         textDocument: {
           uri,
-          languageId: 'typescript',
+          languageId: this.getLanguageId(filePath),
           version: 1,
           text: content,
         },
       });
     }
 
-    const result = await this.sendRequest('textDocument/documentSymbol', {
+    const response = await this.sendRequest('textDocument/documentSymbol', {
       textDocument: { uri },
     });
 
-    return result || [];
+    return response || [];
   }
 
   async getTypeDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
     
-    const result = await this.sendRequest('textDocument/typeDefinition', {
+    const response = await this.sendRequest('textDocument/typeDefinition', {
       textDocument: { uri },
-      position: position,
+      position,
     });
 
-    return result || [];
+    if (!response) return [];
+    return Array.isArray(response) ? response : [response];
   }
 
   async getReferences(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
     
-    const result = await this.sendRequest('textDocument/references', {
+    const response = await this.sendRequest('textDocument/references', {
       textDocument: { uri },
-      position: position,
-      context: { includeDeclaration: true }
+      position,
+      context: { includeDeclaration: true },
     });
 
-    return result || [];
+    return response || [];
   }
 
   private async sendNotification(method: string, params?: any): Promise<void> {
@@ -373,6 +367,114 @@ export class LSPClient extends EventEmitter {
     
     this.process = undefined;
     this.isInitialized = false;
+  }
+
+  async getWorkspaceSymbols(query: string): Promise<LSPSymbol[]> {
+    const response = await this.sendRequest('workspace/symbol', {
+      query,
+    });
+
+    return response || [];
+  }
+
+  async getDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+    const uri = `file://${path.resolve(filePath)}`;
+    
+    const response = await this.sendRequest('textDocument/definition', {
+      textDocument: { uri },
+      position,
+    });
+
+    if (!response) return [];
+    return Array.isArray(response) ? response : [response];
+  }
+
+  async getImplementation(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+    const uri = `file://${path.resolve(filePath)}`;
+    
+    const response = await this.sendRequest('textDocument/implementation', {
+      textDocument: { uri },
+      position,
+    });
+
+    if (!response) return [];
+    return Array.isArray(response) ? response : [response];
+  }
+
+  async getHover(filePath: string, position: { line: number; character: number }): Promise<any> {
+    const uri = `file://${path.resolve(filePath)}`;
+    
+    const response = await this.sendRequest('textDocument/hover', {
+      textDocument: { uri },
+      position,
+    });
+
+    return response || null;
+  }
+
+  async getCompletion(
+    filePath: string,
+    position: { line: number; character: number },
+    triggerKind = 1
+  ): Promise<LSPSymbol[]> {
+    const uri = `file://${path.resolve(filePath)}`;
+    
+    const response = await this.sendRequest('textDocument/completion', {
+      textDocument: { uri },
+      position,
+      context: { triggerKind },
+    });
+
+    return response?.items || response || [];
+  }
+
+  private getLanguageId(filePath: string): string {
+    const ext = path.extname(filePath).toLowerCase();
+    switch (ext) {
+      case '.ts':
+        return 'typescript';
+      case '.js':
+        return 'javascript';
+      case '.py':
+        return 'python';
+      case '.java':
+        return 'java';
+      case '.cpp':
+      case '.cc':
+      case '.cxx':
+        return 'cpp';
+      case '.c':
+        return 'c';
+      case '.go':
+        return 'go';
+      case '.rs':
+        return 'rust';
+      case '.php':
+        return 'php';
+      case '.rb':
+        return 'ruby';
+      case '.swift':
+        return 'swift';
+      case '.kt':
+        return 'kotlin';
+      case '.scala':
+        return 'scala';
+      case '.html':
+        return 'html';
+      case '.css':
+        return 'css';
+      case '.json':
+        return 'json';
+      case '.xml':
+        return 'xml';
+      case '.yaml':
+      case '.yml':
+        return 'yaml';
+      case '.md':
+        return 'markdown';
+      default:
+        return 'plaintext';
+    }
   }
 
   isConnected(): boolean {

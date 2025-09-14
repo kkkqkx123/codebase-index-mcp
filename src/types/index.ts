@@ -108,6 +108,8 @@ export const TYPES = {
   LSPErrorHandler: Symbol.for('LSPErrorHandler'),
   LanguageServerRegistry: Symbol.for('LanguageServerRegistry'),
   LSPService: Symbol.for('LSPService'),
+  LSPSearchService: Symbol.for('LSPSearchService'),
+  LSPEnhancedSearchService: Symbol.for('LSPEnhancedSearchService'),
 
   // Parser services
   EnhancedParserService: Symbol.for('EnhancedParserService'),
