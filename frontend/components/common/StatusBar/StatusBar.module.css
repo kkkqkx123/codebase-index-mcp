@@ -1,0 +1,175 @@
+.statusBar {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-normal) ease;
+  min-height: 2.5rem;
+}
+
+.statusBar--clickable {
+  cursor: pointer;
+}
+
+.statusBar--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--shadow-md);
+}
+
+.statusBar--online {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.statusBar--offline {
+  background-color: rgba(107, 114, 128, 0.1);
+  color: var(--color-gray-600);
+  border: 1px solid var(--color-gray-500);
+}
+
+.statusBar--warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.statusBar--error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.statusBar__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--spacing-md);
+}
+
+.statusBar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+}
+
+.statusBar__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statusIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.statusBar__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statusBar__message {
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.statusBar__timestamp {
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+  font-weight: var(--font-weight-normal);
+}
+
+.statusBar__details {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.statusBar__detailsText {
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
+  font-weight: var(--font-weight-normal);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .statusBar--online {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .statusBar--offline {
+  background-color: rgba(107, 114, 128, 0.2);
+}
+
+[data-theme="dark"] .statusBar--warning {
+  background-color: rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] .statusBar--error {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .statusBar {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    min-height: 2rem;
+  }
+  
+  .statusBar__content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+  
+  .statusBar__details {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .statusBar__text {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+  
+  .statusBar__timestamp::before {
+    content: '•';
+    margin: 0 var(--spacing-xs);
+  }
+}
+
+/* Animation for status changes */
+@keyframes statusPulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.statusBar--updating {
+  animation: statusPulse 1s ease-in-out;
+}
+
+/* Print styles */
+@media print {
+  .statusBar {
+    border: 1px solid #000;
+    background-color: #f5f5f5 !important;
+    color: #000 !important;
+    break-inside: avoid;
+  }
+}
