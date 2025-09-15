@@ -58,7 +58,7 @@ This document outlines the comprehensive design for a web-based frontend interfa
 ### Directory Structure
 
 ```
-src/frontend/
+frontend/
 ├── components/                    # React components
 │   ├── common/                   # Shared components
 │   │   ├── Layout/

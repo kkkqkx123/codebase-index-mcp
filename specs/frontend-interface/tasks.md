@@ -11,7 +11,7 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 1: Project Setup and Core Infrastructure (Week 1-2)
 
 #### 1.1 Initialize Frontend Project Structure
-- [ ] Create `src/frontend/` directory structure
+- [ ] Create `frontend/` directory structure
 - [ ] Setup package.json with required dependencies (React, TypeScript, Vite, etc.)
 - [ ] Configure TypeScript and ESLint settings
 - [ ] Setup Vite configuration for development and production builds
@@ -25,11 +25,11 @@ Based on the analysis, significant architectural adjustments are required to ali
 - [ ] Setup hot module replacement (HMR) for development
 
 #### 1.3 Implement Core TypeScript Types
-- [ ] Create `src/frontend/types/api.types.ts` with API response interfaces aligned to actual endpoints
-- [ ] Create `src/frontend/types/dashboard.types.ts` with dashboard data structures
-- [ ] Create `src/frontend/types/project.types.ts` with project management types
-- [ ] Create `src/frontend/types/graph.types.ts` with graph visualization types
-- [ ] Create `src/frontend/types/common.types.ts` with shared utility types
+- [ ] Create `frontend/types/api.types.ts` with API response interfaces aligned to actual endpoints
+- [ ] Create `frontend/types/dashboard.types.ts` with dashboard data structures
+- [ ] Create `frontend/types/project.types.ts` with project management types
+- [ ] Create `frontend/types/graph.types.ts` with graph visualization types
+- [ ] Create `frontend/types/common.types.ts` with shared utility types
 
 #### 1.4 Setup Testing Infrastructure
 - [ ] Configure Jest and React Testing Library
@@ -48,22 +48,22 @@ Based on the analysis, significant architectural adjustments are required to ali
 - [ ] Add error handling and response transformation for MCP service responses
 
 #### 2.2 Implement Authentication System
-- [ ] Create `src/frontend/services/auth.service.ts` for JWT management
+- [ ] Create `frontend/services/auth.service.ts` for JWT management
 - [ ] Implement login/logout functionality
 - [ ] Add request interceptors for authentication headers
 - [ ] Implement response interceptors for authentication errors
 - [ ] Create authentication context and hooks for React components
 
 #### 2.3 Update API Service Layer
-- [ ] Update `src/frontend/services/api.service.ts` to use correct endpoint paths
+- [ ] Update `frontend/services/api.service.ts` to use correct endpoint paths
 - [ ] Implement request/response interceptors for authentication and error handling
 - [ ] Create typed API methods aligned with actual backend endpoints
 - [ ] Implement retry logic and rate limiting handling
 - [ ] Add request/response logging for debugging
 
 #### 2.4 Implement Backend Proxy Integration
-- [ ] Update `src/frontend/services/metrics.service.ts` to use backend proxy endpoints
-- [ ] Implement `src/frontend/services/monitoring.service.ts` for secure monitoring integration
+- [ ] Update `frontend/services/metrics.service.ts` to use backend proxy endpoints
+- [ ] Implement `frontend/services/monitoring.service.ts` for secure monitoring integration
 - [ ] Create methods for fetching system health metrics through backend proxy
 - [ ] Implement real-time metrics polling logic
 - [ ] Add error handling for monitoring service failures
@@ -71,21 +71,21 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 3: Common Components and Layout (Week 5)
 
 #### 3.1 Implement Layout and Navigation
-- [ ] Create `src/frontend/components/common/Layout/Layout.tsx` main layout component
-- [ ] Implement `src/frontend/components/common/Navigation/Navigation.tsx` navigation component
+- [ ] Create `frontend/components/common/Layout/Layout.tsx` main layout component
+- [ ] Implement `frontend/components/common/Navigation/Navigation.tsx` navigation component
 - [ ] Create responsive sidebar navigation menu
 - [ ] Implement routing with React Router
 - [ ] Add breadcrumb navigation support
 
 #### 3.2 Implement Common UI Components
-- [ ] Create `src/frontend/components/common/LoadingSpinner/LoadingSpinner.tsx`
-- [ ] Create `src/frontend/components/common/ErrorMessage/ErrorMessage.tsx`
-- [ ] Create `src/frontend/components/common/StatusBar/StatusBar.tsx`
-- [ ] Create `src/frontend/components/common/Card/Card.tsx` reusable card component
-- [ ] Create `src/frontend/components/common/Button/Button.tsx` styled button component
+- [ ] Create `frontend/components/common/LoadingSpinner/LoadingSpinner.tsx`
+- [ ] Create `frontend/components/common/ErrorMessage/ErrorMessage.tsx`
+- [ ] Create `frontend/components/common/StatusBar/StatusBar.tsx`
+- [ ] Create `frontend/components/common/Card/Card.tsx` reusable card component
+- [ ] Create `frontend/components/common/Button/Button.tsx` styled button component
 
 #### 3.3 Implement Error Handling Components
-- [ ] Create `src/frontend/components/common/ErrorBoundary/ErrorBoundary.tsx`
+- [ ] Create `frontend/components/common/ErrorBoundary/ErrorBoundary.tsx`
 - [ ] Implement error fallback components for different error types
 - [ ] Create global error notification system
 - [ ] Add error logging and reporting functionality
@@ -101,35 +101,35 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 4: Dashboard Implementation (Week 6)
 
 #### 4.1 Implement System Health Component
-- [ ] Create `src/frontend/components/dashboard/SystemHealth/SystemHealth.tsx`
+- [ ] Create `frontend/components/dashboard/SystemHealth/SystemHealth.tsx`
 - [ ] Fetch and display system health status from backend proxy endpoints
 - [ ] Implement health status indicators and color coding
 - [ ] Add real-time health status updates
 - [ ] Create detailed health breakdown on hover/click
 
 #### 4.2 Implement Metrics Display Component
-- [ ] Create `src/frontend/components/dashboard/MetricsDisplay/MetricsDisplay.tsx`
+- [ ] Create `frontend/components/dashboard/MetricsDisplay/MetricsDisplay.tsx`
 - [ ] Fetch and display performance metrics from backend proxy
 - [ ] Implement metric cards with trend indicators
 - [ ] Add metric filtering and time range selection
 - [ ] Create sparkline charts for metric trends
 
 #### 4.3 Implement Grafana Integration
-- [ ] Create `src/frontend/components/dashboard/GrafanaIntegration/GrafanaIntegration.tsx`
+- [ ] Create `frontend/components/dashboard/GrafanaIntegration/GrafanaIntegration.tsx`
 - [ ] Implement Grafana dashboard links through backend-generated URLs (not embedded iframes)
 - [ ] Add dashboard switching functionality
 - [ ] Implement authentication for Grafana access through backend
 - [ ] Create responsive dashboard link containers
 
 #### 4.4 Implement Project Summary Component
-- [ ] Create `src/frontend/components/dashboard/ProjectSummary/ProjectSummary.tsx`
+- [ ] Create `frontend/components/dashboard/ProjectSummary/ProjectSummary.tsx`
 - [ ] Display project count and indexing statistics
 - [ ] Show database connection status (Qdrant, Nebula)
 - [ ] Implement project status breakdown charts
 - [ ] Add navigation to detailed project management
 
 #### 4.5 Assemble Dashboard Page
-- [ ] Create `src/frontend/components/dashboard/Dashboard.tsx` main dashboard component
+- [ ] Create `frontend/components/dashboard/Dashboard.tsx` main dashboard component
 - [ ] Integrate all dashboard sub-components
 - [ ] Implement auto-refresh functionality
 - [ ] Add responsive layout for different screen sizes
@@ -138,35 +138,35 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 5: Project Management Implementation (Week 7)
 
 #### 5.1 Implement Project List Component
-- [ ] Create `src/frontend/components/projects/ProjectList/ProjectList.tsx`
+- [ ] Create `frontend/components/projects/ProjectList/ProjectList.tsx`
 - [ ] Fetch and display list of indexed projects through MCP adapter
 - [ ] Implement project status indicators
 - [ ] Add sorting and filtering capabilities
 - [ ] Create project actions (edit, delete, re-index)
 
 #### 5.2 Implement Project Form Component
-- [ ] Create `src/frontend/components/projects/ProjectForm/ProjectForm.tsx`
+- [ ] Create `frontend/components/projects/ProjectForm/ProjectForm.tsx`
 - [ ] Implement form for adding new projects through MCP adapter
 - [ ] Add form validation for project paths
 - [ ] Create project options configuration
 - [ ] Implement form submission and error handling
 
 #### 5.3 Implement Indexing Progress Component
-- [ ] Create `src/frontend/components/projects/IndexingProgress/IndexingProgress.tsx`
+- [ ] Create `frontend/components/projects/IndexingProgress/IndexingProgress.tsx`
 - [ ] Display real-time indexing progress through MCP adapter
 - [ ] Implement progress bars and status updates
 - [ ] Show detailed indexing statistics
 - [ ] Add estimated completion time calculations
 
 #### 5.4 Implement Project Details Component
-- [ ] Create `src/frontend/components/projects/ProjectDetails/ProjectDetails.tsx`
+- [ ] Create `frontend/components/projects/ProjectDetails/ProjectDetails.tsx`
 - [ ] Display detailed project information
 - [ ] Show file count, size, and indexing history
 - [ ] Implement project configuration management
 - [ ] Add project-specific actions and controls
 
 #### 5.5 Assemble Project Management Page
-- [ ] Create `src/frontend/components/projects/ProjectManagement.tsx` main page component
+- [ ] Create `frontend/components/projects/ProjectManagement.tsx` main page component
 - [ ] Integrate all project management components
 - [ ] Implement project CRUD operations through MCP adapter
 - [ ] Add project search and filtering
@@ -175,35 +175,35 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 6: Search Implementation (Week 8)
 
 #### 6.1 Implement Search Bar Component
-- [ ] Create `src/frontend/components/search/SearchBar/SearchBar.tsx`
+- [ ] Create `frontend/components/search/SearchBar/SearchBar.tsx`
 - [ ] Implement search input with advanced options using correct API endpoint
 - [ ] Add search history and saved queries
 - [ ] Implement real-time search suggestions
 - [ ] Create keyboard shortcuts for search
 
 #### 6.2 Implement Search Results Component
-- [ ] Create `src/frontend/components/search/SearchResults/SearchResults.tsx`
+- [ ] Create `frontend/components/search/SearchResults/SearchResults.tsx`
 - [ ] Display search results with syntax highlighting using actual response format
 - [ ] Implement result pagination and sorting
 - [ ] Add result preview and context display
 - [ ] Create result metadata display
 
 #### 6.3 Implement Result Filters Component
-- [ ] Create `src/frontend/components/search/ResultFilters/ResultFilters.tsx`
+- [ ] Create `frontend/components/search/ResultFilters/ResultFilters.tsx`
 - [ ] Implement project-based filtering
 - [ ] Add file type and date range filtering
 - [ ] Create relevance score filtering
 - [ ] Implement filter persistence and presets
 
 #### 6.4 Implement Search History Component
-- [ ] Create `src/frontend/components/search/SearchHistory/SearchHistory.tsx`
+- [ ] Create `frontend/components/search/SearchHistory/SearchHistory.tsx`
 - [ ] Display recent search queries
 - [ ] Implement saved search functionality
 - [ ] Add search result comparison
 - [ ] Create search analytics and statistics
 
 #### 6.5 Assemble Search Page
-- [ ] Create `src/frontend/components/search/CodeSearch.tsx` main search page
+- [ ] Create `frontend/components/search/CodeSearch.tsx` main search page
 - [ ] Integrate all search components
 - [ ] Implement search performance optimization
 - [ ] Add keyboard navigation support
@@ -212,21 +212,21 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 7: Graph Visualization Implementation (Week 9)
 
 #### 7.1 Implement Graph Viewer Component
-- [ ] Create `src/frontend/components/graph/GraphViewer/GraphViewer.tsx`
+- [ ] Create `frontend/components/graph/GraphViewer/GraphViewer.tsx`
 - [ ] Setup D3.js or vis.js for graph rendering
 - [ ] Implement basic graph rendering and interaction
 - [ ] Add zoom and pan functionality
 - [ ] Create graph layout algorithms
 
 #### 7.2 Implement Node Details Component
-- [ ] Create `src/frontend/components/graph/NodeDetails/NodeDetails.tsx`
+- [ ] Create `frontend/components/graph/NodeDetails/NodeDetails.tsx`
 - [ ] Display detailed node information on hover/click
 - [ ] Show node relationships and dependencies
 - [ ] Implement node editing capabilities
 - [ ] Add node navigation features
 
 #### 7.3 Implement Graph Controls Component
-- [ ] Create `src/frontend/components/graph/GraphControls/GraphControls.tsx`
+- [ ] Create `frontend/components/graph/GraphControls/GraphControls.tsx`
 - [ ] Add graph filtering and search
 - [ ] Implement layout selection and configuration
 - [ ] Create export functionality (PNG, SVG, JSON)
@@ -240,7 +240,7 @@ Based on the analysis, significant architectural adjustments are required to ali
 - [ ] Add performance metrics for graph rendering
 
 #### 7.5 Assemble Graph Visualization Page
-- [ ] Create `src/frontend/components/graph/GraphVisualization.tsx` main graph page
+- [ ] Create `frontend/components/graph/GraphVisualization.tsx` main graph page
 - [ ] Integrate all graph components
 - [ ] Implement responsive graph layout
 - [ ] Add graph state management
@@ -249,35 +249,35 @@ Based on the analysis, significant architectural adjustments are required to ali
 ### Phase 8: Debugging Tools Implementation (Week 10)
 
 #### 8.1 Implement API Logs Component
-- [ ] Create `src/frontend/components/debug/ApiLogs/ApiLogs.tsx`
+- [ ] Create `frontend/components/debug/ApiLogs/ApiLogs.tsx`
 - [ ] Display API request/response logs
 - [ ] Implement log filtering and search
 - [ ] Add log export functionality
 - [ ] Create log analysis tools
 
 #### 8.2 Implement Performance Metrics Component
-- [ ] Create `src/frontend/components/debug/PerformanceMetrics/PerformanceMetrics.tsx`
+- [ ] Create `frontend/components/debug/PerformanceMetrics/PerformanceMetrics.tsx`
 - [ ] Display detailed performance metrics from backend proxy
 - [ ] Implement metric comparison and trending
 - [ ] Add performance alerting
 - [ ] Create performance optimization suggestions
 
 #### 8.3 Implement Error Viewer Component
-- [ ] Create `src/frontend/components/debug/ErrorViewer/ErrorViewer.tsx`
+- [ ] Create `frontend/components/debug/ErrorViewer/ErrorViewer.tsx`
 - [ ] Display detailed error information
 - [ ] Implement error tracking and analysis
 - [ ] Add error reporting functionality
 - [ ] Create error resolution workflows
 
 #### 8.4 Implement Development Mode Features
-- [ ] Create `src/frontend/components/debug/DevMode/DevMode.tsx`
+- [ ] Create `frontend/components/debug/DevMode/DevMode.tsx`
 - [ ] Add development-only debugging tools
 - [ ] Implement component state inspection
 - [ ] Create performance profiling tools
 - [ ] Add development configuration options
 
 #### 8.5 Assemble Debugging Tools Page
-- [ ] Create `src/frontend/components/debug/DebugTools.tsx` main debugging page
+- [ ] Create `frontend/components/debug/DebugTools.tsx` main debugging page
 - [ ] Integrate all debugging components
 - [ ] Implement debugging workflow management
 - [ ] Add debugging session persistence
