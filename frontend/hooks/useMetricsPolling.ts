@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getRealTimeMetrics } from '@services/monitoring.service';
-import { ApiResponse } from '@types/api.types';
+import { ApiResponse } from '../types/api.types';
 
 // Type for metrics polling options
 interface MetricsPollingOptions {

@@ -1,0 +1,584 @@
+.project-details-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--background-primary);
+  min-height: 100vh;
+}
+
+/* Header Section */
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+}
+
+.back-button {
+  align-self: flex-start;
+}
+
+.project-title-section h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.project-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-icon {
+  font-size: 1.25rem;
+}
+
+.status-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Card Layouts */
+.project-info-card,
+.configuration-card,
+.history-card {
+  margin-bottom: 2rem;
+  padding: 2rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Project Information */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.info-value.path {
+  font-family: var(--font-mono, 'Monaco', 'Consolas', monospace);
+  font-size: 0.875rem;
+  background: var(--background-secondary);
+  padding: 0.5rem;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.project-description {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.project-description h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.project-description p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Configuration Section */
+.configuration-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.config-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.config-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono, 'Monaco', 'Consolas', monospace);
+  background: var(--background-tertiary);
+  padding: 0.5rem;
+  border-radius: 4px;
+  word-break: break-word;
+}
+
+/* Configuration Editor */
+.configuration-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.config-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.config-form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.config-form-group input,
+.config-form-group select {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.config-form-group input:focus,
+.config-form-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.config-form-group input:disabled,
+.config-form-group select:disabled {
+  background: var(--background-disabled);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.field-help {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.config-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* History Section */
+.no-history {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.no-history p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.history-item {
+  padding: 1.5rem;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  border-color: var(--color-primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.history-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-status .status-icon {
+  font-size: 1rem;
+}
+
+.history-status .status-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.history-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono, 'Monaco', 'Consolas', monospace);
+}
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-value.error {
+  color: var(--color-error);
+}
+
+.history-error {
+  padding: 0.75rem;
+  background: rgba(var(--color-error-rgb), 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.error-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-error);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  font-size: 0.875rem;
+  color: var(--color-error-dark);
+  line-height: 1.4;
+}
+
+/* Loading States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+}
+
+.loading-container span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .project-details-container {
+    padding: 1rem;
+  }
+  
+  .details-header {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+  
+  .header-actions {
+    justify-content: flex-end;
+  }
+  
+  .info-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .configuration-display {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .project-details-container {
+    padding: 0.75rem;
+  }
+  
+  .project-info-card,
+  .configuration-card,
+  .history-card {
+    padding: 1.5rem;
+  }
+  
+  .project-title-section h1 {
+    font-size: 1.75rem;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .header-actions button {
+    width: 100%;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .history-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .history-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .config-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .config-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .project-details-container {
+    padding: 0.5rem;
+  }
+  
+  .project-info-card,
+  .configuration-card,
+  .history-card {
+    padding: 1rem;
+  }
+  
+  .project-title-section h1 {
+    font-size: 1.5rem;
+  }
+  
+  .history-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-item {
+    gap: 0.25rem;
+  }
+  
+  .config-item {
+    padding: 0.75rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .project-info-card,
+  .configuration-card,
+  .history-card {
+    background: var(--background-dark-secondary);
+    border-color: var(--border-dark);
+  }
+  
+  .config-item,
+  .history-item {
+    background: var(--background-dark-tertiary);
+    border-color: var(--border-dark);
+  }
+  
+  .history-item:hover {
+    border-color: var(--color-primary-dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .info-value.path,
+  .config-value {
+    background: var(--background-dark-quaternary);
+  }
+  
+  .config-form-group input,
+  .config-form-group select {
+    background: var(--background-dark-primary);
+    border-color: var(--border-dark);
+    color: var(--text-dark-primary);
+  }
+  
+  .config-form-group input:focus,
+  .config-form-group select:focus {
+    border-color: var(--color-primary-dark);
+  }
+  
+  .history-error {
+    background: rgba(var(--color-error-dark-rgb), 0.2);
+    border-color: var(--color-error-dark);
+  }
+}
+
+/* Accessibility */
+.project-details-container:focus-within {
+  outline: none;
+}
+
+.history-item:focus-within,
+.config-item:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.config-form-group input:focus,
+.config-form-group select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Animation for updates */
+@keyframes item-update {
+  0% {
+    background: var(--color-primary-light);
+  }
+  100% {
+    background: var(--background-secondary);
+  }
+}
+
+.history-item.updating,
+.config-item.updating {
+  animation: item-update 0.5s ease;
+}
+
+/* Print Styles */
+@media print {
+  .project-details-container {
+    padding: 0;
+    background: white;
+  }
+  
+  .header-actions,
+  .card-header button,
+  .config-actions {
+    display: none;
+  }
+  
+  .project-info-card,
+  .configuration-card,
+  .history-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+    margin-bottom: 1rem;
+  }
+  
+  .history-item,
+  .config-item {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+}

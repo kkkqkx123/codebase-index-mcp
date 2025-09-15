@@ -11,6 +11,8 @@ export interface Project {
   size: number;
   createdAt: Date;
   updatedAt: Date;
+  description?: string;
+  configuration?: ProjectConfiguration;
 }
 
 export interface ProjectFormData {
@@ -89,6 +91,9 @@ export interface IndexingHistoryEntry {
   status: 'pending' | 'indexing' | 'completed' | 'error';
   filesProcessed: number;
   errors: string[];
+  startTime?: Date;
+  endTime?: Date;
+  errorMessage?: string;
 }
 
 export interface ProjectConfiguration {
@@ -97,4 +102,24 @@ export interface ProjectConfiguration {
   excludePatterns: string[];
   maxFileSize: number;
   fileTypes: string[];
+  encoding?: string;
+  followSymlinks?: boolean;
+  respectGitignore?: boolean;
+}
+
+export interface IndexingProgress {
+  projectId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused';
+  totalFiles: number;
+  processedFiles: number;
+  currentFile?: string;
+  startTime: Date;
+  error?: string;
+}
+
+export interface IndexingStats {
+  processingRate: number;
+  averageFileSize: number;
+  totalSizeProcessed: number;
+  errors: number;
 }

@@ -2,12 +2,21 @@
 // This service provides typed methods for indexing-related API operations
 
 import { apiGet, apiPost } from '@services/api.service';
-import { 
-  ProjectStatus, 
-  IndexResponse, 
-  ApiResponse,
-  CreateProjectRequest
-} from '@types/api.types';
+import {
+  ProjectStatus,
+  IndexResponse,
+  ApiResponse
+} from '../types/api.types';
+
+// Type for project creation request
+interface CreateProjectRequest {
+  path: string;
+  options?: {
+    include?: string[];
+    exclude?: string[];
+    maxDepth?: number;
+  };
+}
 
 // Type for project creation response
 interface CreateProjectResponse {

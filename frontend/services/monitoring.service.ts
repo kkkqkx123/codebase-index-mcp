@@ -8,11 +8,9 @@ import {
   PrometheusResponse,
   GrafanaDashboard,
   ApiResponse
-} from '@types/api.types';
-import { HealthStatus as FrontendHealthStatus, HealthIssue } from '@types/dashboard.types';
+} from '../types/api.types';
+import { HealthStatus as FrontendHealthStatus, HealthIssue } from '../types/dashboard.types';
 
-// Get monitoring base URL from environment variables
-const MONITORING_BASE_URL = import.meta.env.VITE_MONITORING_BASE_URL || '/api/v1/monitoring';
 
 /**
  * Get system health status

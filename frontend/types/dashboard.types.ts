@@ -1,8 +1,5 @@
 // Dashboard Data Structures
-import { 
-  HealthStatus as ApiHealthStatus, 
-  HealthIssue as ApiHealthIssue,
-  ProjectSummary as ApiProjectSummary,
+import {
   GrafanaDashboard as ApiGrafanaDashboard
 } from './api.types';
 

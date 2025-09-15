@@ -36,6 +36,6 @@
       "@config/*": ["config/*"]
     }
   },
-  "include": ["."],
+  "include": ["src", "components", "hooks", "services", "types", "utils", "store", "styles", "config", "contexts", "api", "App.tsx", "main.tsx", "global.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

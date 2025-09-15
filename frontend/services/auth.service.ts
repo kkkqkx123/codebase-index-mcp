@@ -3,7 +3,7 @@
 // and request/response interceptors for authentication
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { ApiResponse, AppError, ErrorType } from '@types/api.types';
+import { ApiResponse, AppError, ErrorType } from '../types/api.types';
 
 // Get API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
@@ -300,11 +300,12 @@ class AuthService {
       }
       
       // HTTP error responses
+      const responseData = axiosError.response.data as { message?: string };
       switch (axiosError.response.status) {
         case 400:
           return {
             type: ErrorType.VALIDATION_ERROR,
-            message: axiosError.response.data?.message || 'Invalid request',
+            message: responseData.message || 'Invalid request',
             userMessage: 'Please check your input and try again.',
             timestamp: new Date()
           };
@@ -339,7 +340,7 @@ class AuthService {
         default:
           return {
             type: ErrorType.API_ERROR,
-            message: axiosError.response.data?.message || axiosError.message || defaultMessage,
+            message: responseData.message || axiosError.message || defaultMessage,
             userMessage: 'An unexpected error occurred. Please try again.',
             timestamp: new Date()
           };

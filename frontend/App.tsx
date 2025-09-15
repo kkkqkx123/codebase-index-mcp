@@ -7,13 +7,8 @@ import './styles/globals.css';
 
 // Import Dashboard component
 import Dashboard from './components/dashboard/Dashboard';
-
-const Projects = () => (
-  <div>
-    <h2>Project Management</h2>
-    <p>Manage your codebase indexing projects</p>
-  </div>
-);
+// Import ProjectManagement component
+import { ProjectManagement } from './components/projects';
 
 const CodeSearch = () => (
   <div>
@@ -44,7 +39,7 @@ const App: React.FC = () => {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects" element={<ProjectManagement />} />
               <Route path="/search" element={<CodeSearch />} />
               <Route path="/graph" element={<GraphVisualization />} />
               <Route path="/debug" element={<DebugTools />} />

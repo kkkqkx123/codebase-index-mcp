@@ -4,7 +4,7 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { authService } from '@services/auth.service';
-import { ApiResponse, AppError, ErrorType } from '@types/api.types';
+import { ApiResponse, AppError, ErrorType } from '../types/api.types';
 
 // Get API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';

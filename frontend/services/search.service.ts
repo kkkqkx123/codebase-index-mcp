@@ -2,11 +2,11 @@
 // This service provides typed methods for search-related API operations
 
 import { apiGet, apiPost } from '@services/api.service';
-import { 
-  SearchQuery, 
-  SearchResults, 
+import {
+  SearchQuery,
+  SearchResults,
   ApiResponse
-} from '@types/api.types';
+} from '../types/api.types';
 
 /**
  * Perform a hybrid search across indexed codebases

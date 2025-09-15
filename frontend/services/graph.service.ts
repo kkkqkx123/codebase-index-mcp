@@ -1,11 +1,11 @@
 // Graph Service for Codebase Index Frontend
 // This service provides typed methods for graph-related API operations
 
-import { apiGet, apiPost } from '@services/api.service';
-import { 
-  GraphData, 
+import { apiPost } from '@services/api.service';
+import {
+  GraphData,
   ApiResponse
-} from '@types/api.types';
+} from '../types/api.types';
 
 // Type for graph analysis request
 interface GraphAnalysisRequest {

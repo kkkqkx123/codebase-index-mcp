@@ -2,12 +2,12 @@
 // This module provides an adapter for graph-related MCP service operations
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { 
-  GraphData, 
+import {
+  GraphData,
   ApiResponse,
   AppError,
-  ErrorType 
-} from '@types/api.types';
+  ErrorType
+} from 'types/api.types';
 
 // Get API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
@@ -46,7 +46,7 @@ export const analyzeGraph = async (
 ): Promise<ApiResponse<GraphData>> => {
   try {
     const response = await graphApi.post<GraphData>('/analyze', request);
-    
+
     return {
       success: true,
       data: response.data,
@@ -77,7 +77,7 @@ export const getSubgraph = async (
       projectId,
       nodeIds
     });
-    
+
     return {
       success: true,
       data: response.data,
@@ -108,7 +108,7 @@ export const filterGraph = async (
       graphData,
       filters
     });
-    
+
     return {
       success: true,
       data: response.data,
@@ -139,7 +139,7 @@ export const exportGraph = async (
       projectId,
       format
     });
-    
+
     return {
       success: true,
       data: response.data,
@@ -164,7 +164,7 @@ export const exportGraph = async (
 const handleAxiosError = (error: unknown, defaultMessage: string): AppError => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError;
-    
+
     // Network error
     if (!axiosError.response) {
       return {
@@ -174,13 +174,14 @@ const handleAxiosError = (error: unknown, defaultMessage: string): AppError => {
         timestamp: new Date()
       };
     }
-    
+
     // HTTP error responses
+    const responseData = axiosError.response.data as { message?: string };
     switch (axiosError.response.status) {
       case 400:
         return {
           type: ErrorType.VALIDATION_ERROR,
-          message: axiosError.response.data?.message || 'Invalid request',
+          message: responseData.message || 'Invalid request',
           userMessage: 'Please check your input and try again.',
           timestamp: new Date()
         };
@@ -215,13 +216,13 @@ const handleAxiosError = (error: unknown, defaultMessage: string): AppError => {
       default:
         return {
           type: ErrorType.API_ERROR,
-          message: axiosError.response.data?.message || axiosError.message || defaultMessage,
+          message: responseData.message || axiosError.message || defaultMessage,
           userMessage: 'An unexpected error occurred. Please try again.',
           timestamp: new Date()
         };
     }
   }
-  
+
   // Non-axios errors
   return {
     type: ErrorType.UNKNOWN_ERROR,

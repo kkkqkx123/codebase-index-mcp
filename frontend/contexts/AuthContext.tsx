@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, User } from '@services/auth.service';
-import { ApiResponse } from '@types/api.types';
+import { ApiResponse } from '../types/api.types';
 
 // Define the shape of our authentication context
 interface AuthContextType {

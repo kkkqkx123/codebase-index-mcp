@@ -35,7 +35,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
     ];
 
     let currentPath = '';
-    pathSegments.forEach((segment, index) => {
+    pathSegments.forEach((segment) => {
       currentPath += `/${segment}`;
       // Convert kebab-case or snake_case to Title Case
       const label = segment
