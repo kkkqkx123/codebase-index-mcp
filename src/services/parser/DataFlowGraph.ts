@@ -21,7 +21,7 @@ export enum DataFlowType {
   PARAMETER = 'parameter',
   RETURN = 'return',
   CALL = 'call',
-  GLOBAL = 'global'
+  GLOBAL = 'global',
 }
 
 export interface TaintSource {
@@ -38,7 +38,7 @@ export enum TaintType {
   NETWORK_INPUT = 'network_input',
   DATABASE_INPUT = 'database_input',
   ENVIRONMENT_INPUT = 'environment_input',
-  EXTERNAL_API = 'external_api'
+  EXTERNAL_API = 'external_api',
 }
 
 export interface DataFlowGraph {
@@ -92,7 +92,7 @@ export class DataFlowGraphImpl implements DataFlowGraph {
 
   addFlow(flow: DataFlowEdge): void {
     this.flows.push(flow);
-    
+
     if (flow.type === DataFlowType.DEFINITION) {
       if (!this.variableDefinitions.has(flow.variable)) {
         this.variableDefinitions.set(flow.variable, []);
@@ -148,14 +148,14 @@ export class DataFlowAnalyzer {
 
   private buildDataFlowGraph(): void {
     const nodes = this.cfg.nodes;
-    
+
     for (const node of nodes) {
       const variables = this.extractVariablesFromNode(node);
-      
+
       for (const variable of variables.definitions) {
         this.addDefinitionFlow(variable, node);
       }
-      
+
       for (const variable of variables.uses) {
         this.addUseFlow(variable, node);
       }
@@ -164,7 +164,7 @@ export class DataFlowAnalyzer {
     this.connectDefinitionsToUses();
   }
 
-  private extractVariablesFromNode(node: CFGNode): { definitions: string[], uses: string[] } {
+  private extractVariablesFromNode(node: CFGNode): { definitions: string[]; uses: string[] } {
     const definitions: string[] = [];
     const uses: string[] = [];
 
@@ -177,7 +177,10 @@ export class DataFlowAnalyzer {
     return { definitions, uses };
   }
 
-  private extractVariablesFromStatement(node: Parser.SyntaxNode): { definitions: string[], uses: string[] } {
+  private extractVariablesFromStatement(node: Parser.SyntaxNode): {
+    definitions: string[];
+    uses: string[];
+  } {
     const definitions: string[] = [];
     const uses: string[] = [];
 
@@ -210,11 +213,11 @@ export class DataFlowAnalyzer {
   private extractVariableNames(node: Parser.SyntaxNode): string[] {
     const names: string[] = [];
     const identifiers = node.children.filter(child => child.type === 'identifier');
-    
+
     for (const identifier of identifiers) {
       names.push(identifier.text);
     }
-    
+
     return names;
   }
 
@@ -268,15 +271,15 @@ export class DataFlowAnalyzer {
 
   private findAllIdentifiers(node: Parser.SyntaxNode): string[] {
     const identifiers: string[] = [];
-    
+
     if (node.type === 'identifier') {
       identifiers.push(node.text);
     }
-    
+
     for (const child of node.children) {
       identifiers.push(...this.findAllIdentifiers(child));
     }
-    
+
     return identifiers;
   }
 
@@ -289,14 +292,14 @@ export class DataFlowAnalyzer {
       sourceNode: node,
       targetNode: node,
       isTainted: false,
-      taintSources: []
+      taintSources: [],
     };
     this.dataFlowGraph.addFlow(flow);
   }
 
   private addUseFlow(variable: string, node: CFGNode): void {
     const definitions = this.dataFlowGraph.getVariableDefinitions(variable);
-    
+
     for (const def of definitions) {
       if (this.cfg.isReachable(def.id, node.id)) {
         const flow: DataFlowEdge = {
@@ -307,7 +310,7 @@ export class DataFlowAnalyzer {
           sourceNode: def,
           targetNode: node,
           isTainted: false,
-          taintSources: []
+          taintSources: [],
         };
         this.dataFlowGraph.addFlow(flow);
       }
@@ -316,11 +319,11 @@ export class DataFlowAnalyzer {
 
   private connectDefinitionsToUses(): void {
     const variables = Array.from(this.dataFlowGraph.variables.keys());
-    
+
     for (const variable of variables) {
       const definitions = this.dataFlowGraph.getVariableDefinitions(variable);
       const uses = this.dataFlowGraph.getVariableUses(variable);
-      
+
       for (const def of definitions) {
         for (const use of uses) {
           if (this.cfg.isReachable(def.id, use.id)) {
@@ -332,7 +335,7 @@ export class DataFlowAnalyzer {
               sourceNode: def,
               targetNode: use,
               isTainted: false,
-              taintSources: []
+              taintSources: [],
             };
             this.dataFlowGraph.addFlow(flow);
           }
@@ -343,10 +346,10 @@ export class DataFlowAnalyzer {
 
   private performTaintAnalysis(): void {
     const variables = Array.from(this.dataFlowGraph.variables.keys());
-    
+
     for (const variable of variables) {
       const flows = this.dataFlowGraph.getVariableFlows(variable);
-      
+
       for (const flow of flows) {
         if (this.isTaintSource(flow)) {
           flow.isTainted = true;
@@ -368,11 +371,21 @@ export class DataFlowAnalyzer {
 
   private isTaintedStatement(node: Parser.SyntaxNode): boolean {
     const taintPatterns = [
-      'prompt', 'readline', 'input', 'scanf', 'gets',
-      'document.getElementById', 'document.querySelector',
-      'window.location', 'location.href', 'location.search',
-      'req.body', 'req.params', 'req.query',
-      'process.argv', 'process.env'
+      'prompt',
+      'readline',
+      'input',
+      'scanf',
+      'gets',
+      'document.getElementById',
+      'document.querySelector',
+      'window.location',
+      'location.href',
+      'location.search',
+      'req.body',
+      'req.params',
+      'req.query',
+      'process.argv',
+      'process.env',
     ];
 
     const text = node.text.toLowerCase();
@@ -388,7 +401,7 @@ export class DataFlowAnalyzer {
 
   private detectSQLInjection(): void {
     const taintedFlows = this.dataFlowGraph.getTaintedFlows();
-    
+
     for (const flow of taintedFlows) {
       if (this.isSQLSink(flow)) {
         console.warn(`Potential SQL injection: variable ${flow.variable} flows to SQL sink`);
@@ -398,7 +411,7 @@ export class DataFlowAnalyzer {
 
   private detectXSS(): void {
     const taintedFlows = this.dataFlowGraph.getTaintedFlows();
-    
+
     for (const flow of taintedFlows) {
       if (this.isXSSSink(flow)) {
         console.warn(`Potential XSS: variable ${flow.variable} flows to XSS sink`);
@@ -408,17 +421,19 @@ export class DataFlowAnalyzer {
 
   private detectCommandInjection(): void {
     const taintedFlows = this.dataFlowGraph.getTaintedFlows();
-    
+
     for (const flow of taintedFlows) {
       if (this.isCommandSink(flow)) {
-        console.warn(`Potential command injection: variable ${flow.variable} flows to command sink`);
+        console.warn(
+          `Potential command injection: variable ${flow.variable} flows to command sink`
+        );
       }
     }
   }
 
   private detectPathTraversal(): void {
     const taintedFlows = this.dataFlowGraph.getTaintedFlows();
-    
+
     for (const flow of taintedFlows) {
       if (this.isPathTraversalSink(flow)) {
         console.warn(`Potential path traversal: variable ${flow.variable} flows to file operation`);
@@ -428,25 +443,37 @@ export class DataFlowAnalyzer {
 
   private isSQLSink(flow: DataFlowEdge): boolean {
     const sqlPatterns = ['query', 'execute', 'exec', 'prepare', 'Statement'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return sqlPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
   private isXSSSink(flow: DataFlowEdge): boolean {
     const xssPatterns = ['innerHTML', 'outerHTML', 'document.write', 'eval'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return xssPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
   private isCommandSink(flow: DataFlowEdge): boolean {
     const commandPatterns = ['exec', 'spawn', 'system', 'shell', 'cmd'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return commandPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
   private isPathTraversalSink(flow: DataFlowEdge): boolean {
     const pathPatterns = ['readFile', 'writeFile', 'open', 'fs.', 'path.'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return pathPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
@@ -456,14 +483,14 @@ export class DataFlowAnalyzer {
         name: 'user_input',
         sources: ['prompt', 'readline', 'input', 'document.getElementById'],
         sinks: ['query', 'innerHTML', 'exec'],
-        sanitizers: ['escape', 'sanitize', 'validate']
+        sanitizers: ['escape', 'sanitize', 'validate'],
       },
       {
         name: 'file_input',
         sources: ['fs.readFile', 'readFileSync', 'require'],
         sinks: ['eval', 'Function', 'exec'],
-        sanitizers: ['JSON.parse', 'sanitize']
-      }
+        sanitizers: ['JSON.parse', 'sanitize'],
+      },
     ];
   }
 }

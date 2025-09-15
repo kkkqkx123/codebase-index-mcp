@@ -15,14 +15,14 @@ export class RerankingService implements IRerankingService {
   private configService: ConfigService;
   private graphStorage: GraphPersistenceService;
   private semanticSearch: SemanticSearchService;
-  
+
   // Statistics tracking
   private totalRerankings: number = 0;
   private strategyDistribution: Record<string, number> = {
     semantic: 0,
     graph: 0,
     hybrid: 0,
-    ml: 0
+    ml: 0,
   };
 
   constructor(
@@ -39,11 +39,15 @@ export class RerankingService implements IRerankingService {
     this.semanticSearch = semanticSearch;
   }
 
-  async rerank(results: QueryResult[], query: string, options?: RerankingOptions): Promise<RerankedResult[]> {
+  async rerank(
+    results: QueryResult[],
+    query: string,
+    options?: RerankingOptions
+  ): Promise<RerankedResult[]> {
     this.logger.info('Starting reranking process', {
       resultCount: results.length,
       query,
-      strategy: options?.strategy
+      strategy: options?.strategy,
     });
 
     try {
@@ -54,7 +58,7 @@ export class RerankingService implements IRerankingService {
 
       // Apply reranking based on strategy
       let rerankedResults: RerankedResult[];
-      
+
       switch (strategy) {
         case 'semantic':
           rerankedResults = await this.semanticReranking(results, query, options);
@@ -72,12 +76,14 @@ export class RerankingService implements IRerankingService {
       }
 
       // Sort by final score
-      const sortedResults = rerankedResults.sort((a, b) => b.rerankingMetrics.finalScore - a.rerankingMetrics.finalScore);
-      
+      const sortedResults = rerankedResults.sort(
+        (a, b) => b.rerankingMetrics.finalScore - a.rerankingMetrics.finalScore
+      );
+
       // Apply limit and threshold
       const limit = options?.limit || 10;
       const threshold = options?.threshold || 0.0;
-      
+
       const filteredResults = sortedResults
         .filter(result => result.rerankingMetrics.finalScore >= threshold)
         .slice(0, limit);
@@ -85,7 +91,7 @@ export class RerankingService implements IRerankingService {
       this.logger.info('Reranking completed', {
         originalCount: results.length,
         finalCount: filteredResults.length,
-        strategy
+        strategy,
       });
 
       return filteredResults;
@@ -98,25 +104,29 @@ export class RerankingService implements IRerankingService {
     }
   }
 
-  private async semanticReranking(results: QueryResult[], query: string, options?: RerankingOptions): Promise<RerankedResult[]> {
+  private async semanticReranking(
+    results: QueryResult[],
+    query: string,
+    options?: RerankingOptions
+  ): Promise<RerankedResult[]> {
     this.logger.info('Applying semantic reranking', { resultCount: results.length });
-    
+
     // For now, we'll use a simple approach that enhances scores based on semantic similarity
     // In a full implementation, this would use more sophisticated semantic analysis
     return results.map(result => {
       // Calculate semantic score based on content similarity to query
       const semanticScore = this.calculateSemanticSimilarity(result.content, query);
-      
+
       // Preserve original score but enhance with semantic score
       const originalScore = result.score;
       const finalScore = this.combineScores({
         original: originalScore,
         semantic: semanticScore,
-        weights: options?.weights || {}
+        weights: options?.weights || {},
       });
-      
+
       const confidence = this.calculateConfidence(result, finalScore);
-      
+
       return {
         ...result,
         score: finalScore,
@@ -126,31 +136,35 @@ export class RerankingService implements IRerankingService {
           graphScore: 0,
           contextualScore: 0,
           finalScore,
-          confidence
-        }
+          confidence,
+        },
       };
     });
   }
 
-  private async graphReranking(results: QueryResult[], query: string, options?: RerankingOptions): Promise<RerankedResult[]> {
+  private async graphReranking(
+    results: QueryResult[],
+    query: string,
+    options?: RerankingOptions
+  ): Promise<RerankedResult[]> {
     this.logger.info('Applying graph-based reranking', { resultCount: results.length });
-    
+
     // For now, we'll use a simple approach that enhances scores based on graph relationships
     // In a full implementation, this would query the graph database for relationships
     return results.map(result => {
       // Calculate graph-based score (mock implementation)
       const graphScore = this.calculateGraphScore(result, query);
-      
+
       // Preserve original score but enhance with graph score
       const originalScore = result.score;
       const finalScore = this.combineScores({
         original: originalScore,
         graph: graphScore,
-        weights: options?.weights || {}
+        weights: options?.weights || {},
       });
-      
+
       const confidence = this.calculateConfidence(result, finalScore);
-      
+
       return {
         ...result,
         score: finalScore,
@@ -160,21 +174,25 @@ export class RerankingService implements IRerankingService {
           graphScore,
           contextualScore: 0,
           finalScore,
-          confidence
-        }
+          confidence,
+        },
       };
     });
   }
 
-  private async hybridReranking(results: QueryResult[], query: string, options?: RerankingOptions): Promise<RerankedResult[]> {
+  private async hybridReranking(
+    results: QueryResult[],
+    query: string,
+    options?: RerankingOptions
+  ): Promise<RerankedResult[]> {
     this.logger.info('Applying hybrid reranking', { resultCount: results.length });
-    
+
     return results.map(result => {
       // Calculate multiple scores
       const semanticScore = this.calculateSemanticSimilarity(result.content, query);
       const graphScore = this.calculateGraphScore(result, query);
       const contextualScore = this.calculateContextualScore(result, query);
-      
+
       // Combine scores with weights
       const originalScore = result.score;
       const finalScore = this.combineScores({
@@ -182,11 +200,11 @@ export class RerankingService implements IRerankingService {
         semantic: semanticScore,
         graph: graphScore,
         contextual: contextualScore,
-        weights: options?.weights || {}
+        weights: options?.weights || {},
       });
-      
+
       const confidence = this.calculateConfidence(result, finalScore);
-      
+
       return {
         ...result,
         score: finalScore,
@@ -196,31 +214,35 @@ export class RerankingService implements IRerankingService {
           graphScore,
           contextualScore,
           finalScore,
-          confidence
-        }
+          confidence,
+        },
       };
     });
   }
 
-  private async mlReranking(results: QueryResult[], query: string, options?: RerankingOptions): Promise<RerankedResult[]> {
+  private async mlReranking(
+    results: QueryResult[],
+    query: string,
+    options?: RerankingOptions
+  ): Promise<RerankedResult[]> {
     this.logger.info('Applying ML-based reranking', { resultCount: results.length });
-    
+
     // For now, we'll use a simple approach that enhances scores based on ML model
     // In a full implementation, this would use a trained ML model
     return results.map(result => {
       // Calculate ML-based score (mock implementation)
       const mlScore = this.calculateMLScore(result, query);
-      
+
       // Preserve original score but enhance with ML score
       const originalScore = result.score;
       const finalScore = this.combineScores({
         original: originalScore,
         semantic: mlScore, // Using ML score as semantic for now
-        weights: options?.weights || {}
+        weights: options?.weights || {},
       });
-      
+
       const confidence = this.calculateConfidence(result, finalScore);
-      
+
       return {
         ...result,
         score: finalScore,
@@ -230,8 +252,8 @@ export class RerankingService implements IRerankingService {
           graphScore: 0,
           contextualScore: 0,
           finalScore,
-          confidence
-        }
+          confidence,
+        },
       };
     });
   }
@@ -240,10 +262,10 @@ export class RerankingService implements IRerankingService {
     // Simple keyword-based similarity calculation
     const contentWords = new Set(content.toLowerCase().split(/\s+/));
     const queryWords = new Set(query.toLowerCase().split(/\s+/));
-    
+
     const intersection = new Set(Array.from(contentWords).filter(word => queryWords.has(word)));
     const union = new Set([...Array.from(contentWords), ...Array.from(queryWords)]);
-    
+
     return union.size > 0 ? intersection.size / union.size : 0;
   }
 
@@ -252,7 +274,7 @@ export class RerankingService implements IRerankingService {
     // In a real implementation, this would query the graph database
     const hasGraphContext = !!result.graphContext;
     const relationshipCount = result.graphContext?.relationships?.length || 0;
-    
+
     // Higher score for results with more relationships
     return Math.min(relationshipCount / 10, 1) + (hasGraphContext ? 0.2 : 0);
   }
@@ -260,24 +282,24 @@ export class RerankingService implements IRerankingService {
   private calculateContextualScore(result: QueryResult, query: string): number {
     // Calculate contextual relevance based on metadata and content structure
     let score = 0;
-    
+
     // Boost for certain chunk types
     if (result.chunkType === 'function' || result.chunkType === 'class') {
       score += 0.2;
     }
-    
+
     // Boost for exported symbols
     if (result.metadata?.isExported) {
       score += 0.1;
     }
-    
+
     // Boost for recent modifications
     const lastModified = result.metadata?.lastModified || 0;
     const now = Date.now();
     const ageInDays = (now - lastModified) / (1000 * 60 * 60 * 24);
     const recencyScore = Math.exp(-ageInDays / 365);
     score += recencyScore * 0.1;
-    
+
     return Math.min(score, 1);
   }
 
@@ -301,27 +323,27 @@ export class RerankingService implements IRerankingService {
     };
   }): number {
     const weights = scores.weights || {};
-    
+
     // Default weights
     const semanticWeight = weights.semantic ?? 0.3;
     const graphWeight = weights.graph ?? 0.2;
     const contextualWeight = weights.contextual ?? 0.1;
     const originalWeight = 1 - (semanticWeight + graphWeight + contextualWeight);
-    
+
     let finalScore = scores.original * originalWeight;
-    
+
     if (scores.semantic !== undefined) {
       finalScore += scores.semantic * semanticWeight;
     }
-    
+
     if (scores.graph !== undefined) {
       finalScore += scores.graph * graphWeight;
     }
-    
+
     if (scores.contextual !== undefined) {
       finalScore += scores.contextual * contextualWeight;
     }
-    
+
     return Math.min(Math.max(finalScore, 0), 1);
   }
 
@@ -333,10 +355,10 @@ export class RerankingService implements IRerankingService {
 
   private calculateMetadataCompleteness(metadata: Record<string, any>): number {
     if (!metadata) return 0;
-    
+
     const importantFields = ['language', 'chunkType', 'functionName', 'className'];
     const presentFields = importantFields.filter(field => metadata[field] !== undefined);
-    
+
     return presentFields.length / importantFields.length;
   }
 
@@ -347,11 +369,11 @@ export class RerankingService implements IRerankingService {
   }> {
     // In a real implementation, this would calculate actual improvement metrics
     const averageImprovement = 0.15; // Mock value
-    
+
     return {
       totalRerankings: this.totalRerankings,
       averageImprovement,
-      strategyDistribution: { ...this.strategyDistribution }
+      strategyDistribution: { ...this.strategyDistribution },
     };
   }
 }

@@ -9,15 +9,21 @@ export class ExpressRule extends AbstractSnippetRule {
   readonly name = 'ExpressRule';
   readonly supportedNodeTypes = new Set([
     // Route handlers
-    'call_expression', 'function_declaration', 'arrow_function',
-    'method_definition', 'variable_declaration',
-    
+    'call_expression',
+    'function_declaration',
+    'arrow_function',
+    'method_definition',
+    'variable_declaration',
+
     // Middleware and app configuration
-    'property_identifier', 'assignment_expression',
-    'expression_statement', 'object',
-    
+    'property_identifier',
+    'assignment_expression',
+    'expression_statement',
+    'object',
+
     // Error handling
-    'catch_clause', 'try_statement'
+    'catch_clause',
+    'try_statement',
   ]);
 
   protected readonly snippetType = 'express_route' as const;
@@ -26,7 +32,7 @@ export class ExpressRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check if this is Express.js-related code
     return this.isExpressCode(content);
   }
@@ -59,8 +65,8 @@ export class ExpressRule extends AbstractSnippetRule {
         complexity: this.calculateExpressComplexity(content),
         isStandalone: this.isStandaloneExpressRoute(node, content),
         hasSideEffects: this.hasSideEffects(content),
-        expressInfo: expressMetadata
-      }
+        expressInfo: expressMetadata,
+      },
     };
   }
 
@@ -69,53 +75,49 @@ export class ExpressRule extends AbstractSnippetRule {
       // Express imports
       /import\s+express\s+from\s+['"]express['"]/,
       /const\s+express\s*=\s*require\s*\(\s*['"]express['"]\s*\)/,
-      
+
       // Express app initialization
       /express\s*\(\s*\)/,
       /const\s+app\s*=\s*express\s*\(\s*\)/,
-      
+
       // HTTP methods
       /app\.(get|post|put|delete|patch|all|head|options)\s*\(/,
       /router\.(get|post|put|delete|patch|all|head|options)\s*\(/,
-      
+
       // Middleware
       /app\.use\s*\(/,
       /app\.listen\s*\(/,
       /app\.set\s*\(/,
       /app\.engine\s*\(/,
-      
+
       // Express Router
       /express\.Router\s*\(\s*\)/,
       /const\s+router\s*=\s*express\.Router\s*\(\s*\)/,
-      
+
       // Response methods
       /res\.(send|json|sendFile|render|redirect|status|end)\s*\(/,
       /req\.(params|query|body|headers|cookies|session)\s*\.?/,
-      
+
       // Error handling
       /app\.use\s*\(\s*\(err,\s*req,\s*res,\s*next\)\s*=>/,
       /next\s*\(\s*err\s*\)/,
-      
+
       // Common middleware patterns
       /bodyParser|json|urlencoded|static|cookieParser|cors/,
-      /morgan|helmet|compression|session/
+      /morgan|helmet|compression|session/,
     ];
 
     return expressPatterns.some(pattern => pattern.test(content));
   }
 
-  private extractExpressMetadata(
-    node: Parser.SyntaxNode,
-    content: string,
-    sourceCode: string
-  ) {
+  private extractExpressMetadata(node: Parser.SyntaxNode, content: string, sourceCode: string) {
     return {
       routeHandlers: this.extractRouteHandlers(content),
       middleware: this.extractMiddlewareInfo(content),
       routing: this.extractRoutingInfo(content),
       responseHandling: this.extractResponseHandlingInfo(content),
       errorHandling: this.extractErrorHandlingInfo(content),
-      ecosystem: this.extractEcosystemInfo(content)
+      ecosystem: this.extractEcosystemInfo(content),
     };
   }
 
@@ -123,12 +125,36 @@ export class ExpressRule extends AbstractSnippetRule {
     const routeHandlers: any[] = [];
 
     const routePatterns = [
-      { method: 'GET', pattern: /app\.get\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g },
-      { method: 'POST', pattern: /app\.post\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g },
-      { method: 'PUT', pattern: /app\.put\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g },
-      { method: 'DELETE', pattern: /app\.delete\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g },
-      { method: 'PATCH', pattern: /app\.patch\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g },
-      { method: 'ALL', pattern: /app\.all\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g }
+      {
+        method: 'GET',
+        pattern:
+          /app\.get\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g,
+      },
+      {
+        method: 'POST',
+        pattern:
+          /app\.post\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g,
+      },
+      {
+        method: 'PUT',
+        pattern:
+          /app\.put\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g,
+      },
+      {
+        method: 'DELETE',
+        pattern:
+          /app\.delete\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g,
+      },
+      {
+        method: 'PATCH',
+        pattern:
+          /app\.patch\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g,
+      },
+      {
+        method: 'ALL',
+        pattern:
+          /app\.all\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(async\s+)?function\s*\([^)]*\)|\([^)]*\)\s*=>/g,
+      },
     ];
 
     routePatterns.forEach(({ method, pattern }) => {
@@ -136,13 +162,13 @@ export class ExpressRule extends AbstractSnippetRule {
       while ((match = pattern.exec(content)) !== null) {
         const path = match[1];
         const handlerContent = content.slice(match.index);
-        
+
         routeHandlers.push({
           path,
           method: method as any,
           handlerType: this.determineHandlerType(handlerContent),
           middlewareUsed: this.extractHandlerMiddleware(handlerContent),
-          parameters: this.extractRouteParameters(path, handlerContent)
+          parameters: this.extractRouteParameters(path, handlerContent),
         });
       }
     });
@@ -150,7 +176,9 @@ export class ExpressRule extends AbstractSnippetRule {
     return routeHandlers;
   }
 
-  private determineHandlerType(handlerContent: string): 'function' | 'async_function' | 'arrow_function' | 'class_method' {
+  private determineHandlerType(
+    handlerContent: string
+  ): 'function' | 'async_function' | 'arrow_function' | 'class_method' {
     if (handlerContent.includes('async function')) return 'async_function';
     if (handlerContent.includes('function')) return 'function';
     if (handlerContent.includes('=>')) return 'arrow_function';
@@ -159,7 +187,7 @@ export class ExpressRule extends AbstractSnippetRule {
 
   private extractHandlerMiddleware(handlerContent: string): string[] {
     const middleware: string[] = [];
-    
+
     // Extract middleware arrays or chained middleware
     const middlewarePattern = /app\.\w+\s*\(\s*['"`][^'"`]+['"`]\s*,\s*\[?\s*([^,\)]+)/g;
     let match;
@@ -179,18 +207,18 @@ export class ExpressRule extends AbstractSnippetRule {
     return {
       routeParams: routeParams.map(p => p.substring(1)), // Remove ':'
       queryParams: queryParams.map(p => p.split('.')[2]),
-      bodyParams: bodyParams.map(p => p.split('.')[2])
+      bodyParams: bodyParams.map(p => p.split('.')[2]),
     };
   }
 
   private extractMiddlewareInfo(content: string) {
     const globalMiddleware = this.extractPatternMatches(content, [
       /app\.use\s*\(\s*([a-zA-Z][a-zA-Z0-9_]*)/g,
-      /app\.use\s*\(\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g
+      /app\.use\s*\(\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
     ]);
 
     const routeSpecificMiddleware = this.extractPatternMatches(content, [
-      /app\.\w+\s*\(\s*['"`][^'"`]+['"`]\s*,\s*([a-zA-Z][a-zA-Z0-9_]*)/g
+      /app\.\w+\s*\(\s*['"`][^'"`]+['"`]\s*,\s*([a-zA-Z][a-zA-Z0-9_]*)/g,
     ]);
 
     const errorHandling = content.includes('(err, req, res, next)');
@@ -202,17 +230,15 @@ export class ExpressRule extends AbstractSnippetRule {
       routeSpecific: routeSpecificMiddleware,
       errorHandling,
       authentication,
-      validation
+      validation,
     };
   }
 
   private extractRoutingInfo(content: string) {
     const usesExpressRouter = /express\.Router|const\s+router\s*=/.test(content);
     const nestedRoutes = /router\.\w+\s*\(/.test(content);
-    
-    const routeParameters = this.extractPatternMatches(content, [
-      /:([a-zA-Z_][a-zA-Z0-9_]*)/g
-    ]);
+
+    const routeParameters = this.extractPatternMatches(content, [/:([a-zA-Z_][a-zA-Z0-9_]*)/g]);
 
     const staticFiles = /app\.use\s*\(\s*express\.static/.test(content);
 
@@ -220,16 +246,16 @@ export class ExpressRule extends AbstractSnippetRule {
       usesExpressRouter,
       nestedRoutes,
       routeParameters,
-      staticFiles
+      staticFiles,
     };
   }
 
   private extractResponseHandlingInfo(content: string) {
     const jsonResponses = (content.match(/res\.json\s*\(/g) || []).length;
     const renderTemplates = (content.match(/res\.render\s*\(/g) || []).length;
-    
+
     const statusCodes = this.extractPatternMatches(content, [
-      /res\.status\s*\(\s*(\d{3})\s*\)/g
+      /res\.status\s*\(\s*(\d{3})\s*\)/g,
     ]).map(code => parseInt(code));
 
     const streaming = /res\.pipe|stream|pipe\s*\(/.test(content);
@@ -238,7 +264,7 @@ export class ExpressRule extends AbstractSnippetRule {
       jsonResponses,
       renderTemplates,
       statusCodes,
-      streaming
+      streaming,
     };
   }
 
@@ -252,7 +278,7 @@ export class ExpressRule extends AbstractSnippetRule {
       errorMiddleware,
       customErrorHandlers,
       tryCatchBlocks,
-      asyncErrorHandling
+      asyncErrorHandling,
     };
   }
 
@@ -261,7 +287,7 @@ export class ExpressRule extends AbstractSnippetRule {
     const cookieParser = /cookie-parser|cookieParser/.test(content);
     const cors = /cors|@cors\/cors/.test(content);
     const session = /express-session|cookie-session|session/.test(content);
-    
+
     let templateEngine: string | undefined;
     if (/ejs|pug|hbs|mustache|handlebars/.test(content)) {
       if (content.includes('ejs')) templateEngine = 'ejs';
@@ -276,13 +302,13 @@ export class ExpressRule extends AbstractSnippetRule {
       cookieParser,
       cors,
       session,
-      templateEngine
+      templateEngine,
     };
   }
 
   private extractPatternMatches(content: string, patterns: RegExp[]): string[] {
     const matches: string[] = [];
-    
+
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(content)) !== null) {
@@ -301,12 +327,14 @@ export class ExpressRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_statement') {
         const importText = this.getNodeText(n, sourceCode);
-        if (importText.includes('express') || 
-            importText.includes('body-parser') ||
-            importText.includes('cors') ||
-            importText.includes('cookie-parser') ||
-            importText.includes('morgan') ||
-            importText.includes('helmet')) {
+        if (
+          importText.includes('express') ||
+          importText.includes('body-parser') ||
+          importText.includes('cors') ||
+          importText.includes('cookie-parser') ||
+          importText.includes('morgan') ||
+          importText.includes('helmet')
+        ) {
           imports.push(importText);
         }
       }
@@ -334,9 +362,11 @@ export class ExpressRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'export_statement') {
         const exportText = this.getNodeText(n, sourceCode);
-        if (exportText.includes('router') || 
-            exportText.includes('app') ||
-            exportText.includes('middleware')) {
+        if (
+          exportText.includes('router') ||
+          exportText.includes('app') ||
+          exportText.includes('middleware')
+        ) {
           exports.push(exportText);
         }
       }
@@ -359,11 +389,15 @@ export class ExpressRule extends AbstractSnippetRule {
       /app\.(get|post|put|delete|patch|all)\s*\(/,
       /router\.(get|post|put|delete|patch|all)\s*\(/,
       /app\.use\s*\(/,
-      /module\.exports\s*=\s*router/
+      /module\.exports\s*=\s*router/,
     ];
 
-    return (node.type === 'call_expression' || node.type === 'function_declaration' || node.type === 'variable_declaration') &&
-           routePatterns.some(pattern => pattern.test(content));
+    return (
+      (node.type === 'call_expression' ||
+        node.type === 'function_declaration' ||
+        node.type === 'variable_declaration') &&
+      routePatterns.some(pattern => pattern.test(content))
+    );
   }
 
   private calculateExpressComplexity(content: string): number {

@@ -109,7 +109,7 @@ describe('SemanticSearchService', () => {
       const params = {
         projectId: 'test-project',
         limit: 10,
-        threshold: 0.7
+        threshold: 0.7,
       };
 
       const queryEmbedding = { vector: [0.1, 0.2, 0.3, 0.4], dimensions: 384, model: 'test-model' };
@@ -117,25 +117,32 @@ describe('SemanticSearchService', () => {
         {
           id: '1',
           score: 0.95,
-          content: 'function authenticateUser(username, password) { return bcrypt.compare(password, user.hash); }',
+          content:
+            'function authenticateUser(username, password) { return bcrypt.compare(password, user.hash); }',
           filePath: '/src/auth.ts',
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
+          metadata: {},
         },
         {
           id: '2',
           score: 0.85,
-          content: 'async function login(credentials) { const user = await authenticate(credentials); }',
+          content:
+            'async function login(credentials) { const user = await authenticate(credentials); }',
           filePath: '/src/login.ts',
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
+          metadata: {},
         },
       ];
 
       mockEmbedderFactory.getEmbedder.mockResolvedValue(mockEmbedder);
-      mockEmbedder.embed.mockResolvedValue({ vector: [0.1, 0.2, 0.3, 0.4], dimensions: 384, model: 'test-model', processingTime: 100 });
+      mockEmbedder.embed.mockResolvedValue({
+        vector: [0.1, 0.2, 0.3, 0.4],
+        dimensions: 384,
+        model: 'test-model',
+        processingTime: 100,
+      });
       mockVectorStorage.searchVectors.mockResolvedValue(searchResults as any);
 
       // Mock the internal enhanceResults method to return simple results
@@ -145,7 +152,8 @@ describe('SemanticSearchService', () => {
           score: 0.9,
           similarity: 0.9,
           filePath: '/src/auth.ts',
-          content: 'function authenticateUser(username, password) { return bcrypt.compare(password, user.hash); }',
+          content:
+            'function authenticateUser(username, password) { return bcrypt.compare(password, user.hash); }',
           startLine: 1,
           endLine: 2,
           language: 'typescript',
@@ -156,15 +164,16 @@ describe('SemanticSearchService', () => {
             contextualScore: 0.8,
             recencyScore: 0.9,
             popularityScore: 0.7,
-            finalScore: 0.9
-          }
+            finalScore: 0.9,
+          },
         },
         {
           id: '2',
           score: 0.85,
           similarity: 0.85,
           filePath: '/src/login.ts',
-          content: 'async function login(credentials) { const user = await authenticate(credentials); }',
+          content:
+            'async function login(credentials) { const user = await authenticate(credentials); }',
           startLine: 1,
           endLine: 2,
           language: 'typescript',
@@ -175,9 +184,9 @@ describe('SemanticSearchService', () => {
             contextualScore: 0.8,
             recencyScore: 0.9,
             popularityScore: 0.7,
-            finalScore: 0.85
-          }
-        }
+            finalScore: 0.85,
+          },
+        },
       ]);
 
       const result = await semanticSearchService.searchSimilar(content, params);
@@ -191,7 +200,7 @@ describe('SemanticSearchService', () => {
         expect.objectContaining({
           limit: params.limit,
           scoreThreshold: params.threshold,
-          filter: { projectId: params.projectId }
+          filter: { projectId: params.projectId },
         })
       );
     });
@@ -201,7 +210,7 @@ describe('SemanticSearchService', () => {
       const params = {
         projectId: 'test-project',
         limit: 10,
-        threshold: 0.7
+        threshold: 0.7,
       };
 
       mockEmbedderFactory.getEmbedder.mockResolvedValue(mockEmbedder);
@@ -216,14 +225,43 @@ describe('SemanticSearchService', () => {
       const params = {
         projectId: 'test-project',
         limit: 10,
-        threshold: 0.8
+        threshold: 0.8,
       };
 
-      const queryEmbedding = { vector: [0.1, 0.2, 0.3], dimensions: 384, model: 'test-model', processingTime: 100 };
+      const queryEmbedding = {
+        vector: [0.1, 0.2, 0.3],
+        dimensions: 384,
+        model: 'test-model',
+        processingTime: 100,
+      };
       const searchResults = [
-        { id: '1', score: 0.95, content: 'high score result', filePath: '/src/test.ts', language: 'typescript', chunkType: 'function', metadata: {} },
-        { id: '2', score: 0.75, content: 'low score result', filePath: '/src/test.ts', language: 'typescript', chunkType: 'function', metadata: {} },
-        { id: '3', score: 0.9, content: 'medium score result', filePath: '/src/test.ts', language: 'typescript', chunkType: 'function', metadata: {} },
+        {
+          id: '1',
+          score: 0.95,
+          content: 'high score result',
+          filePath: '/src/test.ts',
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: {},
+        },
+        {
+          id: '2',
+          score: 0.75,
+          content: 'low score result',
+          filePath: '/src/test.ts',
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: {},
+        },
+        {
+          id: '3',
+          score: 0.9,
+          content: 'medium score result',
+          filePath: '/src/test.ts',
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: {},
+        },
       ];
 
       mockEmbedderFactory.getEmbedder.mockResolvedValue(mockEmbedder);
@@ -246,11 +284,16 @@ describe('SemanticSearchService', () => {
         threshold: 0.7,
         filters: {
           language: ['javascript', 'typescript'],
-          chunkType: ['function']
-        }
+          chunkType: ['function'],
+        },
       };
 
-      const queryEmbedding = { vector: [0.1, 0.2, 0.3, 0.4], dimensions: 384, model: 'test-model', processingTime: 100 };
+      const queryEmbedding = {
+        vector: [0.1, 0.2, 0.3, 0.4],
+        dimensions: 384,
+        model: 'test-model',
+        processingTime: 100,
+      };
       const searchResults = [
         {
           id: '1',
@@ -259,7 +302,7 @@ describe('SemanticSearchService', () => {
           filePath: '/src/database.ts',
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
+          metadata: {},
         },
       ];
 
@@ -285,9 +328,9 @@ describe('SemanticSearchService', () => {
             contextualScore: 0.9,
             recencyScore: 0.9,
             popularityScore: 0.8,
-            finalScore: 0.95
-          }
-        }
+            finalScore: 0.95,
+          },
+        },
       ]);
 
       // Mock Date.now to simulate execution time
@@ -316,8 +359,8 @@ describe('SemanticSearchService', () => {
           scoreThreshold: params.threshold,
           filter: expect.objectContaining({
             language: ['javascript', 'typescript'],
-            chunkType: ['function']
-          })
+            chunkType: ['function'],
+          }),
         })
       );
 
@@ -332,7 +375,7 @@ describe('SemanticSearchService', () => {
       const params = {
         projectId: 'test-project',
         limit: 5,
-        context: 'security'
+        context: 'security',
       };
 
       const mockSearchResults = {
@@ -353,9 +396,9 @@ describe('SemanticSearchService', () => {
               contextualScore: 0.8,
               recencyScore: 0.9,
               popularityScore: 0.7,
-              finalScore: 0.85
-            }
-          }
+              finalScore: 0.85,
+            },
+          },
         ],
         metrics: {
           queryId: 'test-query-id',
@@ -365,8 +408,8 @@ describe('SemanticSearchService', () => {
           rankingTime: 20,
           totalResults: 1,
           averageSimilarity: 0.85,
-          searchStrategy: 'semantic_vector'
-        }
+          searchStrategy: 'semantic_vector',
+        },
       };
 
       jest.spyOn(semanticSearchService, 'search').mockResolvedValue(mockSearchResults);
@@ -379,7 +422,7 @@ describe('SemanticSearchService', () => {
         query: 'login security authorization user password security',
         projectId: params.projectId,
         limit: params.limit,
-        threshold: 0.6
+        threshold: 0.6,
       });
     });
   });
@@ -391,10 +434,15 @@ describe('SemanticSearchService', () => {
         projectId: 'test-project',
         limit: 5,
         threshold: 0.7,
-        snippetType: ['try_catch', 'error_handling']
+        snippetType: ['try_catch', 'error_handling'],
       };
 
-      const queryEmbedding = { vector: [0.1, 0.2, 0.3, 0.4], dimensions: 384, model: 'test-model', processingTime: 100 };
+      const queryEmbedding = {
+        vector: [0.1, 0.2, 0.3, 0.4],
+        dimensions: 384,
+        model: 'test-model',
+        processingTime: 100,
+      };
       const searchResults = [
         {
           id: '1',
@@ -403,7 +451,7 @@ describe('SemanticSearchService', () => {
           filePath: '/src/utils.ts',
           language: 'typescript',
           chunkType: 'snippet',
-          metadata: { snippetType: 'try_catch' }
+          metadata: { snippetType: 'try_catch' },
         },
       ];
 
@@ -429,9 +477,9 @@ describe('SemanticSearchService', () => {
             contextualScore: 0.9,
             recencyScore: 0.9,
             popularityScore: 0.8,
-            finalScore: 0.95
-          }
-        }
+            finalScore: 0.95,
+          },
+        },
       ]);
 
       const result = await semanticSearchService.searchSnippets(params);
@@ -447,7 +495,7 @@ describe('SemanticSearchService', () => {
       const query = 'auth';
       const params = {
         projectId: 'test-project',
-        limit: 5
+        limit: 5,
       };
 
       const suggestions = await semanticSearchService.getSearchSuggestions(query, params);
@@ -464,7 +512,7 @@ describe('SemanticSearchService', () => {
       const query = 'database';
       const params = {
         projectId: 'test-project',
-        limit: 2
+        limit: 2,
       };
 
       const suggestions = await semanticSearchService.getSearchSuggestions(query, params);

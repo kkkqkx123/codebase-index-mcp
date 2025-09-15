@@ -17,35 +17,31 @@ describe('Cache Performance Tests', () => {
       useMultiLevel: true,
       ttl: { embedding: 3600, search: 1800, graph: 7200, progress: 300 },
       retry: { attempts: 3, delay: 100 },
-      pool: { min: 5, max: 10 }
+      pool: { min: 5, max: 10 },
     };
 
     const cache = cacheFactory.createMultiLevelCache('perf-test', mockRedisConfig);
-    
+
     mockRedis.set.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
 
     // 测试批量操作性能
     const testData = Array.from({ length: 1000 }, (_, i) => ({
       key: `key-${i}`,
-      value: `value-${i}`
+      value: `value-${i}`,
     }));
 
     const startTime = Date.now();
 
     // 批量设置
-    await Promise.all(
-      testData.map(({ key, value }) => cache.set(key, value))
-    );
+    await Promise.all(testData.map(({ key, value }) => cache.set(key, value)));
 
     const setTime = Date.now() - startTime;
     console.log(`批量设置1000条数据耗时: ${setTime}ms`);
 
     // 批量获取
     const getStartTime = Date.now();
-    const results = await Promise.all(
-      testData.map(({ key }) => cache.get(key))
-    );
+    const results = await Promise.all(testData.map(({ key }) => cache.get(key)));
 
     const getTime = Date.now() - getStartTime;
     console.log(`批量获取1000条数据耗时: ${getTime}ms`);
@@ -68,11 +64,11 @@ describe('Cache Performance Tests', () => {
       useMultiLevel: true,
       ttl: { embedding: 3600, search: 1800, graph: 7200, progress: 300 },
       retry: { attempts: 3, delay: 100 },
-      pool: { min: 5, max: 10 }
+      pool: { min: 5, max: 10 },
     };
 
     const cache = cacheFactory.createMultiLevelCache('hit-test', mockRedisConfig);
-    
+
     mockRedis.set.mockResolvedValue('OK');
     mockRedis.get.mockResolvedValue(null);
 

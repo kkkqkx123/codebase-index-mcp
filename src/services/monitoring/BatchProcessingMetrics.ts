@@ -85,7 +85,7 @@ export class BatchProcessingMetrics {
     this.configService = configService;
     this.logger = logger;
     this.errorHandler = errorHandler;
-    
+
     this.startCleanupTask();
   }
 
@@ -106,26 +106,23 @@ export class BatchProcessingMetrics {
       memoryUsage: {
         start: memoryUsage.heapUsed,
         end: 0,
-        peak: memoryUsage.heapUsed
+        peak: memoryUsage.heapUsed,
       },
       retryCount: 0,
-      timeout: false
+      timeout: false,
     };
 
     this.metrics.push(metrics);
     this.logger.debug('Batch operation started', {
       operationId,
       operationType,
-      batchSize
+      batchSize,
     });
 
     return metrics;
   }
 
-  updateBatchOperation(
-    operationId: string,
-    updates: Partial<BatchOperationMetrics>
-  ): void {
+  updateBatchOperation(operationId: string, updates: Partial<BatchOperationMetrics>): void {
     const metrics = this.metrics.find(m => m.operationId === operationId);
     if (!metrics) {
       this.logger.warn('Batch operation not found for update', { operationId });
@@ -144,15 +141,11 @@ export class BatchProcessingMetrics {
       operationId,
       processedCount: metrics.processedCount,
       successCount: metrics.successCount,
-      errorCount: metrics.errorCount
+      errorCount: metrics.errorCount,
     });
   }
 
-  endBatchOperation(
-    operationId: string,
-    success: boolean = true,
-    timeout: boolean = false
-  ): void {
+  endBatchOperation(operationId: string, success: boolean = true, timeout: boolean = false): void {
     const metrics = this.metrics.find(m => m.operationId === operationId);
     if (!metrics) {
       this.logger.warn('Batch operation not found for end', { operationId });
@@ -168,10 +161,10 @@ export class BatchProcessingMetrics {
     metrics.timeout = timeout;
 
     // Calculate derived metrics
-    metrics.throughput = metrics.processedCount > 0 ? 
-      (metrics.processedCount / (metrics.duration / 1000)) : 0;
-    metrics.errorRate = metrics.processedCount > 0 ? 
-      (metrics.errorCount / metrics.processedCount) : 0;
+    metrics.throughput =
+      metrics.processedCount > 0 ? metrics.processedCount / (metrics.duration / 1000) : 0;
+    metrics.errorRate =
+      metrics.processedCount > 0 ? metrics.errorCount / metrics.processedCount : 0;
 
     this.logger.info('Batch operation completed', {
       operationId,
@@ -182,7 +175,7 @@ export class BatchProcessingMetrics {
       errorCount: metrics.errorCount,
       throughput: metrics.throughput,
       errorRate: metrics.errorRate,
-      timeout
+      timeout,
     });
 
     // Check for alerts
@@ -209,7 +202,7 @@ export class BatchProcessingMetrics {
       metrics.adaptiveBatching = {
         initialBatchSize: oldBatchSize,
         finalBatchSize: newBatchSize,
-        adjustments: 0
+        adjustments: 0,
       };
     }
 
@@ -221,14 +214,15 @@ export class BatchProcessingMetrics {
       oldBatchSize,
       newBatchSize,
       reason,
-      adjustments: metrics.adaptiveBatching.adjustments
+      adjustments: metrics.adaptiveBatching.adjustments,
     });
   }
 
   getStats(timeRange: { start: Date; end: Date }): BatchProcessingStats {
-    const filteredMetrics = this.metrics.filter(metric => 
-      metric.startTime >= timeRange.start.getTime() && 
-      (metric.endTime || Date.now()) <= timeRange.end.getTime()
+    const filteredMetrics = this.metrics.filter(
+      metric =>
+        metric.startTime >= timeRange.start.getTime() &&
+        (metric.endTime || Date.now()) <= timeRange.end.getTime()
     );
 
     if (filteredMetrics.length === 0) {
@@ -247,8 +241,8 @@ export class BatchProcessingMetrics {
 
     // Calculate averages
     const averageLatency = durations.reduce((sum, d) => sum + d, 0) / durations.length;
-    const averageThroughput = throughputs.length > 0 ? 
-      throughputs.reduce((sum, t) => sum + t, 0) / throughputs.length : 0;
+    const averageThroughput =
+      throughputs.length > 0 ? throughputs.reduce((sum, t) => sum + t, 0) / throughputs.length : 0;
     const averageErrorRate = errorRates.reduce((sum, r) => sum + r, 0) / errorRates.length;
 
     // Calculate memory efficiency
@@ -270,37 +264,39 @@ export class BatchProcessingMetrics {
       errorRate: averageErrorRate,
       memoryEfficiency,
       adaptiveBatchingStats,
-      systemHealth
+      systemHealth,
     };
   }
 
   getRecentAlerts(limit: number = 50): BatchAlert[] {
-    return this.alerts
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, limit);
+    return this.alerts.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
   }
 
-  getOperationHistory(operationType?: BatchOperationMetrics['operationType']): BatchOperationMetrics[] {
-    const filtered = operationType ? 
-      this.metrics.filter(m => m.operationType === operationType) : 
-      this.metrics;
-    
-    return filtered
-      .sort((a, b) => b.startTime - a.startTime)
-      .slice(0, 1000);
+  getOperationHistory(
+    operationType?: BatchOperationMetrics['operationType']
+  ): BatchOperationMetrics[] {
+    const filtered = operationType
+      ? this.metrics.filter(m => m.operationType === operationType)
+      : this.metrics;
+
+    return filtered.sort((a, b) => b.startTime - a.startTime).slice(0, 1000);
   }
 
   exportMetrics(format: 'json' | 'csv' = 'json'): string {
     if (format === 'json') {
-      return JSON.stringify({
-        exportedAt: new Date().toISOString(),
-        metrics: this.metrics,
-        alerts: this.alerts,
-        summary: this.getStats({
-          start: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          end: new Date()
-        })
-      }, null, 2);
+      return JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          metrics: this.metrics,
+          alerts: this.alerts,
+          summary: this.getStats({
+            start: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            end: new Date(),
+          }),
+        },
+        null,
+        2
+      );
     } else {
       return this.exportToCsv();
     }
@@ -316,17 +312,26 @@ export class BatchProcessingMetrics {
         type: 'warning',
         category: 'performance',
         message: `High batch operation latency: ${metrics.duration}ms`,
-        severity: metrics.duration && thresholds.highLatency && metrics.duration > thresholds.highLatency * 2 ? 'high' : 'medium',
+        severity:
+          metrics.duration &&
+          thresholds.highLatency &&
+          metrics.duration > thresholds.highLatency * 2
+            ? 'high'
+            : 'medium',
         metadata: {
           operationId: metrics.operationId,
           duration: metrics.duration,
-          threshold: thresholds.highLatency
-        }
+          threshold: thresholds.highLatency,
+        },
       });
     }
 
     // Low throughput alert
-    if (metrics.throughput && thresholds.lowThroughput && metrics.throughput < thresholds.lowThroughput) {
+    if (
+      metrics.throughput &&
+      thresholds.lowThroughput &&
+      metrics.throughput < thresholds.lowThroughput
+    ) {
       this.createAlert({
         type: 'warning',
         category: 'performance',
@@ -335,23 +340,32 @@ export class BatchProcessingMetrics {
         metadata: {
           operationId: metrics.operationId,
           throughput: metrics.throughput,
-          threshold: thresholds.lowThroughput
-        }
+          threshold: thresholds.lowThroughput,
+        },
       });
     }
 
     // High error rate alert
-    if (thresholds.highErrorRate && metrics.errorRate !== undefined && metrics.errorRate > thresholds.highErrorRate) {
+    if (
+      thresholds.highErrorRate &&
+      metrics.errorRate !== undefined &&
+      metrics.errorRate > thresholds.highErrorRate
+    ) {
       this.createAlert({
         type: 'error',
         category: 'error',
         message: `High batch operation error rate: ${(metrics.errorRate * 100).toFixed(1)}%`,
-        severity: thresholds.highErrorRate && metrics.errorRate !== undefined && metrics.errorRate > thresholds.highErrorRate * 2 ? 'critical' : 'high',
+        severity:
+          thresholds.highErrorRate &&
+          metrics.errorRate !== undefined &&
+          metrics.errorRate > thresholds.highErrorRate * 2
+            ? 'critical'
+            : 'high',
         metadata: {
           operationId: metrics.operationId,
           errorRate: metrics.errorRate,
-          threshold: thresholds.highErrorRate
-        }
+          threshold: thresholds.highErrorRate,
+        },
       });
     }
 
@@ -362,12 +376,15 @@ export class BatchProcessingMetrics {
         type: 'error',
         category: 'memory',
         message: `High memory usage during batch operation: ${memoryUsagePercent.toFixed(1)}%`,
-        severity: thresholds.highMemoryUsage && memoryUsagePercent > thresholds.highMemoryUsage * 1.1 ? 'critical' : 'high',
+        severity:
+          thresholds.highMemoryUsage && memoryUsagePercent > thresholds.highMemoryUsage * 1.1
+            ? 'critical'
+            : 'high',
         metadata: {
           operationId: metrics.operationId,
           memoryUsage: memoryUsagePercent,
-          threshold: thresholds.highMemoryUsage
-        }
+          threshold: thresholds.highMemoryUsage,
+        },
       });
     }
 
@@ -380,8 +397,8 @@ export class BatchProcessingMetrics {
         severity: 'high',
         metadata: {
           operationId: metrics.operationId,
-          duration: metrics.duration
-        }
+          duration: metrics.duration,
+        },
       });
     }
   }
@@ -390,7 +407,7 @@ export class BatchProcessingMetrics {
     const fullAlert: BatchAlert = {
       ...alert,
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     this.alerts.push(fullAlert);
@@ -399,7 +416,7 @@ export class BatchProcessingMetrics {
       type: fullAlert.type,
       category: fullAlert.category,
       message: fullAlert.message,
-      severity: fullAlert.severity
+      severity: fullAlert.severity,
     });
 
     // Maintain alerts history size
@@ -424,8 +441,10 @@ export class BatchProcessingMetrics {
   private calculateMemoryEfficiency(metrics: BatchOperationMetrics[]): number {
     if (metrics.length === 0) return 0;
 
-    const totalMemoryDelta = metrics.reduce((sum, m) => 
-      sum + (m.memoryUsage.end - m.memoryUsage.start), 0);
+    const totalMemoryDelta = metrics.reduce(
+      (sum, m) => sum + (m.memoryUsage.end - m.memoryUsage.start),
+      0
+    );
     const totalProcessed = metrics.reduce((sum, m) => sum + m.processedCount, 0);
 
     return totalProcessed > 0 ? (totalProcessed / totalMemoryDelta) * 1000 : 0;
@@ -433,50 +452,53 @@ export class BatchProcessingMetrics {
 
   private calculateAdaptiveBatchingStats(metrics: BatchOperationMetrics[]) {
     const adaptiveMetrics = metrics.filter(m => m.adaptiveBatching);
-    
+
     if (adaptiveMetrics.length === 0) {
       return {
         averageBatchSize: 0,
         adjustmentCount: 0,
-        improvementRate: 0
+        improvementRate: 0,
       };
     }
 
-    const averageBatchSize = adaptiveMetrics.reduce((sum, m) => 
-      sum + m.adaptiveBatching!.finalBatchSize, 0) / adaptiveMetrics.length;
-    const totalAdjustments = adaptiveMetrics.reduce((sum, m) => 
-      sum + m.adaptiveBatching!.adjustments, 0);
-    
+    const averageBatchSize =
+      adaptiveMetrics.reduce((sum, m) => sum + m.adaptiveBatching!.finalBatchSize, 0) /
+      adaptiveMetrics.length;
+    const totalAdjustments = adaptiveMetrics.reduce(
+      (sum, m) => sum + m.adaptiveBatching!.adjustments,
+      0
+    );
+
     // Calculate improvement rate based on performance trends
-    const improvements = adaptiveMetrics.filter(m => 
-      m.adaptiveBatching!.finalBatchSize > m.adaptiveBatching!.initialBatchSize
+    const improvements = adaptiveMetrics.filter(
+      m => m.adaptiveBatching!.finalBatchSize > m.adaptiveBatching!.initialBatchSize
     ).length;
-    const improvementRate = adaptiveMetrics.length > 0 ? 
-      improvements / adaptiveMetrics.length : 0;
+    const improvementRate = adaptiveMetrics.length > 0 ? improvements / adaptiveMetrics.length : 0;
 
     return {
       averageBatchSize,
       adjustmentCount: totalAdjustments,
-      improvementRate
+      improvementRate,
     };
   }
 
   private calculateSystemHealth(metrics: BatchOperationMetrics[]) {
-    const memoryUsages = metrics.map(m => 
-      (m.memoryUsage.peak / process.memoryUsage().heapTotal) * 100);
+    const memoryUsages = metrics.map(
+      m => (m.memoryUsage.peak / process.memoryUsage().heapTotal) * 100
+    );
     const cpuUsages = metrics.map(m => m.cpuUsage?.end || 0);
 
     return {
       averageMemoryUsage: memoryUsages.reduce((sum, usage) => sum + usage, 0) / memoryUsages.length,
       averageCpuUsage: cpuUsages.reduce((sum, usage) => sum + usage, 0) / cpuUsages.length,
       peakMemoryUsage: Math.max(...memoryUsages),
-      peakCpuUsage: Math.max(...cpuUsages)
+      peakCpuUsage: Math.max(...cpuUsages),
     };
   }
 
   private percentile(sortedArray: number[], p: number): number {
     if (sortedArray.length === 0) return 0;
-    
+
     const index = Math.ceil((p / 100) * sortedArray.length) - 1;
     return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))] || 0;
   }
@@ -494,14 +516,14 @@ export class BatchProcessingMetrics {
       adaptiveBatchingStats: {
         averageBatchSize: 0,
         adjustmentCount: 0,
-        improvementRate: 0
+        improvementRate: 0,
       },
       systemHealth: {
         averageMemoryUsage: 0,
         averageCpuUsage: 0,
         peakMemoryUsage: 0,
-        peakCpuUsage: 0
-      }
+        peakCpuUsage: 0,
+      },
     };
   }
 
@@ -522,7 +544,7 @@ export class BatchProcessingMetrics {
       'throughput',
       'errorRate',
       'retryCount',
-      'timeout'
+      'timeout',
     ];
 
     const rows = this.metrics.map(metric => [
@@ -541,7 +563,7 @@ export class BatchProcessingMetrics {
       metric.throughput || '',
       metric.errorRate || '',
       metric.retryCount,
-      metric.timeout
+      metric.timeout,
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -554,14 +576,14 @@ export class BatchProcessingMetrics {
     this.cleanupInterval = setInterval(() => {
       this.cleanupOldMetrics();
     }, cleanupInterval);
-    
+
     // Ensure interval doesn't prevent Node.js from exiting
     if (this.cleanupInterval.unref) {
       this.cleanupInterval.unref();
     }
 
     this.logger.info('Batch processing metrics cleanup task started', {
-      interval: cleanupInterval
+      interval: cleanupInterval,
     });
   }
 
@@ -576,8 +598,8 @@ export class BatchProcessingMetrics {
 
     const cleanedCount = initialSize - this.metrics.length;
     if (cleanedCount > 0) {
-      this.logger.debug('Cleaned up old batch processing metrics', { 
-        count: cleanedCount 
+      this.logger.debug('Cleaned up old batch processing metrics', {
+        count: cleanedCount,
       });
     }
 
@@ -585,10 +607,10 @@ export class BatchProcessingMetrics {
     const initialAlertSize = this.alerts.length;
     this.alerts = this.alerts.filter(alert => alert.timestamp > cutoffTime);
     const cleanedAlertCount = initialAlertSize - this.alerts.length;
-    
+
     if (cleanedAlertCount > 0) {
-      this.logger.debug('Cleaned up old batch processing alerts', { 
-        count: cleanedAlertCount 
+      this.logger.debug('Cleaned up old batch processing alerts', {
+        count: cleanedAlertCount,
       });
     }
   }

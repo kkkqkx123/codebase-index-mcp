@@ -42,10 +42,7 @@ export class EnhancedCacheFactory {
    * 创建内存缓存
    */
   createMemoryCache(name: string, config?: CacheFactoryConfig['memory']): CacheInterface {
-    return new MemoryCacheAdapter(
-      name,
-      config?.ttl ?? 300
-    );
+    return new MemoryCacheAdapter(name, config?.ttl ?? 300);
   }
 
   /**
@@ -59,7 +56,7 @@ export class EnhancedCacheFactory {
       enableReadyCheck: true,
       lazyConnect: true,
       connectTimeout: 10000,
-      commandTimeout: 5000
+      commandTimeout: 5000,
     });
     return new EnhancedRedisCacheAdapter(name, redis, 3600, this.monitor);
   }
@@ -83,17 +80,12 @@ export class EnhancedCacheFactory {
 
     // 创建L1内存缓存
     const l1Cache = this.createMemoryCache(`${name}:l1`, config?.memory);
-    
+
     // 创建L2 Redis缓存
     const l2Cache = this.createRedisCache(`${name}:l2`, redisConfig);
-    
+
     // 创建多级缓存
-    const multiLevelCache = new EnhancedMultiLevelCache(
-      name,
-      l1Cache,
-      l2Cache,
-      this.monitor
-    );
+    const multiLevelCache = new EnhancedMultiLevelCache(name, l1Cache, l2Cache, this.monitor);
 
     // 注册到实例管理
     this.cacheInstances.set(name, multiLevelCache);
@@ -103,7 +95,7 @@ export class EnhancedCacheFactory {
       l1Type: 'memory',
       l2Type: 'redis',
       l1MaxSize: config?.memory?.maxSize ?? 1000,
-      l2RedisConfig: redisConfig
+      l2RedisConfig: redisConfig,
     });
 
     return multiLevelCache;
@@ -146,12 +138,12 @@ export class EnhancedCacheFactory {
       try {
         await cache.close();
         this.cacheInstances.delete(name);
-        
+
         this.logger.info(`缓存实例移除完成: ${name}`);
         return true;
       } catch (error) {
         this.logger.error(`缓存实例移除失败: ${name}`, {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
         return false;
       }
@@ -171,7 +163,7 @@ export class EnhancedCacheFactory {
    */
   async getAllCacheStats(): Promise<Map<string, any>> {
     const stats = new Map<string, any>();
-    
+
     for (const [name, cache] of this.cacheInstances) {
       try {
         if (cache instanceof EnhancedMultiLevelCache) {
@@ -181,7 +173,7 @@ export class EnhancedCacheFactory {
         }
       } catch (error) {
         this.logger.error(`获取缓存统计失败: ${name}`, {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -199,7 +191,7 @@ export class EnhancedCacheFactory {
         this.logger.info(`缓存清空完成: ${name}`);
       } catch (error) {
         this.logger.error(`缓存清空失败: ${name}`, {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     });
@@ -218,16 +210,16 @@ export class EnhancedCacheFactory {
         this.logger.info(`缓存关闭完成: ${name}`);
       } catch (error) {
         this.logger.error(`缓存关闭失败: ${name}`, {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     });
 
     await Promise.all(promises);
     this.cacheInstances.clear();
-    
+
     // 监控器不需要关闭，它是无状态的
-    
+
     this.logger.info('所有缓存和监控器已关闭');
   }
 
@@ -247,7 +239,7 @@ export class EnhancedCacheFactory {
           // 多级缓存的健康检查
           const health = await this.basicHealthCheck(cache, name);
           details.set(name, health);
-          
+
           if (!health.healthy) {
             allHealthy = false;
           }
@@ -257,9 +249,9 @@ export class EnhancedCacheFactory {
           await cache.set(testKey, 'health-check', { ttl: 1 });
           const value = await cache.get(testKey);
           const healthy = value === 'health-check';
-          
+
           details.set(name, { healthy });
-          
+
           if (!healthy) {
             allHealthy = false;
           }
@@ -267,7 +259,7 @@ export class EnhancedCacheFactory {
       } catch (error) {
         details.set(name, {
           healthy: false,
-          message: error instanceof Error ? error.message : String(error)
+          message: error instanceof Error ? error.message : String(error),
         });
         allHealthy = false;
       }
@@ -275,28 +267,31 @@ export class EnhancedCacheFactory {
 
     return {
       healthy: allHealthy,
-      details
+      details,
     };
   }
 
   /**
    * 基础健康检查
    */
-  private async basicHealthCheck(cache: any, name: string): Promise<{ healthy: boolean; message?: string }> {
+  private async basicHealthCheck(
+    cache: any,
+    name: string
+  ): Promise<{ healthy: boolean; message?: string }> {
     try {
       const testKey = `health:${Date.now()}`;
       await cache.set(testKey, 'health-check', { ttl: 1 });
       const value = await cache.get(testKey);
       const healthy = value === 'health-check';
-      
+
       return {
         healthy,
-        message: healthy ? undefined : '健康检查失败'
+        message: healthy ? undefined : '健康检查失败',
       };
     } catch (error) {
       return {
         healthy: false,
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -314,27 +309,27 @@ export class EnhancedCacheFactory {
           embedding: 86400,
           search: 3600,
           graph: 1800,
-          progress: 300
+          progress: 300,
         },
         retry: {
           attempts: 3,
-          delay: 1000
+          delay: 1000,
         },
         pool: {
           min: 1,
-          max: 10
-        }
+          max: 10,
+        },
       },
       monitor: {
         enabled: true,
         metricsInterval: 30000, // 30秒
-        logLevel: 'info'
+        logLevel: 'info',
       },
       memory: {
         maxSize: 1000,
         ttl: 300, // 5分钟
-        cleanupInterval: 60 // 1分钟
-      }
+        cleanupInterval: 60, // 1分钟
+      },
     };
   }
 
@@ -348,7 +343,7 @@ export class EnhancedCacheFactory {
     const db = process.env.REDIS_DB || '0';
     const protocol = password ? 'rediss' : 'redis';
     const auth = password ? `${password}@` : '';
-    
+
     return {
       redis: {
         enabled: process.env.REDIS_ENABLED !== 'false',
@@ -359,27 +354,27 @@ export class EnhancedCacheFactory {
           embedding: parseInt(process.env.REDIS_TTL_EMBEDDING || '86400', 10),
           search: parseInt(process.env.REDIS_TTL_SEARCH || '3600', 10),
           graph: parseInt(process.env.REDIS_TTL_GRAPH || '1800', 10),
-          progress: parseInt(process.env.REDIS_TTL_PROGRESS || '300', 10)
+          progress: parseInt(process.env.REDIS_TTL_PROGRESS || '300', 10),
         },
         retry: {
           attempts: parseInt(process.env.REDIS_RETRY_ATTEMPTS || '3', 10),
-          delay: parseInt(process.env.REDIS_RETRY_DELAY || '1000', 10)
+          delay: parseInt(process.env.REDIS_RETRY_DELAY || '1000', 10),
         },
         pool: {
           min: parseInt(process.env.REDIS_POOL_MIN || '1', 10),
-          max: parseInt(process.env.REDIS_POOL_MAX || '10', 10)
-        }
+          max: parseInt(process.env.REDIS_POOL_MAX || '10', 10),
+        },
       },
       monitor: {
         enabled: process.env.CACHE_MONITOR_ENABLED !== 'false',
         metricsInterval: parseInt(process.env.CACHE_METRICS_INTERVAL || '30000', 10),
-        logLevel: (process.env.CACHE_LOG_LEVEL as any) || 'info'
+        logLevel: (process.env.CACHE_LOG_LEVEL as any) || 'info',
       },
       memory: {
         maxSize: parseInt(process.env.CACHE_MEMORY_MAX_SIZE || '1000', 10),
         ttl: parseInt(process.env.CACHE_MEMORY_TTL || '300', 10),
-        cleanupInterval: parseInt(process.env.CACHE_MEMORY_CLEANUP_INTERVAL || '60', 10)
-      }
+        cleanupInterval: parseInt(process.env.CACHE_MEMORY_CLEANUP_INTERVAL || '60', 10),
+      },
     };
   }
 }

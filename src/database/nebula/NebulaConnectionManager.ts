@@ -41,42 +41,46 @@ export class NebulaConnectionManager {
       if (this.isConnected && this.client) {
         return true;
       }
-      
+
       const config = this.configService.getAll();
-      
+
       // 记录连接配置用于调试
       this.logger.debug('NebulaGraph connection config:', {
         host: config.nebula.host,
         port: config.nebula.port,
         username: config.nebula.username,
-        space: config.nebula.space
+        space: config.nebula.space,
       });
-      
+
       // 使用社区贡献的NebulaGraph Node.js客户端
       // https://github.com/nebula-contrib/nebula-node
       const options = {
         servers: [`${config.nebula.host}:${config.nebula.port}`],
         userName: config.nebula.username,
         password: config.nebula.password,
-        space: config.nebula.space
+        space: config.nebula.space,
       };
-      
+
       // 保存当前空间名称
       this.currentSpace = config.nebula.space || '';
-      
+
       this.client = createClient(options);
       this.logger.debug('NebulaGraph client created');
-      
+
       // 保存当前空间名称
       this.currentSpace = config.nebula.space || '';
-      
+
       // 检查客户端是否已经准备就绪
-      if (this.client && typeof this.client.isConnected === 'function' && this.client.isConnected()) {
+      if (
+        this.client &&
+        typeof this.client.isConnected === 'function' &&
+        this.client.isConnected()
+      ) {
         this.isConnected = true;
         this.logger.info('Already connected to NebulaGraph');
         return true;
       }
-      
+
       // 等待客户端准备就绪
       const result = await new Promise<boolean>((resolve, reject) => {
         // 定义事件处理函数
@@ -93,7 +97,7 @@ export class NebulaConnectionManager {
           }
           resolve(true);
         };
-        
+
         const errorHandler = (error: any) => {
           // 清理定时器引用
           if (this.connectionTimeout) {
@@ -107,11 +111,11 @@ export class NebulaConnectionManager {
           }
           reject(error);
         };
-        
+
         // 添加事件监听器
         this.client!.on('ready', readyHandler);
         this.client!.on('error', errorHandler);
-        
+
         // 设置超时
         this.connectionTimeout = setTimeout(() => {
           // 清理定时器引用
@@ -123,13 +127,13 @@ export class NebulaConnectionManager {
           }
           reject(new Error('Connection timeout'));
         }, 10000);
-        
+
         // 确保超时定时器不会阻止进程退出
         if (this.connectionTimeout) {
           this.connectionTimeout.unref();
         }
       });
-      
+
       this.isConnected = result;
       if (result) {
         this.logger.info('Connected to NebulaGraph successfully');
@@ -137,7 +141,10 @@ export class NebulaConnectionManager {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error('NebulaGraph connection failed:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
+      this.logger.error('NebulaGraph connection failed:', {
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       this.errorHandler.handleError(
         new Error(`Failed to connect to NebulaGraph: ${errorMessage}`),
         { component: 'NebulaConnectionManager', operation: 'connect' }
@@ -162,7 +169,6 @@ export class NebulaConnectionManager {
     }
   }
 
-  
   async disconnect(): Promise<void> {
     try {
       // 清理连接超时定时器
@@ -170,7 +176,7 @@ export class NebulaConnectionManager {
         clearTimeout(this.connectionTimeout);
         this.connectionTimeout = null;
       }
-      
+
       // 清理健康检查定时器
       if (this.healthCheckInterval) {
         clearInterval(this.healthCheckInterval);
@@ -182,7 +188,7 @@ export class NebulaConnectionManager {
         if (typeof this.client.removeAllListeners === 'function') {
           this.client.removeAllListeners();
         }
-        
+
         // 关闭NebulaGraph客户端连接
         if (typeof this.client.close === 'function') {
           await this.client.close();
@@ -194,7 +200,9 @@ export class NebulaConnectionManager {
       this.logger.info('Disconnected from NebulaGraph successfully');
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to disconnect from NebulaGraph: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to disconnect from NebulaGraph: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'disconnect' }
       );
     }
@@ -211,7 +219,9 @@ export class NebulaConnectionManager {
       return await this.client.execute(query, false, params);
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to execute query: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to execute query: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'executeQuery' }
       );
       throw error;
@@ -240,7 +250,9 @@ export class NebulaConnectionManager {
     return this.client;
   }
 
-  async executeTransaction(queries: Array<{ query: string; params?: Record<string, any> }>): Promise<any[]> {
+  async executeTransaction(
+    queries: Array<{ query: string; params?: Record<string, any> }>
+  ): Promise<any[]> {
     // NebulaGraph Node.js客户端可能没有直接的事务支持
     // 我们将逐个执行查询，并在出现错误时抛出异常
     if (!this.isConnected || !this.client) {
@@ -248,17 +260,19 @@ export class NebulaConnectionManager {
     }
 
     const results: any[] = [];
-    
+
     try {
       for (const { query, params } of queries) {
         const result = await this.client.execute(query, false, params);
         results.push(result);
       }
-      
+
       return results;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to execute transaction: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to execute transaction: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'executeTransaction' }
       );
       throw error;
@@ -275,16 +289,18 @@ export class NebulaConnectionManager {
       // 使用查询构建器构造INSERT VERTEX语句
       // 这里假设node对象包含标签、ID和属性
       const { label, id, properties } = node;
-      
+
       // 使用NebulaQueryBuilder构建查询
       const { query, params } = this.queryBuilder.insertVertex(label, id, properties);
-      
+
       // 执行查询
       await this.client.execute(query, false, params);
       return id;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to create node: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to create node: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'createNode' }
       );
       throw error;
@@ -301,16 +317,18 @@ export class NebulaConnectionManager {
       // 使用查询构建器构造INSERT EDGE语句
       // 这里假设relationship对象包含类型、源节点ID、目标节点ID和属性
       const { type, srcId, dstId, properties } = relationship;
-      
+
       // 使用NebulaQueryBuilder构建查询
       const { query, params } = this.queryBuilder.insertEdge(type, srcId, dstId, properties);
-      
+
       // 执行查询
       await this.client.execute(query, false, params);
       return `${srcId}->${dstId}`;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to create relationship: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to create relationship: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'createRelationship' }
       );
       throw error;
@@ -328,25 +346,27 @@ export class NebulaConnectionManager {
       let pattern = `(n:${label})`;
       let returnClause = 'n';
       let whereClause: string | undefined;
-      
+
       // 如果有属性条件，添加WHERE子句
       if (properties && Object.keys(properties).length > 0) {
         const conditions = Object.keys(properties).map(key => `n.${key} = $${key}`);
         whereClause = conditions.join(' AND ');
       }
-      
+
       // 使用NebulaQueryBuilder构建查询
       const query = this.queryBuilder.match(pattern, returnClause, whereClause);
-      
+
       // 执行查询
       const result = await this.client.execute(query, false, properties);
-      
+
       // 解析结果
       // 这里假设结果是一个包含节点数据的数组
       return result.data || [];
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to find nodes by label: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to find nodes by label: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'findNodesByLabel' }
       );
       throw error;
@@ -364,30 +384,32 @@ export class NebulaConnectionManager {
       let pattern = '(n1)-[r]->(n2)';
       let returnClause = 'r, n1, n2';
       let whereClause: string | undefined;
-      
+
       // 如果有类型条件，添加类型过滤
       if (type) {
         pattern = `(n1)-[r:${type}]->(n2)`;
       }
-      
+
       // 如果有属性条件，添加WHERE子句
       if (properties && Object.keys(properties).length > 0) {
         const conditions = Object.keys(properties).map(key => `r.${key} = $${key}`);
         whereClause = conditions.join(' AND ');
       }
-      
+
       // 使用NebulaQueryBuilder构建查询
       const query = this.queryBuilder.match(pattern, returnClause, whereClause);
-      
+
       // 执行查询
       const result = await this.client.execute(query, false, properties);
-      
+
       // 解析结果
       // 这里假设结果是一个包含关系数据的数组
       return result.data || [];
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to find relationships: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to find relationships: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'findRelationships' }
       );
       throw error;
@@ -403,22 +425,24 @@ export class NebulaConnectionManager {
     try {
       // 执行SHOW SPACES命令获取空间信息
       const spacesResult = await this.client.execute('SHOW SPACES', false);
-      
+
       // 执行SHOW HOSTS命令获取主机信息
       const hostsResult = await this.client.execute('SHOW HOSTS', false);
-      
+
       // 执行SHOW PARTS命令获取分区信息
       const partsResult = await this.client.execute('SHOW PARTS', false);
-      
+
       // 组合统计信息
       return {
         spaces: spacesResult.data || [],
         hosts: hostsResult.data || [],
-        parts: partsResult.data || []
+        parts: partsResult.data || [],
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get database stats: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get database stats: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'getDatabaseStats' }
       );
       throw error;
@@ -436,19 +460,21 @@ export class NebulaConnectionManager {
     try {
       // 执行SHOW SESSIONS命令获取所有活跃会话
       const sessionsResult = await this.client.execute('SHOW SESSIONS', false);
-      
+
       // 执行SHOW LOCAL SESSIONS命令获取本地会话
       const localSessionsResult = await this.client.execute('SHOW LOCAL SESSIONS', false);
-      
+
       return {
         allSessions: sessionsResult.data || [],
         localSessions: localSessionsResult.data || [],
         totalCount: sessionsResult.data ? sessionsResult.data.length : 0,
-        localCount: localSessionsResult.data ? localSessionsResult.data.length : 0
+        localCount: localSessionsResult.data ? localSessionsResult.data.length : 0,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get active sessions: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get active sessions: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'getActiveSessions' }
       );
       throw error;
@@ -467,20 +493,20 @@ export class NebulaConnectionManager {
     try {
       const currentTime = new Date();
       const cutoffTime = new Date(currentTime.getTime() - maxIdleMinutes * 60 * 1000);
-      
+
       // 获取所有会话
       const sessionsResult = await this.client.execute('SHOW SESSIONS', false);
-      
+
       if (!sessionsResult.data || sessionsResult.data.length === 0) {
         return 0;
       }
 
       let cleanedCount = 0;
-      
+
       // 查找并清理空闲会话
       for (const session of sessionsResult.data) {
         const updateTime = new Date(session[4]); // UpdateTime在第五列
-        
+
         if (updateTime < cutoffTime) {
           const sessionId = session[0]; // SessionId在第一列
           try {
@@ -493,11 +519,15 @@ export class NebulaConnectionManager {
         }
       }
 
-      this.logger.info(`Cleaned ${cleanedCount} idle sessions older than ${maxIdleMinutes} minutes`);
+      this.logger.info(
+        `Cleaned ${cleanedCount} idle sessions older than ${maxIdleMinutes} minutes`
+      );
       return cleanedCount;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to cleanup idle sessions: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to cleanup idle sessions: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaConnectionManager', operation: 'cleanupIdleSessions' }
       );
       throw error;
@@ -514,17 +544,17 @@ export class NebulaConnectionManager {
     hasCapacity: boolean;
   }> {
     const sessions = await this.getActiveSessions();
-    
+
     // NebulaGraph默认max_sessions_per_ip_per_user=300，当前配置为1000
     const maxSessions = 1000; // 从配置文件中读取的实际值
     const totalSessions = sessions.totalCount;
     const usagePercentage = (totalSessions / maxSessions) * 100;
-    
+
     return {
       totalSessions,
       maxSessions,
       usagePercentage,
-      hasCapacity: usagePercentage < 80 // 使用率低于80%认为有容量
+      hasCapacity: usagePercentage < 80, // 使用率低于80%认为有容量
     };
   }
 }

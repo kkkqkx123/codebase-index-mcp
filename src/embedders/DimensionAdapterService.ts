@@ -42,11 +42,14 @@ export class DimensionAdapterService implements DimensionAdapter {
     this.initializeStrategies();
   }
 
-  async adaptEmbedding(embedding: EmbeddingResult, targetDimensions: number): Promise<EmbeddingResult> {
+  async adaptEmbedding(
+    embedding: EmbeddingResult,
+    targetDimensions: number
+  ): Promise<EmbeddingResult> {
     this.logger.info('Adapting embedding dimensions', {
       fromDimensions: embedding.dimensions,
       toDimensions: targetDimensions,
-      model: embedding.model
+      model: embedding.model,
     });
 
     try {
@@ -56,7 +59,9 @@ export class DimensionAdapterService implements DimensionAdapter {
 
       const strategy = this.selectBestStrategy(embedding.dimensions, targetDimensions);
       if (!strategy) {
-        throw new Error(`No suitable adaptation strategy found for ${embedding.dimensions} -> ${targetDimensions}`);
+        throw new Error(
+          `No suitable adaptation strategy found for ${embedding.dimensions} -> ${targetDimensions}`
+        );
       }
 
       const adaptedVector = strategy.adapt(embedding.vector, targetDimensions);
@@ -65,21 +70,22 @@ export class DimensionAdapterService implements DimensionAdapter {
         vector: adaptedVector,
         dimensions: targetDimensions,
         model: `${embedding.model}_adapted_${targetDimensions}d`,
-        processingTime: embedding.processingTime + Math.floor(Math.random() * 20) + 10
+        processingTime: embedding.processingTime + Math.floor(Math.random() * 20) + 10,
       };
 
       this.logger.debug('Embedding adaptation completed', {
         fromDimensions: embedding.dimensions,
         toDimensions: targetDimensions,
         strategy: strategy.name,
-        qualityScore: strategy.qualityScore
+        qualityScore: strategy.qualityScore,
       });
 
       return adaptedResult;
-
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Embedding adaptation failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Embedding adaptation failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'DimensionAdapterService', operation: 'adaptEmbedding' }
       );
       throw error;
@@ -114,24 +120,24 @@ export class DimensionAdapterService implements DimensionAdapter {
     return this.selectBestStrategy(fromDimensions, toDimensions) !== null;
   }
 
-  async adaptBatch(embeddings: EmbeddingResult[], targetDimensions: number): Promise<EmbeddingResult[]> {
+  async adaptBatch(
+    embeddings: EmbeddingResult[],
+    targetDimensions: number
+  ): Promise<EmbeddingResult[]> {
     this.logger.info('Adapting batch embeddings', {
       count: embeddings.length,
-      targetDimensions
+      targetDimensions,
     });
 
     try {
-      const strategy = this.selectBestStrategy(
-        embeddings[0]?.dimensions || 0,
-        targetDimensions
-      );
+      const strategy = this.selectBestStrategy(embeddings[0]?.dimensions || 0, targetDimensions);
 
       if (!strategy) {
         throw new Error(`No suitable adaptation strategy found for batch adaptation`);
       }
 
       const adaptedResults = await Promise.all(
-        embeddings.map(async (embedding) => {
+        embeddings.map(async embedding => {
           if (embedding.dimensions === targetDimensions) {
             return embedding;
           }
@@ -142,21 +148,22 @@ export class DimensionAdapterService implements DimensionAdapter {
             vector: adaptedVector,
             dimensions: targetDimensions,
             model: `${embedding.model}_adapted_${targetDimensions}d`,
-            processingTime: embedding.processingTime + Math.floor(Math.random() * 20) + 10
+            processingTime: embedding.processingTime + Math.floor(Math.random() * 20) + 10,
           };
         })
       );
 
       this.logger.info('Batch embedding adaptation completed', {
         count: adaptedResults.length,
-        strategy: strategy.name
+        strategy: strategy.name,
       });
 
       return adaptedResults;
-
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Batch embedding adaptation failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Batch embedding adaptation failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'DimensionAdapterService', operation: 'adaptBatch' }
       );
       throw error;
@@ -182,8 +189,8 @@ export class DimensionAdapterService implements DimensionAdapter {
         { name: 'pca', usageCount: 450, averageQuality: 0.89 },
         { name: 'interpolation', usageCount: 380, averageQuality: 0.85 },
         { name: 'truncation', usageCount: 320, averageQuality: 0.82 },
-        { name: 'padding', usageCount: 100, averageQuality: 0.78 }
-      ]
+        { name: 'padding', usageCount: 100, averageQuality: 0.78 },
+      ],
     };
   }
 
@@ -192,49 +199,57 @@ export class DimensionAdapterService implements DimensionAdapter {
     this.strategies.set('pca', {
       name: 'PCA',
       description: 'Principal Component Analysis for dimensionality reduction',
-      adapt: (vector: number[], targetDimensions: number) => this.pcaAdaptation(vector, targetDimensions),
+      adapt: (vector: number[], targetDimensions: number) =>
+        this.pcaAdaptation(vector, targetDimensions),
       qualityScore: 0.89,
-      performanceScore: 0.75
+      performanceScore: 0.75,
     });
 
     // Linear interpolation for upscaling/downscaling
     this.strategies.set('interpolation', {
       name: 'Interpolation',
       description: 'Linear interpolation for dimension adaptation',
-      adapt: (vector: number[], targetDimensions: number) => this.interpolationAdaptation(vector, targetDimensions),
+      adapt: (vector: number[], targetDimensions: number) =>
+        this.interpolationAdaptation(vector, targetDimensions),
       qualityScore: 0.85,
-      performanceScore: 0.88
+      performanceScore: 0.88,
     });
 
     // Truncation for reduction
     this.strategies.set('truncation', {
       name: 'Truncation',
       description: 'Simple truncation for dimension reduction',
-      adapt: (vector: number[], targetDimensions: number) => this.truncationAdaptation(vector, targetDimensions),
+      adapt: (vector: number[], targetDimensions: number) =>
+        this.truncationAdaptation(vector, targetDimensions),
       qualityScore: 0.82,
-      performanceScore: 0.95
+      performanceScore: 0.95,
     });
 
     // Zero padding for upscaling
     this.strategies.set('padding', {
       name: 'Padding',
       description: 'Zero padding for dimension upscaling',
-      adapt: (vector: number[], targetDimensions: number) => this.paddingAdaptation(vector, targetDimensions),
+      adapt: (vector: number[], targetDimensions: number) =>
+        this.paddingAdaptation(vector, targetDimensions),
       qualityScore: 0.78,
-      performanceScore: 0.98
+      performanceScore: 0.98,
     });
 
     // Average pooling for reduction
     this.strategies.set('average_pooling', {
       name: 'Average Pooling',
       description: 'Average pooling for dimension reduction',
-      adapt: (vector: number[], targetDimensions: number) => this.averagePoolingAdaptation(vector, targetDimensions),
+      adapt: (vector: number[], targetDimensions: number) =>
+        this.averagePoolingAdaptation(vector, targetDimensions),
       qualityScore: 0.86,
-      performanceScore: 0.82
+      performanceScore: 0.82,
     });
   }
 
-  private selectBestStrategy(fromDimensions: number, toDimensions: number): AdaptationStrategy | null {
+  private selectBestStrategy(
+    fromDimensions: number,
+    toDimensions: number
+  ): AdaptationStrategy | null {
     const availableStrategies = Array.from(this.strategies.values());
 
     // Filter strategies that can handle the dimension change
@@ -252,14 +267,20 @@ export class DimensionAdapterService implements DimensionAdapter {
     const performanceWeight = config.performanceWeight || 0.3;
 
     return suitableStrategies.reduce((best, current) => {
-      const bestScore = best.qualityScore * qualityWeight + best.performanceScore * performanceWeight;
-      const currentScore = current.qualityScore * qualityWeight + current.performanceScore * performanceWeight;
+      const bestScore =
+        best.qualityScore * qualityWeight + best.performanceScore * performanceWeight;
+      const currentScore =
+        current.qualityScore * qualityWeight + current.performanceScore * performanceWeight;
 
       return currentScore > bestScore ? current : best;
     });
   }
 
-  private canStrategyHandle(strategy: AdaptationStrategy, fromDimensions: number, toDimensions: number): boolean {
+  private canStrategyHandle(
+    strategy: AdaptationStrategy,
+    fromDimensions: number,
+    toDimensions: number
+  ): boolean {
     // All strategies can handle dimension changes in this mock implementation
     // In real implementation, this would check strategy-specific constraints
     return fromDimensions > 0 && toDimensions > 0;
@@ -378,12 +399,12 @@ export class DimensionAdapterService implements DimensionAdapter {
 
   private getDefaultDimensions(contentType: string): number {
     const defaultDimensions: Record<string, number> = {
-      'code': 768,
-      'documentation': 1536,
-      'comment': 512,
-      'string': 384,
-      'identifier': 256,
-      'generic': 768
+      code: 768,
+      documentation: 1536,
+      comment: 512,
+      string: 384,
+      identifier: 256,
+      generic: 768,
     };
 
     return defaultDimensions[contentType] || defaultDimensions.generic;

@@ -20,7 +20,7 @@ jest.mock('@qdrant/js-client-rest', () => {
       if (collectionName === 'error-collection') {
         throw new Error('Deletion failed');
       }
-      
+
       this.collections = this.collections.filter(name => name !== collectionName);
       this.points.delete(collectionName);
       return { result: true };
@@ -38,10 +38,10 @@ jest.mock('@qdrant/js-client-rest', () => {
           params: {
             vectors: {
               size: 128,
-              distance: 'Cosine'
-            }
-          }
-        }
+              distance: 'Cosine',
+            },
+          },
+        },
       };
     }
 
@@ -49,7 +49,7 @@ jest.mock('@qdrant/js-client-rest', () => {
       if (!this.collections.includes(collectionName)) {
         throw new Error('Collection not found');
       }
-      
+
       const collectionPoints = this.points.get(collectionName) || [];
       data.points.forEach((point: any) => {
         const existingIndex = collectionPoints.findIndex((p: any) => p.id === point.id);
@@ -76,11 +76,11 @@ jest.mock('@qdrant/js-client-rest', () => {
             chunkType: 'function',
             startLine: 1,
             endLine: 10,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           },
           // Only include vector if with_vector is true
-          ...(params.with_vector === true && { vector: Array(128).fill(0.5) })
-        }
+          ...(params.with_vector === true && { vector: Array(128).fill(0.5) }),
+        },
       ];
     }
 
@@ -94,7 +94,7 @@ jest.mock('@qdrant/js-client-rest', () => {
   }
 
   return {
-    QdrantClient: jest.fn().mockImplementation(() => new MockQdrantClient())
+    QdrantClient: jest.fn().mockImplementation(() => new MockQdrantClient()),
   };
 });
 
@@ -109,7 +109,7 @@ class MockConfigService {
     if (key === 'qdrant') {
       return {
         host: 'localhost',
-        port: 6333
+        port: 6333,
       };
     }
     return {};
@@ -135,18 +135,14 @@ describe('QdrantClientWrapper', () => {
   beforeEach(() => {
     // Reset modules to ensure fresh mocks
     jest.resetModules();
-    
+
     // Re-import the module to get fresh mock
     const configService = new MockConfigService() as unknown as ConfigService;
     const loggerService = new MockLoggerService() as unknown as LoggerService;
     const errorHandlerService = new MockErrorHandlerService() as unknown as ErrorHandlerService;
 
-    qdrantClient = new QdrantClientWrapper(
-      configService,
-      loggerService,
-      errorHandlerService
-    );
-    
+    qdrantClient = new QdrantClientWrapper(configService, loggerService, errorHandlerService);
+
     // Get the mock client instance
     mockQdrantClient = (qdrantClient as any).client;
   });
@@ -167,8 +163,10 @@ describe('QdrantClientWrapper', () => {
     it('should handle connection failure', async () => {
       console.log('Testing QdrantClientWrapper connection failure handling');
       // Mock the client to throw an error
-      jest.spyOn(mockQdrantClient, 'getCollections').mockRejectedValue(new Error('Connection failed'));
-      
+      jest
+        .spyOn(mockQdrantClient, 'getCollections')
+        .mockRejectedValue(new Error('Connection failed'));
+
       const result = await qdrantClient.connect();
       console.log('Connection failure result:', result);
       expect(result).toBe(false);
@@ -184,8 +182,10 @@ describe('QdrantClientWrapper', () => {
 
     it('should handle collection creation failure', async () => {
       // Mock the client to throw an error
-      jest.spyOn(mockQdrantClient, 'createCollection').mockRejectedValue(new Error('Creation failed'));
-      
+      jest
+        .spyOn(mockQdrantClient, 'createCollection')
+        .mockRejectedValue(new Error('Creation failed'));
+
       const result = await qdrantClient.createCollection('test-collection', 128);
       expect(result).toBe(false);
     });
@@ -216,7 +216,7 @@ describe('QdrantClientWrapper', () => {
       jest.spyOn(mockQdrantClient, 'deleteCollection').mockImplementation(() => {
         throw new Error('Deletion failed');
       });
-      
+
       const result = await qdrantClient.deleteCollection('error-collection');
       expect(result).toBe(false);
     });
@@ -241,7 +241,7 @@ describe('QdrantClientWrapper', () => {
   describe('upsertPoints', () => {
     it('should upsert points successfully', async () => {
       await qdrantClient.createCollection('test-collection', 128);
-      
+
       const points: VectorPoint[] = [
         {
           id: 'point-1',
@@ -254,11 +254,11 @@ describe('QdrantClientWrapper', () => {
             startLine: 1,
             endLine: 10,
             metadata: {},
-            timestamp: new Date()
-          }
-        }
+            timestamp: new Date(),
+          },
+        },
       ];
-      
+
       const result = await qdrantClient.upsertPoints('test-collection', points);
       expect(result).toBe(true);
     });
@@ -267,7 +267,7 @@ describe('QdrantClientWrapper', () => {
       // We need to simulate an error in the upsert method
       // This can be done by creating a special collection that causes errors
       jest.spyOn(mockQdrantClient, 'upsert').mockRejectedValueOnce(new Error('Upsert failed'));
-      
+
       const points: VectorPoint[] = [
         {
           id: 'point-1',
@@ -280,9 +280,9 @@ describe('QdrantClientWrapper', () => {
             startLine: 1,
             endLine: 10,
             metadata: {},
-            timestamp: new Date()
-          }
-        }
+            timestamp: new Date(),
+          },
+        },
       ];
 
       const result = await qdrantClient.upsertPoints('test-collection', points);
@@ -293,7 +293,7 @@ describe('QdrantClientWrapper', () => {
   describe('searchVectors', () => {
     it('should search vectors successfully', async () => {
       await qdrantClient.createCollection('test-collection', 128);
-      
+
       // First, insert a test point
       const points: VectorPoint[] = [
         {
@@ -307,18 +307,18 @@ describe('QdrantClientWrapper', () => {
             startLine: 1,
             endLine: 10,
             metadata: {},
-            timestamp: new Date()
-          }
-        }
+            timestamp: new Date(),
+          },
+        },
       ];
-      
+
       // Insert the test point
       await qdrantClient.upsertPoints('test-collection', points);
-      
+
       const queryVector = Array(128).fill(0.5);
       const options: SearchOptions = {
         limit: 5,
-        scoreThreshold: 0.8
+        scoreThreshold: 0.8,
       };
 
       const results = await qdrantClient.searchVectors('test-collection', queryVector, options);
@@ -331,7 +331,7 @@ describe('QdrantClientWrapper', () => {
     it('should handle search failure', async () => {
       // Mock the client to throw an error
       jest.spyOn(mockQdrantClient, 'search').mockRejectedValue(new Error('Search failed'));
-      
+
       const queryVector = Array(128).fill(0.5);
       const results = await qdrantClient.searchVectors('test-collection', queryVector);
       expect(results).toEqual([]);
@@ -341,7 +341,7 @@ describe('QdrantClientWrapper', () => {
   describe('deletePoints', () => {
     it('should delete points successfully', async () => {
       await qdrantClient.createCollection('test-collection', 128);
-      
+
       const result = await qdrantClient.deletePoints('test-collection', ['point-1']);
       expect(result).toBe(true);
     });
@@ -349,7 +349,7 @@ describe('QdrantClientWrapper', () => {
     it('should handle delete points failure', async () => {
       // Mock the client to throw an error
       jest.spyOn(mockQdrantClient, 'delete').mockRejectedValue(new Error('Delete failed'));
-      
+
       const result = await qdrantClient.deletePoints('test-collection', ['point-1']);
       expect(result).toBe(false); // Should return false when delete operation fails
     });
@@ -359,7 +359,7 @@ describe('QdrantClientWrapper', () => {
     it('should close the connection', async () => {
       await qdrantClient.connect();
       expect(qdrantClient.isConnectedToDatabase()).toBe(true);
-      
+
       await qdrantClient.close();
       expect(qdrantClient.isConnectedToDatabase()).toBe(false);
     });

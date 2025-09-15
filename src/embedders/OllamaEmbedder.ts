@@ -29,7 +29,7 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
   private async makeEmbeddingRequest(inputs: EmbeddingInput[]): Promise<EmbeddingResult[]> {
     const url = `${this.baseUrl}/api/embeddings`;
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     // Process each input separately as Ollama API expects single input
@@ -40,28 +40,32 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
         headers,
         body: JSON.stringify({
           prompt: inp.text,
-          model: this.model
-        })
+          model: this.model,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API request failed with status ${response.status}: ${await response.text()}`);
+        throw new Error(
+          `Ollama API request failed with status ${response.status}: ${await response.text()}`
+        );
       }
 
-      const data = await response.json() as { embedding: number[] };
+      const data = (await response.json()) as { embedding: number[] };
       embeddings.push({
         vector: data.embedding,
         dimensions: data.embedding.length,
         model: this.model,
-        processingTime: 0 // Will be updated after timing
+        processingTime: 0, // Will be updated after timing
       });
     }
 
     return embeddings as EmbeddingResult[];
   }
 
-  async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
-    return await this.embedWithCache(input, async (inputs) => {
+  async embed(
+    input: EmbeddingInput | EmbeddingInput[]
+  ): Promise<EmbeddingResult | EmbeddingResult[]> {
+    return await this.embedWithCache(input, async inputs => {
       return await this.makeEmbeddingRequest(inputs);
     });
   }
@@ -78,7 +82,7 @@ export class OllamaEmbedder extends BaseEmbedder implements Embedder {
     try {
       const url = `${this.baseUrl}/api/tags`;
       const response = await fetch(url, {
-        method: 'GET'
+        method: 'GET',
       });
 
       return response.ok;

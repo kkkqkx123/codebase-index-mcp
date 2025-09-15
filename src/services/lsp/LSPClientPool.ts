@@ -35,11 +35,11 @@ export class LSPClientPool extends EventEmitter {
 
   async acquire(workspaceRoot: string): Promise<LSPClient> {
     const key = this.getKey(workspaceRoot);
-    
+
     // 检查是否有可用的空闲连接
     const pool = this.clients.get(key) || [];
     const availableClient = pool.find(c => !c.isActive);
-    
+
     if (availableClient) {
       availableClient.isActive = true;
       availableClient.lastUsed = Date.now();
@@ -59,36 +59,36 @@ export class LSPClientPool extends EventEmitter {
 
     // 创建新的连接
     const client = await this.createClient(workspaceRoot);
-    
+
     if (!this.clients.has(key)) {
       this.clients.set(key, []);
     }
-    
+
     this.clients.get(key)!.push({
       client,
       lastUsed: Date.now(),
       isActive: true,
       workspaceRoot,
     });
-    
+
     this.activeConnections++;
     this.emit('clientCreated', { workspaceRoot, activeConnections: this.activeConnections });
-    
+
     return client;
   }
 
   async release(client: LSPClient): Promise<void> {
     const key = this.getKey(client.getWorkspaceRoot());
     const pool = this.clients.get(key);
-    
+
     if (!pool) return;
-    
+
     const pooledClient = pool.find(c => c.client === client);
     if (!pooledClient) return;
-    
+
     pooledClient.isActive = false;
     pooledClient.lastUsed = Date.now();
-    
+
     // 检查是否需要清理空闲连接
     this.scheduleCleanup();
   }
@@ -100,7 +100,7 @@ export class LSPClientPool extends EventEmitter {
   private async createClient(workspaceRoot: string): Promise<LSPClient> {
     const registry = LanguageServerRegistry.getInstance();
     const serverConfig = registry.getServerConfig(workspaceRoot);
-    
+
     if (!serverConfig) {
       throw new Error(`No language server configuration found for ${workspaceRoot}`);
     }
@@ -115,7 +115,7 @@ export class LSPClientPool extends EventEmitter {
     };
 
     const client = new LSPClient(clientConfig);
-    
+
     try {
       await client.initialize();
       return client;
@@ -130,8 +130,8 @@ export class LSPClientPool extends EventEmitter {
     let oldest: PooledClient | null = null;
     let oldestTime = Date.now();
 
-    this.clients.forEach((pool) => {
-      pool.forEach((client) => {
+    this.clients.forEach(pool => {
+      pool.forEach(client => {
         if (!client.isActive && client.lastUsed < oldestTime) {
           oldest = client;
           oldestTime = client.lastUsed;
@@ -150,12 +150,12 @@ export class LSPClientPool extends EventEmitter {
 
   private cleanupIdleConnections(): void {
     const now = Date.now();
-    
+
     const keysToDelete: string[] = [];
     this.clients.forEach((pool, key) => {
       const remainingClients = pool.filter(client => {
         if (client.isActive) return true;
-        
+
         const idleTime = now - client.lastUsed;
         if (idleTime > this.config.idleTimeout) {
           // 关闭空闲连接
@@ -163,31 +163,31 @@ export class LSPClientPool extends EventEmitter {
             // 忽略关闭错误
           });
           this.activeConnections--;
-          this.emit('clientDestroyed', { 
-            workspaceRoot: client.workspaceRoot, 
-            activeConnections: this.activeConnections 
+          this.emit('clientDestroyed', {
+            workspaceRoot: client.workspaceRoot,
+            activeConnections: this.activeConnections,
           });
           return false;
         }
-        
+
         return true;
       });
-      
+
       if (remainingClients.length === 0) {
         keysToDelete.push(key);
       } else {
         this.clients.set(key, remainingClients);
       }
     });
-    
+
     keysToDelete.forEach(key => this.clients.delete(key));
   }
 
   async shutdown(): Promise<void> {
     const shutdownPromises: Promise<void>[] = [];
-    
-    this.clients.forEach((pool) => {
-      pool.forEach((client) => {
+
+    this.clients.forEach(pool => {
+      pool.forEach(client => {
         shutdownPromises.push(
           client.client.shutdown().catch(() => {
             // 忽略关闭错误
@@ -195,11 +195,11 @@ export class LSPClientPool extends EventEmitter {
         );
       });
     });
-    
+
     await Promise.all(shutdownPromises);
     this.clients.clear();
     this.activeConnections = 0;
-    
+
     this.emit('shutdown');
   }
 
@@ -211,11 +211,11 @@ export class LSPClientPool extends EventEmitter {
   } {
     let idleConnections = 0;
     const pools: Record<string, { active: number; idle: number }> = {};
-    
+
     this.clients.forEach((pool, key) => {
       const stats = { active: 0, idle: 0 };
-      
-      pool.forEach((client) => {
+
+      pool.forEach(client => {
         if (client.isActive) {
           stats.active++;
         } else {
@@ -223,10 +223,10 @@ export class LSPClientPool extends EventEmitter {
           idleConnections++;
         }
       });
-      
+
       pools[key] = stats;
     });
-    
+
     return {
       totalConnections: this.activeConnections,
       activeConnections: this.activeConnections - idleConnections,
@@ -238,7 +238,7 @@ export class LSPClientPool extends EventEmitter {
   async preload(workspaceRoot: string): Promise<void> {
     const key = this.getKey(workspaceRoot);
     const pool = this.clients.get(key) || [];
-    
+
     // 预创建初始连接
     for (let i = pool.length; i < this.config.initialConnections; i++) {
       try {

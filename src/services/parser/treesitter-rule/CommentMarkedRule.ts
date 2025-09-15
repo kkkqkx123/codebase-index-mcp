@@ -11,18 +11,20 @@ export class CommentMarkedRule implements SnippetExtractionRule {
   constructor() {
     // Precompile regex for snippet markers
     const snippetMarkers = ['@snippet', '@code', '@example', 'SNIPPET:', 'EXAMPLE:'];
-    this.snippetMarkerRegex = new RegExp(snippetMarkers.map(marker => marker.replace(/[.*+?^${}()|[\]\/\\]/g, '\\$&')).join('|'));
+    this.snippetMarkerRegex = new RegExp(
+      snippetMarkers.map(marker => marker.replace(/[.*+?^${}()|[\]\/\\]/g, '\\$&')).join('|')
+    );
   }
 
   extract(ast: Parser.SyntaxNode, sourceCode: string): SnippetChunk[] {
     const snippets: SnippetChunk[] = [];
     const lines = sourceCode.split('\n');
-    
+
     // First, look for comment nodes in the AST
     const findCommentNodes = (node: Parser.SyntaxNode, depth: number = 0) => {
       // Limit traversal depth to prevent excessive recursion
       if (depth > 50) return;
-      
+
       if (node.type === 'comment') {
         const commentText = this.getNodeText(node, sourceCode);
         if (this.snippetMarkerRegex.test(commentText)) {
@@ -32,12 +34,12 @@ export class CommentMarkedRule implements SnippetExtractionRule {
           if (snippetLines.length > 0) {
             const snippetContent = snippetLines.join('\n');
             const endLine = startLine + snippetLines.length;
-            
+
             // Calculate byte positions more accurately
             let startByte = lines.slice(0, startLine).join('\n').length;
             if (startLine > 0) startByte++; // Account for newline character
             const endByte = startByte + snippetContent.length;
-            
+
             const snippet: SnippetChunk = {
               id: this.generateSnippetId(snippetContent, startLine),
               content: snippetContent,
@@ -53,21 +55,21 @@ export class CommentMarkedRule implements SnippetExtractionRule {
                 snippetType: 'comment_marked',
                 contextInfo: {
                   nestingLevel: 0,
-                  surroundingCode: this.getSurroundingCode(lines, startLine + 1, endLine)
+                  surroundingCode: this.getSurroundingCode(lines, startLine + 1, endLine),
                 },
                 languageFeatures: this.analyzeLanguageFeatures(snippetContent),
                 complexity: this.calculateComplexity(snippetContent),
                 isStandalone: true,
                 hasSideEffects: this.hasSideEffects(snippetContent),
-                commentMarkers: [commentText]
-              }
+                commentMarkers: [commentText],
+              },
             };
-            
+
             snippets.push(snippet);
           }
         }
       }
-      
+
       // Recursively search child nodes with depth tracking
       if (node.children && Array.isArray(node.children)) {
         for (const child of node.children) {
@@ -75,28 +77,28 @@ export class CommentMarkedRule implements SnippetExtractionRule {
         }
       }
     };
-    
+
     findCommentNodes(ast);
-    
+
     // Track which markers we've already found via AST to avoid duplicates in direct scanning
-    const foundMarkers = new Set(snippets.map(snippet => 
-      snippet.snippetMetadata.commentMarkers?.[0]?.trim()
-    ).filter(Boolean));
-    
+    const foundMarkers = new Set(
+      snippets.map(snippet => snippet.snippetMetadata.commentMarkers?.[0]?.trim()).filter(Boolean)
+    );
+
     // If we already found snippets via AST, skip direct scanning to avoid duplicates
     if (snippets.length > 0) {
       console.log(`[DEBUG] Skipping direct scan - found ${snippets.length} snippets via AST`);
       return snippets;
     }
-    
+
     // Also scan source code directly for comment markers (fallback)
     // This is more reliable than relying on the AST structure in our mock environment
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       // Use precompiled regex for better performance
       const hasMarker = this.snippetMarkerRegex.test(line);
-      
+
       // Skip if we already found this marker in the AST
       if (hasMarker && !foundMarkers.has(line)) {
         // Find the code block following the marker
@@ -105,12 +107,12 @@ export class CommentMarkedRule implements SnippetExtractionRule {
           const snippetContent = snippetLines.join('\n');
           const startLine = i + 1;
           const endLine = i + snippetLines.length;
-          
+
           // Calculate byte positions more accurately
           let startByte = lines.slice(0, startLine - 1).join('\n').length;
           if (startLine > 1) startByte++; // Account for newline character
           const endByte = startByte + snippetContent.length;
-          
+
           const snippet: SnippetChunk = {
             id: this.generateSnippetId(snippetContent, startLine),
             content: snippetContent,
@@ -126,26 +128,26 @@ export class CommentMarkedRule implements SnippetExtractionRule {
               snippetType: 'comment_marked',
               contextInfo: {
                 nestingLevel: 0,
-                surroundingCode: this.getSurroundingCode(lines, startLine, endLine)
+                surroundingCode: this.getSurroundingCode(lines, startLine, endLine),
               },
               languageFeatures: this.analyzeLanguageFeatures(snippetContent),
               complexity: this.calculateComplexity(snippetContent),
               isStandalone: true,
               hasSideEffects: this.hasSideEffects(snippetContent),
-              commentMarkers: [line]
-            }
+              commentMarkers: [line],
+            },
           };
-          
+
           snippets.push(snippet);
         }
       }
     }
-    
+
     // Debug: Log the number of comment markers found
     console.log(`[DEBUG] Found ${snippets.length} comment-marked snippets`);
     console.log(`[DEBUG] AST markers: ${Array.from(foundMarkers).join(', ')}`);
     console.log(`[DEBUG] AST snippets count: ${snippets.length}`);
-    
+
     // Debug: Log direct scanning results
     const directMarkers = [];
     for (let i = 0; i < lines.length; i++) {
@@ -155,7 +157,7 @@ export class CommentMarkedRule implements SnippetExtractionRule {
       }
     }
     console.log(`[DEBUG] Direct markers: ${directMarkers.join(', ')}`);
-    
+
     return snippets;
   }
 
@@ -165,41 +167,41 @@ export class CommentMarkedRule implements SnippetExtractionRule {
 
   private extractCodeBlockAfterMarker(lines: string[], startLine: number): string[] {
     const snippetLines: string[] = [];
-    
+
     for (let i = startLine; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
-      
+
       // Stop if we encounter another marker
       if (i > startLine && this.snippetMarkerRegex.test(trimmedLine)) {
         break;
       }
-      
+
       // Stop if we encounter an empty line (end of function)
       if (trimmedLine === '') {
         break;
       }
-      
+
       snippetLines.push(line);
     }
-    
+
     return snippetLines;
   }
 
   private getSurroundingCode(lines: string[], startLine: number, endLine: number): string {
     const contextLines = 2;
     const surroundingLines = [];
-    
+
     // Add lines before
     for (let i = Math.max(0, startLine - contextLines); i < startLine; i++) {
       surroundingLines.push(lines[i]);
     }
-    
+
     // Add lines after
     for (let i = endLine; i < Math.min(lines.length, endLine + contextLines); i++) {
       surroundingLines.push(lines[i]);
     }
-    
+
     return surroundingLines.join('\n');
   }
 
@@ -224,7 +226,7 @@ export class CommentMarkedRule implements SnippetExtractionRule {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return hash.toString(36);

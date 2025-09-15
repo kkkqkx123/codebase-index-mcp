@@ -94,22 +94,22 @@ export class PerformanceAnalysisService {
     try {
       // Get query performance stats
       const queryStats = await this.performanceMonitor.getStats(period);
-      
+
       // Get batch processing stats
       const batchStats = this.batchMetrics.getStats(period);
-      
+
       // Get resource usage from Prometheus metrics
       // In a real implementation, this would come from actual Prometheus queries
       const resourceUsage = {
         averageMemory: Math.random() * 100,
         peakMemory: Math.random() * 100,
         averageCpu: Math.random() * 100,
-        peakCpu: Math.random() * 100
+        peakCpu: Math.random() * 100,
       };
 
       // Identify bottlenecks
       const bottlenecks = this.identifyBottlenecks(queryStats, batchStats, resourceUsage);
-      
+
       // Generate recommendations
       const recommendations = this.generateRecommendations(queryStats, batchStats, bottlenecks);
 
@@ -123,7 +123,7 @@ export class PerformanceAnalysisService {
           p99Latency: queryStats.p99Latency,
           throughput: queryStats.throughput,
           errorRate: queryStats.errorRate,
-          cacheHitRate: queryStats.cacheHitRate
+          cacheHitRate: queryStats.cacheHitRate,
         },
         batchPerformance: {
           totalOperations: batchStats.totalOperations,
@@ -132,34 +132,32 @@ export class PerformanceAnalysisService {
           p99Duration: batchStats.p99Latency,
           averageThroughput: batchStats.throughput,
           errorRate: batchStats.errorRate,
-          memoryEfficiency: batchStats.memoryEfficiency
+          memoryEfficiency: batchStats.memoryEfficiency,
         },
         resourceUsage,
         bottlenecks,
-        recommendations
+        recommendations,
       };
 
       this.logger.info('Performance report generated', {
         period: `${period.start.toISOString()} to ${period.end.toISOString()}`,
         totalQueries: report.queryPerformance.totalQueries,
-        totalOperations: report.batchPerformance.totalOperations
+        totalOperations: report.batchPerformance.totalOperations,
       });
 
       return report;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to generate performance report: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to generate performance report: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'PerformanceAnalysisService', operation: 'generatePerformanceReport' }
       );
       throw error;
     }
   }
 
-  private identifyBottlenecks(
-    queryStats: any,
-    batchStats: any,
-    resourceUsage: any
-  ): Bottleneck[] {
+  private identifyBottlenecks(queryStats: any, batchStats: any, resourceUsage: any): Bottleneck[] {
     const bottlenecks: Bottleneck[] = [];
 
     // Check for high query latency
@@ -172,8 +170,8 @@ export class PerformanceAnalysisService {
         impact: 'Users are experiencing slow search responses',
         metrics: {
           p95Latency: queryStats.p95Latency,
-          averageLatency: queryStats.averageLatency
-        }
+          averageLatency: queryStats.averageLatency,
+        },
       });
     }
 
@@ -186,8 +184,8 @@ export class PerformanceAnalysisService {
         description: 'Low cache hit rate',
         impact: 'Increased database load and slower queries',
         metrics: {
-          cacheHitRate: queryStats.cacheHitRate
-        }
+          cacheHitRate: queryStats.cacheHitRate,
+        },
       });
     }
 
@@ -200,8 +198,8 @@ export class PerformanceAnalysisService {
         description: 'High query error rate',
         impact: 'Degraded user experience and potential data issues',
         metrics: {
-          errorRate: queryStats.errorRate
-        }
+          errorRate: queryStats.errorRate,
+        },
       });
     }
 
@@ -215,8 +213,8 @@ export class PerformanceAnalysisService {
         impact: 'Slower indexing and sync operations',
         metrics: {
           p95Duration: batchStats.p95Latency,
-          averageDuration: batchStats.averageLatency
-        }
+          averageDuration: batchStats.averageLatency,
+        },
       });
     }
 
@@ -230,8 +228,8 @@ export class PerformanceAnalysisService {
         impact: 'Risk of out-of-memory errors and performance degradation',
         metrics: {
           averageMemory: resourceUsage.averageMemory,
-          peakMemory: resourceUsage.peakMemory
-        }
+          peakMemory: resourceUsage.peakMemory,
+        },
       });
     }
 
@@ -245,8 +243,8 @@ export class PerformanceAnalysisService {
         impact: 'System may become unresponsive under load',
         metrics: {
           averageCpu: resourceUsage.averageCpu,
-          peakCpu: resourceUsage.peakCpu
-        }
+          peakCpu: resourceUsage.peakCpu,
+        },
       });
     }
 
@@ -268,7 +266,7 @@ export class PerformanceAnalysisService {
         priority: 'high',
         description: 'Increase cache size to improve cache hit rate',
         implementation: 'Adjust cache configuration in config file and restart service',
-        expectedImpact: 'Reduced database load and improved query response times'
+        expectedImpact: 'Reduced database load and improved query response times',
       });
     }
 
@@ -279,7 +277,7 @@ export class PerformanceAnalysisService {
         priority: 'high',
         description: 'Optimize database indexes for faster queries',
         implementation: 'Review and optimize Qdrant collection indexes and Nebula graph schema',
-        expectedImpact: 'Reduced query latency by 30-50%'
+        expectedImpact: 'Reduced query latency by 30-50%',
       });
     }
 
@@ -291,7 +289,7 @@ export class PerformanceAnalysisService {
         priority: 'high',
         description: 'Improve error handling in batch processing',
         implementation: 'Review batch processing error handling and implement retry mechanisms',
-        expectedImpact: 'Reduced batch processing error rate by 50-80%'
+        expectedImpact: 'Reduced batch processing error rate by 50-80%',
       });
     }
 
@@ -301,13 +299,16 @@ export class PerformanceAnalysisService {
         type: 'optimization',
         priority: 'medium',
         description: 'Optimize memory usage in batch processing',
-        implementation: 'Review batch processing algorithms and implement memory-efficient techniques',
-        expectedImpact: 'Improved memory efficiency by 20-40%'
+        implementation:
+          'Review batch processing algorithms and implement memory-efficient techniques',
+        expectedImpact: 'Improved memory efficiency by 20-40%',
       });
     }
 
     // General recommendations based on bottlenecks
-    const highSeverityBottlenecks = bottlenecks.filter(b => b.severity === 'high' || b.severity === 'critical');
+    const highSeverityBottlenecks = bottlenecks.filter(
+      b => b.severity === 'high' || b.severity === 'critical'
+    );
     if (highSeverityBottlenecks.length > 0) {
       recommendations.push({
         id: 'scale-resources',
@@ -315,7 +316,7 @@ export class PerformanceAnalysisService {
         priority: 'critical',
         description: 'Scale system resources to handle current load',
         implementation: 'Increase memory, CPU, or add more instances',
-        expectedImpact: 'Eliminate resource bottlenecks and improve performance'
+        expectedImpact: 'Eliminate resource bottlenecks and improve performance',
       });
     }
 
@@ -326,13 +327,13 @@ export class PerformanceAnalysisService {
     try {
       // Get real-time stats
       const realTimeStats = await this.performanceMonitor.getRealTimeStats();
-      
+
       // Mock resource usage data
       const resourceUsage = {
         averageMemory: realTimeStats.systemLoad.memory,
         peakMemory: realTimeStats.systemLoad.memory,
         averageCpu: realTimeStats.systemLoad.cpu,
-        peakCpu: realTimeStats.systemLoad.cpu
+        peakCpu: realTimeStats.systemLoad.cpu,
       };
 
       // Mock batch stats for real-time analysis
@@ -340,7 +341,7 @@ export class PerformanceAnalysisService {
         p95Latency: 0,
         averageLatency: 0,
         errorRate: 0,
-        memoryEfficiency: 0
+        memoryEfficiency: 0,
       };
 
       // Mock query stats for real-time analysis
@@ -348,7 +349,7 @@ export class PerformanceAnalysisService {
         p95Latency: realTimeStats.averageLatency,
         cacheHitRate: realTimeStats.cacheHitRate,
         errorRate: 0,
-        totalQueries: realTimeStats.currentQueries
+        totalQueries: realTimeStats.currentQueries,
       };
 
       // Identify bottlenecks
@@ -357,7 +358,9 @@ export class PerformanceAnalysisService {
       return bottlenecks;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to identify real-time bottlenecks: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to identify real-time bottlenecks: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'PerformanceAnalysisService', operation: 'identifyBottlenecksInRealTime' }
       );
       return [];
@@ -390,31 +393,48 @@ export class PerformanceAnalysisService {
         queryPerformance: {
           ...currentReport.queryPerformance,
           averageLatency: currentReport.queryPerformance.averageLatency * 1.1, // 10% slower baseline
-          throughput: currentReport.queryPerformance.throughput * 0.9 // 10% lower throughput baseline
+          throughput: currentReport.queryPerformance.throughput * 0.9, // 10% lower throughput baseline
         },
         batchPerformance: {
           ...currentReport.batchPerformance,
           averageDuration: currentReport.batchPerformance.averageDuration * 1.15, // 15% slower baseline
-          averageThroughput: currentReport.batchPerformance.averageThroughput * 0.85 // 15% lower throughput baseline
-        }
+          averageThroughput: currentReport.batchPerformance.averageThroughput * 0.85, // 15% lower throughput baseline
+        },
       };
 
       // Calculate comparison metrics
       const comparison = {
-        queryLatencyChange: ((currentReport.queryPerformance.averageLatency - baselineReport.queryPerformance.averageLatency) / baselineReport.queryPerformance.averageLatency) * 100,
-        throughputChange: ((currentReport.queryPerformance.throughput - baselineReport.queryPerformance.throughput) / baselineReport.queryPerformance.throughput) * 100,
-        errorRateChange: ((currentReport.queryPerformance.errorRate - baselineReport.queryPerformance.errorRate) / (baselineReport.queryPerformance.errorRate || 0.001)) * 100,
-        resourceUsageChange: ((currentReport.resourceUsage.averageMemory - baselineReport.resourceUsage.averageMemory) / (baselineReport.resourceUsage.averageMemory || 0.001)) * 100
+        queryLatencyChange:
+          ((currentReport.queryPerformance.averageLatency -
+            baselineReport.queryPerformance.averageLatency) /
+            baselineReport.queryPerformance.averageLatency) *
+          100,
+        throughputChange:
+          ((currentReport.queryPerformance.throughput -
+            baselineReport.queryPerformance.throughput) /
+            baselineReport.queryPerformance.throughput) *
+          100,
+        errorRateChange:
+          ((currentReport.queryPerformance.errorRate - baselineReport.queryPerformance.errorRate) /
+            (baselineReport.queryPerformance.errorRate || 0.001)) *
+          100,
+        resourceUsageChange:
+          ((currentReport.resourceUsage.averageMemory -
+            baselineReport.resourceUsage.averageMemory) /
+            (baselineReport.resourceUsage.averageMemory || 0.001)) *
+          100,
       };
 
       return {
         baseline: baselineReport,
         current: currentReport,
-        comparison
+        comparison,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to benchmark performance: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to benchmark performance: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'PerformanceAnalysisService', operation: 'benchmarkPerformance' }
       );
       throw error;
@@ -442,7 +462,7 @@ export class PerformanceAnalysisService {
         cpu: Math.random() * 100,
         memory: Math.random() * 100,
         storage: Math.random() * 100,
-        network: Math.random() * 100
+        network: Math.random() * 100,
       };
 
       // Project 30% growth over next 6 months
@@ -450,7 +470,7 @@ export class PerformanceAnalysisService {
         cpu: currentLoad.cpu * 1.3,
         memory: currentLoad.memory * 1.3,
         storage: currentLoad.storage * 1.5, // Storage typically grows faster
-        network: currentLoad.network * 1.3
+        network: currentLoad.network * 1.3,
       };
 
       // Generate capacity planning recommendations
@@ -463,7 +483,7 @@ export class PerformanceAnalysisService {
           priority: projectedLoad.cpu > 90 ? 'critical' : 'high',
           description: 'Scale CPU resources to handle projected load',
           implementation: 'Add more CPU cores or instances',
-          expectedImpact: 'Maintain system responsiveness under projected load'
+          expectedImpact: 'Maintain system responsiveness under projected load',
         });
       }
 
@@ -474,7 +494,7 @@ export class PerformanceAnalysisService {
           priority: projectedLoad.memory > 90 ? 'critical' : 'high',
           description: 'Scale memory resources to handle projected load',
           implementation: 'Increase RAM or add more instances',
-          expectedImpact: 'Prevent out-of-memory errors under projected load'
+          expectedImpact: 'Prevent out-of-memory errors under projected load',
         });
       }
 
@@ -485,18 +505,20 @@ export class PerformanceAnalysisService {
           priority: projectedLoad.storage > 90 ? 'critical' : 'high',
           description: 'Scale storage resources to handle projected growth',
           implementation: 'Add more storage or implement data archiving',
-          expectedImpact: 'Ensure sufficient storage for projected data growth'
+          expectedImpact: 'Ensure sufficient storage for projected data growth',
         });
       }
 
       return {
         currentLoad,
         projectedLoad,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to generate capacity plan: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to generate capacity plan: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'PerformanceAnalysisService', operation: 'generateCapacityPlan' }
       );
       throw error;

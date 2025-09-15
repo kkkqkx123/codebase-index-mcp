@@ -36,7 +36,10 @@ export class SemgrepScanService implements ISemgrepScanService {
     this.rulesDir = semgrepConfig.customRulesPath || './config/semgrep-rules';
   }
 
-  async scanProject(projectPath: string, options: SemgrepScanOptions = {}): Promise<SemgrepScanResult> {
+  async scanProject(
+    projectPath: string,
+    options: SemgrepScanOptions = {}
+  ): Promise<SemgrepScanResult> {
     const startTime = Date.now();
     this.logger.info(`Starting Semgrep scan for project: ${projectPath}`);
 
@@ -48,10 +51,10 @@ export class SemgrepScanService implements ISemgrepScanService {
 
       // 构建命令参数
       const args = this.buildScanArgs(projectPath, options);
-      
+
       // 执行扫描
       const result = await this.executeSemgrep(args);
-      
+
       const scanResult: SemgrepScanResult = {
         id: `scan-${Date.now()}`,
         projectPath,
@@ -71,7 +74,7 @@ export class SemgrepScanService implements ISemgrepScanService {
             matchingTime: 0,
             ruleParseTime: 0,
             fileParseTime: 0,
-          }
+          },
         },
         findings: result.findings || [],
         errors: result.errors || [],
@@ -79,12 +82,11 @@ export class SemgrepScanService implements ISemgrepScanService {
           semgrepVersion: '',
           configHash: '',
           projectHash: '',
-        }
+        },
       };
 
       this.logger.info(`Semgrep scan completed for ${projectPath} in ${scanResult.duration}ms`);
       return scanResult;
-
     } catch (error) {
       this.logger.error(`Semgrep scan failed for ${projectPath}:`, error);
       throw error;
@@ -95,10 +97,10 @@ export class SemgrepScanService implements ISemgrepScanService {
     try {
       const rulePath = path.join(this.rulesDir, `${rule.id}.yaml`);
       const ruleContent = this.generateRuleYaml(rule);
-      
+
       await fs.mkdir(path.dirname(rulePath), { recursive: true });
       await fs.writeFile(rulePath, ruleContent, 'utf-8');
-      
+
       this.logger.info(`Added custom Semgrep rule: ${rule.id}`);
     } catch (error) {
       this.logger.error('Failed to add custom rule:', error);
@@ -109,7 +111,7 @@ export class SemgrepScanService implements ISemgrepScanService {
   async getAvailableRules(): Promise<SemgrepRule[]> {
     try {
       const rules: SemgrepRule[] = [];
-      
+
       // 检查规则目录是否存在
       try {
         await fs.access(this.rulesDir);
@@ -118,12 +120,12 @@ export class SemgrepScanService implements ISemgrepScanService {
       }
 
       const files = await fs.readdir(this.rulesDir, { recursive: true });
-      
+
       for (const file of files) {
         if (file.toString().endsWith('.yaml') || file.toString().endsWith('.yml')) {
           const filePath = path.join(this.rulesDir, file.toString());
           const content = await fs.readFile(filePath, 'utf-8');
-          
+
           // 解析YAML文件并提取规则信息
           const rule = this.parseRuleFromYaml(content);
           if (rule) {
@@ -143,14 +145,14 @@ export class SemgrepScanService implements ISemgrepScanService {
     try {
       const tempRulePath = path.join(this.rulesDir, 'temp', `${rule.id}.yaml`);
       await fs.mkdir(path.dirname(tempRulePath), { recursive: true });
-      
+
       const ruleContent = this.generateRuleYaml(rule);
       await fs.writeFile(tempRulePath, ruleContent, 'utf-8');
 
       // 使用Semgrep验证规则
       const args = ['--validate', '--config', tempRulePath, '.'];
       const result = await this.executeSemgrep(args, process.cwd());
-      
+
       // 清理临时文件
       await fs.unlink(tempRulePath);
 
@@ -176,12 +178,7 @@ export class SemgrepScanService implements ISemgrepScanService {
   }
 
   private buildScanArgs(projectPath: string, options: SemgrepScanOptions): string[] {
-    const args = [
-      'scan',
-      '--json',
-      '--quiet',
-      '--error',
-    ];
+    const args = ['scan', '--json', '--quiet', '--error'];
 
     // 添加规则
     if (options.rules && options.rules.length > 0) {
@@ -206,8 +203,7 @@ export class SemgrepScanService implements ISemgrepScanService {
 
     // 添加最大文件大小限制
     const semgrepConfig = this.configService.get('semgrep');
-    const maxTargetBytes = options.maxTargetBytes || 
-      semgrepConfig.maxTargetBytes || 1000000;
+    const maxTargetBytes = options.maxTargetBytes || semgrepConfig.maxTargetBytes || 1000000;
     args.push('--max-target-bytes', String(maxTargetBytes));
 
     // 添加项目路径
@@ -226,15 +222,15 @@ export class SemgrepScanService implements ISemgrepScanService {
       let stdout = '';
       let stderr = '';
 
-      child.stdout.on('data', (data) => {
+      child.stdout.on('data', data => {
         stdout += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr.on('data', data => {
         stderr += data.toString();
       });
 
-      child.on('close', (exitCode) => {
+      child.on('close', exitCode => {
         try {
           if (stdout.trim()) {
             const result = JSON.parse(stdout);
@@ -251,36 +247,43 @@ export class SemgrepScanService implements ISemgrepScanService {
             });
           }
         } catch (error) {
-          reject(new Error(`Failed to parse Semgrep output: ${error instanceof Error ? error.message : String(error)}`));
+          reject(
+            new Error(
+              `Failed to parse Semgrep output: ${error instanceof Error ? error.message : String(error)}`
+            )
+          );
         }
       });
 
-      child.on('error', (error) => {
+      child.on('error', error => {
         reject(new Error(`Failed to execute Semgrep: ${error.message}`));
       });
     });
   }
 
-  private async executeCommand(command: string, args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  private async executeCommand(
+    command: string,
+    args: string[]
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
       const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
       let stdout = '';
       let stderr = '';
 
-      child.stdout.on('data', (data) => {
+      child.stdout.on('data', data => {
         stdout += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr.on('data', data => {
         stderr += data.toString();
       });
 
-      child.on('close', (exitCode) => {
+      child.on('close', exitCode => {
         resolve({ exitCode: exitCode || 0, stdout, stderr });
       });
 
-      child.on('error', (error) => {
+      child.on('error', error => {
         reject(error);
       });
     });
@@ -296,10 +299,16 @@ rules:
 ${rule.languages.map(lang => `      - ${lang}`).join('\n')}
     pattern: |
       ${rule.pattern || ''}
-${rule.metadata ? `
+${
+  rule.metadata
+    ? `
     metadata:
-${Object.entries(rule.metadata).map(([key, value]) => `      ${key}: ${value}`).join('\n')}
-` : ''}
+${Object.entries(rule.metadata)
+  .map(([key, value]) => `      ${key}: ${value}`)
+  .join('\n')}
+`
+    : ''
+}
 `;
   }
 
@@ -320,11 +329,14 @@ ${Object.entries(rule.metadata).map(([key, value]) => `      ${key}: ${value}`).
         id: ruleMatch[1],
         message: messageMatch[1].trim(),
         severity: severityMatch[1].toUpperCase() as 'ERROR' | 'WARNING' | 'INFO',
-        languages: languagesMatch[1].trim().split('\n').map(l => l.trim().replace('- ', '')),
+        languages: languagesMatch[1]
+          .trim()
+          .split('\n')
+          .map(l => l.trim().replace('- ', '')),
         pattern: patternMatch[1].trim(),
         metadata: {},
         fix: '',
-        options: {}
+        options: {},
       };
     } catch {
       return null;

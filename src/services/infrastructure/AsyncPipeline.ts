@@ -40,11 +40,14 @@ export interface PipelineMetrics {
   successfulExecutions: number;
   failedExecutions: number;
   averageExecutionTime: number;
-  stepMetrics: Map<string, {
-    executions: number;
-    averageTime: number;
-    failureRate: number;
-  }>;
+  stepMetrics: Map<
+    string,
+    {
+      executions: number;
+      averageTime: number;
+      failureRate: number;
+    }
+  >;
 }
 
 @injectable()
@@ -61,9 +64,9 @@ export class AsyncPipeline {
       retryDelay: 1000,
       continueOnError: false,
       enableMetrics: false,
-      ...options
+      ...options,
     };
-    
+
     this.logger = logger;
     this.metrics = this.initializeMetrics();
   }
@@ -74,9 +77,9 @@ export class AsyncPipeline {
       retryAttempts: this.options.retryAttempts,
       retryDelay: this.options.retryDelay,
       continueOnError: this.options.continueOnError,
-      ...step
+      ...step,
     });
-    
+
     return this;
   }
 
@@ -93,7 +96,7 @@ export class AsyncPipeline {
 
     this.logger?.info('Starting pipeline execution', {
       stepsCount: this.steps.length,
-      startTime
+      startTime,
     });
 
     try {
@@ -108,14 +111,14 @@ export class AsyncPipeline {
           const stepMetrics = this.metrics.stepMetrics.get(step.name) || {
             executions: 0,
             averageTime: 0,
-            failureRate: 0
+            failureRate: 0,
           };
           stepMetrics.executions++;
           this.metrics.stepMetrics.set(step.name, stepMetrics);
         }
 
         const stepEndTime = Date.now();
-        
+
         try {
           // Execute step with retry logic
           const retryResult = await this.executeStepWithRetry(step, currentData);
@@ -127,10 +130,11 @@ export class AsyncPipeline {
           stepSuccess = false;
           stepError = error instanceof Error ? error.message : String(error);
           retryCount = 0; // Reset on failure
-          
+
           if (this.options.enableMetrics) {
             const stepMetrics = this.metrics.stepMetrics.get(step.name)!;
-            stepMetrics.failureRate = (stepMetrics.failureRate * (stepMetrics.executions - 1) + 1) / stepMetrics.executions;
+            stepMetrics.failureRate =
+              (stepMetrics.failureRate * (stepMetrics.executions - 1) + 1) / stepMetrics.executions;
           }
 
           if (!this.options.continueOnError || step.continueOnError === false) {
@@ -146,7 +150,7 @@ export class AsyncPipeline {
           endTime: stepEndTime,
           duration: stepEndTime - stepStartTime,
           error: stepError,
-          retryCount
+          retryCount,
         };
 
         stepResults.push(stepResult);
@@ -158,14 +162,16 @@ export class AsyncPipeline {
 
         if (this.options.enableMetrics) {
           const stepMetrics = this.metrics.stepMetrics.get(step.name)!;
-          stepMetrics.averageTime = (stepMetrics.averageTime * (stepMetrics.executions - 1) + stepResult.duration) / stepMetrics.executions;
+          stepMetrics.averageTime =
+            (stepMetrics.averageTime * (stepMetrics.executions - 1) + stepResult.duration) /
+            stepMetrics.executions;
         }
 
         this.logger?.debug('Pipeline step completed', {
           step: step.name,
           success: stepSuccess,
           duration: stepResult.duration,
-          retryCount
+          retryCount,
         });
       }
 
@@ -173,7 +179,9 @@ export class AsyncPipeline {
 
       if (this.options.enableMetrics && pipelineSuccess) {
         this.metrics.successfulExecutions++;
-        this.metrics.averageExecutionTime = (this.metrics.averageExecutionTime * (this.metrics.totalExecutions - 1) + totalTime) / this.metrics.totalExecutions;
+        this.metrics.averageExecutionTime =
+          (this.metrics.averageExecutionTime * (this.metrics.totalExecutions - 1) + totalTime) /
+          this.metrics.totalExecutions;
       } else if (this.options.enableMetrics) {
         this.metrics.failedExecutions++;
       }
@@ -182,7 +190,7 @@ export class AsyncPipeline {
         success: pipelineSuccess,
         totalTime,
         stepsCompleted: stepResults.filter(r => r.success).length,
-        stepsFailed: stepResults.filter(r => !r.success).length
+        stepsFailed: stepResults.filter(r => !r.success).length,
       });
 
       return {
@@ -190,7 +198,7 @@ export class AsyncPipeline {
         data: currentData as R,
         steps: stepResults,
         totalTime,
-        error: pipelineError
+        error: pipelineError,
       };
     } catch (error) {
       const totalTime = Date.now() - startTime;
@@ -202,7 +210,7 @@ export class AsyncPipeline {
 
       this.logger?.error('Pipeline execution failed', {
         error: errorMessage,
-        totalTime
+        totalTime,
       });
 
       return {
@@ -210,7 +218,7 @@ export class AsyncPipeline {
         data: currentData as R,
         steps: stepResults,
         totalTime,
-        error: errorMessage
+        error: errorMessage,
       };
     }
   }
@@ -234,7 +242,10 @@ export class AsyncPipeline {
     return pipeline;
   }
 
-  private async executeStepWithRetry(step: PipelineStep, data: any): Promise<{ result: any; retryCount: number }> {
+  private async executeStepWithRetry(
+    step: PipelineStep,
+    data: any
+  ): Promise<{ result: any; retryCount: number }> {
     let attempts = 0;
     let lastError: string = '';
 
@@ -250,22 +261,22 @@ export class AsyncPipeline {
       } catch (error) {
         attempts++;
         lastError = error instanceof Error ? error.message : String(error);
-        
+
         if (attempts <= (step.retryAttempts || this.options.retryAttempts!)) {
           this.logger?.warn('Pipeline step failed, retrying', {
             step: step.name,
             attempt: attempts,
             maxAttempts: step.retryAttempts || this.options.retryAttempts,
-            error: lastError
+            error: lastError,
           });
-          
+
           // Wait before retry
           await this.delay(step.retryDelay || this.options.retryDelay! * attempts);
         } else {
           this.logger?.error('Pipeline step failed after all retries', {
             step: step.name,
             attempts,
-            error: lastError
+            error: lastError,
           });
           throw new Error(`Step '${step.name}' failed after ${attempts} attempts: ${lastError}`);
         }
@@ -275,15 +286,12 @@ export class AsyncPipeline {
     throw new Error(`Step '${step.name}' failed: ${lastError}`);
   }
 
-  private async executeWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  private async executeWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-      
+
       operation()
         .then(result => {
           clearTimeout(timeout);
@@ -306,7 +314,7 @@ export class AsyncPipeline {
       successfulExecutions: 0,
       failedExecutions: 0,
       averageExecutionTime: 0,
-      stepMetrics: new Map()
+      stepMetrics: new Map(),
     };
   }
 }

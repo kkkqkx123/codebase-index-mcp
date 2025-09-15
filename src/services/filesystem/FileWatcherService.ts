@@ -3,7 +3,11 @@ import chokidar, { FSWatcher, ChokidarOptions } from 'chokidar';
 import path from 'path';
 import fs from 'fs/promises';
 import { LoggerService } from '../../core/LoggerService';
-import { ErrorHandlerService, CodebaseIndexError, ErrorContext } from '../../core/ErrorHandlerService';
+import {
+  ErrorHandlerService,
+  CodebaseIndexError,
+  ErrorContext,
+} from '../../core/ErrorHandlerService';
 import { FileSystemTraversal, FileInfo, TraversalOptions } from './FileSystemTraversal';
 import { TYPES } from '../../types';
 
@@ -68,10 +72,10 @@ export class FileWatcherService {
     this.errorHandler = errorHandler;
     this.fileSystemTraversal = fileSystemTraversal;
     this.traversalOptions = traversalOptions || {};
-    
+
     // Detect test environment
     this.testMode = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
-    
+
     if (this.testMode) {
       this.logger.info('FileWatcherService running in test mode - using optimized settings');
     }
@@ -100,14 +104,14 @@ export class FileWatcherService {
       const errorContext: ErrorContext = {
         component: 'FileWatcherService',
         operation: 'startWatching',
-        metadata: { options }
+        metadata: { options },
       };
-      
+
       const report = this.errorHandler.handleError(
         error instanceof Error ? error : new Error(String(error)),
         errorContext
       );
-      
+
       this.logger.error('Failed to start file watcher', { errorId: report.id });
       throw error;
     }
@@ -140,11 +144,16 @@ export class FileWatcherService {
         ...(options.interval !== undefined && { interval: options.interval }),
         ...(options.binaryInterval !== undefined && { binaryInterval: options.binaryInterval }),
         ...(options.awaitWriteFinish !== undefined && {
-          awaitWriteFinish: options.awaitWriteFinish ? {
-            stabilityThreshold: options.awaitWriteFinishOptions?.stabilityThreshold ?? (this.testMode ? 100 : 2000),
-            pollInterval: options.awaitWriteFinishOptions?.pollInterval ?? (this.testMode ? 25 : 100)
-          } : false
-        })
+          awaitWriteFinish: options.awaitWriteFinish
+            ? {
+                stabilityThreshold:
+                  options.awaitWriteFinishOptions?.stabilityThreshold ??
+                  (this.testMode ? 100 : 2000),
+                pollInterval:
+                  options.awaitWriteFinishOptions?.pollInterval ?? (this.testMode ? 25 : 100),
+              }
+            : false,
+        }),
       };
 
       const watcher = chokidar.watch(watchPath, chokidarOptions);
@@ -152,10 +161,12 @@ export class FileWatcherService {
       watcher
         .on('ready', () => this.handleWatcherReady(watchPath))
         .on('add', (filePath, stats) => this.queueFileEvent('add', filePath, stats, watchPath))
-        .on('change', (filePath, stats) => this.queueFileEvent('change', filePath, stats, watchPath))
-        .on('unlink', (filePath) => this.queueFileEvent('unlink', filePath, undefined, watchPath))
-        .on('addDir', (dirPath) => this.queueFileEvent('addDir', dirPath, undefined, watchPath))
-        .on('unlinkDir', (dirPath) => this.queueFileEvent('unlinkDir', dirPath, undefined, watchPath))
+        .on('change', (filePath, stats) =>
+          this.queueFileEvent('change', filePath, stats, watchPath)
+        )
+        .on('unlink', filePath => this.queueFileEvent('unlink', filePath, undefined, watchPath))
+        .on('addDir', dirPath => this.queueFileEvent('addDir', dirPath, undefined, watchPath))
+        .on('unlinkDir', dirPath => this.queueFileEvent('unlinkDir', dirPath, undefined, watchPath))
         .on('error', (error: unknown) => this.handleWatcherError(error as Error, watchPath));
 
       this.watchers.set(watchPath, watcher);
@@ -164,21 +175,21 @@ export class FileWatcherService {
       const errorContext: ErrorContext = {
         component: 'FileWatcherService',
         operation: 'watchPath',
-        metadata: { watchPath, options }
+        metadata: { watchPath, options },
       };
-      
+
       this.errorHandler.handleError(
         error instanceof Error ? error : new Error(String(error)),
         errorContext
       );
-      
+
       throw error;
     }
   }
 
   private handleWatcherReady(watchPath: string): void {
     this.logger.info(`File watcher ready for path: ${watchPath}`);
-    
+
     if (this.callbacks.onReady) {
       try {
         this.callbacks.onReady();
@@ -191,10 +202,10 @@ export class FileWatcherService {
   private async handleFileAdd(filePath: string, stats: any, watchPath: string): Promise<void> {
     try {
       this.logger.debug(`File added: ${filePath}`, { size: stats?.size });
-      
+
       // Get file info using FileSystemTraversal
       const fileInfo = await this.getFileInfo(filePath, watchPath);
-      
+
       if (fileInfo && this.callbacks.onFileAdded) {
         try {
           this.callbacks.onFileAdded(fileInfo);
@@ -210,10 +221,10 @@ export class FileWatcherService {
   private async handleFileChange(filePath: string, stats: any, watchPath: string): Promise<void> {
     try {
       this.logger.debug(`File changed: ${filePath}`, { size: stats?.size });
-      
+
       // Get file info using FileSystemTraversal
       const fileInfo = await this.getFileInfo(filePath, watchPath);
-      
+
       if (fileInfo && this.callbacks.onFileChanged) {
         try {
           this.callbacks.onFileChanged(fileInfo);
@@ -229,7 +240,7 @@ export class FileWatcherService {
   private handleFileDelete(filePath: string, watchPath: string): void {
     try {
       this.logger.debug(`File deleted: ${filePath}`);
-      
+
       if (this.callbacks.onFileDeleted) {
         try {
           this.callbacks.onFileDeleted(filePath);
@@ -245,7 +256,7 @@ export class FileWatcherService {
   private handleDirectoryAdd(dirPath: string, watchPath: string): void {
     try {
       this.logger.debug(`Directory added: ${dirPath}`);
-      
+
       if (this.callbacks.onDirectoryAdded) {
         try {
           this.callbacks.onDirectoryAdded(dirPath);
@@ -261,7 +272,7 @@ export class FileWatcherService {
   private handleDirectoryDelete(dirPath: string, watchPath: string): void {
     try {
       this.logger.debug(`Directory deleted: ${dirPath}`);
-      
+
       if (this.callbacks.onDirectoryDeleted) {
         try {
           this.callbacks.onDirectoryDeleted(dirPath);
@@ -278,12 +289,12 @@ export class FileWatcherService {
     const errorContext: ErrorContext = {
       component: 'FileWatcherService',
       operation: 'watcher',
-      metadata: { watchPath }
+      metadata: { watchPath },
     };
-    
+
     this.errorHandler.handleError(error, errorContext);
     this.logger.error(`File watcher error for path ${watchPath}`, error);
-    
+
     if (this.callbacks.onError) {
       try {
         this.callbacks.onError(error);
@@ -297,14 +308,14 @@ export class FileWatcherService {
     const errorContext: ErrorContext = {
       component: 'FileWatcherService',
       operation: `fileEvent:${eventType}`,
-      metadata: { filePath }
+      metadata: { filePath },
     };
-    
+
     this.errorHandler.handleError(
       error instanceof Error ? error : new Error(String(error)),
       errorContext
     );
-    
+
     this.logger.error(`Error handling ${eventType} event for file ${filePath}`, error);
   }
 
@@ -312,19 +323,19 @@ export class FileWatcherService {
     const event: FileChangeEvent = {
       type: type as FileChangeEvent['type'],
       path: filePath,
-      stats
+      stats,
     };
-    
+
     // Queue the event for processing
     if (!this.eventQueue.has(watchPath)) {
       this.eventQueue.set(watchPath, []);
     }
-    
+
     this.eventQueue.get(watchPath)!.push(event);
-    
+
     // Reset retry counter for this path
     this.retryAttempts.delete(filePath);
-    
+
     // Schedule processing
     this.scheduleEventProcessing();
   }
@@ -333,10 +344,10 @@ export class FileWatcherService {
     if (this.eventProcessingTimer) {
       clearTimeout(this.eventProcessingTimer);
     }
-    
+
     // Use shorter delay in test mode for faster processing
     const delay = this.testMode ? 10 : 50;
-    
+
     this.eventProcessingTimer = setTimeout(() => {
       this.processEventQueue();
     }, delay);
@@ -346,16 +357,16 @@ export class FileWatcherService {
     if (this.processingQueue) {
       return;
     }
-    
+
     this.processingQueue = true;
-    
+
     try {
       for (const [watchPath, events] of this.eventQueue.entries()) {
         for (const event of events) {
           await this.processFileEvent(event, watchPath);
         }
       }
-      
+
       // Clear processed events
       this.eventQueue.clear();
     } catch (error) {
@@ -368,7 +379,7 @@ export class FileWatcherService {
   private async processFileEvent(event: FileChangeEvent, watchPath: string): Promise<void> {
     const maxRetries = this.testMode ? 5 : this.maxRetries;
     const retryDelay = this.testMode ? 20 : this.retryDelay;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         switch (event.type) {
@@ -388,20 +399,23 @@ export class FileWatcherService {
             this.handleDirectoryDelete(event.path, watchPath);
             break;
         }
-        
+
         // Success - clear retry counter
         this.retryAttempts.delete(event.path);
         break;
       } catch (error) {
         const currentAttempt = this.retryAttempts.get(event.path) || 0;
         this.retryAttempts.set(event.path, currentAttempt + 1);
-        
+
         if (attempt === maxRetries) {
-          this.logger.error(`Failed to process ${event.type} event for ${event.path} after ${maxRetries} attempts`, error);
+          this.logger.error(
+            `Failed to process ${event.type} event for ${event.path} after ${maxRetries} attempts`,
+            error
+          );
           this.handleFileEventError(event.type, event.path, error);
           break;
         }
-        
+
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
       }
@@ -413,18 +427,18 @@ export class FileWatcherService {
     if (!this.testMode) {
       return true;
     }
-    
+
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       if (processedCallback()) {
         return true;
       }
-      
+
       // Wait a bit before checking again
       await new Promise(resolve => setTimeout(resolve, 50));
     }
-    
+
     return false;
   }
 
@@ -433,10 +447,10 @@ export class FileWatcherService {
     if (!this.testMode) {
       return;
     }
-    
+
     // Process any remaining events
     await this.processEventQueue();
-    
+
     // Wait a bit more to ensure all events are processed
     await new Promise(resolve => setTimeout(resolve, 100));
   }
@@ -449,42 +463,42 @@ export class FileWatcherService {
     try {
       const rootPath = path.resolve(watchPath);
       const fullPath = path.resolve(filePath);
-      
+
       // Check if file is within the watch path
       if (!fullPath.startsWith(rootPath)) {
         this.logger.warn(`File path is outside watch path: ${filePath}`);
         return null;
       }
-      
+
       const relativePath = path.relative(rootPath, fullPath);
       const stats = await fs.stat(fullPath);
-      
+
       // Check file size
       const maxFileSize = this.traversalOptions.maxFileSize || 10 * 1024 * 1024; // 10MB default
       if (stats.size > maxFileSize) {
         this.logger.warn(`File too large: ${relativePath} (${stats.size} bytes)`);
         return null;
       }
-      
+
       // Check if file should be ignored
       if (this.shouldIgnoreFile(relativePath)) {
         return null;
       }
-      
+
       const extension = path.extname(fullPath).toLowerCase();
       const language = this.detectLanguage(extension);
-      
+
       if (!language) {
         return null;
       }
-      
+
       const isBinary = await this.fileSystemTraversal['isBinaryFile'](fullPath);
       if (isBinary) {
         return null;
       }
-      
+
       const hash = await this.fileSystemTraversal['calculateFileHash'](fullPath);
-      
+
       return {
         path: fullPath,
         relativePath,
@@ -494,7 +508,7 @@ export class FileWatcherService {
         hash,
         lastModified: stats.mtime,
         language,
-        isBinary
+        isBinary,
       };
     } catch (error) {
       this.logger.error(`Error getting file info for ${filePath}`, error);
@@ -507,23 +521,23 @@ export class FileWatcherService {
       '**/node_modules/**',
       '**/.git/**',
       '**/dist/**',
-      '**/build/**'
+      '**/build/**',
     ];
-    
+
     const fileName = path.basename(relativePath).toLowerCase();
-    
+
     // Check hidden files
     if (this.traversalOptions.ignoreHiddenFiles !== false && fileName.startsWith('.')) {
       return true;
     }
-    
+
     // Check ignore patterns
     for (const pattern of ignorePatterns) {
       if (this.matchesPattern(relativePath, pattern)) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -533,7 +547,7 @@ export class FileWatcherService {
       .replace(/\*/g, '[^/]*')
       .replace(/\?/g, '[^/]')
       .replace(/\./g, '\\.');
-    
+
     try {
       const regex = new RegExp(`^${regexPattern}$`);
       return regex.test(filePath);
@@ -558,13 +572,24 @@ export class FileWatcherService {
       '.c++': 'cpp',
       '.c': 'c',
       '.h': 'c',
-      '.hpp': 'cpp'
+      '.hpp': 'cpp',
     };
-    
+
     const supportedExtensions = this.traversalOptions.supportedExtensions || [
-      '.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.h', '.hpp'
+      '.ts',
+      '.js',
+      '.tsx',
+      '.jsx',
+      '.py',
+      '.java',
+      '.go',
+      '.rs',
+      '.cpp',
+      '.c',
+      '.h',
+      '.hpp',
     ];
-    
+
     const language = languageMap[extension];
     return language && supportedExtensions.includes(extension) ? language : null;
   }
@@ -577,39 +602,42 @@ export class FileWatcherService {
 
     try {
       this.logger.info('Stopping file watcher');
-      
+
       const closePromises: Promise<void>[] = [];
-      
+
       for (const [watchPath, watcher] of this.watchers) {
         closePromises.push(
-          new Promise<void>((resolve) => {
-            watcher.close().then(() => {
-              this.logger.info(`Stopped watching path: ${watchPath}`);
-              resolve();
-            }).catch((error) => {
-              this.logger.error(`Error stopping watcher for path ${watchPath}`, error);
-              resolve();
-            });
+          new Promise<void>(resolve => {
+            watcher
+              .close()
+              .then(() => {
+                this.logger.info(`Stopped watching path: ${watchPath}`);
+                resolve();
+              })
+              .catch(error => {
+                this.logger.error(`Error stopping watcher for path ${watchPath}`, error);
+                resolve();
+              });
           })
         );
       }
-      
+
       await Promise.all(closePromises);
-      
+
       this.watchers.clear();
       this.isWatching = false;
       this.logger.info('File watcher stopped successfully');
     } catch (error) {
       const errorContext: ErrorContext = {
         component: 'FileWatcherService',
-        operation: 'stopWatching'
+        operation: 'stopWatching',
       };
-      
+
       this.errorHandler.handleError(
         error instanceof Error ? error : new Error(String(error)),
         errorContext
       );
-      
+
       throw error;
     }
   }

@@ -14,7 +14,43 @@ export interface CodeChunk {
 }
 
 export interface SnippetMetadata {
-  snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network' | 'vue_component' | 'express_route' | 'pytest_test' | 'junit_test' | 'angular_component' | 'fastapi_route' | 'data_manipulation' | 'go_web_framework' | 'build_configuration' | 'package_management' | 'docker_containerization' | 'cicd_configuration';
+  snippetType:
+    | 'control_structure'
+    | 'error_handling'
+    | 'function_call_chain'
+    | 'expression_sequence'
+    | 'comment_marked'
+    | 'logic_block'
+    | 'object_array_literal'
+    | 'arithmetic_logical_expression'
+    | 'template_literal'
+    | 'destructuring_assignment'
+    | 'generic_pattern'
+    | 'decorator_pattern'
+    | 'async_pattern'
+    | 'python_comprehension'
+    | 'java_stream'
+    | 'java_lambda'
+    | 'functional_programming'
+    | 'go_goroutine'
+    | 'go_interface'
+    | 'react_component'
+    | 'django_model'
+    | 'django_view'
+    | 'spring_boot_controller'
+    | 'pytorch_neural_network'
+    | 'vue_component'
+    | 'express_route'
+    | 'pytest_test'
+    | 'junit_test'
+    | 'angular_component'
+    | 'fastapi_route'
+    | 'data_manipulation'
+    | 'go_web_framework'
+    | 'build_configuration'
+    | 'package_management'
+    | 'docker_containerization'
+    | 'cicd_configuration';
   contextInfo: {
     parentFunction?: string;
     parentClass?: string;

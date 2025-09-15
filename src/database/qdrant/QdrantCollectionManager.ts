@@ -44,7 +44,9 @@ export class QdrantCollectionManager {
         config.recreateCollection
       );
       if (created) {
-        this.logger.info(`Successfully created collection ${collectionName} for project ${projectId}`);
+        this.logger.info(
+          `Successfully created collection ${collectionName} for project ${projectId}`
+        );
       }
       return created;
     } catch (error) {
@@ -58,7 +60,9 @@ export class QdrantCollectionManager {
     try {
       const deleted = await this.client.deleteCollection(collectionName);
       if (deleted) {
-        this.logger.info(`Successfully deleted collection ${collectionName} for project ${projectId}`);
+        this.logger.info(
+          `Successfully deleted collection ${collectionName} for project ${projectId}`
+        );
       }
       return deleted;
     } catch (error) {
@@ -103,7 +107,9 @@ export class QdrantCollectionManager {
     try {
       const cleared = await this.client.clearCollection(collectionName);
       if (cleared) {
-        this.logger.info(`Successfully cleared collection ${collectionName} for project ${projectId}`);
+        this.logger.info(
+          `Successfully cleared collection ${collectionName} for project ${projectId}`
+        );
       }
       return cleared;
     } catch (error) {

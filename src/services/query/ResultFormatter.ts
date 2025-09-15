@@ -125,12 +125,12 @@ export interface ErrorResponse {
 
 @injectable()
 export class ResultFormatter {
-   private logger: LoggerService;
-   private errorHandler: ErrorHandlerService;
-   private configService: ConfigService;
-   private cache: ResultFormatterCache;
-   private configLoader: ResultFormatterConfigLoader;
-   private metricsService?: PrometheusMetricsService;
+  private logger: LoggerService;
+  private errorHandler: ErrorHandlerService;
+  private configService: ConfigService;
+  private cache: ResultFormatterCache;
+  private configLoader: ResultFormatterConfigLoader;
+  private metricsService?: PrometheusMetricsService;
 
   constructor(
     @inject(TYPES.ConfigService) configService: ConfigService,
@@ -140,13 +140,13 @@ export class ResultFormatter {
     @inject(TYPES.ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader,
     @inject(TYPES.PrometheusMetricsService) metricsService?: PrometheusMetricsService
   ) {
-     this.configService = configService;
-     this.logger = logger;
-     this.errorHandler = errorHandler;
-     this.cache = cache;
-     this.configLoader = configLoader;
-     this.metricsService = metricsService;
-   }
+    this.configService = configService;
+    this.logger = logger;
+    this.errorHandler = errorHandler;
+    this.cache = cache;
+    this.configLoader = configLoader;
+    this.metricsService = metricsService;
+  }
 
   private getConfig(): ResultFormatterFullConfig {
     return this.configLoader.loadConfig();
@@ -159,7 +159,7 @@ export class ResultFormatter {
       format: 'json',
       includeMetadata: true,
       maxTokens: 4000,
-      structuredOutput: true
+      structuredOutput: true,
     }
   ): Promise<LLMFormattedResult> {
     const startTime = Date.now();
@@ -167,7 +167,7 @@ export class ResultFormatter {
     // Simple logging for now - metrics integration can be added later
     this.logger.info('Formatting request', {
       provider: options.provider,
-      format: options.format
+      format: options.format,
     });
 
     // Generate cache key based on result and options
@@ -181,15 +181,15 @@ export class ResultFormatter {
         ...cachedResult,
         meta: {
           ...cachedResult.meta,
-          cached: true
-        }
+          cached: true,
+        },
       };
     }
 
     try {
       this.logger.info('Formatting result for LLM', {
         provider: options.provider,
-        format: options.format
+        format: options.format,
       });
 
       // Extract structured data
@@ -202,11 +202,7 @@ export class ResultFormatter {
       const suggestions = this.provideSuggestions(result);
 
       // Format according to provider
-      const formattedResult = this.formatResult(
-        structuredData,
-        summaryData,
-        suggestions
-      );
+      const formattedResult = this.formatResult(structuredData, summaryData, suggestions);
 
       const processingTime = Date.now() - startTime;
 
@@ -215,7 +211,7 @@ export class ResultFormatter {
         processingTime,
         entityCount: structuredData.entities.length,
         provider: options.provider,
-        format: options.format
+        format: options.format,
       });
 
       const resultToCache: LLMFormattedResult = {
@@ -225,8 +221,8 @@ export class ResultFormatter {
           tool: this.determineToolType(result),
           duration_ms: processingTime,
           provider: options.provider,
-          cached: false
-        }
+          cached: false,
+        },
       };
 
       // Cache the result
@@ -237,13 +233,13 @@ export class ResultFormatter {
       const errorContext = {
         component: 'ResultFormatter',
         operation: 'formatForLLM',
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       this.logger.error('Formatting failed', {
         error: error instanceof Error ? error.message : String(error),
         provider: options.provider,
-        duration: errorContext.duration
+        duration: errorContext.duration,
       });
 
       const errorResult = this.errorHandler.handleError(
@@ -257,12 +253,12 @@ export class ResultFormatter {
           errorType: errorResult.type,
           message: error instanceof Error ? error.message : String(error),
           recoverable: true,
-          suggestions: []
+          suggestions: [],
         },
         meta: {
           tool: this.determineToolType(result),
-          duration_ms: Date.now() - startTime
-        }
+          duration_ms: Date.now() - startTime,
+        },
       };
     }
   }
@@ -276,7 +272,7 @@ export class ResultFormatter {
       // Handle GraphAnalysisResult
       if ('nodes' in result && 'edges' in result) {
         const graphResult = result as GraphAnalysisResult;
-        
+
         // Extract nodes as entities
         if (graphResult.nodes) {
           graphResult.nodes.forEach(node => {
@@ -284,11 +280,11 @@ export class ResultFormatter {
               id: node.id,
               type: node.type,
               properties: node.properties,
-              relationships: []
+              relationships: [],
             });
           });
         }
-        
+
         // Extract edges as relationships
         if (graphResult.edges) {
           graphResult.edges.forEach(edge => {
@@ -296,12 +292,12 @@ export class ResultFormatter {
               type: edge.type,
               source: edge.source,
               target: edge.target,
-              properties: edge.properties
+              properties: edge.properties,
             });
           });
         }
       }
-      
+
       // Handle QueryResult
       else if (Array.isArray(result)) {
         result.forEach((item: any) => {
@@ -315,14 +311,14 @@ export class ResultFormatter {
                 startLine: item.startLine,
                 endLine: item.endLine,
                 language: item.language,
-                chunkType: item.chunkType
+                chunkType: item.chunkType,
               },
-              relationships: []
+              relationships: [],
             });
           }
         });
       }
-      
+
       // Handle single QueryResult item
       else if (result.filePath && result.content) {
         entities.push({
@@ -334,9 +330,9 @@ export class ResultFormatter {
             startLine: result.startLine,
             endLine: result.endLine,
             language: result.language,
-            chunkType: result.chunkType
+            chunkType: result.chunkType,
           },
-          relationships: []
+          relationships: [],
         });
       }
 
@@ -345,8 +341,8 @@ export class ResultFormatter {
         metadata: {
           extractionTime: Date.now() - startTime,
           confidence: 0.8,
-          source: 'result_formatter'
-        }
+          source: 'result_formatter',
+        },
       };
     } catch (error) {
       this.logger.error('Failed to extract structured data', { error });
@@ -355,8 +351,8 @@ export class ResultFormatter {
         metadata: {
           extractionTime: Date.now() - startTime,
           confidence: 0,
-          source: 'result_formatter'
-        }
+          source: 'result_formatter',
+        },
       };
     }
   }
@@ -373,30 +369,35 @@ export class ResultFormatter {
         // GraphAnalysisResult
         const graphResult = result as GraphAnalysisResult;
         executiveSummary = this.generateGraphSummary(graphResult);
-        
+
         statistics.totalNodes = graphResult.nodes.length;
         statistics.totalEdges = graphResult.edges.length;
         statistics.averageDegree = graphResult.metrics.averageDegree;
         statistics.maxDepth = graphResult.metrics.maxDepth;
-        
+
         keyFindings.push(`Found ${graphResult.nodes.length} code entities`);
         keyFindings.push(`Identified ${graphResult.edges.length} relationships`);
-        
+
         if (graphResult.metrics.componentCount > 1) {
-          recommendations.push(`Project has ${graphResult.metrics.componentCount} disconnected components, consider reviewing module boundaries`);
+          recommendations.push(
+            `Project has ${graphResult.metrics.componentCount} disconnected components, consider reviewing module boundaries`
+          );
         }
       } else if (Array.isArray(result)) {
         // QueryResult array
         executiveSummary = this.generateQuerySummary(result);
-        
+
         statistics.resultCount = result.length;
-        statistics.averageScore = result.reduce((sum, r) => sum + (r.score || 0), 0) / (result.length || 1);
-        
+        statistics.averageScore =
+          result.reduce((sum, r) => sum + (r.score || 0), 0) / (result.length || 1);
+
         keyFindings.push(`Returned ${result.length} relevant code segments`);
-        
+
         const languages = [...new Set(result.map(r => r.language).filter(Boolean))] as string[];
         if (languages.length > 0) {
-          keyFindings.push(`Results span ${languages.length} programming languages: ${languages.join(', ')}`);
+          keyFindings.push(
+            `Results span ${languages.length} programming languages: ${languages.join(', ')}`
+          );
         }
       } else {
         // Single result or other type
@@ -409,7 +410,7 @@ export class ResultFormatter {
         keyFindings,
         statistics,
         recommendations,
-        confidenceScore: 0.9
+        confidenceScore: 0.9,
       };
     } catch (error) {
       this.logger.error('Failed to generate summary', { error });
@@ -418,21 +419,25 @@ export class ResultFormatter {
         keyFindings: [],
         statistics: {},
         recommendations: [],
-        confidenceScore: 0
+        confidenceScore: 0,
       };
     }
   }
 
   private generateGraphSummary(result: GraphAnalysisResult): string {
-    return `Analyzed codebase structure with ${result.nodes.length} entities and ${result.edges.length} relationships. ` +
-           `The codebase has an average node degree of ${result.metrics.averageDegree.toFixed(2)} ` +
-           `across ${result.metrics.componentCount} connected components.`;
+    return (
+      `Analyzed codebase structure with ${result.nodes.length} entities and ${result.edges.length} relationships. ` +
+      `The codebase has an average node degree of ${result.metrics.averageDegree.toFixed(2)} ` +
+      `across ${result.metrics.componentCount} connected components.`
+    );
   }
 
   private generateQuerySummary(results: QueryResult[]): string {
     const avgScore = results.reduce((sum, r) => sum + (r.score || 0), 0) / (results.length || 1);
-    return `Found ${results.length} relevant code segments with an average relevance score of ${avgScore.toFixed(2)}. ` +
-           `Results include code from ${[...new Set(results.map(r => r.language).filter(Boolean))].join(', ')}.`;
+    return (
+      `Found ${results.length} relevant code segments with an average relevance score of ${avgScore.toFixed(2)}. ` +
+      `Results include code from ${[...new Set(results.map(r => r.language).filter(Boolean))].join(', ')}.`
+    );
   }
 
   private provideSuggestions(result: any): string[] {
@@ -442,19 +447,21 @@ export class ResultFormatter {
       if ('metrics' in result && 'nodes' in result) {
         // GraphAnalysisResult
         const graphResult = result as GraphAnalysisResult;
-        
+
         const cyclicDependencies = this.getCyclicDependencyCount(graphResult);
         if (cyclicDependencies > 0) {
           suggestions.push('Consider refactoring to reduce cyclic dependencies');
         }
-        
+
         if (graphResult.metrics.averageDegree > 5) {
           suggestions.push('Highly connected components detected, consider modularization');
         }
-        
+
         // Check if externalDependencies exists in summary
         if (graphResult.summary && graphResult.summary.externalDependencies > 10) {
-          suggestions.push('Large number of external dependencies, review for security and maintenance');
+          suggestions.push(
+            'Large number of external dependencies, review for security and maintenance'
+          );
         }
       } else if (Array.isArray(result)) {
         // QueryResult array
@@ -462,7 +469,7 @@ export class ResultFormatter {
         if (languages.length > 1) {
           suggestions.push('Results span multiple languages, ensure cross-language consistency');
         }
-        
+
         const avgScore = result.reduce((sum, r) => sum + (r.score || 0), 0) / (result.length || 1);
         if (avgScore < 0.5) {
           suggestions.push('Low average relevance score, consider refining your query');
@@ -485,7 +492,7 @@ export class ResultFormatter {
     return {
       structured: structuredData,
       summary: summaryData,
-      suggestions: suggestions
+      suggestions: suggestions,
     };
   }
 
@@ -502,8 +509,9 @@ export class ResultFormatter {
   private getCyclicDependencyCount(graphResult: GraphAnalysisResult): number {
     // This is a placeholder implementation
     // In a real implementation, this would calculate actual cyclic dependencies
-    return graphResult.metrics.totalEdges > graphResult.metrics.totalNodes ?
-      Math.floor((graphResult.metrics.totalEdges - graphResult.metrics.totalNodes) / 2) : 0;
+    return graphResult.metrics.totalEdges > graphResult.metrics.totalNodes
+      ? Math.floor((graphResult.metrics.totalEdges - graphResult.metrics.totalNodes) / 2)
+      : 0;
   }
 
   private generateCacheKey(result: any, options: ResultFormatterConfig): string {
@@ -516,7 +524,7 @@ export class ResultFormatter {
     let hash = 0;
     for (let i = 0; i < combinedString.length; i++) {
       const char = combinedString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
 
@@ -538,9 +546,10 @@ export class ResultFormatter {
       const configStatus = this.configLoader.loadConfig() ? 'loaded' : 'failed';
       const metricsStatus = this.metricsService ? 'available' : 'unavailable';
 
-      const overallStatus = cacheStatus === 'healthy' && configStatus === 'loaded' && metricsStatus === 'available'
-        ? 'healthy'
-        : 'unhealthy';
+      const overallStatus =
+        cacheStatus === 'healthy' && configStatus === 'loaded' && metricsStatus === 'available'
+          ? 'healthy'
+          : 'unhealthy';
 
       return {
         status: overallStatus,
@@ -548,18 +557,18 @@ export class ResultFormatter {
           cache: {
             status: cacheStatus,
             size: this.cache.size(),
-            maxSize: this.cache['maxSize']
+            maxSize: this.cache['maxSize'],
           },
           config: {
             status: configStatus,
-            loaded: configStatus === 'loaded'
+            loaded: configStatus === 'loaded',
           },
           metrics: {
             status: metricsStatus,
-            available: metricsStatus === 'available'
-          }
+            available: metricsStatus === 'available',
+          },
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
       return {
@@ -567,9 +576,9 @@ export class ResultFormatter {
         details: {
           cache: { status: 'error', size: 0, maxSize: 0 },
           config: { status: 'error', loaded: false },
-          metrics: { status: 'error', available: false }
+          metrics: { status: 'error', available: false },
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -588,7 +597,7 @@ export class ResultFormatter {
       cacheHitRate: 0.8, // Placeholder - would be calculated from actual metrics
       averageProcessingTime: 50, // Placeholder - would be calculated from actual metrics
       errorRate: 0.01, // Placeholder - would be calculated from actual metrics
-      uptime: process.uptime() * 1000
+      uptime: process.uptime() * 1000,
     };
   }
 }

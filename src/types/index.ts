@@ -72,12 +72,12 @@ export const TYPES = {
   GraphSearchService: Symbol.for('GraphSearchService'),
   BatchProcessingService: Symbol.for('BatchProcessingService'),
   EmbeddingService: Symbol.for('EmbeddingService'),
-  
+
   // New services for TreeSitter refactoring
   TreeSitterCoreService: Symbol.for('TreeSitterCoreService'),
   SnippetExtractionService: Symbol.for('SnippetExtractionService'),
   SnippetExtractionRules: Symbol.for('SnippetExtractionRules'),
-  
+
   // Static analysis services
   StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
   SemgrepScanService: Symbol.for('SemgrepScanService'),
@@ -88,21 +88,21 @@ export const TYPES = {
   SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
   SemanticSemgrepService: Symbol.for('SemanticSemgrepService'),
   CallGraphService: Symbol.for('CallGraphService'),
-  
+
   // Embedders
   SiliconFlowEmbedder: Symbol.for('SiliconFlowEmbedder'),
   Custom1Embedder: Symbol.for('Custom1Embedder'),
   Custom2Embedder: Symbol.for('Custom2Embedder'),
   Custom3Embedder: Symbol.for('Custom3Embedder'),
-  
+
   // Config and Factory
   ConfigFactory: Symbol.for('ConfigFactory'),
-  
+
   // Search and cache
   SearchCache: Symbol.for('SearchCache'),
   QdrantCollectionManager: Symbol.for('QdrantCollectionManager'),
   CacheManager: Symbol.for('CacheManager'),
-  
+
   // Processing and pipeline
   AsyncPipeline: Symbol.for('AsyncPipeline'),
   MemoryManager: Symbol.for('MemoryManager'),
@@ -121,7 +121,7 @@ export const TYPES = {
 
   // Parser services
   EnhancedParserService: Symbol.for('EnhancedParserService'),
-  
+
   // Advanced TreeSitter services for Phase 2
   AdvancedTreeSitterService: Symbol.for('AdvancedTreeSitterService'),
   SymbolTableBuilder: Symbol.for('SymbolTableBuilder'),

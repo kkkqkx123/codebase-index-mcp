@@ -5,7 +5,10 @@ import { ParsedFile } from '../../parser/SmartCodeParser';
 import { LoggerService } from '../../../core/LoggerService';
 import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
 import { ConfigService } from '../../../config/ConfigService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from '../../monitoring/BatchProcessingMetrics';
+import {
+  BatchProcessingMetrics,
+  BatchOperationMetrics,
+} from '../../monitoring/BatchProcessingMetrics';
 import { NebulaService } from '../../../database/NebulaService';
 import { NebulaQueryBuilder, BatchVertex } from '../../../database/nebula/NebulaQueryBuilder';
 import { NebulaSpaceManager } from '../../../database/nebula/NebulaSpaceManager';
@@ -145,17 +148,19 @@ export class GraphPersistenceService {
       const errorContext = {
         component: 'GraphPersistenceService',
         operation: 'initialize',
-        retryCount: 0
+        retryCount: 0,
       };
 
       const result = await this.graphErrorHandler.handleError(
-        new Error(`Failed to initialize graph persistence: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to initialize graph persistence: ${error instanceof Error ? error.message : String(error)}`
+        ),
         errorContext
       );
 
       this.logger.error('Failed to initialize graph persistence', {
         errorType: result.action,
-        suggestions: result.suggestions
+        suggestions: result.suggestions,
       });
       return false;
     }
@@ -169,11 +174,11 @@ export class GraphPersistenceService {
       const spaceExists = await this.nebulaSpaceManager.checkSpaceExists(projectId);
       if (!spaceExists) {
         // 获取配置
-        const config = this.configService.get('nebula') || {} as any;
+        const config = this.configService.get('nebula') || ({} as any);
         await this.nebulaSpaceManager.createSpace(projectId, {
           partitionNum: (config as any).partitionNum || 10,
           replicaFactor: (config as any).replicaFactor || 1,
-          vidType: (config as any).vidType || 'FIXED_STRING(32)'
+          vidType: (config as any).vidType || 'FIXED_STRING(32)',
         });
       }
 
@@ -187,24 +192,29 @@ export class GraphPersistenceService {
         component: 'GraphPersistenceService',
         operation: 'initializeProjectSpace',
         projectId,
-        retryCount: 0
+        retryCount: 0,
       };
 
       const result = await this.graphErrorHandler.handleError(
-        new Error(`Failed to initialize project space: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to initialize project space: ${error instanceof Error ? error.message : String(error)}`
+        ),
         errorContext
       );
 
       this.logger.error('Failed to initialize project space', {
         errorType: result.action,
         suggestions: result.suggestions,
-        projectId
+        projectId,
       });
       return false;
     }
   }
 
-  async storeParsedFiles(files: ParsedFile[], options: GraphPersistenceOptions = {}): Promise<GraphPersistenceResult> {
+  async storeParsedFiles(
+    files: ParsedFile[],
+    options: GraphPersistenceOptions = {}
+  ): Promise<GraphPersistenceResult> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -216,11 +226,7 @@ export class GraphPersistenceService {
     const cacheTTL = options.cacheTTL || this.defaultCacheTTL;
 
     // Start batch operation metrics
-    const batchMetrics = this.batchMetrics.startBatchOperation(
-      operationId,
-      'graph',
-      batchSize
-    );
+    const batchMetrics = this.batchMetrics.startBatchOperation(operationId, 'graph', batchSize);
 
     const result: GraphPersistenceResult = {
       success: false,
@@ -228,7 +234,7 @@ export class GraphPersistenceService {
       relationshipsCreated: 0,
       nodesUpdated: 0,
       processingTime: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -238,7 +244,13 @@ export class GraphPersistenceService {
       }
 
       // Use enhanced batch processing with NebulaQueryBuilder
-      const batchResult = await this.processFilesWithEnhancedBatching(files, options, batchSize, useCache, cacheTTL);
+      const batchResult = await this.processFilesWithEnhancedBatching(
+        files,
+        options,
+        batchSize,
+        useCache,
+        cacheTTL
+      );
 
       result.success = batchResult.success;
       result.nodesCreated = batchResult.nodesCreated;
@@ -250,7 +262,7 @@ export class GraphPersistenceService {
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: files.length,
         successCount: result.success ? files.length : 0,
-        errorCount: result.success ? 0 : files.length
+        errorCount: result.success ? 0 : files.length,
       });
 
       // Update performance metrics
@@ -265,7 +277,7 @@ export class GraphPersistenceService {
           processingTime: result.processingTime,
           batchSize,
           cacheEnabled: useCache,
-          cacheHitRate: this.performanceMonitor.getMetrics().cacheHitRate
+          cacheHitRate: this.performanceMonitor.getMetrics().cacheHitRate,
         });
       }
     } catch (error) {
@@ -273,7 +285,7 @@ export class GraphPersistenceService {
         component: 'GraphPersistenceService',
         operation: 'storeParsedFiles',
         fileCount: files.length,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       const errorResult = await this.graphErrorHandler.handleError(
@@ -284,14 +296,14 @@ export class GraphPersistenceService {
       result.errors.push(`Storage failed: ${errorResult.action}`);
       this.logger.error('Failed to store parsed files', {
         errorType: errorResult.action,
-        suggestions: errorResult.suggestions
+        suggestions: errorResult.suggestions,
       });
 
       // Update batch metrics with error
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: 0,
         successCount: 0,
-        errorCount: files.length
+        errorCount: files.length,
       });
     } finally {
       // End batch operation metrics
@@ -301,7 +313,10 @@ export class GraphPersistenceService {
     return result;
   }
 
-  async storeChunks(chunks: CodeChunk[], options: GraphPersistenceOptions = {}): Promise<GraphPersistenceResult> {
+  async storeChunks(
+    chunks: CodeChunk[],
+    options: GraphPersistenceOptions = {}
+  ): Promise<GraphPersistenceResult> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -311,11 +326,7 @@ export class GraphPersistenceService {
     const batchSize = options.batchSize || this.calculateOptimalBatchSize(chunks.length);
 
     // Start batch operation metrics
-    const batchMetrics = this.batchMetrics.startBatchOperation(
-      operationId,
-      'graph',
-      batchSize
-    );
+    const batchMetrics = this.batchMetrics.startBatchOperation(operationId, 'graph', batchSize);
 
     const result: GraphPersistenceResult = {
       success: false,
@@ -323,7 +334,7 @@ export class GraphPersistenceService {
       relationshipsCreated: 0,
       nodesUpdated: 0,
       processingTime: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -368,7 +379,7 @@ export class GraphPersistenceService {
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: chunks.length,
         successCount: result.success ? chunks.length : 0,
-        errorCount: result.success ? 0 : chunks.length
+        errorCount: result.success ? 0 : chunks.length,
       });
 
       if (result.success) {
@@ -377,12 +388,14 @@ export class GraphPersistenceService {
           nodesCreated: result.nodesCreated,
           relationshipsCreated: result.relationshipsCreated,
           processingTime: result.processingTime,
-          batchSize
+          batchSize,
         });
       }
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to store chunks: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to store chunks: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphPersistenceService', operation: 'storeChunks' }
       );
       result.errors.push(`Storage failed: ${report.id}`);
@@ -392,7 +405,7 @@ export class GraphPersistenceService {
       this.batchMetrics.updateBatchOperation(operationId, {
         processedCount: 0,
         successCount: 0,
-        errorCount: chunks.length
+        errorCount: chunks.length,
       });
     } finally {
       // End batch operation metrics
@@ -401,10 +414,7 @@ export class GraphPersistenceService {
 
     return result;
   }
-  private async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  private async processWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
@@ -422,15 +432,18 @@ export class GraphPersistenceService {
     });
   }
 
-  async findRelatedNodes(nodeId: string, relationshipTypes?: string[], maxDepth: number = 2): Promise<CodeGraphNode[]> {
+  async findRelatedNodes(
+    nodeId: string,
+    relationshipTypes?: string[],
+    maxDepth: number = 2
+  ): Promise<CodeGraphNode[]> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     try {
-      const edgeTypes = relationshipTypes && relationshipTypes.length > 0
-        ? relationshipTypes.join(',')
-        : '*'; // Use * to match all edge types
+      const edgeTypes =
+        relationshipTypes && relationshipTypes.length > 0 ? relationshipTypes.join(',') : '*'; // Use * to match all edge types
 
       const query: GraphQuery = {
         nGQL: `
@@ -439,17 +452,21 @@ export class GraphPersistenceService {
           | FETCH PROP ON * $-.destination YIELD vertex AS related
           LIMIT 100
         `,
-        parameters: { nodeId }
+        parameters: { nodeId },
       };
 
       const result = await this.nebulaService.executeReadQuery(query.nGQL, query.parameters);
       if (result && Array.isArray(result)) {
-        return result.map((record: any) => this.recordToGraphNode(record.related || record.vertex || record));
+        return result.map((record: any) =>
+          this.recordToGraphNode(record.related || record.vertex || record)
+        );
       }
       return [];
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to find related nodes: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to find related nodes: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphPersistenceService', operation: 'findRelatedNodes' }
       );
       this.logger.error('Failed to find related nodes', { errorId: report.id, nodeId });
@@ -457,7 +474,11 @@ export class GraphPersistenceService {
     }
   }
 
-  async findPath(sourceId: string, targetId: string, maxDepth: number = 5): Promise<CodeGraphRelationship[]> {
+  async findPath(
+    sourceId: string,
+    targetId: string,
+    maxDepth: number = 5
+  ): Promise<CodeGraphRelationship[]> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -468,7 +489,7 @@ export class GraphPersistenceService {
           FIND SHORTEST PATH FROM $sourceId TO $targetId OVER * UPTO ${maxDepth} STEPS
           YIELD path as p
         `,
-        parameters: { sourceId, targetId }
+        parameters: { sourceId, targetId },
       };
 
       const result = await this.nebulaService.executeReadQuery(query.nGQL, query.parameters);
@@ -517,7 +538,7 @@ export class GraphPersistenceService {
       const errorContext = {
         component: 'GraphPersistenceService',
         operation: 'getGraphStats',
-        query: 'SHOW TAGS; SHOW EDGES'
+        query: 'SHOW TAGS; SHOW EDGES',
       };
 
       const result = await this.graphErrorHandler.handleError(
@@ -527,14 +548,14 @@ export class GraphPersistenceService {
 
       this.logger.error('Failed to get graph stats', {
         errorType: result.action,
-        suggestions: result.suggestions
+        suggestions: result.suggestions,
       });
 
       return {
         nodeCount: 0,
         relationshipCount: 0,
         nodeTypes: {},
-        relationshipTypes: {}
+        relationshipTypes: {},
       };
     }
   }
@@ -557,7 +578,10 @@ export class GraphPersistenceService {
         for (const tag of tagResult) {
           const tagName = tag.Name || tag.name || 'Unknown';
           const countQuery = this.enhancedQueryBuilder.buildNodeCountQuery(tagName);
-          const countResult = await this.nebulaService.executeReadQuery(countQuery.nGQL, countQuery.parameters);
+          const countResult = await this.nebulaService.executeReadQuery(
+            countQuery.nGQL,
+            countQuery.parameters
+          );
 
           if (countResult && Array.isArray(countResult) && countResult.length > 0) {
             nodeTypes[tagName] = countResult[0].total || 0;
@@ -570,7 +594,10 @@ export class GraphPersistenceService {
         for (const edge of edgeResult) {
           const edgeName = edge.Name || edge.name || 'Unknown';
           const countQuery = this.enhancedQueryBuilder.buildRelationshipCountQuery(edgeName);
-          const countResult = await this.nebulaService.executeReadQuery(countQuery.nGQL, countQuery.parameters);
+          const countResult = await this.nebulaService.executeReadQuery(
+            countQuery.nGQL,
+            countQuery.parameters
+          );
 
           if (countResult && Array.isArray(countResult) && countResult.length > 0) {
             relationshipTypes[edgeName] = countResult[0].total || 0;
@@ -579,13 +606,16 @@ export class GraphPersistenceService {
       }
 
       const totalNodes = Object.values(nodeTypes).reduce((sum, count) => sum + count, 0);
-      const totalRelationships = Object.values(relationshipTypes).reduce((sum, count) => sum + count, 0);
+      const totalRelationships = Object.values(relationshipTypes).reduce(
+        (sum, count) => sum + count,
+        0
+      );
 
       return {
         nodeCount: totalNodes,
         relationshipCount: totalRelationships,
         nodeTypes,
-        relationshipTypes
+        relationshipTypes,
       };
     } catch (error) {
       // Fallback to basic implementation
@@ -593,7 +623,7 @@ export class GraphPersistenceService {
         nodeCount: 0,
         relationshipCount: 0,
         nodeTypes: {},
-        relationshipTypes: {}
+        relationshipTypes: {},
       };
     }
   }
@@ -612,7 +642,7 @@ export class GraphPersistenceService {
         const batch = nodeIds.slice(i, i + batchSize);
         const queries: GraphQuery[] = batch.map(nodeId => ({
           nGQL: `DELETE VERTEX $nodeId WITH EDGE`,
-          parameters: { nodeId }
+          parameters: { nodeId },
         }));
 
         // Execute batch deletion
@@ -623,18 +653,20 @@ export class GraphPersistenceService {
       const success = results.every(r => r);
       this.logger.info('Nodes deleted successfully', {
         nodeCount: nodeIds.length,
-        success
+        success,
       });
 
       return success;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to delete nodes: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to delete nodes: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphPersistenceService', operation: 'deleteNodes' }
       );
       this.logger.error('Failed to delete nodes', {
         errorId: report.id,
-        nodeCount: nodeIds.length
+        nodeCount: nodeIds.length,
       });
       return false;
     }
@@ -687,7 +719,7 @@ export class GraphPersistenceService {
         const createSuccess = await this.nebulaSpaceManager.createSpace(projectId, {
           partitionNum: spaceInfo.partition_num,
           replicaFactor: spaceInfo.replica_factor,
-          vidType: spaceInfo.vid_type
+          vidType: spaceInfo.vid_type,
         });
 
         if (!createSuccess) {
@@ -705,25 +737,24 @@ export class GraphPersistenceService {
           projectId,
           spaceName,
           processingTime,
-          method: 'drop_and_recreate_space'
+          method: 'drop_and_recreate_space',
         });
 
         return true;
-
       } catch (spaceMethodError) {
         this.logger.warn('Space recreation method failed, falling back to data deletion method', {
-          error: spaceMethodError instanceof Error ? spaceMethodError.message : String(spaceMethodError)
+          error:
+            spaceMethodError instanceof Error ? spaceMethodError.message : String(spaceMethodError),
         });
 
         // 方法2: 如果空间删除失败，使用批量删除所有数据的方式
         return await this.clearGraphByDeletingData(projectId, spaceName, startTime);
       }
-
     } catch (error) {
       const errorContext = {
         component: 'GraphPersistenceService',
         operation: 'clearGraph',
-        currentSpace: this.currentSpace
+        currentSpace: this.currentSpace,
       };
 
       const result = await this.graphErrorHandler.handleError(
@@ -734,13 +765,17 @@ export class GraphPersistenceService {
       this.logger.error('Failed to clear graph', {
         errorType: result.action,
         suggestions: result.suggestions,
-        currentSpace: this.currentSpace
+        currentSpace: this.currentSpace,
       });
       return false;
     }
   }
 
-  private async clearGraphByDeletingData(projectId: string, spaceName: string, startTime: number): Promise<boolean> {
+  private async clearGraphByDeletingData(
+    projectId: string,
+    spaceName: string,
+    startTime: number
+  ): Promise<boolean> {
     try {
       this.logger.info('Using data deletion method to clear graph');
 
@@ -802,12 +837,14 @@ export class GraphPersistenceService {
         processingTime,
         tagsDeleted: tags.length,
         edgesDeleted: edges.length,
-        method: 'delete_all_data'
+        method: 'delete_all_data',
       });
 
       return true;
     } catch (error) {
-      throw new Error(`Data deletion method failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Data deletion method failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -815,7 +852,11 @@ export class GraphPersistenceService {
     return this.persistenceUtils.extractProjectIdFromCurrentSpace(this.currentSpace);
   }
 
-  private async waitForSpaceDeletion(spaceName: string, maxRetries: number = 30, retryDelay: number = 1000): Promise<void> {
+  private async waitForSpaceDeletion(
+    spaceName: string,
+    maxRetries: number = 30,
+    retryDelay: number = 1000
+  ): Promise<void> {
     await this.persistenceUtils.waitForSpaceDeletion(
       this.nebulaService,
       spaceName,
@@ -833,15 +874,12 @@ export class GraphPersistenceService {
 
     try {
       // Use enhanced error handling for batch operations
-      const result = await this.graphErrorHandler.handleError(
-        new Error('Batch execution'),
-        {
-          component: 'GraphPersistenceService',
-          operation: 'executeBatch',
-          retryCount: queries.length,
-          duration: 0
-        }
-      );
+      const result = await this.graphErrorHandler.handleError(new Error('Batch execution'), {
+        component: 'GraphPersistenceService',
+        operation: 'executeBatch',
+        retryCount: queries.length,
+        duration: 0,
+      });
 
       // Execute the batch transaction
       const results = await this.nebulaService.executeTransaction(queries);
@@ -872,14 +910,14 @@ export class GraphPersistenceService {
         relationshipsCreated,
         nodesUpdated,
         processingTime,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       const errorContext = {
         component: 'GraphPersistenceService',
         operation: 'executeBatch',
         retryCount: 0,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       const result = await this.graphErrorHandler.handleError(
@@ -893,7 +931,7 @@ export class GraphPersistenceService {
         relationshipsCreated: 0,
         nodesUpdated: 0,
         processingTime: Date.now() - startTime,
-        errors: [result.action]
+        errors: [result.action],
       };
     }
   }
@@ -902,7 +940,11 @@ export class GraphPersistenceService {
     return this.persistenceUtils.recordToGraphNode(record);
   }
 
-  private recordToGraphRelationship(record: any, sourceId: string, targetId: string): CodeGraphRelationship {
+  private recordToGraphRelationship(
+    record: any,
+    sourceId: string,
+    targetId: string
+  ): CodeGraphRelationship {
     return this.persistenceUtils.recordToGraphRelationship(record, sourceId, targetId);
   }
 
@@ -921,7 +963,7 @@ export class GraphPersistenceService {
         processingTimeout: batchConfig.processingTimeout || 300000,
         retryAttempts: batchConfig.retryAttempts || 3,
         retryDelay: batchConfig.retryDelay || 1000,
-        adaptiveBatchingEnabled: batchConfig.adaptiveBatching?.enabled !== false
+        adaptiveBatchingEnabled: batchConfig.adaptiveBatching?.enabled !== false,
       });
     }
 
@@ -946,15 +988,14 @@ export class GraphPersistenceService {
     return this.persistenceUtils.checkMemoryUsage();
   }
 
-
-
-
-
   private calculateOptimalBatchSize(totalItems: number): number {
     return this.persistenceUtils.calculateOptimalBatchSize(totalItems);
   }
 
-  async updateChunks(chunks: CodeChunk[], options: GraphPersistenceOptions = {}): Promise<GraphPersistenceResult> {
+  async updateChunks(
+    chunks: CodeChunk[],
+    options: GraphPersistenceOptions = {}
+  ): Promise<GraphPersistenceResult> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -966,7 +1007,7 @@ export class GraphPersistenceService {
       relationshipsCreated: 0,
       nodesUpdated: 0,
       processingTime: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -996,7 +1037,9 @@ export class GraphPersistenceService {
 
       // Create new nodes
       if (nodesToCreate.length > 0) {
-        const createQueries = nodesToCreate.map(chunk => this.persistenceUtils.createChunkQueries(chunk, options)).flat();
+        const createQueries = nodesToCreate
+          .map(chunk => this.persistenceUtils.createChunkQueries(chunk, options))
+          .flat();
         const createResult = await this.executeBatch(createQueries);
 
         if (createResult.success) {
@@ -1016,13 +1059,15 @@ export class GraphPersistenceService {
         totalNodes: chunks.length,
         createdNodes: createdCount,
         updatedNodes: updatedCount,
-        processingTime: result.processingTime
+        processingTime: result.processingTime,
       });
 
       return result;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to update nodes incrementally: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to update nodes incrementally: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphPersistenceService', operation: 'updateChunks' }
       );
       result.errors.push(`Incremental update failed: ${report.id}`);
@@ -1051,19 +1096,21 @@ export class GraphPersistenceService {
       if (success) {
         this.logger.info('Nodes deleted by files', {
           fileCount: filePaths.length,
-          nodeCount: nodeIds.length
+          nodeCount: nodeIds.length,
         });
       }
 
       return success;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to delete nodes by files: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to delete nodes by files: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphPersistenceService', operation: 'deleteNodesByFiles' }
       );
       this.logger.error('Failed to delete nodes by files', {
         errorId: report.id,
-        fileCount: filePaths.length
+        fileCount: filePaths.length,
       });
       return false;
     }
@@ -1077,8 +1124,6 @@ export class GraphPersistenceService {
     const nodeIdsByFiles = await this.persistenceUtils.getNodeIdsByFiles(filePaths);
     return Object.values(nodeIdsByFiles).flat();
   }
-
-
 
   // Enhanced batch processing using NebulaQueryBuilder
   private async processFilesWithEnhancedBatching(
@@ -1095,7 +1140,7 @@ export class GraphPersistenceService {
       relationshipsCreated: 0,
       nodesUpdated: 0,
       processingTime: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -1125,8 +1170,8 @@ export class GraphPersistenceService {
             functions: file.metadata.functions,
             classes: file.metadata.classes,
             lastModified: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+            updatedAt: new Date().toISOString(),
+          },
         });
 
         // Add project relationship if specified
@@ -1135,7 +1180,7 @@ export class GraphPersistenceService {
             type: 'BELONGS_TO',
             srcId: file.id,
             dstId: options.projectId,
-            properties: {}
+            properties: {},
           });
         }
 
@@ -1154,8 +1199,8 @@ export class GraphPersistenceService {
                 parameters: chunk.metadata.parameters || [],
                 returnType: chunk.metadata.returnType || 'unknown',
                 language: chunk.metadata.language || 'unknown',
-                updatedAt: new Date().toISOString()
-              }
+                updatedAt: new Date().toISOString(),
+              },
             });
 
             // Add contains relationship
@@ -1163,7 +1208,7 @@ export class GraphPersistenceService {
               type: 'CONTAINS',
               srcId: file.id,
               dstId: chunk.id,
-              properties: {}
+              properties: {},
             });
           }
 
@@ -1180,8 +1225,8 @@ export class GraphPersistenceService {
                 properties: chunk.metadata.properties || 0,
                 inheritance: chunk.metadata.inheritance || [],
                 language: chunk.metadata.language || 'unknown',
-                updatedAt: new Date().toISOString()
-              }
+                updatedAt: new Date().toISOString(),
+              },
             });
 
             // Add contains relationship
@@ -1189,7 +1234,7 @@ export class GraphPersistenceService {
               type: 'CONTAINS',
               srcId: file.id,
               dstId: chunk.id,
-              properties: {}
+              properties: {},
             });
           }
         }
@@ -1202,15 +1247,15 @@ export class GraphPersistenceService {
             id: importId,
             properties: {
               module: importName,
-              updatedAt: new Date().toISOString()
-            }
+              updatedAt: new Date().toISOString(),
+            },
           });
 
           edges.push({
             type: 'IMPORTS',
             srcId: file.id,
             dstId: importId,
-            properties: {}
+            properties: {},
           });
         }
       }
@@ -1223,8 +1268,8 @@ export class GraphPersistenceService {
           properties: {
             name: options.projectId,
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+            updatedAt: new Date().toISOString(),
+          },
         });
       }
 
@@ -1237,7 +1282,10 @@ export class GraphPersistenceService {
 
       // Process vertex batches
       for (const vertexBatch of vertexBatches) {
-        const cacheKey = `vertices_${vertexBatch.map(v => v.id).sort().join('_')}`;
+        const cacheKey = `vertices_${vertexBatch
+          .map(v => v.id)
+          .sort()
+          .join('_')}`;
 
         if (useCache) {
           const cached = this.cacheService.getFromCache<number>(cacheKey);
@@ -1248,7 +1296,9 @@ export class GraphPersistenceService {
         }
 
         const batchResult = await this.queryBuilder.batchInsertVertices(vertexBatch);
-        const executionResult = await this.executeBatch([{ nGQL: batchResult.query, parameters: batchResult.params }]);
+        const executionResult = await this.executeBatch([
+          { nGQL: batchResult.query, parameters: batchResult.params },
+        ]);
 
         if (executionResult.success) {
           totalNodesCreated += vertexBatch.length;
@@ -1263,7 +1313,9 @@ export class GraphPersistenceService {
       // Process edge batches
       for (const edgeBatch of edgeBatches) {
         const batchResult = await this.queryBuilder.batchInsertEdges(edgeBatch);
-        const executionResult = await this.executeBatch([{ nGQL: batchResult.query, parameters: batchResult.params }]);
+        const executionResult = await this.executeBatch([
+          { nGQL: batchResult.query, parameters: batchResult.params },
+        ]);
 
         if (executionResult.success) {
           totalRelationshipsCreated += edgeBatch.length;
@@ -1285,10 +1337,6 @@ export class GraphPersistenceService {
       return result;
     }
   }
-
-
-
-
 
   async close(): Promise<void> {
     // Close the nebula service

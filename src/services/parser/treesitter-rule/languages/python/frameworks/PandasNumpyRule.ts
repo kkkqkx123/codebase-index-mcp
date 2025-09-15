@@ -15,7 +15,7 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     'function_definition',
     'method_definition',
     'subscript',
-    'operator_expression'
+    'operator_expression',
   ]);
 
   protected snippetType = 'data_manipulation' as const;
@@ -47,7 +47,7 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     'head\\(',
     'tail\\(',
     'iterrows\\(',
-    'itertuples\\('
+    'itertuples\\(',
   ];
 
   private readonly numpyPatterns = [
@@ -85,12 +85,12 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     'where\\(',
     'select\\(',
     'linalg\\.',
-    'fft\\.'
+    'fft\\.',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const nodeText = this.getNodeText(node, sourceCode);
-    
+
     // Check if node contains pandas or numpy patterns
     return this.isPandasPattern(nodeText) || this.isNumpyPattern(nodeText);
   }
@@ -103,24 +103,30 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     return this.numpyPatterns.some(pattern => new RegExp(pattern, 'i').test(text));
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const content = this.getNodeText(node, sourceCode);
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
-    
-    if (!this.validateSnippet({
-      id: '',
-      content,
-      startLine: location.startLine,
-      endLine: location.endLine,
-      startByte: node.startIndex,
-      endByte: node.endIndex,
-      type: 'snippet',
-      imports: [],
-      exports: [],
-      metadata: {},
-      snippetMetadata: {} as SnippetMetadata
-    })) {
+
+    if (
+      !this.validateSnippet({
+        id: '',
+        content,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: node.startIndex,
+        endByte: node.endIndex,
+        type: 'snippet',
+        imports: [],
+        exports: [],
+        metadata: {},
+        snippetMetadata: {} as SnippetMetadata,
+      })
+    ) {
       return null;
     }
 
@@ -134,7 +140,7 @@ export class PandasNumpyRule extends AbstractSnippetRule {
       languageFeatures: this.analyzeLanguageFeatures(content),
       complexity,
       isStandalone: true,
-      hasSideEffects: this.hasSideEffects(content)
+      hasSideEffects: this.hasSideEffects(content),
     };
 
     return {
@@ -148,7 +154,7 @@ export class PandasNumpyRule extends AbstractSnippetRule {
       imports: [],
       exports: [],
       metadata: {},
-      snippetMetadata: metadata
+      snippetMetadata: metadata,
     };
   }
 
@@ -290,7 +296,12 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     }
 
     // Mathematical operations
-    if (text.includes('sum') || text.includes('mean') || text.includes('std') || text.includes('var')) {
+    if (
+      text.includes('sum') ||
+      text.includes('mean') ||
+      text.includes('std') ||
+      text.includes('var')
+    ) {
       operations.push('statistical-operations');
     }
 
@@ -311,7 +322,7 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     const lines = sourceCode.split('\n');
     const startLine = node.startPosition.row;
     const endLine = node.endPosition.row;
-    
+
     return lines.slice(startLine, endLine + 1).join('\n');
   }
 
@@ -324,7 +335,7 @@ export class PandasNumpyRule extends AbstractSnippetRule {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(36);

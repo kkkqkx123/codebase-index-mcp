@@ -77,11 +77,11 @@ export class LSPErrorHandler extends EventEmitter {
 
   async handleError(context: ErrorContext): Promise<ErrorAction> {
     this.recordError(context);
-    
+
     const action = await this.determineAction(context);
-    
+
     this.emit('errorHandled', { context, action });
-    
+
     return action;
   }
 
@@ -117,7 +117,7 @@ export class LSPErrorHandler extends EventEmitter {
     if (this.shouldRestart(context, restartCount)) {
       this.restartCounts.set(key, restartCount + 1);
       this.metrics.restartCount++;
-      
+
       return {
         type: 'restart',
         delay: this.config.restartDelay,
@@ -128,7 +128,7 @@ export class LSPErrorHandler extends EventEmitter {
     // 检查是否应该降级
     if (this.config.fallbackToTreesitter && this.shouldFallback(context)) {
       this.metrics.fallbackCount++;
-      
+
       return {
         type: 'fallback',
         reason: 'LSP unavailable, falling back to Tree-sitter',
@@ -169,31 +169,33 @@ export class LSPErrorHandler extends EventEmitter {
     // 连续错误应该降级
     const key = this.getErrorKey(context);
     const restartCount = this.restartCounts.get(key) || 0;
-    
+
     return restartCount >= this.config.maxRestarts;
   }
 
   private isConnectionError(error: Error): boolean {
-    return error.message.includes('ECONNREFUSED') ||
-           error.message.includes('ENOENT') ||
-           error.message.includes('spawn') ||
-           error.message.includes('connection');
+    return (
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOENT') ||
+      error.message.includes('spawn') ||
+      error.message.includes('connection')
+    );
   }
 
   private isTimeoutError(error: Error): boolean {
-    return error.message.includes('timeout') ||
-           error.message.includes('Timeout');
+    return error.message.includes('timeout') || error.message.includes('Timeout');
   }
 
   private isParseError(error: Error): boolean {
-    return error.message.includes('parse') ||
-           error.message.includes('JSON');
+    return error.message.includes('parse') || error.message.includes('JSON');
   }
 
   private isFatalError(error: Error): boolean {
-    return error.message.includes('fatal') ||
-           error.message.includes('crash') ||
-           error.message.includes('abort');
+    return (
+      error.message.includes('fatal') ||
+      error.message.includes('crash') ||
+      error.message.includes('abort')
+    );
   }
 
   private getErrorKey(context: ErrorContext): string {
@@ -203,7 +205,7 @@ export class LSPErrorHandler extends EventEmitter {
   private logError(context: ErrorContext): void {
     const logLevel = this.config.logLevel;
     const message = this.formatErrorMessage(context);
-    
+
     switch (logLevel) {
       case 'ERROR':
         console.error(message);
@@ -316,12 +318,15 @@ export class LSPErrorHandler extends EventEmitter {
       method,
       filePath,
       timestamp: new Date(),
-      retryCount: this.restartCounts.get(this.getErrorKey({
-        error: new Error(''),
-        workspaceRoot,
-        language,
-        timestamp: new Date()
-      })) || 0,
+      retryCount:
+        this.restartCounts.get(
+          this.getErrorKey({
+            error: new Error(''),
+            workspaceRoot,
+            language,
+            timestamp: new Date(),
+          })
+        ) || 0,
     };
   }
 }

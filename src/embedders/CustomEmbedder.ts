@@ -35,11 +35,13 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(this.getRequestBody(inputs))
+      body: JSON.stringify(this.getRequestBody(inputs)),
     });
 
     if (!response.ok) {
-      throw new Error(`${this.getComponentName()} API request failed with status ${response.status}: ${await response.text()}`);
+      throw new Error(
+        `${this.getComponentName()} API request failed with status ${response.status}: ${await response.text()}`
+      );
     }
 
     return this.processResponse(await response.json());
@@ -60,7 +62,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
 
       const response = await fetch(url, {
         method: 'GET',
-        headers
+        headers,
       });
 
       return response.ok;
@@ -75,7 +77,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
    */
   protected getRequestHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     const apiKey = this.getApiKey();
@@ -92,7 +94,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
   protected getRequestBody(inputs: EmbeddingInput[]): any {
     return {
       input: inputs.map(inp => inp.text),
-      model: this.getModel()
+      model: this.getModel(),
     };
   }
 
@@ -108,7 +110,7 @@ export abstract class HttpEmbedder extends BaseEmbedder implements Embedder {
       vector: item.embedding,
       dimensions: item.embedding.length,
       model: this.getModel(),
-      processingTime: 0 // Will be updated after timing
+      processingTime: 0, // Will be updated after timing
     }));
   }
 }
@@ -173,8 +175,10 @@ export class CustomEmbedder extends HttpEmbedder implements Embedder {
     return `CustomEmbedder-${this.name}`;
   }
 
-  async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
-    return await this.embedWithCache(input, async (inputs) => {
+  async embed(
+    input: EmbeddingInput | EmbeddingInput[]
+  ): Promise<EmbeddingResult | EmbeddingResult[]> {
+    return await this.embedWithCache(input, async inputs => {
       return await this.makeEmbeddingRequest(inputs);
     });
   }

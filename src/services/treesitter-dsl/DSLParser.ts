@@ -40,7 +40,7 @@ export class DSLParser {
       targetType,
       pattern: '', // 将在编译时生成
       conditions,
-      actions
+      actions,
     };
   }
 
@@ -58,7 +58,7 @@ export class DSLParser {
     return token.literal;
   }
 
- private parseConditions(): RuleCondition[] {
+  private parseConditions(): RuleCondition[] {
     const conditions: RuleCondition[] = [];
 
     this.consume('CONDITION', 'Expected "condition" keyword.');
@@ -85,17 +85,17 @@ export class DSLParser {
   private parseCondition(): RuleCondition {
     const typeToken = this.consume('IDENTIFIER', 'Expected condition type.');
     const type = this.mapConditionType(typeToken.lexeme);
-    
+
     this.consume('COLON', 'Expected ":" after condition type.');
-    
+
     let value: string;
     let operator: RuleCondition['operator'] = 'equals';
-    
+
     if (this.check('IDENTIFIER')) {
       // 处理如 greaterThan(5) 这样的表达式
       const funcName = this.advance().lexeme;
       operator = this.mapOperator(funcName);
-      
+
       this.consume('LEFT_PAREN', 'Expected "(" after function name.');
       const valueToken = this.consume(['STRING', 'NUMBER'], 'Expected value.');
       value = valueToken.literal.toString();
@@ -105,7 +105,7 @@ export class DSLParser {
       const valueToken = this.consume(['STRING', 'NUMBER'], 'Expected condition value.');
       value = valueToken.literal.toString();
     }
-    
+
     return { type, value, operator };
   }
 
@@ -207,36 +207,47 @@ export class DSLParser {
       } else {
         throw new Error(`Unexpected token in parameters: ${this.peek()?.type}`);
       }
-      
+
       parameters[key] = value;
-      
+
       // 如果有逗号，消费它
       if (this.check('COMMA')) {
         this.advance();
       }
     }
-    
+
     return parameters;
   }
 
   private mapConditionType(lexeme: string): RuleCondition['type'] {
     switch (lexeme.toLowerCase()) {
-      case 'nodetype': return 'nodeType';
-      case 'contentpattern': return 'contentPattern';
-      case 'complexity': return 'complexity';
-      case 'languagefeature': return 'languageFeature';
-      default: throw new Error(`Unknown condition type: ${lexeme}`);
+      case 'nodetype':
+        return 'nodeType';
+      case 'contentpattern':
+        return 'contentPattern';
+      case 'complexity':
+        return 'complexity';
+      case 'languagefeature':
+        return 'languageFeature';
+      default:
+        throw new Error(`Unknown condition type: ${lexeme}`);
     }
   }
 
   private mapOperator(funcName: string): RuleCondition['operator'] {
     switch (funcName.toLowerCase()) {
-      case 'equals': return 'equals';
-      case 'contains': return 'contains';
-      case 'matches': return 'matches';
-      case 'greaterthan': return 'greaterThan';
-      case 'lessthan': return 'lessThan';
-      default: throw new Error(`Unknown operator: ${funcName}`);
+      case 'equals':
+        return 'equals';
+      case 'contains':
+        return 'contains';
+      case 'matches':
+        return 'matches';
+      case 'greaterthan':
+        return 'greaterThan';
+      case 'lessthan':
+        return 'lessThan';
+      default:
+        throw new Error(`Unknown operator: ${funcName}`);
     }
   }
 

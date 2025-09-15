@@ -70,7 +70,7 @@ export class ChunkProcessingUtils {
       uniqueChunks: 0,
       duplicatesRemoved: 0,
       processingTime: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     try {
@@ -83,9 +83,7 @@ export class ChunkProcessingUtils {
       }
 
       // Store vector points with retry logic
-      const success = await retryOperation(() =>
-        upsertPoints(currentCollection, vectorPoints)
-      );
+      const success = await retryOperation(() => upsertPoints(currentCollection, vectorPoints));
 
       if (success) {
         result.success = true;
@@ -99,7 +97,7 @@ export class ChunkProcessingUtils {
           uniqueChunks: vectorPoints.length,
           duplicatesRemoved: result.duplicatesRemoved,
           processingTime: result.processingTime,
-          batchSize
+          batchSize,
         });
       } else {
         throw new Error(`Failed to ${operationType} vector points in batch`);
@@ -110,7 +108,7 @@ export class ChunkProcessingUtils {
       logger.error(`Failed to ${operationType} chunks in batch`, {
         operationType,
         batchSize,
-        error: errorMessage
+        error: errorMessage,
       });
     }
 

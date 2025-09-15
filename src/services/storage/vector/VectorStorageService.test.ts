@@ -14,7 +14,7 @@ describe('VectorStorageService', () => {
   let mockQdrantClient: jest.Mocked<QdrantClientWrapper>;
   let mockLoggerService: jest.Mocked<LoggerService>;
   let mockConfigService: jest.Mocked<ConfigService>;
- let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
+  let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockBatchMetrics: jest.Mocked<BatchProcessingMetrics>;
   let mockEmbedderFactory: jest.Mocked<EmbedderFactory>;
   let mockBatchProcessingService: jest.Mocked<BatchProcessingService>;
@@ -97,7 +97,7 @@ describe('VectorStorageService', () => {
             collection: 'codebase_vectors',
             vectorSize: 1536,
             recreateCollection: false,
-            distance: 'Cosine'
+            distance: 'Cosine',
           };
         case 'batchProcessing':
           return {
@@ -116,7 +116,7 @@ describe('VectorStorageService', () => {
               maxBatchSize: 1000,
               adjustmentInterval: 1000,
               performanceThreshold: 0.8,
-              adjustmentFactor: 1.5
+              adjustmentFactor: 1.5,
             },
             monitoring: {
               enabled: true,
@@ -128,9 +128,9 @@ describe('VectorStorageService', () => {
                 highMemoryUsage: 80,
                 criticalMemoryUsage: 90,
                 highCpuUsage: 80,
-                criticalCpuUsage: 90
-              }
-            }
+                criticalCpuUsage: 90,
+              },
+            },
           };
         case 'embedding':
           return {
@@ -139,8 +139,8 @@ describe('VectorStorageService', () => {
             openai: {
               apiKey: 'test-key',
               model: 'text-embedding-3-small',
-              dimensions: 1536
-            }
+              dimensions: 1536,
+            },
           };
         default:
           return undefined;
@@ -175,7 +175,7 @@ describe('VectorStorageService', () => {
         name: 'codebase_vectors',
         status: 'green' as const,
         vectors: { size: 1536, distance: 'Cosine' as const },
-        pointsCount: 0
+        pointsCount: 0,
       });
 
       const result = await vectorStorageService.initialize();
@@ -194,7 +194,7 @@ describe('VectorStorageService', () => {
         name: 'codebase_vectors',
         status: 'green' as const,
         vectors: { size: 1536, distance: 'Cosine' as const },
-        pointsCount: 0
+        pointsCount: 0,
       });
 
       const result = await vectorStorageService.initialize();
@@ -254,7 +254,7 @@ describe('VectorStorageService', () => {
         heapTotal: 150000000,
         heapUsed: 50000000,
         external: 10000000,
-        arrayBuffers: 0
+        arrayBuffers: 0,
       });
     });
 
@@ -277,9 +277,9 @@ describe('VectorStorageService', () => {
           metadata: {
             filePath: '/src/test.ts',
             language: 'typescript',
-            functionName: 'test'
-          }
-        }
+            functionName: 'test',
+          },
+        },
       ];
 
       // Reset initialized flag and initialize
@@ -307,8 +307,8 @@ describe('VectorStorageService', () => {
           metadata: {
             filePath: '/src/test1.ts',
             language: 'typescript',
-            functionName: 'test1'
-          }
+            functionName: 'test1',
+          },
         },
         {
           id: 'chunk-2',
@@ -323,9 +323,9 @@ describe('VectorStorageService', () => {
           metadata: {
             filePath: '/src/test2.ts',
             language: 'typescript',
-            functionName: 'test2'
-          }
-        }
+            functionName: 'test2',
+          },
+        },
       ];
 
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
@@ -369,7 +369,7 @@ describe('VectorStorageService', () => {
         heapTotal: 150000000,
         heapUsed: 50000000,
         external: 10000000,
-        arrayBuffers: 0
+        arrayBuffers: 0,
       });
     });
 
@@ -392,9 +392,9 @@ describe('VectorStorageService', () => {
           metadata: {
             filePath: '/src/updated.ts',
             language: 'typescript',
-            functionName: 'updatedFunction'
-          }
-        }
+            functionName: 'updatedFunction',
+          },
+        },
       ];
 
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
@@ -427,10 +427,7 @@ describe('VectorStorageService', () => {
       const result = await vectorStorageService.deleteChunks(chunkIds);
 
       expect(result).toBe(true);
-      expect(mockQdrantClient.deletePoints).toHaveBeenCalledWith(
-        'codebase_vectors',
-        chunkIds
-      );
+      expect(mockQdrantClient.deletePoints).toHaveBeenCalledWith('codebase_vectors', chunkIds);
     });
 
     it('should handle empty chunks array', async () => {
@@ -466,34 +463,35 @@ describe('VectorStorageService', () => {
       const queryVector = [0.1, 0.2, 0.3, 0.4];
       const options = {
         limit: 10,
-        scoreThreshold: 0.8
+        scoreThreshold: 0.8,
       };
 
-      const mockResults = [{
-        id: 'vector-1',
-        score: 0.95,
-        payload: {
-          content: 'function test() { return true; }',
-          filePath: '/src/test.ts',
-          language: 'typescript',
-          chunkType: 'function',
-          startLine: 1,
-          endLine: 5,
-          functionName: 'test',
-          metadata: { functionName: 'test' },
-          timestamp: new Date('2024-01-01')
-        }
-      }];
+      const mockResults = [
+        {
+          id: 'vector-1',
+          score: 0.95,
+          payload: {
+            content: 'function test() { return true; }',
+            filePath: '/src/test.ts',
+            language: 'typescript',
+            chunkType: 'function',
+            startLine: 1,
+            endLine: 5,
+            functionName: 'test',
+            metadata: { functionName: 'test' },
+            timestamp: new Date('2024-01-01'),
+          },
+        },
+      ];
 
       mockQdrantClient.searchVectors.mockResolvedValue(mockResults);
 
       const result = await vectorStorageService.searchVectors(queryVector, options);
 
-      expect(mockQdrantClient.searchVectors).toHaveBeenCalledWith(
-        'codebase_vectors',
-        queryVector,
-        { limit: 10, scoreThreshold: 0.8 }
-      );
+      expect(mockQdrantClient.searchVectors).toHaveBeenCalledWith('codebase_vectors', queryVector, {
+        limit: 10,
+        scoreThreshold: 0.8,
+      });
       expect(result).toEqual(mockResults);
     });
 
@@ -510,8 +508,6 @@ describe('VectorStorageService', () => {
     });
   });
 
-
-
   describe('getCollectionStats', () => {
     beforeEach(() => {
       mockQdrantClient.isConnectedToDatabase.mockReturnValue(true);
@@ -524,7 +520,7 @@ describe('VectorStorageService', () => {
         name: 'codebase_vectors',
         status: 'green' as const,
         vectors: { size: 1536, distance: 'Cosine' as const },
-        pointsCount: 1500
+        pointsCount: 1500,
       };
 
       mockQdrantClient.getCollectionInfo.mockResolvedValue(collectionInfo);

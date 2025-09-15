@@ -25,7 +25,7 @@ export class BatchProcessor {
     timeout: 300000,
     retryAttempts: 3,
     retryDelay: 1000,
-    continueOnError: false
+    continueOnError: false,
   };
 
   constructor(@inject('LoggerService') @optional() private logger?: any) {}
@@ -37,21 +37,21 @@ export class BatchProcessor {
   ): Promise<BatchResult<R>> {
     const startTime = Date.now();
     const config = { ...this.defaultOptions, ...options };
-    
+
     if (items.length === 0) {
       return {
         success: true,
         processedItems: 0,
         results: [],
         errors: [],
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
       };
     }
 
     this.logger?.info('Starting batch processing', {
       totalItems: items.length,
       batchSize: config.batchSize,
-      maxConcurrency: config.maxConcurrency
+      maxConcurrency: config.maxConcurrency,
     });
 
     const results: R[] = [];
@@ -62,14 +62,10 @@ export class BatchProcessor {
       // Process items in batches
       for (let i = 0; i < items.length; i += config.batchSize!) {
         const batch = items.slice(i, i + config.batchSize!);
-        
+
         // Process batch with retry logic
-        const batchResult = await this.processBatchWithRetry(
-          batch,
-          processor,
-          config
-        );
-        
+        const batchResult = await this.processBatchWithRetry(batch, processor, config);
+
         results.push(...batchResult.results);
         errors.push(...batchResult.errors);
         processedItems += batchResult.processedItems;
@@ -78,20 +74,20 @@ export class BatchProcessor {
         if (!config.continueOnError && batchResult.errors.length > 0) {
           this.logger?.warn('Stopping batch processing due to errors', {
             batchIndex: Math.floor(i / config.batchSize!),
-            errors: batchResult.errors
+            errors: batchResult.errors,
           });
           break;
         }
       }
 
       const processingTime = Date.now() - startTime;
-      
+
       this.logger?.info('Batch processing completed', {
         totalItems: items.length,
         processedItems,
         successCount: results.length,
         errorCount: errors.length,
-        processingTime
+        processingTime,
       });
 
       return {
@@ -99,17 +95,17 @@ export class BatchProcessor {
         processedItems,
         results,
         errors,
-        processingTime
+        processingTime,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const processingTime = Date.now() - startTime;
-      
+
       this.logger?.error('Batch processing failed', {
         totalItems: items.length,
         processedItems,
         error: errorMessage,
-        processingTime
+        processingTime,
       });
 
       return {
@@ -117,7 +113,7 @@ export class BatchProcessor {
         processedItems,
         results,
         errors: [...errors, errorMessage],
-        processingTime
+        processingTime,
       };
     }
   }
@@ -133,35 +129,32 @@ export class BatchProcessor {
     while (attempts < options.retryAttempts!) {
       try {
         // Process batch with timeout
-        const results = await this.processWithTimeout(
-          () => processor(batch),
-          options.timeout!
-        );
+        const results = await this.processWithTimeout(() => processor(batch), options.timeout!);
 
         return {
           results,
           errors: [],
-          processedItems: batch.length
+          processedItems: batch.length,
         };
       } catch (error) {
         attempts++;
         lastError = error instanceof Error ? error.message : String(error);
-        
+
         if (attempts < options.retryAttempts!) {
           this.logger?.warn('Batch processing failed, retrying', {
             attempt: attempts,
             maxAttempts: options.retryAttempts,
             batchSize: batch.length,
-            error: lastError
+            error: lastError,
           });
-          
+
           // Wait before retry
           await this.delay(options.retryDelay! * attempts);
         } else {
           this.logger?.error('Batch processing failed after all retries', {
             batchSize: batch.length,
             attempts,
-            error: lastError
+            error: lastError,
           });
         }
       }
@@ -170,19 +163,16 @@ export class BatchProcessor {
     return {
       results: [],
       errors: [lastError],
-      processedItems: 0
+      processedItems: 0,
     };
   }
 
-  private async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  private async processWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-      
+
       operation()
         .then(result => {
           clearTimeout(timeout);

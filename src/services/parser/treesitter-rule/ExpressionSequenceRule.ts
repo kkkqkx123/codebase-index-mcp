@@ -33,8 +33,8 @@ export class ExpressionSequenceRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }

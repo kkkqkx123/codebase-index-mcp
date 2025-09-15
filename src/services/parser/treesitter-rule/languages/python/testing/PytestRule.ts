@@ -9,20 +9,25 @@ export class PytestRule extends AbstractSnippetRule {
   readonly name = 'PytestRule';
   readonly supportedNodeTypes = new Set([
     // Test functions
-    'function_definition', 'decorated_definition',
-    
+    'function_definition',
+    'decorated_definition',
+
     // Decorators
-    'decorator', 'argument_list',
-    
+    'decorator',
+    'argument_list',
+
     // Class definitions
     'class_definition',
-    
+
     // Import statements
-    'import_statement', 'import_from_statement',
-    
+    'import_statement',
+    'import_from_statement',
+
     // Assignment and expressions
-    'assignment', 'call_expression',
-    'expression_statement', 'assert_statement'
+    'assignment',
+    'call_expression',
+    'expression_statement',
+    'assert_statement',
   ]);
 
   protected readonly snippetType = 'pytest_test' as const;
@@ -31,7 +36,7 @@ export class PytestRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check if this is pytest-related code
     return this.isPytestCode(content);
   }
@@ -64,8 +69,8 @@ export class PytestRule extends AbstractSnippetRule {
         complexity: this.calculatePytestComplexity(content),
         isStandalone: this.isStandalonePytestTest(node, content),
         hasSideEffects: this.hasSideEffects(content),
-        pytestInfo: pytestMetadata
-      }
+        pytestInfo: pytestMetadata,
+      },
     };
   }
 
@@ -75,49 +80,49 @@ export class PytestRule extends AbstractSnippetRule {
       /import\s+pytest/,
       /from\s+pytest\s+import/,
       /import\s+.*\bpytest\b/,
-      
+
       // pytest decorators
       /@pytest\.fixture/,
       /@pytest\.mark\.(\w+)/,
       /@pytest\.raises/,
       /@pytest\.parametrize/,
-      
+
       // Test function patterns
       /def\s+test_/,
       /class\s+Test/,
       /def\s+setup_method/,
       /def\s+teardown_method/,
-      
+
       // pytest fixtures and parameters
       /fixture\s*\(/,
       /parametrize\s*\(/,
       /yield\s+fixture/,
-      
+
       // Pytest assertions and utilities
       /assert\s+/,
       /pytest\.assert/,
       /pytest\.approx/,
       /pytest\.warns/,
       /pytest\.fail/,
-      
+
       // Pytest configuration
       /conftest\.py/,
       /pytest\.ini/,
       /pyproject\.toml/,
       /setup\.cfg/,
-      
+
       // Pytest markers
       /@pytest\.mark\.slow/,
       /@pytest\.mark\.unit/,
       /@pytest\.mark\.integration/,
       /@pytest\.mark\.smoke/,
-      
+
       // Pytest plugins and utilities
       /pytest-mock/,
       /pytest-cov/,
       /pytest-asyncio/,
       /pytest-xdist/,
-      
+
       // Common testing patterns
       /monkeypatch/,
       /tmp_path/,
@@ -125,34 +130,30 @@ export class PytestRule extends AbstractSnippetRule {
       /capfd/,
       /caplog/,
       /recwarn/,
-      
+
       // Async test patterns
       /@pytest\.mark\.asyncio/,
-      /async\s+def\s+test_/
+      /async\s+def\s+test_/,
     ];
 
     return pytestPatterns.some(pattern => pattern.test(content));
   }
 
-  private extractPytestMetadata(
-    node: Parser.SyntaxNode,
-    content: string,
-    sourceCode: string
-  ) {
+  private extractPytestMetadata(node: Parser.SyntaxNode, content: string, sourceCode: string) {
     return {
       testStructure: this.extractTestStructure(content),
       patterns: this.extractPytestPatterns(content),
       mocking: this.extractMockingInfo(content),
       configuration: this.extractConfigurationInfo(content),
       assertions: this.extractAssertionsInfo(content),
-      fixtures: this.extractFixturesInfo(content)
+      fixtures: this.extractFixturesInfo(content),
     };
   }
 
   private extractTestStructure(content: string) {
     const fixtures = this.extractPatternMatches(content, [
       /@pytest\.fixture\s*\(\s*([^)]*)\s*\)\s*\ndef\s+(\w+)/g,
-      /def\s+(\w+)\s*\([^)]*fixture[^)]*\)/g
+      /def\s+(\w+)\s*\([^)]*fixture[^)]*\)/g,
     ]);
 
     const parametrizedTests = (content.match(/@pytest\.mark\.parametrize/g) || []).length;
@@ -163,7 +164,7 @@ export class PytestRule extends AbstractSnippetRule {
       fixtures,
       parametrizedTests,
       testCases,
-      testModules
+      testModules,
     };
   }
 
@@ -179,7 +180,7 @@ export class PytestRule extends AbstractSnippetRule {
       usesMarkers,
       usesMocking,
       usesAsserts,
-      usesFixturesScope
+      usesFixturesScope,
     };
   }
 
@@ -187,13 +188,13 @@ export class PytestRule extends AbstractSnippetRule {
     const mockObjects = this.extractPatternMatches(content, [
       /mock\.Mock\s*\(\s*\)/g,
       /Mock\s*\(\s*\)/g,
-      /MagicMock\s*\(\s*\)/g
+      /MagicMock\s*\(\s*\)/g,
     ]);
 
     const patchCalls = this.extractPatternMatches(content, [
       /patch\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
       /monkeypatch\.setattr\s*\(/g,
-      /monkeypatch\.setattr\s*\(/g
+      /monkeypatch\.setattr\s*\(/g,
     ]);
 
     const spyUsage = /spy|Spy/.test(content);
@@ -203,7 +204,7 @@ export class PytestRule extends AbstractSnippetRule {
       mockObjects,
       patchCalls,
       spyUsage,
-      sideEffects
+      sideEffects,
     };
   }
 
@@ -211,12 +212,12 @@ export class PytestRule extends AbstractSnippetRule {
     const customConfig = /pytest\.ini|pyproject\.toml|setup\.cfg/.test(content);
     const commandLineArgs = this.extractPatternMatches(content, [
       /pytest\s+([^'\n]+)\s*--/g,
-      /--(\w+)=?(\w*)/g
+      /--(\w+)=?(\w*)/g,
     ]);
 
     const environmentVariables = this.extractPatternMatches(content, [
       /os\.environ\.get\s*\(\s*['"`](\w+)['"`]\s*\)/g,
-      /environ\[['"`](\w+)['"`]\]/g
+      /environ\[['"`](\w+)['"`]\]/g,
     ]);
 
     const conftestPyUsed = /conftest\.py|def\s+(conftest|pytest_)/.test(content);
@@ -225,7 +226,7 @@ export class PytestRule extends AbstractSnippetRule {
       customConfig,
       commandLineArgs,
       environmentVariables,
-      conftestPyUsed
+      conftestPyUsed,
     };
   }
 
@@ -239,30 +240,30 @@ export class PytestRule extends AbstractSnippetRule {
       assertCount,
       customAssertions,
       exceptionTesting,
-      warningTesting
+      warningTesting,
     };
   }
 
   private extractFixturesInfo(content: string) {
     const autouseFixtures = this.extractPatternMatches(content, [
-      /@pytest\.fixture\s*\([^)]*autouse[^)]*\)\s*def\s+(\w+)/g
+      /@pytest\.fixture\s*\([^)]*autouse[^)]*\)\s*def\s+(\w+)/g,
     ]);
 
     const sessionFixtures = this.extractPatternMatches(content, [
-      /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]session['"`][^)]*\)\s*def\s+(\w+)/g
+      /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]session['"`][^)]*\)\s*def\s+(\w+)/g,
     ]);
 
     const moduleFixtures = this.extractPatternMatches(content, [
-      /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]module['"`][^)]*\)\s*def\s+(\w+)/g
+      /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]module['"`][^)]*\)\s*def\s+(\w+)/g,
     ]);
 
     const classFixtures = this.extractPatternMatches(content, [
-      /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]class['"`][^)]*\)\s*def\s+(\w+)/g
+      /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]class['"`][^)]*\)\s*def\s+(\w+)/g,
     ]);
 
     const functionFixtures = this.extractPatternMatches(content, [
       /@pytest\.fixture\s*\([^)]*scope\s*=\s*['"`]function['"`][^)]*\)\s*def\s+(\w+)/g,
-      /@pytest\.fixture\s*\(\s*\)\s*def\s+(\w+)/g
+      /@pytest\.fixture\s*\(\s*\)\s*def\s+(\w+)/g,
     ]);
 
     return {
@@ -270,13 +271,13 @@ export class PytestRule extends AbstractSnippetRule {
       sessionFixtures,
       moduleFixtures,
       classFixtures,
-      functionFixtures
+      functionFixtures,
     };
   }
 
   private extractPatternMatches(content: string, patterns: RegExp[]): string[] {
     const matches: string[] = [];
-    
+
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(content)) !== null) {
@@ -295,11 +296,13 @@ export class PytestRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_statement' || n.type === 'import_from_statement') {
         const importText = this.getNodeText(n, sourceCode);
-        if (importText.includes('pytest') || 
-            importText.includes('unittest.mock') ||
-            importText.includes('mock') ||
-            importText.includes('fixtures') ||
-            importText.includes('assertions')) {
+        if (
+          importText.includes('pytest') ||
+          importText.includes('unittest.mock') ||
+          importText.includes('mock') ||
+          importText.includes('fixtures') ||
+          importText.includes('assertions')
+        ) {
           imports.push(importText);
         }
       }
@@ -327,9 +330,11 @@ export class PytestRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'function_definition' || n.type === 'decorated_definition') {
         const funcText = this.getNodeText(n, sourceCode);
-        if (funcText.includes('def test_') || 
-            funcText.includes('def pytest_') ||
-            funcText.includes('@pytest.fixture')) {
+        if (
+          funcText.includes('def test_') ||
+          funcText.includes('def pytest_') ||
+          funcText.includes('@pytest.fixture')
+        ) {
           exports.push(funcText.split('\n')[0]); // First line only
         }
       }
@@ -348,15 +353,14 @@ export class PytestRule extends AbstractSnippetRule {
   }
 
   private isStandalonePytestTest(node: Parser.SyntaxNode, content: string): boolean {
-    const testPatterns = [
-      /def\s+test_/,
-      /@pytest\.fixture/,
-      /class\s+Test/,
-      /def\s+pytest_/
-    ];
+    const testPatterns = [/def\s+test_/, /@pytest\.fixture/, /class\s+Test/, /def\s+pytest_/];
 
-    return (node.type === 'function_definition' || node.type === 'decorated_definition' || node.type === 'class_definition') &&
-           testPatterns.some(pattern => pattern.test(content));
+    return (
+      (node.type === 'function_definition' ||
+        node.type === 'decorated_definition' ||
+        node.type === 'class_definition') &&
+      testPatterns.some(pattern => pattern.test(content))
+    );
   }
 
   private calculatePytestComplexity(content: string): number {

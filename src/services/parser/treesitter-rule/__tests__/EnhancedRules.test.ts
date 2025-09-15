@@ -38,7 +38,7 @@ const createMockNode = (
     hasError: () => false,
     isMissing: () => false,
     toString: () => text,
-    walk: () => ({ current: mockNode })
+    walk: () => ({ current: mockNode }),
   };
 
   children.forEach(child => {
@@ -158,7 +158,11 @@ describe('Enhanced Rules - DecoratorPatternRule', () => {
 
     expect(result).toHaveLength(1);
     // Check if decorators contain Python-specific patterns
-    expect(result[0].snippetMetadata.decoratorInfo?.decorators.some(d => d.includes('property') || d.includes('staticmethod'))).toBe(true);
+    expect(
+      result[0].snippetMetadata.decoratorInfo?.decorators.some(
+        d => d.includes('property') || d.includes('staticmethod')
+      )
+    ).toBe(true);
   });
 
   test('should extract Java annotations', () => {
@@ -181,7 +185,11 @@ describe('Enhanced Rules - DecoratorPatternRule', () => {
 
     expect(result).toHaveLength(1);
     // Check if decorators contain Java-specific patterns
-    expect(result[0].snippetMetadata.decoratorInfo?.decorators.some(d => d.includes('RestController') || d.includes('RequestMapping'))).toBe(true);
+    expect(
+      result[0].snippetMetadata.decoratorInfo?.decorators.some(
+        d => d.includes('RestController') || d.includes('RequestMapping')
+      )
+    ).toBe(true);
   });
 
   test('should identify decorator purpose', () => {
@@ -385,7 +393,9 @@ describe('Language-Specific Rules', () => {
     expect(result).toHaveLength(1);
     expect(result[0].snippetMetadata.snippetType).toBe('java_stream');
     // Check stream operations through operations array
-    expect(result[0].snippetMetadata.javaStreamInfo?.operations.some(op => op.includes('stream'))).toBe(true);
+    expect(
+      result[0].snippetMetadata.javaStreamInfo?.operations.some(op => op.includes('stream'))
+    ).toBe(true);
   });
 
   test('GoGoroutineRule should extract concurrency patterns', () => {
@@ -415,12 +425,12 @@ describe('EnhancedRuleFactory', () => {
     const rules = EnhancedRuleFactory.createComprehensiveRules();
 
     expect(rules.length).toBeGreaterThan(10);
-    expect(rules.some((rule: { name: string; }) => rule.name === 'AsyncPatternRule')).toBe(true);
-    expect(rules.some((rule: { name: string; }) => rule.name === 'DecoratorPatternRule')).toBe(true);
+    expect(rules.some((rule: { name: string }) => rule.name === 'AsyncPatternRule')).toBe(true);
+    expect(rules.some((rule: { name: string }) => rule.name === 'DecoratorPatternRule')).toBe(true);
   });
 
   test('should create language-specific rules', () => {
-      const pythonRules = EnhancedRuleFactory.createLanguageSpecificRules('python');
+    const pythonRules = EnhancedRuleFactory.createLanguageSpecificRules('python');
     const javaRules = EnhancedRuleFactory.createLanguageSpecificRules('java');
 
     expect(pythonRules.length).toBeGreaterThan(0);

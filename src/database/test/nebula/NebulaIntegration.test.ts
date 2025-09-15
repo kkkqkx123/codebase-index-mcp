@@ -229,7 +229,9 @@ describe('Nebula Database Integration Tests', () => {
         expect(nodeId).toBe('test_1');
 
         // Find the node
-        const nodes = await nebulaConnectionManager.findNodesByLabel('test_person', { name: 'Test User' });
+        const nodes = await nebulaConnectionManager.findNodesByLabel('test_person', {
+          name: 'Test User',
+        });
         expect(nodes).toBeDefined();
         expect(Array.isArray(nodes)).toBe(true);
       } catch (error) {

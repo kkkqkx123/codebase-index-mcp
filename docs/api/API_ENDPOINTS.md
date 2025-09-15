@@ -255,7 +255,126 @@ Defined in: `src/api/routes/SearchRoutes.ts`
    - Body:
      - Advanced search parameters
 
-## 6. Root Endpoint
+## 7. Graph Analysis API (`/api/v1/graph`)
+
+Defined in: `src/api/routes/GraphAnalysisRoutes.ts`
+
+### Endpoints:
+
+1. **POST /analyze**
+   - Description: Analyze codebase structure and relationships
+   - Body:
+     - `projectId` (required): Project ID to analyze
+     - `options` (optional): Analysis options including depth, focus, includeExternal
+
+2. **POST /query**
+   - Description: Execute custom graph queries
+   - Body:
+     - `query` (required): Graph query string
+     - `projectId` (required): Project ID
+
+3. **POST /dependencies**
+   - Description: Find dependencies for a specific file
+   - Body:
+     - `filePath` (required): Path to the file
+     - `projectId` (required): Project ID
+     - `includeTransitive` (optional, default: true): Include transitive dependencies
+     - `includeCircular` (optional, default: true): Include circular dependencies
+
+4. **POST /callgraph**
+   - Description: Get call graph for a function
+   - Body:
+     - `functionName` (required): Function name to analyze
+     - `projectId` (required): Project ID
+     - `depth` (optional, default: 3): Analysis depth
+
+5. **GET /overview/:projectId**
+   - Description: Get project graph overview
+   - Parameters:
+     - `projectId` (path, required): Project ID
+
+6. **GET /circular/:projectId**
+   - Description: Find circular dependencies in project
+   - Parameters:
+     - `projectId` (path, required): Project ID
+
+7. **GET /metrics/:projectId**
+   - Description: Get graph metrics for project
+   - Parameters:
+     - `projectId` (path, required): Project ID
+
+8. **POST /impact**
+   - Description: Find nodes impacted by changes to specified nodes
+   - Body:
+     - `nodeIds` (required): Array of node IDs to analyze
+     - `projectId` (required): Project ID
+     - `depth` (optional, default: 2): Impact analysis depth
+
+## 8. File System API (`/api/v1/filesystem`)
+
+Defined in: `src/api/routes/FileSystemRoutes.ts`
+
+### Endpoints:
+
+1. **POST /traverse**
+   - Description: Traverse directory and collect file information
+   - Body:
+     - `rootPath` (required): Root directory path to traverse
+     - `options` (optional): Traversal options including patterns, maxFileSize, etc.
+
+2. **POST /content**
+   - Description: Get file content
+   - Body:
+     - `filePath` (required): Path to the file
+     - `projectId` (optional): Project ID
+     - `encoding` (optional, default: utf8): File encoding
+
+3. **POST /watch/start**
+   - Description: Start file watcher for project paths
+   - Body:
+     - `projectId` (required): Project ID
+     - `paths` (required): Array of paths to watch
+     - `options` (optional): Watcher options
+
+4. **POST /watch/stop**
+   - Description: Stop file watcher for project
+   - Body:
+     - `projectId` (required): Project ID
+
+5. **GET /watch/status/:projectId**
+   - Description: Get file watcher status
+   - Parameters:
+     - `projectId` (path, required): Project ID
+
+6. **POST /search**
+   - Description: Search files by pattern
+   - Body:
+     - `rootPath` (required): Root directory to search in
+     - `pattern` (required): Search pattern
+     - `options` (optional): Search options including caseSensitive, maxResults, etc.
+
+7. **POST /analyze**
+   - Description: Analyze directory structure and statistics
+   - Body:
+     - `rootPath` (required): Root directory to analyze
+     - `options` (optional): Analysis options including includeStats, includeStructure, etc.
+
+8. **GET /info/:filePath(*)**
+   - Description: Get file information
+   - Parameters:
+     - `filePath` (path, required): File path
+
+9. **GET /list/:dirPath(*)**
+   - Description: List directory contents
+   - Parameters:
+     - `dirPath` (path, required): Directory path
+
+10. **GET /exists/:path(*)**
+    - Description: Check if path exists
+    - Parameters:
+      - `path` (path, required): Path to check
+
+## 9. Root Endpoint
 
 Defined in: `src/api/HttpServer.ts`
 

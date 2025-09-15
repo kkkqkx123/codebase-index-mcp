@@ -108,24 +108,24 @@ export class SnippetRoutes {
   private async searchSnippets(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { query, projectId, limit, offset, filters, sortBy, sortOrder } = req.query;
-      
+
       // Validate required query parameter
       if (!query) {
         res.status(400).json({
           success: false,
           error: 'Bad Request',
-          message: 'Query parameter is required'
+          message: 'Query parameter is required',
         });
         return;
       }
-      
+
       const result = await this.snippetController.searchSnippets(query as string, {
         projectId: projectId as string,
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
         filters: filters ? JSON.parse(filters as string) : undefined,
         sortBy: sortBy as string,
-        sortOrder: sortOrder as 'asc' | 'desc'
+        sortOrder: sortOrder as 'asc' | 'desc',
       });
       res.status(200).json(result);
     } catch (error) {
@@ -138,24 +138,28 @@ export class SnippetRoutes {
       const { snippetId } = req.params;
       const { projectId } = req.query;
       const result = await this.snippetController.getSnippetById(snippetId, projectId as string);
-      
+
       // Check if snippet exists
       if (result === null) {
         res.status(404).json({
           success: false,
           error: 'Not Found',
-          message: 'Snippet not found'
+          message: 'Snippet not found',
         });
         return;
       }
-      
+
       res.status(200).json(result);
     } catch (error) {
       next(error);
     }
   }
 
-  private async getSnippetProcessingStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  private async getSnippetProcessingStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { projectId } = req.params;
       const result = await this.snippetController.getSnippetProcessingStatus(projectId);
@@ -182,7 +186,7 @@ export class SnippetRoutes {
       const result = {
         id: 'snippet_456',
         success: true,
-        message: 'Snippet indexed successfully'
+        message: 'Snippet indexed successfully',
       };
       res.status(200).json(result);
     } catch (error) {
@@ -198,7 +202,7 @@ export class SnippetRoutes {
       const result = {
         id: snippetId,
         success: true,
-        message: 'Snippet updated successfully'
+        message: 'Snippet updated successfully',
       };
       res.status(200).json(result);
     } catch (error) {
@@ -214,7 +218,7 @@ export class SnippetRoutes {
       const result = {
         id: snippetId,
         success: true,
-        message: 'Snippet deleted successfully'
+        message: 'Snippet deleted successfully',
       };
       res.status(200).json(result);
     } catch (error) {
@@ -222,7 +226,11 @@ export class SnippetRoutes {
     }
   }
 
-  private async detectCrossReferences(req: Request, res: Response, next: NextFunction): Promise<void> {
+  private async detectCrossReferences(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { snippetId, projectId } = req.params;
       const result = await this.snippetController.detectCrossReferences(snippetId, projectId);
@@ -232,7 +240,11 @@ export class SnippetRoutes {
     }
   }
 
-  private async analyzeDependencies(req: Request, res: Response, next: NextFunction): Promise<void> {
+  private async analyzeDependencies(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { snippetId, projectId } = req.params;
       const result = await this.snippetController.analyzeDependencies(snippetId, projectId);

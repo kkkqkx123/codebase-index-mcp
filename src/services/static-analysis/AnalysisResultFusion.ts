@@ -9,17 +9,12 @@ import { SemgrepFinding } from '../../models/StaticAnalysisTypes';
  */
 @injectable()
 export class AnalysisResultFusion {
-  constructor(
-    @inject(TYPES.LoggerService) private logger: LoggerService
-  ) {}
+  constructor(@inject(TYPES.LoggerService) private logger: LoggerService) {}
 
   /**
    * 融合静态分析结果与图数据库信息
    */
-  async fuseWithGraphData(
-    findings: SemgrepFinding[],
-    graphData: any
-  ): Promise<EnhancedFinding[]> {
+  async fuseWithGraphData(findings: SemgrepFinding[], graphData: any): Promise<EnhancedFinding[]> {
     try {
       const enhancedFindings: EnhancedFinding[] = [];
 
@@ -70,7 +65,7 @@ export class AnalysisResultFusion {
   ): Promise<FusionReport> {
     try {
       const enhancedFindings = await this.fuseAllData(findings, contextData);
-      
+
       return {
         summary: this.generateSummary(enhancedFindings),
         findings: enhancedFindings,
@@ -94,13 +89,17 @@ export class AnalysisResultFusion {
     const graphContext = {
       // 查找相关文件
       relatedFiles: await this.findRelatedFiles(finding.location.file, graphData),
-      
+
       // 查找调用关系
-      callGraph: await this.buildCallGraph(finding.location.file, finding.location.start.line, graphData),
-      
+      callGraph: await this.buildCallGraph(
+        finding.location.file,
+        finding.location.start.line,
+        graphData
+      ),
+
       // 查找依赖关系
       dependencies: await this.findDependencies(finding.location.file, graphData),
-      
+
       // 查找相似模式
       similarPatterns: await this.findSimilarPatterns(finding, graphData),
     };
@@ -121,13 +120,13 @@ export class AnalysisResultFusion {
     const vectorContext = {
       // 查找相似代码
       similarCode: await this.findSimilarCode(finding, vectorData),
-      
+
       // 查找相关文档
       relatedDocs: await this.findRelatedDocumentation(finding, vectorData),
-      
+
       // 查找修复示例
       fixExamples: await this.findFixExamples(finding, vectorData),
-      
+
       // 上下文相似度
       contextSimilarity: await this.calculateContextSimilarity(finding, vectorData),
     };
@@ -221,10 +220,7 @@ export class AnalysisResultFusion {
   /**
    * 查找相似模式
    */
-  private async findSimilarPatterns(
-    finding: SemgrepFinding,
-    graphData: any
-  ): Promise<any[]> {
+  private async findSimilarPatterns(finding: SemgrepFinding, graphData: any): Promise<any[]> {
     try {
       const query = `
         MATCH (issue:static_analysis_issue {ruleId: $ruleId})-[:found_in]->(file:file)
@@ -264,10 +260,7 @@ export class AnalysisResultFusion {
   /**
    * 查找相关文档
    */
-  private async findRelatedDocumentation(
-    finding: SemgrepFinding,
-    vectorData: any
-  ): Promise<any[]> {
+  private async findRelatedDocumentation(finding: SemgrepFinding, vectorData: any): Promise<any[]> {
     try {
       const query = `${finding.ruleId} documentation security best practices`;
       const docs = await vectorData.searchSimilar(query, 3);
@@ -330,7 +323,7 @@ export class AnalysisResultFusion {
   private assessRisks(enhancedFindings: EnhancedFinding[]): RiskAssessment {
     const criticalCount = enhancedFindings.filter(f => f.severity === 'ERROR').length;
     const highRiskFiles = this.identifyHighRiskFiles(enhancedFindings);
-    
+
     return {
       overallRisk: this.calculateOverallRisk(criticalCount, enhancedFindings.length),
       criticalIssues: criticalCount,
@@ -359,7 +352,9 @@ export class AnalysisResultFusion {
     }
 
     // 基于上下文的建议
-    const hasFixExamples = enhancedFindings.some(f => f.vectorContext?.fixExamples && f.vectorContext.fixExamples.length > 0);
+    const hasFixExamples = enhancedFindings.some(
+      f => f.vectorContext?.fixExamples && f.vectorContext.fixExamples.length > 0
+    );
     if (hasFixExamples) {
       recommendations.push('Use available fix examples to speed up remediation');
     }
@@ -410,7 +405,7 @@ export class AnalysisResultFusion {
    */
   private groupBySeverity(findings: any[]): Map<string, any[]> {
     const groups = new Map<string, any[]>();
-    
+
     for (const finding of findings) {
       const severity = finding.severity || 'INFO';
       if (!groups.has(severity)) {
@@ -427,7 +422,7 @@ export class AnalysisResultFusion {
    */
   private groupByRule(findings: any[]): Map<string, any[]> {
     const groups = new Map<string, any[]>();
-    
+
     for (const finding of findings) {
       const ruleId = finding.ruleId || 'unknown';
       if (!groups.has(ruleId)) {
@@ -444,7 +439,7 @@ export class AnalysisResultFusion {
    */
   private groupByFile(findings: any[]): Map<string, any[]> {
     const groups = new Map<string, any[]>();
-    
+
     for (const finding of findings) {
       const file = finding.location.file || 'unknown';
       if (!groups.has(file)) {
@@ -461,7 +456,7 @@ export class AnalysisResultFusion {
    */
   private identifyHighRiskFiles(findings: EnhancedFinding[]): string[] {
     const fileCounts = new Map<string, number>();
-    
+
     for (const finding of findings) {
       if (finding.severity === 'ERROR') {
         const count = fileCounts.get(finding.location.file) || 0;
@@ -479,7 +474,7 @@ export class AnalysisResultFusion {
    */
   private calculateOverallRisk(criticalCount: number, totalCount: number): string {
     const ratio = criticalCount / totalCount;
-    
+
     if (ratio > 0.2) return 'high';
     if (ratio > 0.1) return 'medium-high';
     if (ratio > 0.05) return 'medium';
@@ -492,13 +487,13 @@ export class AnalysisResultFusion {
    */
   private identifyRiskFactors(findings: EnhancedFinding[]): string[] {
     const factors: string[] = [];
-    
+
     const hasCritical = findings.some(f => f.severity === 'ERROR');
     if (hasCritical) factors.push('critical_issues');
-    
+
     const hasMultipleRules = new Set(findings.map(f => f.ruleId)).size > 5;
     if (hasMultipleRules) factors.push('diverse_issues');
-    
+
     const hasFixable = findings.some(f => f.fix);
     if (hasFixable) factors.push('fixable_issues');
 
@@ -516,7 +511,7 @@ export interface EnhancedFinding extends SemgrepFinding {
     dependencies?: string[];
     similarPatterns?: any[];
   };
-  
+
   vectorContext?: {
     similarCode?: any[];
     relatedDocs?: any[];
@@ -534,13 +529,13 @@ export interface FusionReport {
     bySeverity: Map<string, any[]>;
     topRules: Array<{ rule: string; count: number }>;
   };
-  
+
   findings: EnhancedFinding[];
-  
+
   riskAssessment: RiskAssessment;
-  
+
   recommendations: string[];
-  
+
   trends: any;
 }
 

@@ -29,7 +29,7 @@ export enum SymbolType {
   PARAMETER = 'parameter',
   CONSTANT = 'constant',
   IMPORT = 'import',
-  EXPORT = 'export'
+  EXPORT = 'export',
 }
 
 export enum SymbolScope {
@@ -37,7 +37,7 @@ export enum SymbolScope {
   FUNCTION = 'function',
   CLASS = 'class',
   BLOCK = 'block',
-  MODULE = 'module'
+  MODULE = 'module',
 }
 
 export interface SymbolTable {
@@ -65,8 +65,9 @@ export class SymbolTableImpl implements SymbolTable {
   }
 
   getSymbolsInScope(scope: string): Symbol[] {
-    return Array.from(this.symbols.values())
-      .filter(symbol => symbol.scope === scope || symbol.scope === SymbolScope.GLOBAL);
+    return Array.from(this.symbols.values()).filter(
+      symbol => symbol.scope === scope || symbol.scope === SymbolScope.GLOBAL
+    );
   }
 
   getAllSymbols(): Symbol[] {
@@ -81,10 +82,10 @@ export class SymbolTableBuilder {
   private currentScope: SymbolScope = SymbolScope.GLOBAL;
 
   private handleVariableDeclaration(node: Parser.SyntaxNode): void {
-    const declarators = node.children.filter(child => 
-      child.type === 'variable_declarator' || child.type === 'lexical_declaration'
+    const declarators = node.children.filter(
+      child => child.type === 'variable_declarator' || child.type === 'lexical_declaration'
     );
-    
+
     declarators.forEach(declarator => {
       this.processVariableDeclarator(declarator);
     });
@@ -155,7 +156,7 @@ export class SymbolTableBuilder {
         scope: this.currentScope,
         definition: this.createLocation(node),
         isMutable: false,
-        references: []
+        references: [],
       };
 
       this.symbolTable.functions.set(functionName, symbol);
@@ -164,10 +165,10 @@ export class SymbolTableBuilder {
       // Enter function scope
       this.scopeStack.push(SymbolScope.FUNCTION);
       this.currentScope = SymbolScope.FUNCTION;
-      
+
       // Process parameters and body
       this.processFunctionBody(node);
-      
+
       // Exit function scope
       this.scopeStack.pop();
       this.currentScope = this.scopeStack[this.scopeStack.length - 1];
@@ -183,7 +184,7 @@ export class SymbolTableBuilder {
         scope: this.currentScope,
         definition: this.createLocation(node),
         isMutable: false,
-        references: []
+        references: [],
       };
 
       this.symbolTable.classes.set(className, symbol);
@@ -192,10 +193,10 @@ export class SymbolTableBuilder {
       // Enter class scope
       this.scopeStack.push(SymbolScope.CLASS);
       this.currentScope = SymbolScope.CLASS;
-      
+
       // Process class body
       this.processClassBody(node);
-      
+
       // Exit class scope
       this.scopeStack.pop();
       this.currentScope = this.scopeStack[this.scopeStack.length - 1];
@@ -203,9 +204,9 @@ export class SymbolTableBuilder {
   }
 
   private processVariableDeclarator(node: Parser.SyntaxNode): void {
-    const identifier = node.childForFieldName('name') || 
-                      node.children.find(child => child.type === 'identifier');
-    
+    const identifier =
+      node.childForFieldName('name') || node.children.find(child => child.type === 'identifier');
+
     if (identifier) {
       const variableName = this.getNodeText(identifier);
       const symbol: Symbol = {
@@ -215,7 +216,7 @@ export class SymbolTableBuilder {
         definition: this.createLocation(identifier),
         isMutable: !this.isConstDeclaration(node.parent || undefined),
         initialValue: this.extractInitialValue(node),
-        references: []
+        references: [],
       };
 
       const scopedName = `${this.currentScope}.${variableName}`;
@@ -224,19 +225,21 @@ export class SymbolTableBuilder {
   }
 
   private isConstDeclaration(parent: Parser.SyntaxNode | undefined): boolean {
-    return parent?.type === 'lexical_declaration' && 
-           parent?.children.some(child => child.type === 'const');
+    return (
+      parent?.type === 'lexical_declaration' &&
+      parent?.children.some(child => child.type === 'const')
+    );
   }
 
   private extractFunctionName(node: Parser.SyntaxNode): string | null {
-    const nameNode = node.childForFieldName('name') || 
-                    node.children.find(child => child.type === 'identifier');
+    const nameNode =
+      node.childForFieldName('name') || node.children.find(child => child.type === 'identifier');
     return nameNode ? this.getNodeText(nameNode) : null;
   }
 
   private extractClassName(node: Parser.SyntaxNode): string | null {
-    const nameNode = node.childForFieldName('name') || 
-                    node.children.find(child => child.type === 'identifier');
+    const nameNode =
+      node.childForFieldName('name') || node.children.find(child => child.type === 'identifier');
     return nameNode ? this.getNodeText(nameNode) : null;
   }
 
@@ -252,7 +255,7 @@ export class SymbolTableBuilder {
       scope: this.currentScope,
       definition: this.createLocation(node),
       isMutable: false,
-      references: []
+      references: [],
     };
 
     const scopedName = `${this.currentScope}.${paramName}`;
@@ -269,7 +272,7 @@ export class SymbolTableBuilder {
         scope: SymbolScope.MODULE,
         definition: this.createLocation(idNode),
         isMutable: false,
-        references: []
+        references: [],
       };
       this.symbolTable.symbols.set(importName, symbol);
     });
@@ -285,7 +288,7 @@ export class SymbolTableBuilder {
         scope: SymbolScope.MODULE,
         definition: this.createLocation(idNode),
         isMutable: false,
-        references: []
+        references: [],
       };
       this.symbolTable.symbols.set(exportName, symbol);
     });
@@ -298,7 +301,7 @@ export class SymbolTableBuilder {
       startColumn: node.startPosition.column + 1,
       endLine: node.endPosition.row + 1,
       endColumn: node.endPosition.column + 1,
-      nodeType: node.type
+      nodeType: node.type,
     };
   }
 

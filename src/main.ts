@@ -17,7 +17,7 @@ async function main(): Promise<void> {
     logger.info('Starting Codebase Index Service', {
       version: '1.0.0',
       environment: config.get('nodeEnv'),
-      port: config.get('port')
+      port: config.get('port'),
     });
 
     // Start HTTP server
@@ -38,33 +38,32 @@ async function main(): Promise<void> {
       process.exit(0);
     });
 
-    process.on('uncaughtException', (error) => {
-       logger.error('Uncaught Exception', error);
-       errorHandler.handleError(error, {
-         component: 'Process',
-         operation: 'uncaughtException'
-       });
-       process.exit(1);
+    process.on('uncaughtException', error => {
+      logger.error('Uncaught Exception', error);
+      errorHandler.handleError(error, {
+        component: 'Process',
+        operation: 'uncaughtException',
+      });
+      process.exit(1);
     });
 
     process.on('unhandledRejection', (reason, promise) => {
       logger.error('Unhandled Rejection', { reason, promise });
       errorHandler.handleError(new Error(String(reason)), {
         component: 'Process',
-        operation: 'unhandledRejection'
+        operation: 'unhandledRejection',
       });
     });
 
     await server.start();
     logger.info('Codebase Index Service started successfully');
-
   } catch (error) {
     console.error('Failed to start Codebase Index Service:', error);
     process.exit(1);
   }
 }
 
-main().catch((error) => {
- console.error('Fatal error:', error);
+main().catch(error => {
+  console.error('Fatal error:', error);
   process.exit(1);
 });

@@ -55,10 +55,10 @@ export class GraphService {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
-   private nebulaService: NebulaService;
-   private graphPersistenceService: GraphPersistenceService;
-   private nebulaQueryBuilder: NebulaQueryBuilder;
-   private resultFormatter: ResultFormatter;
+  private nebulaService: NebulaService;
+  private graphPersistenceService: GraphPersistenceService;
+  private nebulaQueryBuilder: NebulaQueryBuilder;
+  private resultFormatter: ResultFormatter;
 
   constructor(
     @inject(TYPES.ConfigService) configService: ConfigService,
@@ -78,47 +78,58 @@ export class GraphService {
     this.resultFormatter = resultFormatter;
   }
 
-  async analyzeCodebase(projectPath: string, options: GraphAnalysisOptions = {}): Promise<{
+  async analyzeCodebase(
+    projectPath: string,
+    options: GraphAnalysisOptions = {}
+  ): Promise<{
     result: GraphAnalysisResult;
     formattedResult: any;
   }> {
     const startTime = Date.now();
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
 
-    this.logger.info('Starting codebase analysis', { 
-      projectPath, 
+    this.logger.info('Starting codebase analysis', {
+      projectPath,
       projectId: projectId.hash,
-      options 
+      options,
     });
 
     try {
       // Use real NebulaGraph traversal queries
       const analysisQuery = this.buildAnalysisQuery(projectId.hash, options);
-      const result = await this.nebulaService.executeReadQuery(analysisQuery.query, analysisQuery.params);
-      
+      const result = await this.nebulaService.executeReadQuery(
+        analysisQuery.query,
+        analysisQuery.params
+      );
+
       const processedResult = await this.processAnalysisResult(result, options);
 
-      this.logger.info('Codebase analysis completed', { 
+      this.logger.info('Codebase analysis completed', {
         projectId: projectId.hash,
         nodeCount: processedResult.nodes.length,
         edgeCount: processedResult.edges.length,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       });
 
       return {
         result: processedResult,
-        formattedResult: await this.resultFormatter.formatForLLM(processedResult)
+        formattedResult: await this.resultFormatter.formatForLLM(processedResult),
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Codebase analysis failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Codebase analysis failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphService', operation: 'analyzeCodebase' }
       );
       throw error;
     }
   }
 
-  async findDependencies(filePath: string, options: { direction?: 'incoming' | 'outgoing'; depth?: number } = {}): Promise<{
+  async findDependencies(
+    filePath: string,
+    options: { direction?: 'incoming' | 'outgoing'; depth?: number } = {}
+  ): Promise<{
     direct: GraphEdge[];
     transitive: GraphEdge[];
     summary: {
@@ -136,19 +147,27 @@ export class GraphService {
 
       // Use NebulaGraph's GO statement for dependency traversal
       const dependencyQuery = this.buildDependencyQuery(fileId, direction, depth);
-      const result = await this.nebulaService.executeReadQuery(dependencyQuery.query, dependencyQuery.params);
-      
+      const result = await this.nebulaService.executeReadQuery(
+        dependencyQuery.query,
+        dependencyQuery.params
+      );
+
       return this.processDependencyResult(result, direction, depth);
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Dependency analysis failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Dependency analysis failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphService', operation: 'findDependencies' }
       );
       throw error;
     }
   }
 
-  async findImpact(filePath: string, options: { maxDepth?: number; includeTests?: boolean } = {}): Promise<{
+  async findImpact(
+    filePath: string,
+    options: { maxDepth?: number; includeTests?: boolean } = {}
+  ): Promise<{
     affectedFiles: string[];
     riskLevel: 'low' | 'medium' | 'high' | 'critical';
     impactScore: number;
@@ -165,15 +184,17 @@ export class GraphService {
           'src/components/Button.tsx',
           'src/components/Button.test.tsx',
           'src/pages/Home.tsx',
-          'src/App.tsx'
+          'src/App.tsx',
         ],
         riskLevel: 'medium',
         impactScore: 7.5,
-        affectedComponents: ['Button', 'Home', 'App']
+        affectedComponents: ['Button', 'Home', 'App'],
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Impact analysis failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Impact analysis failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphService', operation: 'findImpact' }
       );
       throw error;
@@ -204,11 +225,13 @@ export class GraphService {
         totalImports: 89,
         complexityScore: 72.5,
         maintainabilityIndex: 85.3,
-        cyclicDependencies: 2
+        cyclicDependencies: 2,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Graph stats calculation failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Graph stats calculation failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'GraphService', operation: 'getGraphStats' }
       );
       throw error;
@@ -230,8 +253,8 @@ export class GraphService {
         metadata: {
           projectPath,
           exportedAt: new Date().toISOString(),
-          format
-        }
+          format,
+        },
       };
 
       return JSON.stringify(mockData, null, 2);
@@ -250,20 +273,20 @@ export class GraphService {
         id: 'file_1',
         label: 'Button.tsx',
         properties: { path: 'src/components/Button.tsx', type: 'file', language: 'typescript' },
-        type: 'file'
+        type: 'file',
       },
       {
         id: 'function_1',
         label: 'Button',
         properties: { name: 'Button', file: 'src/components/Button.tsx', line: 15 },
-        type: 'function'
+        type: 'function',
       },
       {
         id: 'class_1',
         label: 'AuthService',
         properties: { name: 'AuthService', file: 'src/services/AuthService.ts', line: 8 },
-        type: 'class'
-      }
+        type: 'class',
+      },
     ];
   }
 
@@ -274,19 +297,22 @@ export class GraphService {
         source: 'file_1',
         target: 'function_1',
         type: 'CONTAINS',
-        properties: { relationship: 'contains' }
+        properties: { relationship: 'contains' },
       },
       {
         id: 'edge_2',
         source: 'function_1',
         target: 'class_1',
         type: 'IMPORTS',
-        properties: { module: 'AuthService' }
-      }
+        properties: { module: 'AuthService' },
+      },
     ];
   }
 
-  private async simulateAnalysis(projectPath: string, options: GraphAnalysisOptions): Promise<void> {
+  private async simulateAnalysis(
+    projectPath: string,
+    options: GraphAnalysisOptions
+  ): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 2500));
   }
 
@@ -307,10 +333,13 @@ export class GraphService {
   }
 
   // Helper methods for real NebulaGraph integration
-  private buildAnalysisQuery(projectId: string, options: GraphAnalysisOptions): { query: string; params: Record<string, any> } {
+  private buildAnalysisQuery(
+    projectId: string,
+    options: GraphAnalysisOptions
+  ): { query: string; params: Record<string, any> } {
     const depth = options.depth || 3;
     const focus = options.focus;
-    
+
     let edgeTypes: string[] = [];
     switch (focus) {
       case 'dependencies':
@@ -339,10 +368,13 @@ export class GraphService {
     return { query, params: { projectId } };
   }
 
-  private buildDependencyQuery(fileId: string, direction: 'incoming' | 'outgoing', depth: number): { query: string; params: Record<string, any> } {
-    const edgeTypes = direction === 'outgoing' 
-      ? ['IMPORTS', 'CALLS'] 
-      : ['IMPORTS_REVERSE', 'CALLS_REVERSE'];
+  private buildDependencyQuery(
+    fileId: string,
+    direction: 'incoming' | 'outgoing',
+    depth: number
+  ): { query: string; params: Record<string, any> } {
+    const edgeTypes =
+      direction === 'outgoing' ? ['IMPORTS', 'CALLS'] : ['IMPORTS_REVERSE', 'CALLS_REVERSE'];
 
     const query = `
       GO ${depth} STEPS FROM $fileId OVER ${edgeTypes.join(',')} 
@@ -353,10 +385,13 @@ export class GraphService {
     return { query, params: { fileId } };
   }
 
-  private async processAnalysisResult(result: any, options: GraphAnalysisOptions): Promise<GraphAnalysisResult> {
+  private async processAnalysisResult(
+    result: any,
+    options: GraphAnalysisOptions
+  ): Promise<GraphAnalysisResult> {
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
-    
+
     // Process NebulaGraph result and convert to GraphNode/GraphEdge format
     if (result && result.data) {
       for (const row of result.data) {
@@ -375,7 +410,7 @@ export class GraphService {
       totalEdges: edges.length,
       averageDegree: edges.length / Math.max(nodes.length, 1),
       maxDepth: options.depth || 3,
-      componentCount: this.calculateComponentCount(nodes, edges)
+      componentCount: this.calculateComponentCount(nodes, edges),
     };
 
     // Calculate summary
@@ -384,7 +419,11 @@ export class GraphService {
     return { nodes, edges, metrics, summary };
   }
 
-  private processDependencyResult(result: any, direction: string, depth: number): {
+  private processDependencyResult(
+    result: any,
+    direction: string,
+    depth: number
+  ): {
     direct: GraphEdge[];
     transitive: GraphEdge[];
     summary: {
@@ -394,7 +433,7 @@ export class GraphService {
     };
   } {
     const allEdges: GraphEdge[] = [];
-    
+
     if (result && result.data) {
       for (const row of result.data) {
         if (row.edgeProps) {
@@ -413,8 +452,8 @@ export class GraphService {
       summary: {
         directCount: direct.length,
         transitiveCount: transitive.length,
-        criticalPath: this.extractCriticalPath(allEdges)
-      }
+        criticalPath: this.extractCriticalPath(allEdges),
+      },
     };
   }
 
@@ -423,7 +462,7 @@ export class GraphService {
       id: nodeData.id || nodeData.name || '',
       label: nodeData.name || nodeData.label || '',
       properties: nodeData.properties || {},
-      type: this.determineNodeType(nodeData)
+      type: this.determineNodeType(nodeData),
     };
   }
 
@@ -433,11 +472,13 @@ export class GraphService {
       source: edgeData.src || '',
       target: edgeData.dst || '',
       type: edgeData.type || 'RELATED',
-      properties: edgeData.properties || {}
+      properties: edgeData.properties || {},
     };
   }
 
-  private determineNodeType(nodeData: any): 'file' | 'function' | 'class' | 'variable' | 'import' | 'project' {
+  private determineNodeType(
+    nodeData: any
+  ): 'file' | 'function' | 'class' | 'variable' | 'import' | 'project' {
     if (nodeData.label && nodeData.label.includes('.')) return 'file';
     if (nodeData.type === 'function') return 'function';
     if (nodeData.type === 'class') return 'class';
@@ -463,7 +504,7 @@ export class GraphService {
 
   private dfs(nodeId: string, nodes: GraphNode[], edges: GraphEdge[], visited: Set<string>): void {
     visited.add(nodeId);
-    
+
     for (const edge of edges) {
       if (edge.source === nodeId && !visited.has(edge.target)) {
         this.dfs(edge.target, nodes, edges, visited);
@@ -486,7 +527,7 @@ export class GraphService {
       functions: 0,
       classes: 0,
       imports: 0,
-      externalDependencies: 0
+      externalDependencies: 0,
     };
 
     for (const node of nodes) {

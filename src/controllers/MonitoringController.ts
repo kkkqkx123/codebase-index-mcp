@@ -39,17 +39,19 @@ export class MonitoringController {
       const healthStatus = await this.healthCheckService.performHealthCheck();
       return {
         success: true,
-        data: healthStatus
+        data: healthStatus,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get health status: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get health status: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getHealthStatus' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -59,17 +61,19 @@ export class MonitoringController {
       const metrics = await this.prometheusMetricsService.collectAllMetrics();
       return {
         success: true,
-        data: metrics
+        data: metrics,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get metrics: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get metrics: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getMetrics' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -78,32 +82,32 @@ export class MonitoringController {
     try {
       // Default to last 24 hours if no period specified
       const endDate = new Date();
-      const startDate = period 
-        ? new Date(period.start) 
+      const startDate = period
+        ? new Date(period.start)
         : new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
-      
-      const endDateObj = period 
-        ? new Date(period.end) 
-        : endDate;
+
+      const endDateObj = period ? new Date(period.end) : endDate;
 
       const report = await this.performanceAnalysisService.generatePerformanceReport({
         start: startDate,
-        end: endDateObj
+        end: endDateObj,
       });
 
       return {
         success: true,
-        data: report
+        data: report,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get performance report: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get performance report: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getPerformanceReport' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -113,17 +117,19 @@ export class MonitoringController {
       const bottlenecks = await this.performanceAnalysisService.identifyBottlenecksInRealTime();
       return {
         success: true,
-        data: bottlenecks
+        data: bottlenecks,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get bottlenecks: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get bottlenecks: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getBottlenecks' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -133,17 +139,19 @@ export class MonitoringController {
       const capacityPlan = await this.performanceAnalysisService.generateCapacityPlan();
       return {
         success: true,
-        data: capacityPlan
+        data: capacityPlan,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get capacity plan: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get capacity plan: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getCapacityPlan' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -153,17 +161,19 @@ export class MonitoringController {
       const dependencies = await this.healthCheckService.checkDependencies();
       return {
         success: true,
-        data: dependencies
+        data: dependencies,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get dependencies: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get dependencies: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getDependencies' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -173,17 +183,19 @@ export class MonitoringController {
       const benchmark = await this.performanceAnalysisService.benchmarkPerformance();
       return {
         success: true,
-        data: benchmark
+        data: benchmark,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get benchmark: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get benchmark: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'MonitoringController', operation: 'getBenchmark' }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

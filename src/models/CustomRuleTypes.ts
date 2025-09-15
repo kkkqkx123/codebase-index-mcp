@@ -1,4 +1,4 @@
-import { SnippetChunk } from "../services/parser/types";
+import { SnippetChunk } from '../services/parser/types';
 
 export interface CustomRuleDefinition {
   name: string;

@@ -35,7 +35,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
     const baseUrl = this.getBaseUrl();
     const url = `${baseUrl}/v1beta/models/${this.model}:embedContent?key=${this.apiKey}`;
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     // Process each input separately as Gemini API expects single input
@@ -46,31 +46,37 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
         headers,
         body: JSON.stringify({
           content: {
-            parts: [{
-              text: inp.text
-            }]
-          }
-        })
+            parts: [
+              {
+                text: inp.text,
+              },
+            ],
+          },
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API request failed with status ${response.status}: ${await response.text()}`);
+        throw new Error(
+          `Gemini API request failed with status ${response.status}: ${await response.text()}`
+        );
       }
 
-      const data = await response.json() as { embedding: { values: number[] } };
+      const data = (await response.json()) as { embedding: { values: number[] } };
       embeddings.push({
         vector: data.embedding.values,
         dimensions: data.embedding.values.length,
         model: this.model,
-        processingTime: 0 // Will be updated after timing
+        processingTime: 0, // Will be updated after timing
       });
     }
 
     return embeddings as EmbeddingResult[];
   }
 
-  async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
-    return await this.embedWithCache(input, async (inputs) => {
+  async embed(
+    input: EmbeddingInput | EmbeddingInput[]
+  ): Promise<EmbeddingResult | EmbeddingResult[]> {
+    return await this.embedWithCache(input, async inputs => {
       return await this.makeEmbeddingRequest(inputs);
     });
   }
@@ -88,7 +94,7 @@ export class GeminiEmbedder extends BaseEmbedder implements Embedder {
       const baseUrl = this.getBaseUrl();
       const url = `${baseUrl}/v1beta/models?key=${this.apiKey}`;
       const response = await fetch(url, {
-        method: 'GET'
+        method: 'GET',
       });
 
       return response.ok;

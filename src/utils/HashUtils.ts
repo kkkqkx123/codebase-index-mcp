@@ -34,14 +34,14 @@ export class HashUtils {
       try {
         const stats = await fs.stat(filePath);
         const fileHash = await this.calculateFileHash(filePath);
-        
+
         const fileHashInfo: FileHash = {
           path: path.relative(dirPath, filePath),
           hash: fileHash,
           size: stats.size,
-          lastModified: stats.mtime
+          lastModified: stats.mtime,
         };
-        
+
         files.push(fileHashInfo);
         hash.update(fileHashInfo.path + fileHashInfo.hash);
       } catch (error) {
@@ -51,10 +51,10 @@ export class HashUtils {
 
     const processDirectory = async (currentPath: string) => {
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await processDirectory(fullPath);
         } else if (entry.isFile()) {
@@ -69,7 +69,7 @@ export class HashUtils {
       path: dirPath,
       hash: hash.digest('hex'),
       fileCount: files.length,
-      files
+      files,
     };
   }
 
@@ -94,9 +94,24 @@ export class HashUtils {
 
   static isValidCodeFile(filePath: string, allowedExtensions: string[] = []): boolean {
     const extension = this.getFileExtension(filePath);
-    const defaultExtensions = ['ts', 'js', 'py', 'java', 'go', 'rs', 'cpp', 'c', 'h', 'cs', 'php', 'rb', 'swift', 'kt'];
+    const defaultExtensions = [
+      'ts',
+      'js',
+      'py',
+      'java',
+      'go',
+      'rs',
+      'cpp',
+      'c',
+      'h',
+      'cs',
+      'php',
+      'rb',
+      'swift',
+      'kt',
+    ];
     const extensions = allowedExtensions.length > 0 ? allowedExtensions : defaultExtensions;
-    
+
     return extensions.includes(extension);
- }
+  }
 }

@@ -63,7 +63,7 @@ export class SemanticAnalysisOrchestrator {
     @inject(TYPES.SemgrepScanService) private semgrepService: SemanticSemgrepService,
     @inject(TYPES.TreeSitterService) private callGraphService: CallGraphService,
     @inject(TYPES.LoggerService) private logger: LoggerService
-  ) { }
+  ) {}
 
   async runSemanticAnalysis(
     projectPath: string,
@@ -79,7 +79,7 @@ export class SemanticAnalysisOrchestrator {
         currentStep: 'Building call graph...',
         progress: 25,
         totalSteps: 4,
-        estimatedTime: 60
+        estimatedTime: 60,
       });
 
       const callGraph = await this.callGraphService.buildCallGraph(projectPath);
@@ -89,7 +89,7 @@ export class SemanticAnalysisOrchestrator {
         currentStep: 'Analyzing control flow...',
         progress: 50,
         totalSteps: 4,
-        estimatedTime: 45
+        estimatedTime: 45,
       });
 
       const controlFlowResult = await this.semgrepService.runControlFlowAnalysis(projectPath);
@@ -99,7 +99,7 @@ export class SemanticAnalysisOrchestrator {
         currentStep: 'Analyzing data flow...',
         progress: 75,
         totalSteps: 4,
-        estimatedTime: 30
+        estimatedTime: 30,
       });
 
       const dataFlowResult = await this.semgrepService.runDataFlowAnalysis(projectPath);
@@ -109,7 +109,7 @@ export class SemanticAnalysisOrchestrator {
         currentStep: 'Integrating semantic analysis...',
         progress: 100,
         totalSteps: 4,
-        estimatedTime: 15
+        estimatedTime: 15,
       });
 
       const semanticResult = await this.semanticService.analyzeSemanticContext(
@@ -126,12 +126,15 @@ export class SemanticAnalysisOrchestrator {
         semanticAnalysis: semanticResult,
         semgrepResults: [controlFlowResult, dataFlowResult],
         callGraph,
-        summary: await this.generateSummary(callGraph, [controlFlowResult, dataFlowResult], analysisTime)
+        summary: await this.generateSummary(
+          callGraph,
+          [controlFlowResult, dataFlowResult],
+          analysisTime
+        ),
       };
 
       this.logger.info(`Semantic analysis completed in ${analysisTime}ms`);
       return result;
-
     } catch (error) {
       this.logger.error(`Phase 1 analysis failed: ${error}`);
       throw error;
@@ -153,7 +156,7 @@ export class SemanticAnalysisOrchestrator {
       // 快速运行semgrep规则
       const semgrepResults = await Promise.all([
         this.semgrepService.runControlFlowAnalysis(projectPath),
-        this.semgrepService.runDataFlowAnalysis(projectPath)
+        this.semgrepService.runDataFlowAnalysis(projectPath),
       ]);
 
       const analysisTime = Date.now() - startTime;
@@ -164,13 +167,12 @@ export class SemanticAnalysisOrchestrator {
         semanticAnalysis: {
           controlFlow: { complexity: 0, patterns: [] },
           dataFlow: { taintSources: [], sinks: [] },
-          crossFunction: { callChains: [], dependencies: [] }
+          crossFunction: { callChains: [], dependencies: [] },
         },
         semgrepResults,
         callGraph,
-        summary: await this.generateSummary(callGraph, semgrepResults, analysisTime)
+        summary: await this.generateSummary(callGraph, semgrepResults, analysisTime),
       };
-
     } catch (error) {
       this.logger.error(`Quick analysis failed: ${error}`);
       throw error;
@@ -182,24 +184,26 @@ export class SemanticAnalysisOrchestrator {
       const checks = await Promise.all([
         this.validateSemgrepRules(),
         this.validateTreeSitterIntegration(),
-        this.validateCallGraphGeneration()
+        this.validateCallGraphGeneration(),
       ]);
 
       const allPassed = checks.every(check => check.passed);
 
       return {
         passed: allPassed,
-        checks: checks.reduce((acc, check) => {
-          acc[check.name] = check;
-          return acc;
-        }, {} as Record<string, ValidationCheck>)
+        checks: checks.reduce(
+          (acc, check) => {
+            acc[check.name] = check;
+            return acc;
+          },
+          {} as Record<string, ValidationCheck>
+        ),
       };
-
     } catch (error) {
       return {
         passed: false,
         checks: {},
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -209,7 +213,7 @@ export class SemanticAnalysisOrchestrator {
       const availableRules = await this.semgrepService.getAvailableSemanticRules();
       const requiredRules = [
         'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-        'enhanced-rules/data-flow/advanced-taint-analysis.yml'
+        'enhanced-rules/data-flow/advanced-taint-analysis.yml',
       ];
 
       const missingRules = requiredRules.filter(rule => !availableRules.includes(rule));
@@ -217,13 +221,16 @@ export class SemanticAnalysisOrchestrator {
       return {
         name: 'semgrep-rules',
         passed: missingRules.length === 0,
-        message: missingRules.length > 0 ? `Missing rules: ${missingRules.join(', ')}` : 'All rules available'
+        message:
+          missingRules.length > 0
+            ? `Missing rules: ${missingRules.join(', ')}`
+            : 'All rules available',
       };
     } catch (error) {
       return {
         name: 'semgrep-rules',
         passed: false,
-        message: `Validation failed: ${error instanceof Error ? error.message : String(error)}`
+        message: `Validation failed: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -234,13 +241,13 @@ export class SemanticAnalysisOrchestrator {
       return {
         name: 'tree-sitter-integration',
         passed: true,
-        message: 'Tree-sitter integration working'
+        message: 'Tree-sitter integration working',
       };
     } catch (error) {
       return {
         name: 'tree-sitter-integration',
         passed: false,
-        message: `Integration failed: ${error instanceof Error ? error.message : String(error)}`
+        message: `Integration failed: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -248,30 +255,26 @@ export class SemanticAnalysisOrchestrator {
   private async validateCallGraphGeneration(): Promise<ValidationCheck> {
     try {
       const testGraph = await this.callGraphService.buildCallGraph('.');
-      
-      const highRiskFunctions = testGraph.nodes.filter((n: any) =>
-        n.type === 'function' && 
-        n.metadata?.complexity > 10
+
+      const highRiskFunctions = testGraph.nodes.filter(
+        (n: any) => n.type === 'function' && n.metadata?.complexity > 10
       );
 
       return {
         name: 'Call Graph Generation',
         passed: highRiskFunctions.length >= 0,
-        message: `Found ${highRiskFunctions.length} high-risk functions`
+        message: `Found ${highRiskFunctions.length} high-risk functions`,
       };
     } catch (error) {
       return {
         name: 'Call Graph Generation',
         passed: false,
-        message: `Call graph generation failed: ${error}`
+        message: `Call graph generation failed: ${error}`,
       };
     }
   }
 
-  private async buildPartialCallGraph(
-    projectPath: string,
-    targetFiles: string[]
-  ): Promise<any> {
+  private async buildPartialCallGraph(projectPath: string, targetFiles: string[]): Promise<any> {
     return await this.callGraphService.buildCallGraph(projectPath);
   }
 
@@ -283,13 +286,12 @@ export class SemanticAnalysisOrchestrator {
     const deadCode = await this.callGraphService.getDeadCode('');
     const circularDependencies = await this.callGraphService.detectCircularDependencies('');
 
-    const totalIssues = semgrepResults.reduce((sum, result) =>
-      sum + (result.findings?.length || 0), 0
+    const totalIssues = semgrepResults.reduce(
+      (sum, result) => sum + (result.findings?.length || 0),
+      0
     );
 
-    const highRiskFunctions = callGraph.nodes.filter((n: any) =>
-      n.complexity > 10
-    ).length;
+    const highRiskFunctions = callGraph.nodes.filter((n: any) => n.complexity > 10).length;
 
     return {
       totalFiles: 0, // 这里应该计算实际文件数
@@ -298,7 +300,7 @@ export class SemanticAnalysisOrchestrator {
       highRiskFunctions,
       deadCode: deadCode.length,
       circularDependencies: circularDependencies.length,
-      analysisTime
+      analysisTime,
     };
   }
 

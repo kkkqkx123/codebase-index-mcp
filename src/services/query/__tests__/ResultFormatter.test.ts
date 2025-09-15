@@ -4,21 +4,21 @@ import { QueryResult } from '../QueryCoordinationService';
 
 // Mock services
 const mockConfigService = {
-  get: jest.fn().mockReturnValue({})
+  get: jest.fn().mockReturnValue({}),
 };
 
 const mockLoggerService = {
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 };
 
 const mockErrorHandlerService = {
   handleError: jest.fn().mockResolvedValue({
     type: 'handled',
-    suggestions: ['Try again']
-  })
+    suggestions: ['Try again'],
+  }),
 };
 
 const mockCache = {
@@ -27,7 +27,7 @@ const mockCache = {
   has: jest.fn().mockReturnValue(false),
   delete: jest.fn(),
   clear: jest.fn(),
-  size: jest.fn().mockReturnValue(0)
+  size: jest.fn().mockReturnValue(0),
 };
 
 const mockConfigLoader = {
@@ -37,78 +37,78 @@ const mockConfigLoader = {
         format: 'json',
         includeMetadata: true,
         maxTokens: 4000,
-        structuredOutput: true
+        structuredOutput: true,
       },
       claude: {
         format: 'markdown',
         includeMetadata: false,
         maxTokens: 8000,
-        structuredOutput: false
+        structuredOutput: false,
       },
       anthropic: {
         format: 'json',
         includeMetadata: true,
         maxTokens: 2000,
-        structuredOutput: true
+        structuredOutput: true,
       },
       custom: {
         format: 'json',
         includeMetadata: true,
         maxTokens: 4000,
-        structuredOutput: true
-      }
+        structuredOutput: true,
+      },
     },
     defaults: {
       provider: 'openai',
       format: 'json',
       includeMetadata: true,
       maxTokens: 4000,
-      structuredOutput: true
+      structuredOutput: true,
     },
     formatting: {
       entityExtraction: {
         confidenceThreshold: 0.7,
         maxEntities: 100,
-        includeRelationships: true
+        includeRelationships: true,
       },
       summaryGeneration: {
         maxLength: 500,
         includeStatistics: true,
-        includeRecommendations: true
+        includeRecommendations: true,
       },
       suggestionGeneration: {
         maxSuggestions: 5,
         includeCodeSmells: true,
-        includeRefactoringTips: true
-      }
+        includeRefactoringTips: true,
+      },
     },
     performance: {
       caching: {
         enabled: true,
         ttl: 300,
-        maxCacheSize: 1000
+        maxCacheSize: 1000,
       },
       memory: {
         maxResultSize: 1000000,
-        streamResults: true
+        streamResults: true,
       },
       rateLimiting: {
         maxRequestsPerSecond: 10,
-        burstLimit: 20
-      }
-    }
-  })
+        burstLimit: 20,
+      },
+    },
+  }),
 };
 
 const mockMetricsService = {
   recordAlert: jest.fn(),
-  getMetricsEndpoint: jest.fn().mockReturnValue('/metrics')
+  getMetricsEndpoint: jest.fn().mockReturnValue('/metrics'),
 };
 
 describe('ResultFormatter', () => {
   let resultFormatter: ResultFormatter;
 
- beforeEach(() => {
+  beforeEach(() => {
     resultFormatter = new ResultFormatter(
       mockConfigService as any,
       mockLoggerService as any,
@@ -131,8 +131,8 @@ describe('ResultFormatter', () => {
             id: 'node1',
             label: 'File1',
             properties: { path: 'src/file1.ts' },
-            type: 'file'
-          }
+            type: 'file',
+          },
         ],
         edges: [
           {
@@ -140,27 +140,27 @@ describe('ResultFormatter', () => {
             source: 'node1',
             target: 'node2',
             type: 'imports',
-            properties: {}
-          }
+            properties: {},
+          },
         ],
         metrics: {
           totalNodes: 1,
           totalEdges: 1,
           averageDegree: 1,
           maxDepth: 2,
-          componentCount: 1
+          componentCount: 1,
         },
         summary: {
           projectFiles: 1,
           functions: 0,
           classes: 0,
           imports: 1,
-          externalDependencies: 0
-        }
+          externalDependencies: 0,
+        },
       };
 
       const result = await resultFormatter.formatForLLM(mockGraphResult);
-      
+
       expect(result.status).toBe('success');
       expect(result.data.structured).toBeDefined();
       expect(result.data.summary).toBeDefined();
@@ -179,12 +179,12 @@ describe('ResultFormatter', () => {
           endLine: 1,
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
 
       const result = await resultFormatter.formatForLLM(mockQueryResults);
-      
+
       expect(result.status).toBe('success');
       expect(result.data.structured).toBeDefined();
       expect(result.data.summary).toBeDefined();
@@ -202,11 +202,11 @@ describe('ResultFormatter', () => {
         endLine: 1,
         language: 'typescript',
         chunkType: 'function',
-        metadata: {}
+        metadata: {},
       };
 
       const result = await resultFormatter.formatForLLM(mockQueryResult);
-      
+
       expect(result.status).toBe('success');
       expect(result.data.structured).toBeDefined();
       expect(result.meta.tool).toBe('generic_tool');
@@ -229,12 +229,12 @@ describe('ResultFormatter', () => {
           endLine: 1,
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
 
       const result = await resultFormatter.formatForLLM(mockQueryResults);
-      
+
       expect(result.status).toBe('error');
       expect(result.data.message).toBe('Test error');
       expect(result.meta.tool).toBe('query_search');
@@ -249,8 +249,8 @@ describe('ResultFormatter', () => {
             id: 'node1',
             label: 'File1',
             properties: { path: 'src/file1.ts' },
-            type: 'file'
-          }
+            type: 'file',
+          },
         ],
         edges: [
           {
@@ -258,27 +258,27 @@ describe('ResultFormatter', () => {
             source: 'node1',
             target: 'node2',
             type: 'imports',
-            properties: {}
-          }
+            properties: {},
+          },
         ],
         metrics: {
           totalNodes: 1,
           totalEdges: 1,
           averageDegree: 1,
           maxDepth: 2,
-          componentCount: 1
+          componentCount: 1,
         },
         summary: {
           projectFiles: 1,
           functions: 0,
           classes: 0,
           imports: 1,
-          externalDependencies: 0
-        }
+          externalDependencies: 0,
+        },
       };
 
       const structuredData = (resultFormatter as any).extractStructuredData(mockGraphResult);
-      
+
       expect(structuredData.entities).toHaveLength(1);
       expect(structuredData.entities[0].id).toBe('node1');
       expect(structuredData.entities[0].type).toBe('file');
@@ -295,12 +295,12 @@ describe('ResultFormatter', () => {
           endLine: 1,
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
 
       const structuredData = (resultFormatter as any).extractStructuredData(mockQueryResults);
-      
+
       expect(structuredData.entities).toHaveLength(1);
       expect(structuredData.entities[0].id).toBe('result1');
       expect(structuredData.entities[0].type).toBe('code_chunk');
@@ -315,8 +315,8 @@ describe('ResultFormatter', () => {
             id: 'node1',
             label: 'File1',
             properties: { path: 'src/file1.ts' },
-            type: 'file'
-          }
+            type: 'file',
+          },
         ],
         edges: [
           {
@@ -324,27 +324,27 @@ describe('ResultFormatter', () => {
             source: 'node1',
             target: 'node2',
             type: 'imports',
-            properties: {}
-          }
+            properties: {},
+          },
         ],
         metrics: {
           totalNodes: 1,
           totalEdges: 1,
           averageDegree: 1,
           maxDepth: 2,
-          componentCount: 1
+          componentCount: 1,
         },
         summary: {
           projectFiles: 1,
           functions: 0,
           classes: 0,
           imports: 1,
-          externalDependencies: 0
-        }
+          externalDependencies: 0,
+        },
       };
 
       const summary = (resultFormatter as any).generateSummary(mockGraphResult);
-      
+
       expect(summary.executiveSummary).toContain('Analyzed codebase structure');
       expect(summary.statistics.totalNodes).toBe(1);
       expect(summary.statistics.totalEdges).toBe(1);
@@ -361,12 +361,12 @@ describe('ResultFormatter', () => {
           endLine: 1,
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
 
       const summary = (resultFormatter as any).generateSummary(mockQueryResults);
-      
+
       expect(summary.executiveSummary).toContain('Found 1 relevant code segments');
       expect(summary.statistics.resultCount).toBe(1);
     });
@@ -380,24 +380,28 @@ describe('ResultFormatter', () => {
           totalEdges: 15,
           averageDegree: 10,
           maxDepth: 3,
-          componentCount: 1
+          componentCount: 1,
         },
         summary: {
           projectFiles: 5,
           functions: 10,
           classes: 3,
           imports: 15,
-          externalDependencies: 15
+          externalDependencies: 15,
         },
         nodes: [],
-        edges: []
+        edges: [],
       };
 
       const suggestions = (resultFormatter as any).provideSuggestions(mockGraphResult);
-      
+
       expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions).toContain('Highly connected components detected, consider modularization');
-      expect(suggestions).toContain('Large number of external dependencies, review for security and maintenance');
+      expect(suggestions).toContain(
+        'Highly connected components detected, consider modularization'
+      );
+      expect(suggestions).toContain(
+        'Large number of external dependencies, review for security and maintenance'
+      );
     });
 
     it('should provide suggestions for QueryResult array with issues', () => {
@@ -411,7 +415,7 @@ describe('ResultFormatter', () => {
           endLine: 1,
           language: 'typescript',
           chunkType: 'function',
-          metadata: {}
+          metadata: {},
         },
         {
           id: 'result2',
@@ -422,13 +426,15 @@ describe('ResultFormatter', () => {
           endLine: 1,
           language: 'python',
           chunkType: 'function',
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
 
       const suggestions = (resultFormatter as any).provideSuggestions(mockQueryResults);
-      
-      expect(suggestions).toContain('Results span multiple languages, ensure cross-language consistency');
+
+      expect(suggestions).toContain(
+        'Results span multiple languages, ensure cross-language consistency'
+      );
       expect(suggestions).toContain('Low average relevance score, consider refining your query');
     });
   });

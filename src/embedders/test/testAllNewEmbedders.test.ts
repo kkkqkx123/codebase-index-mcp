@@ -22,27 +22,27 @@ describe('All New Embedders Integration', () => {
         siliconflow: {
           apiKey: 'test-key',
           baseUrl: 'http://localhost:8000',
-          model: 'test-model'
+          model: 'test-model',
         },
         custom: {
           custom1: {
             apiKey: 'test-key',
             baseUrl: 'http://localhost:8001',
-            model: 'test-model'
+            model: 'test-model',
           },
           custom2: {
             apiKey: 'test-key',
             baseUrl: 'http://localhost:8002',
-            model: 'test-model'
+            model: 'test-model',
           },
           custom3: {
             apiKey: 'test-key',
             baseUrl: 'http://localhost:8003',
-            model: 'test-model'
-          }
-        }
+            model: 'test-model',
+          },
+        },
       }),
-      getAll: jest.fn().mockReturnValue({})
+      getAll: jest.fn().mockReturnValue({}),
     } as any;
 
     logger = {
@@ -55,7 +55,7 @@ describe('All New Embedders Integration', () => {
     errorHandler = {
       handleError: jest.fn(),
       handleAsyncError: jest.fn(),
-      wrapAsync: jest.fn().mockImplementation((fn) => fn),
+      wrapAsync: jest.fn().mockImplementation(fn => fn),
     } as any;
 
     cacheService = {
@@ -76,7 +76,12 @@ describe('All New Embedders Integration', () => {
   });
 
   test('should get dimensions from all embedders', () => {
-    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(
+      configService,
+      logger,
+      errorHandler,
+      cacheService
+    );
     const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
     const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
     const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);
@@ -88,7 +93,12 @@ describe('All New Embedders Integration', () => {
   });
 
   test('should get model names from all embedders', () => {
-    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(
+      configService,
+      logger,
+      errorHandler,
+      cacheService
+    );
     const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
     const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
     const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);
@@ -100,7 +110,12 @@ describe('All New Embedders Integration', () => {
   });
 
   test('should check availability of all embedders', async () => {
-    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(
+      configService,
+      logger,
+      errorHandler,
+      cacheService
+    );
     const custom1Embedder = new Custom1Embedder(configService, logger, errorHandler, cacheService);
     const custom2Embedder = new Custom2Embedder(configService, logger, errorHandler, cacheService);
     const custom3Embedder = new Custom3Embedder(configService, logger, errorHandler, cacheService);

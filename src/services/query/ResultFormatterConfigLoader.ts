@@ -46,19 +46,31 @@ export class ResultFormatterConfigLoader {
         openai: { ...defaults.profiles.openai, ...configData?.profiles?.openai },
         claude: { ...defaults.profiles.claude, ...configData?.profiles?.claude },
         anthropic: { ...defaults.profiles.anthropic, ...configData?.profiles?.anthropic },
-        custom: { ...defaults.profiles.custom, ...configData?.profiles?.custom }
+        custom: { ...defaults.profiles.custom, ...configData?.profiles?.custom },
       },
       defaults: { ...defaults.defaults, ...configData?.defaults },
       formatting: {
-        entityExtraction: { ...defaults.formatting.entityExtraction, ...configData?.formatting?.entityExtraction },
-        summaryGeneration: { ...defaults.formatting.summaryGeneration, ...configData?.formatting?.summaryGeneration },
-        suggestionGeneration: { ...defaults.formatting.suggestionGeneration, ...configData?.formatting?.suggestionGeneration }
+        entityExtraction: {
+          ...defaults.formatting.entityExtraction,
+          ...configData?.formatting?.entityExtraction,
+        },
+        summaryGeneration: {
+          ...defaults.formatting.summaryGeneration,
+          ...configData?.formatting?.summaryGeneration,
+        },
+        suggestionGeneration: {
+          ...defaults.formatting.suggestionGeneration,
+          ...configData?.formatting?.suggestionGeneration,
+        },
       },
       performance: {
         caching: { ...defaults.performance.caching, ...configData?.performance?.caching },
         memory: { ...defaults.performance.memory, ...configData?.performance?.memory },
-        rateLimiting: { ...defaults.performance.rateLimiting, ...configData?.performance?.rateLimiting }
-      }
+        rateLimiting: {
+          ...defaults.performance.rateLimiting,
+          ...configData?.performance?.rateLimiting,
+        },
+      },
     };
   }
 
@@ -69,66 +81,66 @@ export class ResultFormatterConfigLoader {
           format: 'json',
           includeMetadata: true,
           maxTokens: 4000,
-          structuredOutput: true
+          structuredOutput: true,
         },
         claude: {
           format: 'markdown',
           includeMetadata: false,
           maxTokens: 8000,
-          structuredOutput: false
+          structuredOutput: false,
         },
         anthropic: {
           format: 'json',
           includeMetadata: true,
           maxTokens: 2000,
-          structuredOutput: true
+          structuredOutput: true,
         },
         custom: {
           format: 'json',
           includeMetadata: true,
           maxTokens: 4000,
-          structuredOutput: true
-        }
+          structuredOutput: true,
+        },
       },
       defaults: {
         provider: 'openai',
         format: 'json',
         includeMetadata: true,
         maxTokens: 4000,
-        structuredOutput: true
+        structuredOutput: true,
       },
       formatting: {
         entityExtraction: {
           confidenceThreshold: 0.7,
           maxEntities: 100,
-          includeRelationships: true
+          includeRelationships: true,
         },
         summaryGeneration: {
           maxLength: 500,
           includeStatistics: true,
-          includeRecommendations: true
+          includeRecommendations: true,
         },
         suggestionGeneration: {
           maxSuggestions: 5,
           includeCodeSmells: true,
-          includeRefactoringTips: true
-        }
+          includeRefactoringTips: true,
+        },
       },
       performance: {
         caching: {
           enabled: true,
           ttl: 300,
-          maxCacheSize: 1000
+          maxCacheSize: 1000,
         },
         memory: {
           maxResultSize: 1000000,
-          streamResults: true
+          streamResults: true,
         },
         rateLimiting: {
           maxRequestsPerSecond: 10,
-          burstLimit: 20
-        }
-      }
+          burstLimit: 20,
+        },
+      },
     };
   }
 }

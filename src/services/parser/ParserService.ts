@@ -72,8 +72,8 @@ export class ParserService {
           exports: this.treeSitterService.extractExports(parseResult.ast, content),
           metadata: {
             parseMethod: 'tree-sitter',
-            parserVersion: (parseResult.language as any)?.version || 'unknown'
-          }
+            parserVersion: (parseResult.language as any)?.version || 'unknown',
+          },
         };
       } else {
         const parsedFile = await this.smartCodeParser.parseFile(filePath, content, options);
@@ -87,8 +87,8 @@ export class ParserService {
           exports: parsedFile.metadata.exports,
           metadata: {
             parseMethod: 'smart-parser',
-            parserVersion: '1.0.0'
-          }
+            parserVersion: '1.0.0',
+          },
         };
       }
 
@@ -96,13 +96,15 @@ export class ParserService {
         filePath,
         language,
         functionCount: result.functions.length,
-        classCount: result.classes.length
+        classCount: result.classes.length,
       });
 
       return result;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to parse file ${filePath}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to parse file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'ParserService', operation: 'parseFile' }
       );
       throw error;
@@ -120,7 +122,7 @@ export class ParserService {
     for (let i = 0; i < filePaths.length; i += batchSize) {
       const batch = filePaths.slice(i, i + batchSize);
 
-      const batchPromises = batch.map(async (filePath) => {
+      const batchPromises = batch.map(async filePath => {
         try {
           return await this.parseFile(filePath, options);
         } catch (error) {
@@ -139,7 +141,7 @@ export class ParserService {
       this.logger.warn('Some files failed to parse', {
         totalFiles: filePaths.length,
         successCount: results.length,
-        errorCount: errors.length
+        errorCount: errors.length,
       });
     }
 
@@ -191,41 +193,43 @@ export class ParserService {
     const ext = filePath.split('.').pop()?.toLowerCase();
 
     const languageMap: Record<string, string> = {
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rs': 'rust',
-      'cpp': 'cpp',
-      'c': 'c',
-      'h': 'c',
-      'cs': 'csharp',
-      'php': 'php',
-      'rb': 'ruby',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'scala': 'scala',
-      'sh': 'shell',
-      'md': 'markdown',
-      'json': 'json',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'xml': 'xml',
-      'html': 'html',
-      'css': 'css',
-      'scss': 'scss',
-      'sass': 'sass',
-      'sql': 'sql'
+      ts: 'typescript',
+      tsx: 'typescript',
+      js: 'javascript',
+      jsx: 'javascript',
+      py: 'python',
+      java: 'java',
+      go: 'go',
+      rs: 'rust',
+      cpp: 'cpp',
+      c: 'c',
+      h: 'c',
+      cs: 'csharp',
+      php: 'php',
+      rb: 'ruby',
+      swift: 'swift',
+      kt: 'kotlin',
+      scala: 'scala',
+      sh: 'shell',
+      md: 'markdown',
+      json: 'json',
+      yaml: 'yaml',
+      yml: 'yaml',
+      xml: 'xml',
+      html: 'html',
+      css: 'css',
+      scss: 'scss',
+      sass: 'sass',
+      sql: 'sql',
     };
 
     return languageMap[ext || ''] || 'unknown';
   }
 
   getSupportedLanguages(): string[] {
-    const treeSitterLanguages = this.treeSitterService.getSupportedLanguages().map(lang => lang.name.toLowerCase());
+    const treeSitterLanguages = this.treeSitterService
+      .getSupportedLanguages()
+      .map(lang => lang.name.toLowerCase());
     // SmartCodeParser doesn't have a method for this, so we'll return an empty array for now
     const smartParserLanguages: string[] = [];
 
@@ -242,13 +246,13 @@ export class ParserService {
       return {
         isValid: true,
         errors: [],
-        warnings: []
+        warnings: [],
       };
     } catch (error) {
       return {
         isValid: false,
         errors: [error instanceof Error ? error.message : String(error)],
-        warnings: []
+        warnings: [],
       };
     }
   }
@@ -262,7 +266,7 @@ export class ParserService {
       if (!parseResult.ast) {
         return [];
       }
-      
+
       // 这里可以实现类似XPath的查询逻辑
       // 简化实现：按节点类型查询
       const nodeType = query.replace('//', '');
@@ -278,17 +282,17 @@ export class ParserService {
    */
   private findNodesByType(ast: any, nodeType: string): any[] {
     const results: any[] = [];
-    
+
     function traverse(node: any) {
       if (node && node.type === nodeType) {
         results.push(node);
       }
-      
+
       if (node && node.children) {
         node.children.forEach(traverse);
       }
     }
-    
+
     traverse(ast);
     return results;
   }
@@ -309,7 +313,7 @@ export class ParserService {
           filePath,
           nodeCount: 0,
           depth: 0,
-          nodeTypes: {}
+          nodeTypes: {},
         };
       }
 
@@ -319,13 +323,13 @@ export class ParserService {
 
       function analyze(node: any, currentDepth: number): void {
         if (!node) return;
-        
+
         nodeCount++;
         maxDepth = Math.max(maxDepth, currentDepth);
-        
+
         const type = node.type || 'unknown';
         nodeTypes[type] = (nodeTypes[type] || 0) + 1;
-        
+
         if (node.children) {
           node.children.forEach((child: any) => analyze(child, currentDepth + 1));
         }
@@ -337,7 +341,7 @@ export class ParserService {
         filePath,
         nodeCount,
         depth: maxDepth,
-        nodeTypes
+        nodeTypes,
       };
     } catch (error) {
       this.logger.error('Failed to get AST summary', { filePath, error });
@@ -348,7 +352,10 @@ export class ParserService {
   /**
    * 比较两个文件的AST差异
    */
-  async compareASTs(filePath1: string, filePath2: string): Promise<{
+  async compareASTs(
+    filePath1: string,
+    filePath2: string
+  ): Promise<{
     areIdentical: boolean;
     differences: Array<{
       type: 'added' | 'removed' | 'modified';
@@ -359,38 +366,38 @@ export class ParserService {
     try {
       const [ast1, ast2] = await Promise.all([
         this.parseFile(filePath1, { includeAST: true }),
-        this.parseFile(filePath2, { includeAST: true })
+        this.parseFile(filePath2, { includeAST: true }),
       ]);
 
       // 简化比较：比较函数和类的数量
       const funcDiff = Math.abs(ast1.functions.length - ast2.functions.length);
       const classDiff = Math.abs(ast1.classes.length - ast2.classes.length);
-      
+
       const differences: Array<{
         type: 'added' | 'removed' | 'modified';
         path: string;
         details: string;
       }> = [];
-      
+
       if (funcDiff > 0) {
         differences.push({
           type: 'modified',
           path: 'functions',
-          details: `Function count difference: ${funcDiff}`
+          details: `Function count difference: ${funcDiff}`,
         });
       }
-      
+
       if (classDiff > 0) {
         differences.push({
           type: 'modified',
           path: 'classes',
-          details: `Class count difference: ${classDiff}`
+          details: `Class count difference: ${classDiff}`,
         });
       }
 
       return {
         areIdentical: differences.length === 0,
-        differences
+        differences,
       };
     } catch (error) {
       this.logger.error('Failed to compare ASTs', { filePath1, filePath2, error });
@@ -402,7 +409,7 @@ export class ParserService {
    * 在AST中搜索特定模式的节点
    */
   async searchInAST(
-    filePath: string, 
+    filePath: string,
     pattern: {
       type?: string;
       name?: string;
@@ -416,33 +423,33 @@ export class ParserService {
       }
 
       const results: any[] = [];
-      
+
       function search(node: any): void {
         if (!node) return;
-        
+
         let matches = true;
-        
+
         if (pattern.type && node.type !== pattern.type) {
           matches = false;
         }
-        
+
         if (pattern.name && node.name !== pattern.name) {
           matches = false;
         }
-        
+
         if (pattern.contains && node.text && !node.text.includes(pattern.contains)) {
           matches = false;
         }
-        
+
         if (matches) {
           results.push(node);
         }
-        
+
         if (node.children) {
           node.children.forEach(search);
         }
       }
-      
+
       search(parseResult.ast);
       return results;
     } catch (error) {

@@ -3,7 +3,14 @@ import Parser from 'tree-sitter';
 import { SymbolTable, SymbolTableBuilder } from './SymbolTableBuilder';
 import { ControlFlowGraph, CFGBuilder } from './CFGBuilder';
 import { DataFlowGraph, DataFlowAnalyzer, DataFlowEdge } from './DataFlowGraph';
-import { IncrementalAnalyzer, FileChange, DeltaResult, SecurityIssue, SecurityIssueType, SecuritySeverity } from './IncrementalAnalyzer';
+import {
+  IncrementalAnalyzer,
+  FileChange,
+  DeltaResult,
+  SecurityIssue,
+  SecurityIssueType,
+  SecuritySeverity,
+} from './IncrementalAnalyzer';
 import { TreeSitterCoreService } from './TreeSitterCoreService';
 import { TYPES } from '../../types';
 
@@ -75,9 +82,7 @@ export class AdvancedTreeSitterService {
   private incrementalAnalyzer: IncrementalAnalyzer;
   private treeSitterCore: TreeSitterCoreService;
 
-  constructor(
-    @inject(TYPES.TreeSitterCoreService) treeSitterCore: TreeSitterCoreService
-  ) {
+  constructor(@inject(TYPES.TreeSitterCoreService) treeSitterCore: TreeSitterCoreService) {
     this.symbolTableBuilder = new SymbolTableBuilder();
     this.cfgBuilder = new CFGBuilder();
     this.dataFlowAnalyzer = new DataFlowAnalyzer();
@@ -88,7 +93,7 @@ export class AdvancedTreeSitterService {
   async buildComprehensiveAnalysis(projectPath: string): Promise<ProjectAnalysisResult> {
     const files = await this.getProjectFiles(projectPath);
     const results: ComprehensiveAnalysisResult[] = [];
-    
+
     for (const filePath of files) {
       try {
         const result = await this.analyzeFile(filePath);
@@ -106,7 +111,7 @@ export class AdvancedTreeSitterService {
       files: results,
       projectMetrics,
       securitySummary,
-      crossFileAnalysis
+      crossFileAnalysis,
     };
   }
 
@@ -128,19 +133,19 @@ export class AdvancedTreeSitterService {
     // Build symbol table
     const symbolStart = Date.now();
     const symbolTable = this.symbolTableBuilder.build(parseResult.ast, filePath);
-    
+
     // Build control flow graph
     const cfgStart = Date.now();
     const cfg = this.cfgBuilder.build(parseResult.ast, filePath);
-    
+
     // Build data flow graph
     const dataFlowStart = Date.now();
     const dataFlowGraph = this.dataFlowAnalyzer.analyze(cfg, symbolTable);
-    
+
     // Detect security issues
     const securityStart = Date.now();
     const securityIssues = this.detectSecurityIssues(filePath, dataFlowGraph);
-    
+
     // Calculate metrics
     const metricsStart = Date.now();
     const metrics = this.calculateMetrics(parseResult.ast, cfg, symbolTable);
@@ -159,8 +164,8 @@ export class AdvancedTreeSitterService {
       performance: {
         parseTime,
         analysisTime: totalAnalysisTime - parseTime,
-        memoryUsage
-      }
+        memoryUsage,
+      },
     };
   }
 
@@ -168,26 +173,29 @@ export class AdvancedTreeSitterService {
     return this.incrementalAnalyzer.analyzeChanges(changes);
   }
 
-  async analyzeFunction(projectPath: string, functionName: string): Promise<{
+  async analyzeFunction(
+    projectPath: string,
+    functionName: string
+  ): Promise<{
     symbolTable: SymbolTable;
     cfg: ControlFlowGraph;
     dataFlow: DataFlowGraph;
     securityIssues: SecurityIssue[];
   }> {
     const files = await this.getProjectFiles(projectPath);
-    
+
     for (const filePath of files) {
       const result = await this.analyzeFile(filePath);
       const functionSymbols = result.symbolTable.functions.get(functionName);
-      
+
       if (functionSymbols) {
         return {
           symbolTable: result.symbolTable,
           cfg: result.controlFlow,
           dataFlow: result.dataFlow,
-          securityIssues: result.securityIssues.filter(
-            issue => issue.variables.includes(functionName)
-          )
+          securityIssues: result.securityIssues.filter(issue =>
+            issue.variables.includes(functionName)
+          ),
         };
       }
     }
@@ -195,21 +203,24 @@ export class AdvancedTreeSitterService {
     throw new Error(`Function ${functionName} not found in project ${projectPath}`);
   }
 
-  async analyzeClass(projectPath: string, className: string): Promise<{
+  async analyzeClass(
+    projectPath: string,
+    className: string
+  ): Promise<{
     symbolTable: SymbolTable;
     methods: Map<string, ControlFlowGraph>;
     dataFlow: DataFlowGraph;
     securityIssues: SecurityIssue[];
   }> {
     const files = await this.getProjectFiles(projectPath);
-    
+
     for (const filePath of files) {
       const result = await this.analyzeFile(filePath);
       const classSymbols = result.symbolTable.classes.get(className);
-      
+
       if (classSymbols) {
         const methods = new Map<string, ControlFlowGraph>();
-        
+
         for (const [methodName, methodCFG] of result.controlFlow.functions) {
           if (methodName.startsWith(`${className}.`)) {
             methods.set(methodName, methodCFG);
@@ -220,9 +231,9 @@ export class AdvancedTreeSitterService {
           symbolTable: result.symbolTable,
           methods,
           dataFlow: result.dataFlow,
-          securityIssues: result.securityIssues.filter(
-            issue => issue.variables.some(v => v.startsWith(className))
-          )
+          securityIssues: result.securityIssues.filter(issue =>
+            issue.variables.some(v => v.startsWith(className))
+          ),
         };
       }
     }
@@ -230,7 +241,10 @@ export class AdvancedTreeSitterService {
     throw new Error(`Class ${className} not found in project ${projectPath}`);
   }
 
-  async trackVariable(projectPath: string, variableName: string): Promise<{
+  async trackVariable(
+    projectPath: string,
+    variableName: string
+  ): Promise<{
     definitions: string[];
     uses: string[];
     taintPath: string[];
@@ -245,21 +259,21 @@ export class AdvancedTreeSitterService {
     for (const filePath of files) {
       const result = await this.analyzeFile(filePath);
       const variableFlows = result.dataFlow.getVariableFlows(variableName);
-      
+
       if (variableFlows.length > 0) {
         const definitions = result.dataFlow.getVariableDefinitions(variableName);
         const uses = result.dataFlow.getVariableUses(variableName);
-        
+
         allDefinitions.push(...definitions.map(d => `${filePath}:${d.startLine}`));
         allUses.push(...uses.map(u => `${filePath}:${u.startLine}`));
-        
+
         if (result.dataFlow.isVariableTainted(variableName)) {
           allTaintPaths.push(filePath);
         }
-        
-        allSecurityIssues.push(...result.securityIssues.filter(
-          issue => issue.variables.includes(variableName)
-        ));
+
+        allSecurityIssues.push(
+          ...result.securityIssues.filter(issue => issue.variables.includes(variableName))
+        );
       }
     }
 
@@ -267,7 +281,7 @@ export class AdvancedTreeSitterService {
       definitions: allDefinitions,
       uses: allUses,
       taintPath: allTaintPaths,
-      securityIssues: allSecurityIssues
+      securityIssues: allSecurityIssues,
     };
   }
 
@@ -276,17 +290,17 @@ export class AdvancedTreeSitterService {
     // This should recursively find all source files in the project
     const fs = require('fs');
     const path = require('path');
-    
+
     const files: string[] = [];
     const extensions = ['.js', '.ts', '.py', '.java', '.go', '.rs', '.cpp', '.c'];
-    
+
     function findFiles(dir: string) {
       const items = fs.readdirSync(dir);
-      
+
       for (const item of items) {
         const fullPath = path.join(dir, item);
         const stat = fs.statSync(fullPath);
-        
+
         if (stat.isDirectory()) {
           // Skip node_modules and other common ignore directories
           if (!['node_modules', '.git', 'dist', 'build'].includes(item)) {
@@ -297,7 +311,7 @@ export class AdvancedTreeSitterService {
         }
       }
     }
-    
+
     findFiles(projectPath);
     return files;
   }
@@ -321,7 +335,7 @@ export class AdvancedTreeSitterService {
       totalClasses += result.metrics.classCount;
       totalComplexity += result.metrics.cyclomaticComplexity;
       totalSecurityIssues += result.securityIssues.length;
-      
+
       const language = this.detectLanguage(result.filePath);
       languageDistribution.set(language, (languageDistribution.get(language) || 0) + 1);
     }
@@ -333,7 +347,7 @@ export class AdvancedTreeSitterService {
       averageComplexity: totalFunctions > 0 ? totalComplexity / totalFunctions : 0,
       securityIssues: totalSecurityIssues,
       testCoverage: 0, // Would need test coverage data
-      languageDistribution
+      languageDistribution,
     };
   }
 
@@ -349,7 +363,7 @@ export class AdvancedTreeSitterService {
     for (const result of results) {
       for (const issue of result.securityIssues) {
         allIssues.push(issue);
-        
+
         switch (issue.severity) {
           case 'critical':
             critical++;
@@ -380,7 +394,7 @@ export class AdvancedTreeSitterService {
       low,
       issues: allIssues,
       taintSources: Array.from(taintSources),
-      taintSinks: Array.from(taintSinks)
+      taintSinks: Array.from(taintSinks),
     };
   }
 
@@ -393,13 +407,13 @@ export class AdvancedTreeSitterService {
     for (const result of results) {
       // Analyze function calls across files
       this.analyzeFunctionCalls(result, functionCalls);
-      
+
       // Analyze class dependencies
       this.analyzeClassDependencies(result, classDependencies);
-      
+
       // Analyze variable usages
       this.analyzeVariableUsages(result, variableUsages);
-      
+
       // Analyze security propagation
       this.analyzeSecurityPropagation(result, securityPropagation);
     }
@@ -408,27 +422,43 @@ export class AdvancedTreeSitterService {
       functionCalls,
       classDependencies,
       variableUsages,
-      securityPropagation
+      securityPropagation,
     };
   }
 
-  private analyzeFunctionCalls(result: ComprehensiveAnalysisResult, functionCalls: Map<string, string[]>): void {
+  private analyzeFunctionCalls(
+    result: ComprehensiveAnalysisResult,
+    functionCalls: Map<string, string[]>
+  ): void {
     // Implementation for cross-file function call analysis
   }
 
-  private analyzeClassDependencies(result: ComprehensiveAnalysisResult, classDependencies: Map<string, string[]>): void {
+  private analyzeClassDependencies(
+    result: ComprehensiveAnalysisResult,
+    classDependencies: Map<string, string[]>
+  ): void {
     // Implementation for cross-file class dependency analysis
   }
 
-  private analyzeVariableUsages(result: ComprehensiveAnalysisResult, variableUsages: Map<string, string[]>): void {
+  private analyzeVariableUsages(
+    result: ComprehensiveAnalysisResult,
+    variableUsages: Map<string, string[]>
+  ): void {
     // Implementation for cross-file variable usage analysis
   }
 
-  private analyzeSecurityPropagation(result: ComprehensiveAnalysisResult, securityPropagation: Map<string, string[]>): void {
+  private analyzeSecurityPropagation(
+    result: ComprehensiveAnalysisResult,
+    securityPropagation: Map<string, string[]>
+  ): void {
     // Implementation for security issue propagation analysis
   }
 
-  private calculateMetrics(ast: Parser.SyntaxNode, cfg: ControlFlowGraph, symbolTable: SymbolTable): CodeMetrics {
+  private calculateMetrics(
+    ast: Parser.SyntaxNode,
+    cfg: ControlFlowGraph,
+    symbolTable: SymbolTable
+  ): CodeMetrics {
     const linesOfCode = this.countLinesOfCode(ast);
     const cyclomaticComplexity = this.calculateCyclomaticComplexity(cfg);
     const nestingDepth = this.calculateNestingDepth(ast);
@@ -446,7 +476,7 @@ export class AdvancedTreeSitterService {
       classCount,
       variableCount,
       securityHotspots,
-      testCoverage
+      testCoverage,
     };
   }
 
@@ -458,59 +488,66 @@ export class AdvancedTreeSitterService {
     const edges = cfg.edges.length;
     const nodes = cfg.nodes.length;
     const components = 1; // Assuming single component
-    
+
     return edges - nodes + 2 * components;
   }
 
   private calculateNestingDepth(ast: Parser.SyntaxNode): number {
     let maxDepth = 0;
-    
+
     function traverse(node: Parser.SyntaxNode, currentDepth: number) {
-      if (['if_statement', 'while_statement', 'for_statement', 'switch_statement'].includes(node.type)) {
+      if (
+        ['if_statement', 'while_statement', 'for_statement', 'switch_statement'].includes(node.type)
+      ) {
         currentDepth++;
         maxDepth = Math.max(maxDepth, currentDepth);
       }
-      
+
       for (const child of node.children) {
         traverse(child, currentDepth);
       }
     }
-    
+
     traverse(ast, 0);
     return maxDepth;
   }
 
-  private estimateMemoryUsage(ast: Parser.SyntaxNode, symbolTable: SymbolTable, cfg: ControlFlowGraph, dataFlow: DataFlowGraph): number {
+  private estimateMemoryUsage(
+    ast: Parser.SyntaxNode,
+    symbolTable: SymbolTable,
+    cfg: ControlFlowGraph,
+    dataFlow: DataFlowGraph
+  ): number {
     const astSize = JSON.stringify(ast).length;
     const symbolSize = JSON.stringify(symbolTable).length;
     const cfgSize = JSON.stringify(cfg).length;
     const dataFlowSize = JSON.stringify(dataFlow).length;
-    
+
     return astSize + symbolSize + cfgSize + dataFlowSize;
   }
 
   private detectLanguage(filePath: string): string {
     const ext = filePath.split('.').pop()?.toLowerCase();
     const languageMap: { [key: string]: string } = {
-      'js': 'javascript',
-      'ts': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rs': 'rust',
-      'cpp': 'cpp',
-      'c': 'c'
+      js: 'javascript',
+      ts: 'typescript',
+      py: 'python',
+      java: 'java',
+      go: 'go',
+      rs: 'rust',
+      cpp: 'cpp',
+      c: 'c',
     };
-    
+
     return languageMap[ext || ''] || 'unknown';
   }
 
   private detectSecurityIssues(filePath: string, dataFlowGraph: DataFlowGraph): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
-    
+
     // Get all tainted flows from the data flow graph
     const taintedFlows = dataFlowGraph.getTaintedFlows();
-    
+
     for (const flow of taintedFlows) {
       // Check for SQL injection
       if (this.isSQLSink(flow)) {
@@ -524,15 +561,15 @@ export class AdvancedTreeSitterService {
             startLine: flow.targetNode.startLine,
             endLine: flow.targetNode.endLine,
             startColumn: 0,
-            endColumn: 0
+            endColumn: 0,
           },
           variables: [flow.variable],
           taintPath: [],
           remediation: 'Use parameterized queries or prepared statements to prevent SQL injection',
-          code: flow.targetNode.statements.map(s => s.text).join('\n')
+          code: flow.targetNode.statements.map(s => s.text).join('\n'),
         });
       }
-      
+
       // Check for XSS
       if (this.isXSSSink(flow)) {
         issues.push({
@@ -545,15 +582,15 @@ export class AdvancedTreeSitterService {
             startLine: flow.targetNode.startLine,
             endLine: flow.targetNode.endLine,
             startColumn: 0,
-            endColumn: 0
+            endColumn: 0,
           },
           variables: [flow.variable],
           taintPath: [],
           remediation: 'Use proper output encoding or Content Security Policy to prevent XSS',
-          code: flow.targetNode.statements.map(s => s.text).join('\n')
+          code: flow.targetNode.statements.map(s => s.text).join('\n'),
         });
       }
-      
+
       // Check for command injection
       if (this.isCommandSink(flow)) {
         issues.push({
@@ -566,15 +603,15 @@ export class AdvancedTreeSitterService {
             startLine: flow.targetNode.startLine,
             endLine: flow.targetNode.endLine,
             startColumn: 0,
-            endColumn: 0
+            endColumn: 0,
           },
           variables: [flow.variable],
           taintPath: [],
           remediation: 'Use safe APIs or proper input validation to prevent command injection',
-          code: flow.targetNode.statements.map(s => s.text).join('\n')
+          code: flow.targetNode.statements.map(s => s.text).join('\n'),
         });
       }
-      
+
       // Check for path traversal
       if (this.isPathTraversalSink(flow)) {
         issues.push({
@@ -587,40 +624,52 @@ export class AdvancedTreeSitterService {
             startLine: flow.targetNode.startLine,
             endLine: flow.targetNode.endLine,
             startColumn: 0,
-            endColumn: 0
+            endColumn: 0,
           },
           variables: [flow.variable],
           taintPath: [],
           remediation: 'Validate and sanitize file paths to prevent path traversal attacks',
-          code: flow.targetNode.statements.map(s => s.text).join('\n')
+          code: flow.targetNode.statements.map(s => s.text).join('\n'),
         });
       }
     }
-    
+
     return issues;
   }
 
   private isSQLSink(flow: DataFlowEdge): boolean {
     const sqlPatterns = ['query', 'execute', 'exec', 'prepare', 'Statement'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return sqlPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
   private isXSSSink(flow: DataFlowEdge): boolean {
     const xssPatterns = ['innerHTML', 'outerHTML', 'document.write', 'eval'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return xssPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
   private isCommandSink(flow: DataFlowEdge): boolean {
     const commandPatterns = ['exec', 'spawn', 'system', 'shell', 'cmd'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return commandPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 
   private isPathTraversalSink(flow: DataFlowEdge): boolean {
     const pathPatterns = ['readFile', 'writeFile', 'open', 'fs.', 'path.'];
-    const text = flow.targetNode.statements.map(s => s.text).join(' ').toLowerCase();
+    const text = flow.targetNode.statements
+      .map(s => s.text)
+      .join(' ')
+      .toLowerCase();
     return pathPatterns.some(pattern => text.includes(pattern.toLowerCase()));
   }
 }

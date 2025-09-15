@@ -1,6 +1,6 @@
 /**
  * Static Analysis Service Integration
- * 
+ *
  * This module provides the main entry point for static analysis services,
  * including Semgrep integration and result processing.
  */

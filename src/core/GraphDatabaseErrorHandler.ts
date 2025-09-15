@@ -64,13 +64,13 @@ export class GraphDatabaseErrorHandler {
 
   async handleError(error: Error, context: ErrorContext): Promise<ErrorHandlingResult> {
     const errorInfo = await this.errorClassifier.classifyError(error);
-    
+
     this.logger.error('Graph database error occurred', {
       error: error.message,
       type: errorInfo.type,
       severity: errorInfo.severity,
       context,
-      stack: error.stack
+      stack: error.stack,
     });
 
     // Record error in history
@@ -78,17 +78,17 @@ export class GraphDatabaseErrorHandler {
 
     // Attempt automatic recovery
     const recoveryResult = await this.attemptRecovery(errorInfo, context);
-    
+
     if (recoveryResult.success) {
       this.logger.info('Error recovered automatically', {
         errorType: errorInfo.type,
-        recoveryStrategy: recoveryResult.strategy
+        recoveryStrategy: recoveryResult.strategy,
       });
-      
+
       return {
         handled: true,
         recovered: true,
-        action: recoveryResult.action || 'recovered_automatically'
+        action: recoveryResult.action || 'recovered_automatically',
       };
     }
 
@@ -98,7 +98,7 @@ export class GraphDatabaseErrorHandler {
       recovered: false,
       action: 'manual_intervention_required',
       suggestions: this.getErrorSuggestions(errorInfo),
-      context: this.collectErrorContext(error, context)
+      context: this.collectErrorContext(error, context),
     };
   }
 
@@ -107,20 +107,21 @@ export class GraphDatabaseErrorHandler {
     context: ErrorContext
   ): Promise<RecoveryResult> {
     const strategy = this.recoveryStrategies.get(errorInfo.type);
-    
+
     if (!strategy) {
       return { success: false, strategy: 'none' };
     }
-    
+
     try {
       return await strategy.execute(errorInfo, context);
     } catch (recoveryError) {
       this.logger.error('Recovery strategy failed', {
         errorType: errorInfo.type,
-        recoveryError: recoveryError instanceof Error ? recoveryError.message : String(recoveryError),
-        strategy: strategy.name
+        recoveryError:
+          recoveryError instanceof Error ? recoveryError.message : String(recoveryError),
+        strategy: strategy.name,
       });
-      
+
       return { success: false, strategy: strategy.name };
     }
   }
@@ -131,7 +132,7 @@ export class GraphDatabaseErrorHandler {
       ['timeout', new TimeoutRecoveryStrategy()],
       ['query', new QueryRecoveryStrategy()],
       ['constraint', new ConstraintRecoveryStrategy()],
-      ['permission', new PermissionRecoveryStrategy()]
+      ['permission', new PermissionRecoveryStrategy()],
     ]);
   }
 
@@ -142,7 +143,7 @@ export class GraphDatabaseErrorHandler {
       type: errorInfo.type,
       component: context.component,
       operation: context.operation,
-      recovered: false
+      recovered: false,
     });
 
     // Keep only last 1000 errors
@@ -153,7 +154,7 @@ export class GraphDatabaseErrorHandler {
 
   private getErrorSuggestions(errorInfo: ErrorClassification): string[] {
     const suggestions: string[] = [];
-    
+
     switch (errorInfo.type) {
       case 'connection':
         suggestions.push('Check NebulaGraph server status');
@@ -185,7 +186,7 @@ export class GraphDatabaseErrorHandler {
         suggestions.push('Check database configuration');
         suggestions.push('Contact system administrator');
     }
-    
+
     return suggestions;
   }
 
@@ -203,8 +204,8 @@ export class GraphDatabaseErrorHandler {
       recentErrors: this.errorHistory.slice(-5).map(e => ({
         timestamp: e.timestamp,
         type: e.type,
-        component: e.component
-      }))
+        component: e.component,
+      })),
     };
   }
 
@@ -220,19 +221,26 @@ export class GraphDatabaseErrorHandler {
       operation: string;
     }>;
   } {
-    const errorsByType = this.errorHistory.reduce((acc, error) => {
-      acc[error.type] = (acc[error.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const errorsByType = this.errorHistory.reduce(
+      (acc, error) => {
+        acc[error.type] = (acc[error.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const errorsByComponent = this.errorHistory.reduce((acc, error) => {
-      acc[error.component] = (acc[error.component] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const errorsByComponent = this.errorHistory.reduce(
+      (acc, error) => {
+        acc[error.component] = (acc[error.component] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const recoveryRate = this.errorHistory.length > 0 
-      ? (this.errorHistory.filter(e => e.recovered).length / this.errorHistory.length) * 100 
-      : 0;
+    const recoveryRate =
+      this.errorHistory.length > 0
+        ? (this.errorHistory.filter(e => e.recovered).length / this.errorHistory.length) * 100
+        : 0;
 
     return {
       totalErrors: this.errorHistory.length,
@@ -243,8 +251,8 @@ export class GraphDatabaseErrorHandler {
         timestamp: e.timestamp,
         type: e.type,
         component: e.component,
-        operation: e.operation
-      }))
+        operation: e.operation,
+      })),
     };
   }
 }
@@ -258,11 +266,11 @@ class ConnectionRecoveryStrategy implements RecoveryStrategy {
     // Implementation would include reconnection logic
     // For now, simulate recovery attempt
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     return {
       success: Math.random() > 0.3, // 70% success rate
       strategy: this.name,
-      action: 'reconnected_to_database'
+      action: 'reconnected_to_database',
     };
   }
 }
@@ -272,13 +280,13 @@ class TimeoutRecoveryStrategy implements RecoveryStrategy {
 
   async execute(error: ErrorClassification, context: ErrorContext): Promise<RecoveryResult> {
     // Implementation would include retry with increased timeout
-    const delay = Math.min(1000 * Math.pow(2, (context.retryCount || 0)), 30000);
+    const delay = Math.min(1000 * Math.pow(2, context.retryCount || 0), 30000);
     await new Promise(resolve => setTimeout(resolve, delay));
-    
+
     return {
       success: Math.random() > 0.2, // 80% success rate
       strategy: this.name,
-      action: 'retried_with_increased_timeout'
+      action: 'retried_with_increased_timeout',
     };
   }
 }
@@ -291,7 +299,7 @@ class QueryRecoveryStrategy implements RecoveryStrategy {
     return {
       success: false, // Query errors typically require manual intervention
       strategy: this.name,
-      action: 'query_validation_failed'
+      action: 'query_validation_failed',
     };
   }
 }
@@ -304,7 +312,7 @@ class ConstraintRecoveryStrategy implements RecoveryStrategy {
     return {
       success: Math.random() > 0.5, // 50% success rate
       strategy: this.name,
-      action: 'constraint_resolution_attempted'
+      action: 'constraint_resolution_attempted',
     };
   }
 }
@@ -317,7 +325,7 @@ class PermissionRecoveryStrategy implements RecoveryStrategy {
     return {
       success: Math.random() > 0.4, // 60% success rate
       strategy: this.name,
-      action: 'permission_refresh_attempted'
+      action: 'permission_refresh_attempted',
     };
   }
 }

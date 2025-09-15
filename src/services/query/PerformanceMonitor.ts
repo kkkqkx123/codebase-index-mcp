@@ -71,17 +71,17 @@ export class PerformanceMonitor {
     this.configService = configService;
     this.logger = logger;
     this.errorHandler = errorHandler;
-    
+
     this.startCleanupTask();
   }
 
   async recordQuery(metrics: QueryMetrics): Promise<void> {
     const systemMetrics = await this.getSystemMetrics();
-    
+
     const performanceStats: PerformanceStats = {
       timestamp: Date.now(),
       metrics,
-      systemMetrics
+      systemMetrics,
     };
 
     this.metrics.push(performanceStats);
@@ -103,14 +103,14 @@ export class PerformanceMonitor {
     this.logger.debug('Query metrics recorded', {
       queryId: metrics.queryId,
       executionTime: metrics.executionTime,
-      cacheHit: metrics.cacheHit
+      cacheHit: metrics.cacheHit,
     });
   }
 
   async getStats(timeRange: { start: Date; end: Date }): Promise<AggregatedStats> {
-    const filteredMetrics = this.metrics.filter(stat => 
-      stat.timestamp >= timeRange.start.getTime() && 
-      stat.timestamp <= timeRange.end.getTime()
+    const filteredMetrics = this.metrics.filter(
+      stat =>
+        stat.timestamp >= timeRange.start.getTime() && stat.timestamp <= timeRange.end.getTime()
     );
 
     if (filteredMetrics.length === 0) {
@@ -147,7 +147,7 @@ export class PerformanceMonitor {
       throughput,
       errorRate: (totalQueries - successfulQueries) / totalQueries,
       topQueries,
-      systemHealth
+      systemHealth,
     };
   }
 
@@ -167,14 +167,16 @@ export class PerformanceMonitor {
     }>;
   }> {
     const recentMetrics = this.metrics.slice(-100); // Last 100 queries
-    
-    const currentQueries = recentMetrics.filter(stat => 
-      Date.now() - stat.timestamp < 5000 // Last 5 seconds
+
+    const currentQueries = recentMetrics.filter(
+      stat => Date.now() - stat.timestamp < 5000 // Last 5 seconds
     ).length;
 
-    const averageLatency = recentMetrics.length > 0 
-      ? recentMetrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) / recentMetrics.length
-      : 0;
+    const averageLatency =
+      recentMetrics.length > 0
+        ? recentMetrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) /
+          recentMetrics.length
+        : 0;
 
     const cacheHits = recentMetrics.filter(stat => stat.metrics.cacheHit).length;
     const cacheHitRate = recentMetrics.length > 0 ? cacheHits / recentMetrics.length : 0;
@@ -189,9 +191,9 @@ export class PerformanceMonitor {
       systemLoad: {
         memory: systemMetrics.memoryUsage,
         cpu: systemMetrics.cpuUsage,
-        connections: systemMetrics.databaseConnections
+        connections: systemMetrics.databaseConnections,
       },
-      alerts
+      alerts,
     };
   }
 
@@ -206,7 +208,7 @@ export class PerformanceMonitor {
     recommendations: string[];
   }> {
     const queryMetrics = this.metrics.filter(stat => stat.metrics.queryId === queryId);
-    
+
     if (queryMetrics.length === 0) {
       throw new Error(`No metrics found for query: ${queryId}`);
     }
@@ -214,7 +216,8 @@ export class PerformanceMonitor {
     const executionTimes = queryMetrics.map(stat => stat.metrics.executionTime);
     const cacheHits = queryMetrics.filter(stat => stat.metrics.cacheHit).length;
 
-    const averageExecutionTime = executionTimes.reduce((sum, time) => sum + time, 0) / executionTimes.length;
+    const averageExecutionTime =
+      executionTimes.reduce((sum, time) => sum + time, 0) / executionTimes.length;
     const minExecutionTime = Math.min(...executionTimes);
     const maxExecutionTime = Math.max(...executionTimes);
     const cacheHitRate = cacheHits / queryMetrics.length;
@@ -235,20 +238,24 @@ export class PerformanceMonitor {
       maxExecutionTime,
       cacheHitRate,
       performanceTrend,
-      recommendations
+      recommendations,
     };
   }
 
   async exportMetrics(format: 'json' | 'csv' = 'json'): Promise<string> {
     if (format === 'json') {
-      return JSON.stringify({
-        exportedAt: new Date().toISOString(),
-        metrics: this.metrics,
-        summary: await this.getStats({
-          start: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-          end: new Date()
-        })
-      }, null, 2);
+      return JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          metrics: this.metrics,
+          summary: await this.getStats({
+            start: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+            end: new Date(),
+          }),
+        },
+        null,
+        2
+      );
     } else {
       return this.exportToCsv();
     }
@@ -268,9 +275,9 @@ export class PerformanceMonitor {
       memoryUsage,
       cpuUsage: Math.random() * 100, // Mock CPU usage
       databaseConnections: Math.floor(Math.random() * 50) + 10, // Mock connections
-      activeQueries: this.metrics.filter(stat => 
-        Date.now() - stat.timestamp < 1000 // Last second
-      ).length
+      activeQueries: this.metrics.filter(
+        stat => Date.now() - stat.timestamp < 1000 // Last second
+      ).length,
     };
   }
 
@@ -281,7 +288,7 @@ export class PerformanceMonitor {
 
   private percentile(sortedArray: number[], p: number): number {
     if (sortedArray.length === 0) return 0;
-    
+
     const index = Math.ceil((p / 100) * sortedArray.length) - 1;
     return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))];
   }
@@ -296,10 +303,10 @@ export class PerformanceMonitor {
     metrics.forEach(stat => {
       const queryKey = this.sanitizeQuery(stat.metrics.queryId);
       const current = queryStats.get(queryKey) || { count: 0, totalLatency: 0 };
-      
+
       queryStats.set(queryKey, {
         count: current.count + 1,
-        totalLatency: current.totalLatency + stat.metrics.executionTime
+        totalLatency: current.totalLatency + stat.metrics.executionTime,
       });
     });
 
@@ -307,7 +314,7 @@ export class PerformanceMonitor {
       .map(([query, stats]) => ({
         query,
         count: stats.count,
-        avgLatency: stats.totalLatency / stats.count
+        avgLatency: stats.totalLatency / stats.count,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
@@ -326,11 +333,14 @@ export class PerformanceMonitor {
       averageMemoryUsage: memoryUsages.reduce((sum, usage) => sum + usage, 0) / memoryUsages.length,
       averageCpuUsage: cpuUsages.reduce((sum, usage) => sum + usage, 0) / cpuUsages.length,
       peakMemoryUsage: Math.max(...memoryUsages),
-      peakCpuUsage: Math.max(...cpuUsages)
+      peakCpuUsage: Math.max(...cpuUsages),
     };
   }
 
-  private generateAlerts(metrics: PerformanceStats[], systemMetrics: any): Array<{
+  private generateAlerts(
+    metrics: PerformanceStats[],
+    systemMetrics: any
+  ): Array<{
     type: 'warning' | 'error';
     message: string;
     timestamp: number;
@@ -343,25 +353,26 @@ export class PerformanceMonitor {
 
     // Check for high latency
     const recentLatencies = metrics.slice(-10).map(stat => stat.metrics.executionTime);
-    const avgRecentLatency = recentLatencies.reduce((sum, latency) => sum + latency, 0) / recentLatencies.length;
-    
+    const avgRecentLatency =
+      recentLatencies.reduce((sum, latency) => sum + latency, 0) / recentLatencies.length;
+
     if (avgRecentLatency > 1000) {
       alerts.push({
         type: 'error',
         message: `High average latency: ${avgRecentLatency.toFixed(0)}ms`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
     // Check for low cache hit rate
     const recentCacheHits = metrics.slice(-10).filter(stat => stat.metrics.cacheHit).length;
     const cacheHitRate = recentCacheHits / 10;
-    
+
     if (cacheHitRate < 0.3) {
       alerts.push({
         type: 'warning',
         message: `Low cache hit rate: ${(cacheHitRate * 100).toFixed(1)}%`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
@@ -370,7 +381,7 @@ export class PerformanceMonitor {
       alerts.push({
         type: 'error',
         message: `High memory usage: ${systemMetrics.memoryUsage.toFixed(1)}%`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
@@ -378,20 +389,26 @@ export class PerformanceMonitor {
       alerts.push({
         type: 'warning',
         message: `High CPU usage: ${systemMetrics.cpuUsage.toFixed(1)}%`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
     return alerts;
   }
 
-  private analyzePerformanceTrend(recentMetrics: PerformanceStats[], olderMetrics: PerformanceStats[]): 'improving' | 'degrading' | 'stable' {
+  private analyzePerformanceTrend(
+    recentMetrics: PerformanceStats[],
+    olderMetrics: PerformanceStats[]
+  ): 'improving' | 'degrading' | 'stable' {
     if (recentMetrics.length === 0 || olderMetrics.length === 0) {
       return 'stable';
     }
 
-    const recentAvg = recentMetrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) / recentMetrics.length;
-    const olderAvg = olderMetrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) / olderMetrics.length;
+    const recentAvg =
+      recentMetrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) /
+      recentMetrics.length;
+    const olderAvg =
+      olderMetrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) / olderMetrics.length;
 
     const changePercent = ((recentAvg - olderAvg) / olderAvg) * 100;
 
@@ -403,7 +420,8 @@ export class PerformanceMonitor {
   private generateRecommendations(metrics: PerformanceStats[]): string[] {
     const recommendations: string[] = [];
 
-    const avgLatency = metrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) / metrics.length;
+    const avgLatency =
+      metrics.reduce((sum, stat) => sum + stat.metrics.executionTime, 0) / metrics.length;
     const cacheHitRate = metrics.filter(stat => stat.metrics.cacheHit).length / metrics.length;
 
     if (avgLatency > 500) {
@@ -414,7 +432,8 @@ export class PerformanceMonitor {
       recommendations.push('Consider increasing cache TTL or optimizing cache strategy');
     }
 
-    const avgMemoryUsage = metrics.reduce((sum, stat) => sum + stat.systemMetrics.memoryUsage, 0) / metrics.length;
+    const avgMemoryUsage =
+      metrics.reduce((sum, stat) => sum + stat.systemMetrics.memoryUsage, 0) / metrics.length;
     if (avgMemoryUsage > 80) {
       recommendations.push('Consider optimizing memory usage or increasing system resources');
     }
@@ -437,8 +456,8 @@ export class PerformanceMonitor {
         averageMemoryUsage: 0,
         averageCpuUsage: 0,
         peakMemoryUsage: 0,
-        peakCpuUsage: 0
-      }
+        peakCpuUsage: 0,
+      },
     };
   }
 
@@ -453,7 +472,7 @@ export class PerformanceMonitor {
       'totalResults',
       'cacheHit',
       'memoryUsage',
-      'cpuUsage'
+      'cpuUsage',
     ];
 
     const rows = this.metrics.map(stat => [
@@ -466,7 +485,7 @@ export class PerformanceMonitor {
       stat.metrics.totalResults,
       stat.metrics.cacheHit,
       stat.systemMetrics.memoryUsage,
-      stat.systemMetrics.cpuUsage
+      stat.systemMetrics.cpuUsage,
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -493,8 +512,8 @@ export class PerformanceMonitor {
 
     const cleanedCount = initialSize - this.metrics.length;
     if (cleanedCount > 0) {
-      this.logger.debug('Cleaned up old performance metrics', { 
-        count: cleanedCount 
+      this.logger.debug('Cleaned up old performance metrics', {
+        count: cleanedCount,
       });
     }
   }

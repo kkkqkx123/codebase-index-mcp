@@ -3,25 +3,25 @@ import { QueryResult } from '../../query/QueryCoordinationService';
 
 // Mock dependencies
 const mockConfigService = {
-  get: jest.fn().mockReturnValue({})
+  get: jest.fn().mockReturnValue({}),
 };
 
 const mockLoggerService = {
   info: jest.fn(),
   error: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 };
 
 const mockErrorHandlerService = {
-  handleError: jest.fn()
+  handleError: jest.fn(),
 };
 
 const mockGraphStorage = {
-  searchNodes: jest.fn().mockResolvedValue([])
+  searchNodes: jest.fn().mockResolvedValue([]),
 };
 
 const mockSemanticSearch = {
-  search: jest.fn().mockResolvedValue({ results: [], metrics: { executionTime: 0 } })
+  search: jest.fn().mockResolvedValue({ results: [], metrics: { executionTime: 0 } }),
 };
 
 describe('RerankingService', () => {
@@ -52,7 +52,7 @@ describe('RerankingService', () => {
         endLine: 3,
         language: 'typescript',
         chunkType: 'function',
-        metadata: {}
+        metadata: {},
       },
       {
         id: '2',
@@ -63,8 +63,8 @@ describe('RerankingService', () => {
         endLine: 2,
         language: 'typescript',
         chunkType: 'class',
-        metadata: {}
-      }
+        metadata: {},
+      },
     ];
 
     it('should rerank results using hybrid strategy by default', async () => {
@@ -77,14 +77,18 @@ describe('RerankingService', () => {
     });
 
     it('should rerank results using semantic strategy', async () => {
-      const reranked = await rerankingService.rerank(mockResults, 'test query', { strategy: 'semantic' });
+      const reranked = await rerankingService.rerank(mockResults, 'test query', {
+        strategy: 'semantic',
+      });
 
       expect(reranked).toHaveLength(2);
       expect(reranked[0]).toHaveProperty('rerankingMetrics');
     });
 
     it('should rerank results using graph strategy', async () => {
-      const reranked = await rerankingService.rerank(mockResults, 'test query', { strategy: 'graph' });
+      const reranked = await rerankingService.rerank(mockResults, 'test query', {
+        strategy: 'graph',
+      });
 
       expect(reranked).toHaveLength(2);
       expect(reranked[0]).toHaveProperty('rerankingMetrics');
@@ -114,17 +118,19 @@ describe('RerankingService', () => {
   describe('getRerankingStats', () => {
     it('should return reranking statistics', async () => {
       // Perform some reranking operations first
-      const mockResults: QueryResult[] = [{
-        id: '1',
-        score: 0.8,
-        filePath: '/src/file1.ts',
-        content: 'function test() { return true; }',
-        startLine: 1,
-        endLine: 3,
-        language: 'typescript',
-        chunkType: 'function',
-        metadata: {}
-      }];
+      const mockResults: QueryResult[] = [
+        {
+          id: '1',
+          score: 0.8,
+          filePath: '/src/file1.ts',
+          content: 'function test() { return true; }',
+          startLine: 1,
+          endLine: 3,
+          language: 'typescript',
+          chunkType: 'function',
+          metadata: {},
+        },
+      ];
 
       await rerankingService.rerank(mockResults, 'test query');
 

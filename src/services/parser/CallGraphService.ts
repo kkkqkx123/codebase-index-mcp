@@ -65,7 +65,7 @@ export class CallGraphService {
   constructor(
     @inject(ParserService) private parserService: ParserService,
     @inject(LoggerService) private logger: LoggerService
-  ) { }
+  ) {}
 
   async buildCallGraph(
     projectPath: string,
@@ -74,7 +74,7 @@ export class CallGraphService {
       includeCallbacks: true,
       includeAsync: true,
       maxDepth: 10,
-      ignorePatterns: ['node_modules', '.test.', '.spec.']
+      ignorePatterns: ['node_modules', '.test.', '.spec.'],
     }
   ): Promise<CallGraph> {
     try {
@@ -86,7 +86,7 @@ export class CallGraphService {
       // 使用ParserService的批量处理功能
       const parseResults = await this.parserService.parseFiles(files, {
         focus: 'functions',
-        includeAST: true
+        includeAST: true,
       });
 
       // 解析每个文件的函数定义和调用关系
@@ -111,7 +111,7 @@ export class CallGraphService {
         edges,
         entryPoints: this.findEntryPoints(nodes),
         cycles: this.detectCycles(nodes, edges),
-        depth: this.calculateDepth(nodes, edges)
+        depth: this.calculateDepth(nodes, edges),
       };
 
       this.callGraphs.set(projectPath, callGraph);
@@ -135,9 +135,8 @@ export class CallGraphService {
     const graph = this.callGraphs.get(projectPath);
     if (!graph) return null;
 
-    const node = graph.nodes.find(n =>
-      n.name === functionName &&
-      (!filePath || n.file === filePath)
+    const node = graph.nodes.find(
+      n => n.name === functionName && (!filePath || n.file === filePath)
     );
 
     if (!node) return null;
@@ -152,7 +151,7 @@ export class CallGraphService {
       callees,
       complexity: node.complexity,
       riskLevel,
-      testCoverage: await this.estimateTestCoverage(node)
+      testCoverage: await this.estimateTestCoverage(node),
     };
   }
 
@@ -201,16 +200,13 @@ export class CallGraphService {
     });
   }
 
-  private async getProjectFiles(
-    projectPath: string,
-    ignorePatterns: string[]
-  ): Promise<string[]> {
+  private async getProjectFiles(projectPath: string, ignorePatterns: string[]): Promise<string[]> {
     // 这里应该实现文件遍历逻辑
     // 简化实现，返回模拟数据
     return [
       `${projectPath}/src/main.ts`,
       `${projectPath}/src/utils.ts`,
-      `${projectPath}/src/services/api.ts`
+      `${projectPath}/src/services/api.ts`,
     ];
   }
 
@@ -219,7 +215,7 @@ export class CallGraphService {
       // 使用ParserService解析文件
       const parseResult = await this.parserService.parseFile(filePath, {
         focus: 'functions',
-        includeAST: true
+        includeAST: true,
       });
 
       const functions: FunctionNode[] = [];
@@ -237,7 +233,7 @@ export class CallGraphService {
           complexity: this.calculateCyclomaticComplexityFromAST(func),
           isPure: this.isPureFunctionFromAST(func),
           isExported: this.isExportedFunctionFromAST(func),
-          isAsync: this.isAsyncFunctionFromAST(func)
+          isAsync: this.isAsyncFunctionFromAST(func),
         };
 
         functions.push(node);
@@ -275,7 +271,7 @@ export class CallGraphService {
               type: this.determineCallTypeFromAST(node),
               line: node.startLine || 0,
               column: node.startColumn || 0,
-              context: callInfo.context
+              context: callInfo.context,
             });
           }
         }
@@ -290,13 +286,13 @@ export class CallGraphService {
 
   private extractParametersFromAST(func: any): Parameter[] {
     if (!func.parameters) return [];
-    
+
     try {
       // 从AST节点中提取参数信息
       return func.parameters.map((param: any) => ({
         name: param.name || 'unknown',
         type: param.type || 'unknown',
-        optional: param.optional || false
+        optional: param.optional || false,
       }));
     } catch (error) {
       this.logger.warn(`Failed to extract parameters: ${error}`);
@@ -309,7 +305,7 @@ export class CallGraphService {
       // 从AST调用表达式中提取函数名和上下文
       const functionName = node.name || node.text || 'unknown';
       const context = this.getNodeContext(node);
-      
+
       return { functionName, context };
     } catch (error) {
       this.logger.warn(`Failed to extract call info: ${error}`);
@@ -352,11 +348,9 @@ export class CallGraphService {
     line: number,
     functions: FunctionNode[]
   ): FunctionNode | null {
-    return functions.find(f =>
-      f.file === filePath &&
-      line >= f.startLine &&
-      line <= f.endLine
-    ) || null;
+    return (
+      functions.find(f => f.file === filePath && line >= f.startLine && line <= f.endLine) || null
+    );
   }
 
   private determineCallTypeFromAST(node: any): 'direct' | 'indirect' | 'callback' | 'async' {
@@ -370,11 +364,9 @@ export class CallGraphService {
   }
 
   private findEntryPoints(nodes: FunctionNode[]): string[] {
-    return nodes.filter(n =>
-      n.isExported ||
-      n.name === 'main' ||
-      n.name === 'start'
-    ).map(n => n.id);
+    return nodes
+      .filter(n => n.isExported || n.name === 'main' || n.name === 'start')
+      .map(n => n.id);
   }
 
   private detectCycles(nodes: FunctionNode[], edges: CallEdge[]): string[][] {
@@ -462,23 +454,14 @@ export class CallGraphService {
   }
 
   private findCallers(graph: CallGraph, functionId: string): string[] {
-    return graph.edges
-      .filter(edge => edge.to === functionId)
-      .map(edge => edge.from);
+    return graph.edges.filter(edge => edge.to === functionId).map(edge => edge.from);
   }
 
   private findCallees(graph: CallGraph, functionId: string): string[] {
-    return graph.edges
-      .filter(edge => edge.from === functionId)
-      .map(edge => edge.to);
+    return graph.edges.filter(edge => edge.from === functionId).map(edge => edge.to);
   }
 
-  private findAllPaths(
-    graph: CallGraph,
-    from: string,
-    to: string,
-    maxPaths: number
-  ): string[][] {
+  private findAllPaths(graph: CallGraph, from: string, to: string, maxPaths: number): string[][] {
     const paths: string[][] = [];
     const visited = new Set<string>();
 
@@ -540,10 +523,7 @@ export class CallGraphService {
     }
   }
 
-  async exportCallGraph(
-    projectPath: string,
-    format: 'json' | 'dot' | 'mermaid'
-  ): Promise<string> {
+  async exportCallGraph(projectPath: string, format: 'json' | 'dot' | 'mermaid'): Promise<string> {
     const callGraph = this.callGraphs.get(projectPath);
     if (!callGraph) {
       await this.buildCallGraph(projectPath);

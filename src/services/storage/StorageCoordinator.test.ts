@@ -1,4 +1,10 @@
-import { StorageCoordinator, ParsedFile, Chunk, StorageResult, DeleteResult } from '../../../src/services/storage/StorageCoordinator';
+import {
+  StorageCoordinator,
+  ParsedFile,
+  Chunk,
+  StorageResult,
+  DeleteResult,
+} from '../../../src/services/storage/StorageCoordinator';
 import { VectorStorageService } from './vector/VectorStorageService';
 import { GraphPersistenceService, GraphPersistenceOptions } from './graph/GraphPersistenceService';
 import { TransactionCoordinator } from '../../../src/services/sync/TransactionCoordinator';
@@ -29,7 +35,7 @@ describe('StorageCoordinator', () => {
       search: jest.fn(),
       searchVectors: jest.fn(),
       deleteChunksByFiles: jest.fn(),
-      getCollectionStats: jest.fn()
+      getCollectionStats: jest.fn(),
     } as any;
 
     graphStorage = {
@@ -37,7 +43,7 @@ describe('StorageCoordinator', () => {
       deleteNodes: jest.fn(),
       search: jest.fn(),
       deleteNodesByFiles: jest.fn(),
-      getGraphStats: jest.fn()
+      getGraphStats: jest.fn(),
     } as any;
 
     transactionCoordinator = {
@@ -45,24 +51,24 @@ describe('StorageCoordinator', () => {
       commitTransaction: jest.fn(),
       rollbackTransaction: jest.fn(),
       addVectorOperation: jest.fn(),
-      addGraphOperation: jest.fn()
+      addGraphOperation: jest.fn(),
     } as any;
 
     qdrantClient = {
-      getChunkIdsByFiles: jest.fn()
+      getChunkIdsByFiles: jest.fn(),
     } as any;
 
     loggerService = container.get(LoggerService);
     errorHandlerService = container.get(ErrorHandlerService);
     configService = container.get(ConfigService);
-    
+
     // Mock configService.get to return qdrant config
     configService.get.mockImplementation((key: any): any => {
       if (key === 'qdrant') {
         return {
           host: 'localhost',
           port: 6333,
-          collection: 'test_collection'
+          collection: 'test_collection',
         };
       }
       return {};
@@ -100,7 +106,7 @@ describe('StorageCoordinator', () => {
             endByte: 0,
             type: '',
             imports: [],
-            exports: []
+            exports: [],
           },
           {
             id: 'chunk_2',
@@ -115,9 +121,9 @@ describe('StorageCoordinator', () => {
             endByte: 0,
             type: '',
             imports: [],
-            exports: []
-          }
-        ]
+            exports: [],
+          },
+        ],
       },
       {
         filePath: '/test/project/file2.ts',
@@ -137,10 +143,10 @@ describe('StorageCoordinator', () => {
             endByte: 0,
             type: '',
             imports: [],
-            exports: []
-          }
-        ]
-      }
+            exports: [],
+          },
+        ],
+      },
     ];
 
     const mockProjectId = 'test_project_hash';
@@ -166,17 +172,17 @@ describe('StorageCoordinator', () => {
           chunks: expect.arrayContaining([
             expect.objectContaining({ id: 'chunk_1' }),
             expect.objectContaining({ id: 'chunk_2' }),
-            expect.objectContaining({ id: 'chunk_3' })
+            expect.objectContaining({ id: 'chunk_3' }),
           ]),
           options: {
             projectId: mockProjectId,
             overwriteExisting: true,
-            batchSize: 3
-          }
+            batchSize: 3,
+          },
         },
         {
           type: 'deleteChunks',
-          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3']
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3'],
         }
       );
       expect(transactionCoordinator.addGraphOperation).toHaveBeenCalledWith(
@@ -185,17 +191,17 @@ describe('StorageCoordinator', () => {
           chunks: expect.arrayContaining([
             expect.objectContaining({ id: 'chunk_1' }),
             expect.objectContaining({ id: 'chunk_2' }),
-            expect.objectContaining({ id: 'chunk_3' })
+            expect.objectContaining({ id: 'chunk_3' }),
           ]),
           options: {
             projectId: mockProjectId,
             overwriteExisting: true,
-            batchSize: 3
-          }
+            batchSize: 3,
+          },
         },
         {
           type: 'deleteNodes',
-          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3']
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3'],
         }
       );
       expect(transactionCoordinator.commitTransaction).toHaveBeenCalled();
@@ -204,12 +210,12 @@ describe('StorageCoordinator', () => {
       expect(loggerService.info).toHaveBeenCalledWith('Storing files in databases', {
         fileCount: 2,
         chunkCount: 3,
-        projectId: mockProjectId
+        projectId: mockProjectId,
       });
       expect(loggerService.info).toHaveBeenCalledWith('Files stored successfully', {
         fileCount: 2,
         chunkCount: 3,
-        projectId: mockProjectId
+        projectId: mockProjectId,
       });
     });
 
@@ -230,8 +236,8 @@ describe('StorageCoordinator', () => {
           filePath: '/test/project/empty.ts',
           language: 'typescript',
           metadata: { size: 0 },
-          chunks: []
-        }
+          chunks: [],
+        },
       ];
 
       const result = await storageCoordinator.store(filesWithoutChunks, mockProjectId);
@@ -266,7 +272,7 @@ describe('StorageCoordinator', () => {
         fileCount: 2,
         chunkCount: 3,
         projectId: mockProjectId,
-        error: 'Transaction failed'
+        error: 'Transaction failed',
       });
     });
 
@@ -293,7 +299,7 @@ describe('StorageCoordinator', () => {
         fileCount: 2,
         chunkCount: 3,
         projectId: mockProjectId,
-        error: 'Database connection failed'
+        error: 'Database connection failed',
       });
     });
 
@@ -312,8 +318,8 @@ describe('StorageCoordinator', () => {
       expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
         expect.objectContaining({
           options: expect.objectContaining({
-            projectId: undefined
-          })
+            projectId: undefined,
+          }),
         }),
         expect.any(Object)
       );
@@ -325,9 +331,9 @@ describe('StorageCoordinator', () => {
 
     it('should successfully delete files', async () => {
       // Mock chunk IDs for files
-      jest.spyOn(storageCoordinator as any, 'getChunkIdsForFiles').mockResolvedValue([
-        'chunk_1', 'chunk_2', 'chunk_3'
-      ]);
+      jest
+        .spyOn(storageCoordinator as any, 'getChunkIdsForFiles')
+        .mockResolvedValue(['chunk_1', 'chunk_2', 'chunk_3']);
 
       // Setup transaction mocks
       transactionCoordinator.beginTransaction.mockResolvedValue('test_transaction_id');
@@ -346,32 +352,32 @@ describe('StorageCoordinator', () => {
       expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
         {
           type: 'deleteChunks',
-          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3']
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3'],
         },
         {
           type: 'restoreChunks',
-          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3']
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3'],
         }
       );
       expect(transactionCoordinator.addGraphOperation).toHaveBeenCalledWith(
         {
           type: 'deleteNodes',
-          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3']
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3'],
         },
         {
           type: 'restoreNodes',
-          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3']
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3'],
         }
       );
       expect(transactionCoordinator.commitTransaction).toHaveBeenCalled();
 
       // Verify logging
       expect(loggerService.info).toHaveBeenCalledWith('Deleting files from databases', {
-        fileCount: 2
+        fileCount: 2,
       });
       expect(loggerService.info).toHaveBeenCalledWith('Files deleted successfully', {
         fileCount: 2,
-        chunkCount: 3
+        chunkCount: 3,
       });
     });
 
@@ -425,7 +431,11 @@ describe('StorageCoordinator', () => {
     it('should successfully delete project', async () => {
       // Mock chunk IDs for project
       qdrantClient.getChunkIdsByFiles.mockResolvedValue([
-        'chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'
+        'chunk_1',
+        'chunk_2',
+        'chunk_3',
+        'chunk_4',
+        'chunk_5',
       ]);
 
       // Setup transaction mocks
@@ -445,32 +455,32 @@ describe('StorageCoordinator', () => {
       expect(transactionCoordinator.addVectorOperation).toHaveBeenCalledWith(
         {
           type: 'deleteChunks',
-          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'],
         },
         {
           type: 'restoreChunks',
-          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+          chunkIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'],
         }
       );
       expect(transactionCoordinator.addGraphOperation).toHaveBeenCalledWith(
         {
           type: 'deleteNodes',
-          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'],
         },
         {
           type: 'restoreNodes',
-          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5']
+          nodeIds: ['chunk_1', 'chunk_2', 'chunk_3', 'chunk_4', 'chunk_5'],
         }
       );
       expect(transactionCoordinator.commitTransaction).toHaveBeenCalled();
 
       // Verify logging
       expect(loggerService.info).toHaveBeenCalledWith('Deleting project from databases', {
-        projectId: mockProjectId
+        projectId: mockProjectId,
       });
       expect(loggerService.info).toHaveBeenCalledWith('Project deleted successfully', {
         projectId: mockProjectId,
-        chunkCount: 5
+        chunkCount: 5,
       });
     });
 
@@ -493,7 +503,7 @@ describe('StorageCoordinator', () => {
     const mockOptions = { limit: 10, threshold: 0.8 };
     const mockResults = [
       { id: 'chunk_1', score: 0.95, content: 'function test() { return true; }' },
-      { id: 'chunk_2', score: 0.87, content: 'function test2() { return false; }' }
+      { id: 'chunk_2', score: 0.87, content: 'function test2() { return false; }' },
     ];
 
     it('should successfully search vectors', async () => {
@@ -509,13 +519,15 @@ describe('StorageCoordinator', () => {
       const searchError = new Error('Vector search failed');
       vectorStorage.search.mockRejectedValue(searchError);
 
-      await expect(storageCoordinator.searchVectors(mockQuery, mockOptions)).rejects.toThrow('Vector search failed');
+      await expect(storageCoordinator.searchVectors(mockQuery, mockOptions)).rejects.toThrow(
+        'Vector search failed'
+      );
 
       // Verify error logging
       expect(loggerService.error).toHaveBeenCalledWith('Failed to search vectors', {
         query: mockQuery,
         options: mockOptions,
-        error: 'Vector search failed'
+        error: 'Vector search failed',
       });
     });
 
@@ -534,11 +546,11 @@ describe('StorageCoordinator', () => {
       limit: 5,
       projectId: 'test_project',
       batchSize: 10,
-      type: 'semantic'
+      type: 'semantic',
     };
     const mockResults = [
       { id: 'node_1', labels: ['Function'], properties: { name: 'test' } },
-      { id: 'node_2', labels: ['Function'], properties: { name: 'test2' } }
+      { id: 'node_2', labels: ['Function'], properties: { name: 'test2' } },
     ];
 
     it('should successfully search graph', async () => {
@@ -554,13 +566,15 @@ describe('StorageCoordinator', () => {
       const searchError = new Error('Graph search failed');
       graphStorage.search.mockRejectedValue(searchError);
 
-      await expect(storageCoordinator.searchGraph(mockQuery, mockOptions)).rejects.toThrow('Graph search failed');
+      await expect(storageCoordinator.searchGraph(mockQuery, mockOptions)).rejects.toThrow(
+        'Graph search failed'
+      );
 
       // Verify error logging
       expect(loggerService.error).toHaveBeenCalledWith('Failed to search graph', {
         query: mockQuery,
         options: mockOptions,
-        error: 'Graph search failed'
+        error: 'Graph search failed',
       });
     });
   });
@@ -572,14 +586,14 @@ describe('StorageCoordinator', () => {
       // Mock the return values of the storage services
       vectorStorage.getCollectionStats.mockResolvedValue({
         totalPoints: 150,
-        collectionInfo: {}
+        collectionInfo: {},
       });
 
       graphStorage.getGraphStats.mockResolvedValue({
         nodeCount: 100,
         relationshipCount: 50,
         nodeTypes: {},
-        relationshipTypes: {}
+        relationshipTypes: {},
       });
 
       const result = await storageCoordinator.getSnippetStatistics(mockProjectId);
@@ -588,7 +602,7 @@ describe('StorageCoordinator', () => {
         totalSnippets: 150,
         processedSnippets: 142, // 150 * 0.95
         duplicateSnippets: 8, // 150 - 142
-        processingRate: 45.2
+        processingRate: 45.2,
       });
     });
 
@@ -726,10 +740,9 @@ describe('StorageCoordinator', () => {
         const result = await getProjectChunkIds.call(storageCoordinator, mockProjectId);
 
         // Verify QdrantClientWrapper method was called correctly
-        expect(qdrantClient.getChunkIdsByFiles).toHaveBeenCalledWith(
-          'test_collection',
-          [mockProjectId]
-        );
+        expect(qdrantClient.getChunkIdsByFiles).toHaveBeenCalledWith('test_collection', [
+          mockProjectId,
+        ]);
 
         // Verify the result
         expect(result).toEqual(mockChunkIds);

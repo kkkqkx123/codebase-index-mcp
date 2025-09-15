@@ -45,14 +45,16 @@ export abstract class BaseEmbedder implements Embedder {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.cacheService = cacheService;
-    
+
     // Get timeout and concurrency settings from config
     const batchConfig = configService.get('batchProcessing');
     this.timeout = batchConfig?.processingTimeout || 300000; // Default to 5 minutes
     this.maxConcurrent = batchConfig?.maxConcurrentOperations || 5;
   }
 
-  abstract embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]>;
+  abstract embed(
+    input: EmbeddingInput | EmbeddingInput[]
+  ): Promise<EmbeddingResult | EmbeddingResult[]>;
   abstract getDimensions(): number;
   abstract getModelName(): string;
   abstract isAvailable(): Promise<boolean>;
@@ -65,11 +67,11 @@ export abstract class BaseEmbedder implements Embedder {
     processEmbeddings: (inputs: EmbeddingInput[]) => Promise<EmbeddingResult[]>
   ): Promise<EmbeddingResult | EmbeddingResult[]> {
     const inputs = Array.isArray(input) ? input : [input];
-    
+
     // Check cache for existing embeddings
     const cachedResults: EmbeddingResult[] = [];
     const uncachedInputs: EmbeddingInput[] = [];
-    
+
     for (const inp of inputs) {
       const cached = await this.cacheService.get(inp.text, this.getModelName());
       if (cached) {
@@ -78,40 +80,40 @@ export abstract class BaseEmbedder implements Embedder {
         uncachedInputs.push(inp);
       }
     }
-    
+
     // If all inputs are cached, return cached results
     if (uncachedInputs.length === 0) {
       this.logger.debug('All embeddings found in cache', { count: cachedResults.length });
       return Array.isArray(input) ? cachedResults : cachedResults[0];
     }
-    
+
     try {
       // Wait for available request slot
       await this.waitForAvailableSlot();
-      
+
       const { result, time } = await this.executeWithTimeout(async () => {
         return await this.measureTime(async () => {
           return await processEmbeddings(uncachedInputs);
         });
       });
-      
+
       // Release request slot
       this.releaseSlot();
-      
+
       // Update processingTime with the actual measured time
       const apiResults = Array.isArray(result) ? result : [result];
       apiResults.forEach(embedding => {
         embedding.processingTime = time;
       });
-      
+
       // Cache the new results
       for (let i = 0; i < apiResults.length; i++) {
         await this.cacheService.set(uncachedInputs[i].text, this.getModelName(), apiResults[i]);
       }
-      
+
       // Combine cached and new results
       const finalResult = [...cachedResults, ...apiResults];
-      
+
       return Array.isArray(input) ? finalResult : finalResult[0];
     } catch (error) {
       // Release request slot in case of error
@@ -120,65 +122,67 @@ export abstract class BaseEmbedder implements Embedder {
     }
   }
 
-  protected async measureTime<T>(operation: () => Promise<T>): Promise<{ result: T; time: number }> {
+  protected async measureTime<T>(
+    operation: () => Promise<T>
+  ): Promise<{ result: T; time: number }> {
     const startTime = Date.now();
     const result = await operation();
     const endTime = Date.now();
     return { result, time: endTime - startTime };
   }
-  
-    /**
-     * Wait for available request slot based on concurrency limits
-     */
-    protected async waitForAvailableSlot(): Promise<void> {
-      return new Promise((resolve) => {
-        if (this.activeRequests < this.maxConcurrent) {
+
+  /**
+   * Wait for available request slot based on concurrency limits
+   */
+  protected async waitForAvailableSlot(): Promise<void> {
+    return new Promise(resolve => {
+      if (this.activeRequests < this.maxConcurrent) {
+        this.activeRequests++;
+        resolve();
+      } else {
+        this.requestQueue.push(() => {
           this.activeRequests++;
           resolve();
-        } else {
-          this.requestQueue.push(() => {
-            this.activeRequests++;
-            resolve();
-          });
-        }
-      });
-    }
-  
-    /**
-     * Release a request slot
-     */
-    protected releaseSlot(): void {
-      this.activeRequests--;
-      
-      // Process next request in queue if available
-      if (this.requestQueue.length > 0) {
-        const next = this.requestQueue.shift();
-        if (next) {
-          setTimeout(next, 0); // Schedule for next tick
-        }
+        });
+      }
+    });
+  }
+
+  /**
+   * Release a request slot
+   */
+  protected releaseSlot(): void {
+    this.activeRequests--;
+
+    // Process next request in queue if available
+    if (this.requestQueue.length > 0) {
+      const next = this.requestQueue.shift();
+      if (next) {
+        setTimeout(next, 0); // Schedule for next tick
       }
     }
-  
-    /**
-     * Execute an operation with timeout
-     */
-    protected async executeWithTimeout<T>(operation: () => Promise<T>): Promise<T> {
-      return new Promise((resolve, reject) => {
-        // Set up timeout
-        const timeoutId = setTimeout(() => {
-          reject(new Error(`Operation timed out after ${this.timeout}ms`));
-        }, this.timeout);
-        
-        // Execute operation
-        operation()
-          .then((result) => {
-            clearTimeout(timeoutId);
-            resolve(result);
-          })
-          .catch((error) => {
-            clearTimeout(timeoutId);
-            reject(error);
-          });
-      });
-    }
+  }
+
+  /**
+   * Execute an operation with timeout
+   */
+  protected async executeWithTimeout<T>(operation: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Operation timed out after ${this.timeout}ms`));
+      }, this.timeout);
+
+      // Execute operation
+      operation()
+        .then(result => {
+          clearTimeout(timeoutId);
+          resolve(result);
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          reject(error);
+        });
+    });
+  }
 }

@@ -13,7 +13,7 @@ export class ErrorClassifier {
         type: 'connection',
         severity: 'critical',
         retryable: true,
-        suggestedAction: 'Reconnect to database'
+        suggestedAction: 'Reconnect to database',
       };
     }
 
@@ -23,7 +23,7 @@ export class ErrorClassifier {
         type: 'timeout',
         severity: 'medium',
         retryable: true,
-        suggestedAction: 'Retry with increased timeout'
+        suggestedAction: 'Retry with increased timeout',
       };
     }
 
@@ -33,7 +33,7 @@ export class ErrorClassifier {
         type: 'query',
         severity: 'high',
         retryable: false,
-        suggestedAction: 'Fix query syntax'
+        suggestedAction: 'Fix query syntax',
       };
     }
 
@@ -43,7 +43,7 @@ export class ErrorClassifier {
         type: 'constraint',
         severity: 'medium',
         retryable: false,
-        suggestedAction: 'Resolve constraint violation'
+        suggestedAction: 'Resolve constraint violation',
       };
     }
 
@@ -53,7 +53,7 @@ export class ErrorClassifier {
         type: 'permission',
         severity: 'high',
         retryable: false,
-        suggestedAction: 'Check user permissions'
+        suggestedAction: 'Check user permissions',
       };
     }
 
@@ -62,52 +62,62 @@ export class ErrorClassifier {
       type: 'unknown',
       severity: 'medium',
       retryable: false,
-      suggestedAction: 'Investigate error logs'
+      suggestedAction: 'Investigate error logs',
     };
   }
 
   private isConnectionError(message: string, name: string): boolean {
-    return message.includes('connection') ||
-           message.includes('connect') ||
-           message.includes('network') ||
-           message.includes('econnrefused') ||
-           message.includes('timeout') ||
-           name.includes('connection') ||
-           name.includes('network');
+    return (
+      message.includes('connection') ||
+      message.includes('connect') ||
+      message.includes('network') ||
+      message.includes('econnrefused') ||
+      message.includes('timeout') ||
+      name.includes('connection') ||
+      name.includes('network')
+    );
   }
 
   private isTimeoutError(message: string, name: string): boolean {
-    return message.includes('timeout') ||
-           message.includes('time out') ||
-           message.includes('deadline') ||
-           name.includes('timeout');
+    return (
+      message.includes('timeout') ||
+      message.includes('time out') ||
+      message.includes('deadline') ||
+      name.includes('timeout')
+    );
   }
 
   private isQueryError(message: string, name: string): boolean {
-    return message.includes('syntax') ||
-           message.includes('parse') ||
-           message.includes('invalid') ||
-           message.includes('syntax error') ||
-           name.includes('syntax') ||
-           name.includes('parse');
+    return (
+      message.includes('syntax') ||
+      message.includes('parse') ||
+      message.includes('invalid') ||
+      message.includes('syntax error') ||
+      name.includes('syntax') ||
+      name.includes('parse')
+    );
   }
 
   private isConstraintError(message: string, name: string): boolean {
-    return message.includes('constraint') ||
-           message.includes('unique') ||
-           message.includes('duplicate') ||
-           message.includes('foreign key') ||
-           message.includes('exists') ||
-           name.includes('constraint');
+    return (
+      message.includes('constraint') ||
+      message.includes('unique') ||
+      message.includes('duplicate') ||
+      message.includes('foreign key') ||
+      message.includes('exists') ||
+      name.includes('constraint')
+    );
   }
 
   private isPermissionError(message: string, name: string): boolean {
-    return message.includes('permission') ||
-           message.includes('access') ||
-           message.includes('denied') ||
-           message.includes('unauthorized') ||
-           message.includes('forbidden') ||
-           name.includes('permission') ||
-           name.includes('access');
+    return (
+      message.includes('permission') ||
+      message.includes('access') ||
+      message.includes('denied') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden') ||
+      name.includes('permission') ||
+      name.includes('access')
+    );
   }
 }

@@ -9,16 +9,22 @@ export class PyTorchRule extends AbstractSnippetRule {
   readonly name = 'PyTorchRule';
   readonly supportedNodeTypes = new Set([
     // Neural network definitions
-    'class_definition', 'function_definition',
-    
+    'class_definition',
+    'function_definition',
+
     // PyTorch specific patterns
-    'assignment', 'call_expression', 'attribute',
-    
+    'assignment',
+    'call_expression',
+    'attribute',
+
     // Import statements
-    'import_statement', 'import_from_statement',
-    
+    'import_statement',
+    'import_from_statement',
+
     // Control flow for training
-    'for_statement', 'while_statement', 'if_statement'
+    'for_statement',
+    'while_statement',
+    'if_statement',
   ]);
 
   protected readonly snippetType = 'pytorch_neural_network' as const;
@@ -27,7 +33,7 @@ export class PyTorchRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check if this is PyTorch-related code
     return this.isPyTorchCode(content);
   }
@@ -60,8 +66,8 @@ export class PyTorchRule extends AbstractSnippetRule {
         complexity: this.calculatePyTorchComplexity(content),
         isStandalone: this.isStandalonePyTorchComponent(node, content),
         hasSideEffects: this.hasSideEffects(content),
-        pytorchInfo: pytorchMetadata
-      }
+        pytorchInfo: pytorchMetadata,
+      },
     };
   }
 
@@ -76,11 +82,11 @@ export class PyTorchRule extends AbstractSnippetRule {
       /from\s+torch\.optim\s+import/,
       /import\s+torch\.utils\.data/,
       /from\s+torch\.utils\.data\s+import/,
-      
+
       // Neural network patterns
       /class\s+\w+\s*\(\s*nn\.Module\s*\)/,
       /class\s+\w+\s*\(\s*torch\.nn\.Module\s*\)/,
-      
+
       // Layer definitions
       /self\.\w+\s*=\s*nn\.Linear\(/,
       /self\.\w+\s*=\s*nn\.Conv2d\(/,
@@ -100,7 +106,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       /self\.\w+\s*=\s*nn\.Sigmoid\(/,
       /self\.\w+\s*=\s*nn\.Tanh\(/,
       /self\.\w+\s*=\s*nn\.Softmax\(/,
-      
+
       // Training loop patterns
       /model\.train\(\)/,
       /model\.eval\(\)/,
@@ -108,7 +114,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       /loss\.backward\(\)/,
       /optimizer\.step\(\)/,
       /for\s+epoch\s+in\s+range\s*\(/,
-      
+
       // Tensor operations
       /torch\.tensor\(/,
       /torch\.zeros\(/,
@@ -119,81 +125,77 @@ export class PyTorchRule extends AbstractSnippetRule {
       /\.to\s*\([^)]+\)/,
       /\.cuda\(\)/,
       /\.cpu\(\)/,
-      
+
       // Loss functions
       /nn\.MSELoss\(/,
       /nn\.CrossEntropyLoss\(/,
       /nn\.BCELoss\(/,
       /nn\.NLLLoss\(/,
-      
+
       // Optimizers
       /torch\.optim\.Adam\(/,
       /torch\.optim\.SGD\(/,
       /torch\.optim\.RMSprop\(/,
       /torch\.optim\.Adagrad\(/,
-      
+
       // Data loading
       /DataLoader\(/,
       /Dataset\s*\(/,
       /TensorDataset\(/,
-      
+
       // Forward and backward
       /def\s+forward\(/,
       /def\s+backward\(/,
-      
+
       // Common ML patterns
       /with\s+torch\.no_grad\(\)/,
       /torch\.save\(/,
       /torch\.load\(/,
-      
+
       // Device management
       /device\s*=\s*torch\.device/,
       /\.to\(device\)/,
-      
+
       // Autograd
       /requires_grad\s*=\s*True/,
       /with\s+torch\.set_grad_enabled\(/,
-      
+
       // Distributed training
       /torch\.distributed/,
       /torch\.nn\.parallel\.DistributedDataParallel/,
-      
+
       // Mixed precision
       /torch\.cuda\.amp/,
       /autocast\(/,
       /GradScaler\(/,
-      
+
       // Gradient clipping
       /torch\.nn\.utils\.clip_grad_norm_/,
       /torch\.nn\.utils\.clip_grad_value_/,
-      
+
       // Learning rate scheduling
       /torch\.optim\.lr_scheduler/,
       /StepLR\(/,
       /ReduceLROnPlateau\(/,
-      
+
       // Model evaluation
       /with\s+torch\.no_grad\(\)/,
       /model\.eval\(\)/,
       /accuracy\s*=/,
       /precision\s*=/,
-      /recall\s*=/
+      /recall\s*=/,
     ];
 
     return pytorchPatterns.some(pattern => pattern.test(content));
   }
 
-  private extractPyTorchMetadata(
-    node: Parser.SyntaxNode,
-    content: string,
-    sourceCode: string
-  ) {
+  private extractPyTorchMetadata(node: Parser.SyntaxNode, content: string, sourceCode: string) {
     return {
       neuralNetwork: this.extractNeuralNetworkInfo(node, content),
       training: this.extractTrainingInfo(content),
       data: this.extractDataInfo(content),
       performance: this.extractPerformanceInfo(content),
-      patterns: this.extractPatternInfo(content)
+      patterns: this.extractPatternInfo(content),
     };
   }
 
@@ -206,7 +208,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       className: className || 'Unknown',
       layers,
       totalParameters,
-      trainableParameters
+      trainableParameters,
     };
   }
 
@@ -221,44 +223,44 @@ export class PyTorchRule extends AbstractSnippetRule {
 
   private extractLayers(content: string) {
     const layers: any[] = [];
-    
+
     const layerPatterns = [
-      { 
-        type: 'Linear', 
+      {
+        type: 'Linear',
         pattern: /self\.(\w+)\s*=\s*nn\.Linear\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g,
         extractor: (match: RegExpMatchArray) => ({
           inputSize: parseInt(match[2]),
           outputSize: parseInt(match[3]),
-          parameters: { in_features: parseInt(match[2]), out_features: parseInt(match[3]) }
-        })
+          parameters: { in_features: parseInt(match[2]), out_features: parseInt(match[3]) },
+        }),
       },
-      { 
-        type: 'Conv2d', 
+      {
+        type: 'Conv2d',
         pattern: /self\.(\w+)\s*=\s*nn\.Conv2d\s*\(\s*(\d+)\s*,\s*(\d+)\s*,[^)]*\)/g,
         extractor: (match: RegExpMatchArray) => ({
           inputSize: parseInt(match[2]),
           outputSize: parseInt(match[3]),
-          parameters: { in_channels: parseInt(match[2]), out_channels: parseInt(match[3]) }
-        })
+          parameters: { in_channels: parseInt(match[2]), out_channels: parseInt(match[3]) },
+        }),
       },
-      { 
-        type: 'LSTM', 
+      {
+        type: 'LSTM',
         pattern: /self\.(\w+)\s*=\s*nn\.LSTM\s*\(\s*(\d+)\s*,\s*(\d+)\s*[^)]*\)/g,
         extractor: (match: RegExpMatchArray) => ({
           inputSize: parseInt(match[2]),
           outputSize: parseInt(match[3]),
-          parameters: { input_size: parseInt(match[2]), hidden_size: parseInt(match[3]) }
-        })
+          parameters: { input_size: parseInt(match[2]), hidden_size: parseInt(match[3]) },
+        }),
       },
-      { 
-        type: 'Embedding', 
+      {
+        type: 'Embedding',
         pattern: /self\.(\w+)\s*=\s*nn\.Embedding\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g,
         extractor: (match: RegExpMatchArray) => ({
           inputSize: parseInt(match[2]),
           outputSize: parseInt(match[3]),
-          parameters: { num_embeddings: parseInt(match[2]), embedding_dim: parseInt(match[3]) }
-        })
-      }
+          parameters: { num_embeddings: parseInt(match[2]), embedding_dim: parseInt(match[3]) },
+        }),
+      },
     ];
 
     layerPatterns.forEach(({ type, pattern, extractor }) => {
@@ -267,7 +269,7 @@ export class PyTorchRule extends AbstractSnippetRule {
         const layerInfo = extractor(match);
         layers.push({
           type,
-          ...layerInfo
+          ...layerInfo,
         });
       }
     });
@@ -320,7 +322,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       optimizer,
       lossFunction,
       learningRate,
-      device
+      device,
     };
   }
 
@@ -341,7 +343,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       { name: 'Adam', pattern: /optim\.Adam\s*\(/ },
       { name: 'SGD', pattern: /optim\.SGD\s*\(/ },
       { name: 'RMSprop', pattern: /optim\.RMSprop\s*\(/ },
-      { name: 'Adagrad', pattern: /optim\.Adagrad\s*\(/ }
+      { name: 'Adagrad', pattern: /optim\.Adagrad\s*\(/ },
     ];
 
     for (const { name, pattern } of optimizerPatterns) {
@@ -357,7 +359,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       { name: 'MSELoss', pattern: /nn\.MSELoss\s*\(/ },
       { name: 'CrossEntropyLoss', pattern: /nn\.CrossEntropyLoss\s*\(/ },
       { name: 'BCELoss', pattern: /nn\.BCELoss\s*\(/ },
-      { name: 'NLLLoss', pattern: /nn\.NLLLoss\s*\(/ }
+      { name: 'NLLLoss', pattern: /nn\.NLLLoss\s*\(/ },
     ];
 
     for (const { name, pattern } of lossPatterns) {
@@ -372,7 +374,7 @@ export class PyTorchRule extends AbstractSnippetRule {
     const lrPatterns = [
       /lr\s*=\s*([\d.]+)/,
       /learning_rate\s*=\s*([\d.]+)/,
-      /optim\.\w+\s*\([^)]*lr\s*=\s*([\d.]+)[^)]*\)/
+      /optim\.\w+\s*\([^)]*lr\s*=\s*([\d.]+)[^)]*\)/,
     ];
 
     for (const pattern of lrPatterns) {
@@ -388,7 +390,7 @@ export class PyTorchRule extends AbstractSnippetRule {
     if (content.includes('.cuda()') || content.includes('device\s*=\s*.*cuda')) {
       return 'cuda';
     }
-    if (content.includes('device\s*=\s*.*mps') || content.includes('.to(\'mps\')')) {
+    if (content.includes('device\s*=\s*.*mps') || content.includes(".to('mps')")) {
       return 'mps';
     }
     return 'cpu';
@@ -406,7 +408,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       outputShape,
       datasetSize,
       dataLoaders,
-      augmentation
+      augmentation,
     };
   }
 
@@ -414,13 +416,16 @@ export class PyTorchRule extends AbstractSnippetRule {
     const shapePatterns = [
       /input_shape\s*=\s*\[([^\]]+)\]/,
       /shape\s*=\s*\[([^\]]+)\].*input/,
-      /x\.shape\s*=\s*\[([^\]]+)\]/
+      /x\.shape\s*=\s*\[([^\]]+)\]/,
     ];
 
     for (const pattern of shapePatterns) {
       const match = content.match(pattern);
       if (match) {
-        return match[1].split(',').map(dim => parseInt(dim.trim())).filter(dim => !isNaN(dim));
+        return match[1]
+          .split(',')
+          .map(dim => parseInt(dim.trim()))
+          .filter(dim => !isNaN(dim));
       }
     }
     return [];
@@ -430,13 +435,16 @@ export class PyTorchRule extends AbstractSnippetRule {
     const shapePatterns = [
       /output_shape\s*=\s*\[([^\]]+)\]/,
       /shape\s*=\s*\[([^\]]+)\].*output/,
-      /y\.shape\s*=\s*\[([^\]]+)\]/
+      /y\.shape\s*=\s*\[([^\]]+)\]/,
     ];
 
     for (const pattern of shapePatterns) {
       const match = content.match(pattern);
       if (match) {
-        return match[1].split(',').map(dim => parseInt(dim.trim())).filter(dim => !isNaN(dim));
+        return match[1]
+          .split(',')
+          .map(dim => parseInt(dim.trim()))
+          .filter(dim => !isNaN(dim));
       }
     }
     return [];
@@ -446,7 +454,7 @@ export class PyTorchRule extends AbstractSnippetRule {
     const sizePatterns = [
       /len\s*\(\s*dataset\s*\)\s*=\s*(\d+)/,
       /dataset_size\s*=\s*(\d+)/,
-      /size\s*=\s*(\d+)/
+      /size\s*=\s*(\d+)/,
     ];
 
     for (const pattern of sizePatterns) {
@@ -460,14 +468,14 @@ export class PyTorchRule extends AbstractSnippetRule {
 
   private extractDataLoaders(content: string): string[] {
     const dataLoaders: string[] = [];
-    
+
     const dataloaderPattern = /(\w+)\s*=\s*DataLoader\s*\(/g;
     let match;
-    
+
     while ((match = dataloaderPattern.exec(content)) !== null) {
       dataLoaders.push(match[1]);
     }
-    
+
     return dataLoaders;
   }
 
@@ -480,7 +488,7 @@ export class PyTorchRule extends AbstractSnippetRule {
       /transforms\.RandomResizedCrop\(/,
       /transforms\.Normalize\(/,
       /albumentations\./,
-      /imgaug\./
+      /imgaug\./,
     ];
 
     return augmentationPatterns.some(pattern => pattern.test(content));
@@ -496,30 +504,32 @@ export class PyTorchRule extends AbstractSnippetRule {
       gpuAcceleration,
       mixedPrecision,
       gradientClipping,
-      checkpointing
+      checkpointing,
     };
   }
 
   private hasGPUAcceleration(content: string): boolean {
-    return content.includes('.cuda()') || 
-           content.includes('torch.cuda') ||
-           content.includes('device.*cuda');
+    return (
+      content.includes('.cuda()') ||
+      content.includes('torch.cuda') ||
+      content.includes('device.*cuda')
+    );
   }
 
   private hasMixedPrecision(content: string): boolean {
-    return content.includes('autocast') || 
-           content.includes('GradScaler') ||
-           content.includes('torch.cuda.amp');
+    return (
+      content.includes('autocast') ||
+      content.includes('GradScaler') ||
+      content.includes('torch.cuda.amp')
+    );
   }
 
   private hasGradientClipping(content: string): boolean {
-    return content.includes('clip_grad_norm') || 
-           content.includes('clip_grad_value');
+    return content.includes('clip_grad_norm') || content.includes('clip_grad_value');
   }
 
   private hasCheckpointing(content: string): boolean {
-    return content.includes('torch.utils.checkpoint') ||
-           content.includes('checkpoint_sequential');
+    return content.includes('torch.utils.checkpoint') || content.includes('checkpoint_sequential');
   }
 
   private extractPatternInfo(content: string) {
@@ -527,33 +537,41 @@ export class PyTorchRule extends AbstractSnippetRule {
       usesDistributed: this.hasDistributedTraining(content),
       usesCustomLoss: this.hasCustomLoss(content),
       usesScheduler: this.hasScheduler(content),
-      usesEarlyStopping: this.hasEarlyStopping(content)
+      usesEarlyStopping: this.hasEarlyStopping(content),
     };
   }
 
   private hasDistributedTraining(content: string): boolean {
-    return content.includes('torch.distributed') ||
-           content.includes('DistributedDataParallel') ||
-           content.includes('distributed.init_process_group');
+    return (
+      content.includes('torch.distributed') ||
+      content.includes('DistributedDataParallel') ||
+      content.includes('distributed.init_process_group')
+    );
   }
 
   private hasCustomLoss(content: string): boolean {
-    return content.includes('def custom_loss') ||
-           content.includes('class CustomLoss') ||
-           (content.includes('def') && content.includes('loss') && content.includes('return'));
+    return (
+      content.includes('def custom_loss') ||
+      content.includes('class CustomLoss') ||
+      (content.includes('def') && content.includes('loss') && content.includes('return'))
+    );
   }
 
   private hasScheduler(content: string): boolean {
-    return content.includes('lr_scheduler') ||
-           content.includes('StepLR') ||
-           content.includes('ReduceLROnPlateau') ||
-           content.includes('scheduler.step');
+    return (
+      content.includes('lr_scheduler') ||
+      content.includes('StepLR') ||
+      content.includes('ReduceLROnPlateau') ||
+      content.includes('scheduler.step')
+    );
   }
 
   private hasEarlyStopping(content: string): boolean {
-    return content.includes('early_stopping') ||
-           content.includes('EarlyStopping') ||
-           (content.includes('patience') && content.includes('validation'));
+    return (
+      content.includes('early_stopping') ||
+      content.includes('EarlyStopping') ||
+      (content.includes('patience') && content.includes('validation'))
+    );
   }
 
   private extractPyTorchImports(node: Parser.SyntaxNode, sourceCode: string): string[] {
@@ -585,45 +603,47 @@ export class PyTorchRule extends AbstractSnippetRule {
   }
 
   private isStandalonePyTorchComponent(node: Parser.SyntaxNode, content: string): boolean {
-    return (node.type === 'class_definition' && content.includes('nn.Module')) ||
-           (content.includes('def forward(') && content.includes('return')) ||
-           (content.includes('model.train()') && content.includes('optimizer.step()'));
+    return (
+      (node.type === 'class_definition' && content.includes('nn.Module')) ||
+      (content.includes('def forward(') && content.includes('return')) ||
+      (content.includes('model.train()') && content.includes('optimizer.step()'))
+    );
   }
 
   private calculatePyTorchComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Neural network complexity
     complexity += content.match(/class\s+\w+\s*\(\s*nn\.Module\s*\)/g)?.length || 0;
     complexity += (content.match(/self\.\w+\s*=\s*nn\.\w+\s*\(/g) || []).length * 2;
-    
+
     // Training complexity
     complexity += content.includes('for epoch in range') ? 5 : 0;
     complexity += (content.match(/optimizer\.step\(\)/g) || []).length * 3;
     complexity += (content.match(/loss\.backward\(\)/g) || []).length * 2;
     complexity += (content.match(/model\.train\(\)/g) || []).length;
     complexity += (content.match(/model\.eval\(\)/g) || []).length;
-    
+
     // Data handling complexity
     complexity += (content.match(/DataLoader\s*\(/g) || []).length * 2;
     complexity += (content.match(/Dataset\s*\(/g) || []).length;
-    
+
     // Advanced features complexity
     complexity += content.includes('torch.distributed') ? 10 : 0;
     complexity += content.includes('autocast') ? 5 : 0;
     complexity += content.includes('GradScaler') ? 3 : 0;
     complexity += content.includes('lr_scheduler') ? 3 : 0;
-    
+
     // Model architecture complexity
     complexity += (content.match(/nn\.Linear\s*\(/g) || []).length;
     complexity += (content.match(/nn\.Conv\d+d\s*\(/g) || []).length * 2;
     complexity += (content.match(/nn\.LSTM\s*\(/g) || []).length * 3;
     complexity += (content.match(/nn\.Transformer\s*\(/g) || []).length * 4;
-    
+
     // Custom implementation complexity
     complexity += content.includes('def forward(') ? 3 : 0;
     complexity += content.includes('def custom_loss') ? 5 : 0;
-    
+
     return Math.max(1, complexity);
   }
 }

@@ -18,9 +18,9 @@ jest.mock('./routes/StaticAnalysisRoutes', () => {
           // Add minimal routes for testing if needed
           router.get('/test', (req: Request, res: Response) => res.status(200).send('test'));
           return router;
-        }
+        },
       };
-    })
+    }),
   };
 });
 
@@ -36,8 +36,7 @@ describe('HttpServer', () => {
   beforeEach(() => {
     // Reset the singleton container
     DIContainer.reset();
-    
-    
+
     // Create a new container for testing
     container = new Container();
     // Create mocks
@@ -67,11 +66,11 @@ describe('HttpServer', () => {
       warn: jest.fn(),
       debug: jest.fn(),
     } as any;
-    
+
     const mockErrorHandlerService = {
       handleError: jest.fn(),
     };
-    
+
     // Mocks for StaticAnalysisRoutes dependencies
     const mockStaticAnalysisCoordinator = {
       queueScanTask: jest.fn(),
@@ -80,13 +79,13 @@ describe('HttpServer', () => {
       getSystemStatus: jest.fn(),
       cleanupOldData: jest.fn(),
     };
-    
+
     const mockSemgrepScanService = {
       getAvailableRules: jest.fn(),
       validateRule: jest.fn(),
       addCustomRule: jest.fn(),
     };
-    
+
     const mockSemgrepRuleAdapter = {
       createSecurityRuleTemplates: jest.fn(),
     };
@@ -113,7 +112,9 @@ describe('HttpServer', () => {
     container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
     container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
     container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
-    container.bind(Symbol.for('StaticAnalysisCoordinator')).toConstantValue(mockStaticAnalysisCoordinator);
+    container
+      .bind(Symbol.for('StaticAnalysisCoordinator'))
+      .toConstantValue(mockStaticAnalysisCoordinator);
     container.bind(Symbol.for('SemgrepScanService')).toConstantValue(mockSemgrepScanService);
     container.bind(Symbol.for('SemgrepRuleAdapter')).toConstantValue(mockSemgrepRuleAdapter);
 
@@ -155,9 +156,7 @@ describe('HttpServer', () => {
 
       mockMonitoringController.getHealthStatus.mockResolvedValue(healthData);
 
-      const response = await request(app)
-        .get('/health')
-        .expect(200);
+      const response = await request(app).get('/health').expect(200);
 
       expect(response.body).toEqual(healthData);
       expect(mockMonitoringController.getHealthStatus).toHaveBeenCalled();
@@ -175,9 +174,7 @@ describe('HttpServer', () => {
 
       mockMonitoringController.getHealthStatus.mockResolvedValue(healthData);
 
-      await request(app)
-        .get('/health')
-        .expect(503);
+      await request(app).get('/health').expect(503);
     });
   });
 
@@ -189,9 +186,7 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
 
       mockMonitoringController.getMetrics.mockResolvedValue(metricsData);
 
-      const response = await request(app)
-        .get('/metrics')
-        .expect(200);
+      const response = await request(app).get('/metrics').expect(200);
 
       expect(response.text).toContain('codebase_index_requests_total');
       expect(response.headers['content-type']).toContain('text/plain');
@@ -205,7 +200,8 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
           {
             id: '1',
             score: 0.95,
-            content: 'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
+            content:
+              'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
             metadata: {
               filePath: '/src/auth.ts',
               language: 'typescript',
@@ -244,7 +240,9 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
     });
 
     it('should handle search errors gracefully', async () => {
-      mockSnippetController.searchSnippets.mockRejectedValue(new Error('Search service unavailable'));
+      mockSnippetController.searchSnippets.mockRejectedValue(
+        new Error('Search service unavailable')
+      );
 
       await request(app)
         .get('/api/v1/snippets/search')
@@ -305,10 +303,7 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
       // Since we don't have the actual method, we'll keep using checkForDuplicates for now
       mockSnippetController.checkForDuplicates.mockResolvedValue(indexResult);
 
-      const response = await request(app)
-        .post('/api/v1/snippets')
-        .send(newSnippet)
-        .expect(200);
+      const response = await request(app).post('/api/v1/snippets').send(newSnippet).expect(200);
 
       expect(response.body).toEqual(indexResult);
     });
@@ -350,9 +345,7 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
       // Since we don't have the actual method, we'll keep using detectOverlaps for now
       mockSnippetController.detectOverlaps.mockResolvedValue(deleteResult);
 
-      const response = await request(app)
-        .delete('/api/v1/snippets/snippet_123')
-        .expect(200);
+      const response = await request(app).delete('/api/v1/snippets/snippet_123').expect(200);
 
       expect(response.body).toEqual(deleteResult);
     });
@@ -360,9 +353,7 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
 
   describe('Error Handling', () => {
     it('should handle 404 for unknown routes', async () => {
-      await request(app)
-        .get('/api/v1/unknown-endpoint')
-        .expect(404);
+      await request(app).get('/api/v1/unknown-endpoint').expect(404);
     });
 
     it('should handle malformed JSON requests', async () => {
@@ -374,9 +365,7 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
 
     it('should apply rate limiting', async () => {
       // Mock rate limit exceeded
-      const requests = Array.from({ length: 102 }, (_, i) =>
-        request(app).get('/health')
-      );
+      const requests = Array.from({ length: 102 }, (_, i) => request(app).get('/health'));
 
       const responses = await Promise.all(requests);
       const rateLimitedResponses = responses.filter((r: any) => r.status === 429);
@@ -413,12 +402,10 @@ codebase_index_requests_total{method="GET",route="/search"} 100`;
           nebula: { status: 'healthy' },
         },
       };
-      
+
       mockMonitoringController.getHealthStatus.mockResolvedValue(healthData);
-      
-      await request(app)
-        .get('/health')
-        .expect(200);
+
+      await request(app).get('/health').expect(200);
 
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         expect.stringContaining('Request'),

@@ -121,7 +121,11 @@ export class NebulaSpaceManager {
     }
   }
 
-  private async waitForSpaceReady(spaceName: string, maxRetries: number = 30, retryDelay: number = 1000): Promise<void> {
+  private async waitForSpaceReady(
+    spaceName: string,
+    maxRetries: number = 30,
+    retryDelay: number = 1000
+  ): Promise<void> {
     for (let i = 0; i < maxRetries; i++) {
       try {
         const result = await this.nebulaService.executeReadQuery(`DESCRIBE SPACE ${spaceName}`);
@@ -146,7 +150,7 @@ export class NebulaSpaceManager {
         'CREATE TAG IF NOT EXISTS File(id string, path string, relativePath string, name string, language string, size int, hash string, linesOfCode int, functions int, classes int, lastModified string, updatedAt string)',
         'CREATE TAG IF NOT EXISTS Function(id string, name string, content string, startLine int, endLine int, complexity int, parameters string, returnType string, language string, updatedAt string)',
         'CREATE TAG IF NOT EXISTS Class(id string, name string, content string, startLine int, endLine int, methods int, properties int, inheritance string, language string, updatedAt string)',
-        'CREATE TAG IF NOT EXISTS Import(id string, module string, updatedAt string)'
+        'CREATE TAG IF NOT EXISTS Import(id string, module string, updatedAt string)',
       ];
 
       for (const query of tagQueries) {
@@ -160,7 +164,7 @@ export class NebulaSpaceManager {
         'CREATE EDGE IF NOT EXISTS IMPORTS()',
         'CREATE EDGE IF NOT EXISTS CALLS()',
         'CREATE EDGE IF NOT EXISTS EXTENDS()',
-        'CREATE EDGE IF NOT EXISTS IMPLEMENTS()'
+        'CREATE EDGE IF NOT EXISTS IMPLEMENTS()',
       ];
 
       for (const query of edgeQueries) {
@@ -185,7 +189,7 @@ export class NebulaSpaceManager {
       // Delete all edges first
       const edgesResult = await this.nebulaService.executeReadQuery('SHOW EDGES');
       const edges = edgesResult.data.map((row: any) => row.Name || row.name);
-      
+
       for (const edge of edges) {
         await this.nebulaService.executeWriteQuery(`DELETE EDGE ${edge} * -> *`);
       }

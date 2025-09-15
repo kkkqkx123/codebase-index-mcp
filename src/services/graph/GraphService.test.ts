@@ -20,7 +20,7 @@ describe('GraphService', () => {
 
   beforeEach(() => {
     container = new Container();
-    
+
     // Create mocks
     mockNebulaService = {
       executeReadQuery: jest.fn(),
@@ -84,17 +84,21 @@ describe('GraphService', () => {
             node: {
               id: 'file_1',
               name: 'Button.tsx',
-              properties: { path: 'src/components/Button.tsx', type: 'file', language: 'typescript' },
+              properties: {
+                path: 'src/components/Button.tsx',
+                type: 'file',
+                language: 'typescript',
+              },
             },
             edgeProps: {
               id: 'edge_1',
               src: 'file_1',
               dst: 'function_1',
               type: 'CONTAINS',
-              properties: { relationship: 'contains' }
-            }
-          }
-        ]
+              properties: { relationship: 'contains' },
+            },
+          },
+        ],
       };
 
       mockNebulaService.executeReadQuery.mockResolvedValue(mockResult);
@@ -112,9 +116,9 @@ describe('GraphService', () => {
     it('should handle errors during codebase analysis', async () => {
       const projectPath = './src';
       const errorMessage = 'Database connection failed';
-      
+
       mockNebulaService.executeReadQuery.mockRejectedValue(new Error(errorMessage));
-      mockErrorHandlerService.handleError.mockImplementation((error) => {
+      mockErrorHandlerService.handleError.mockImplementation(error => {
         throw error;
       });
 
@@ -134,10 +138,10 @@ describe('GraphService', () => {
               src: 'file_1',
               dst: 'function_1',
               type: 'IMPORTS',
-              properties: { module: 'AuthService' }
-            }
-          }
-        ]
+              properties: { module: 'AuthService' },
+            },
+          },
+        ],
       };
 
       mockNebulaService.executeReadQuery.mockResolvedValue(mockResult);
@@ -154,9 +158,9 @@ describe('GraphService', () => {
     it('should handle errors during dependency analysis', async () => {
       const filePath = '/src/components/Button.tsx';
       const errorMessage = 'Query execution failed';
-      
+
       mockNebulaService.executeReadQuery.mockRejectedValue(new Error(errorMessage));
-      mockErrorHandlerService.handleError.mockImplementation((error) => {
+      mockErrorHandlerService.handleError.mockImplementation(error => {
         throw error;
       });
 
@@ -180,19 +184,21 @@ describe('GraphService', () => {
     it('should handle errors during impact analysis', async () => {
       const filePath = '/src/components/Button.tsx';
       const errorMessage = 'Impact analysis failed';
-      
-      mockErrorHandlerService.handleError.mockImplementation((error) => {
+
+      mockErrorHandlerService.handleError.mockImplementation(error => {
         throw error;
       });
 
       // We can't easily mock the internal simulateImpactAnalysis method
       // but we can test error handling by temporarily replacing it
       const originalSimulate = (graphService as any).simulateImpactAnalysis;
-      (graphService as any).simulateImpactAnalysis = jest.fn().mockRejectedValue(new Error(errorMessage));
-      
+      (graphService as any).simulateImpactAnalysis = jest
+        .fn()
+        .mockRejectedValue(new Error(errorMessage));
+
       await expect(graphService.findImpact(filePath)).rejects.toThrow(errorMessage);
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
-      
+
       // Restore original method
       (graphService as any).simulateImpactAnalysis = originalSimulate;
     });
@@ -216,19 +222,21 @@ describe('GraphService', () => {
     it('should handle errors during stats calculation', async () => {
       const projectPath = './src';
       const errorMessage = 'Stats calculation failed';
-      
-      mockErrorHandlerService.handleError.mockImplementation((error) => {
+
+      mockErrorHandlerService.handleError.mockImplementation(error => {
         throw error;
       });
 
       // We can't easily mock the internal simulateStatsCalculation method
       // but we can test error handling by temporarily replacing it
       const originalSimulate = (graphService as any).simulateStatsCalculation;
-      (graphService as any).simulateStatsCalculation = jest.fn().mockRejectedValue(new Error(errorMessage));
-      
+      (graphService as any).simulateStatsCalculation = jest
+        .fn()
+        .mockRejectedValue(new Error(errorMessage));
+
       await expect(graphService.getGraphStats(projectPath)).rejects.toThrow(errorMessage);
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
-      
+
       // Restore original method
       (graphService as any).simulateStatsCalculation = originalSimulate;
     });
@@ -251,8 +259,8 @@ describe('GraphService', () => {
       const projectPath = './src';
       const format = 'json';
       const errorMessage = 'Export failed';
-      
-      mockErrorHandlerService.handleError.mockImplementation((error) => {
+
+      mockErrorHandlerService.handleError.mockImplementation(error => {
         throw error;
       });
 
@@ -260,10 +268,10 @@ describe('GraphService', () => {
       // but we can test error handling by temporarily replacing it
       const originalSimulate = (graphService as any).simulateExport;
       (graphService as any).simulateExport = jest.fn().mockRejectedValue(new Error(errorMessage));
-      
+
       await expect(graphService.exportGraph(projectPath, format)).rejects.toThrow(errorMessage);
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
-      
+
       // Restore original method
       (graphService as any).simulateExport = originalSimulate;
     });

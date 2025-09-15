@@ -35,14 +35,14 @@ const createMockNode = (
     hasError: () => false,
     isMissing: () => false,
     toString: () => text,
-    walk: () => ({ current: mockNode })
+    walk: () => ({ current: mockNode }),
   };
-  
+
   // Set parent for children
   children.forEach(child => {
     if (child) child.parent = mockNode;
   });
-  
+
   return mockNode as Parser.SyntaxNode;
 };
 
@@ -52,11 +52,7 @@ class TestRule extends AbstractSnippetRule {
   readonly supportedNodeTypes = new Set(['test_node']);
   protected readonly snippetType = 'control_structure' as const;
 
-  protected createSnippet(
-    node: Parser.SyntaxNode,
-    sourceCode: string,
-    nestingLevel: number
-  ) {
+  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number) {
     const content = this.getNodeText(node, sourceCode);
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
@@ -78,8 +74,8 @@ class TestRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }
@@ -172,7 +168,7 @@ describe('AbstractSnippetRule', () => {
     test('should respect max depth limit', () => {
       const deepNode = createMockNode('test_node', 'deep content');
       const childNode = createMockNode('test_node', 'child content');
-      
+
       // Simulate deep nesting
       let currentNode = deepNode;
       for (let i = 0; i < 60; i++) {
@@ -200,7 +196,7 @@ describe('AbstractSnippetRule', () => {
         startLine: 2,
         endLine: 2,
         startColumn: 1,
-        endColumn: 22
+        endColumn: 22,
       });
     });
 
@@ -243,81 +239,81 @@ describe('AbstractSnippetRule', () => {
 });
 
 describe('Refactored Rules', () => {
-    describe('DestructuringAssignmentRule', () => {
-      let rule: DestructuringAssignmentRule;
-      const sourceCode = 'const { name, age } = person;';
+  describe('DestructuringAssignmentRule', () => {
+    let rule: DestructuringAssignmentRule;
+    const sourceCode = 'const { name, age } = person;';
 
-      beforeEach(() => {
-        rule = new DestructuringAssignmentRule();
-      });
-
-      test('should extract destructuring patterns', () => {
-        const sourceCode = 'const { a, b } = obj;';
-        const node = createMockNode('object_pattern', sourceCode);
-        const result = rule.extract(node, sourceCode);
-        expect(Array.isArray(result)).toBe(true);
-      });
-
-      test('should handle assignment expressions with destructuring', () => {
-        const sourceCode = '[a, b] = array;';
-        const node = createMockNode('assignment_expression', sourceCode);
-        
-        const result = rule.extract(node, sourceCode);
-        expect(Array.isArray(result)).toBe(true);
-      });
+    beforeEach(() => {
+      rule = new DestructuringAssignmentRule();
     });
 
-    describe('ControlStructureRule', () => {
-      let rule: ControlStructureRule;
-      const sourceCode = `
+    test('should extract destructuring patterns', () => {
+      const sourceCode = 'const { a, b } = obj;';
+      const node = createMockNode('object_pattern', sourceCode);
+      const result = rule.extract(node, sourceCode);
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    test('should handle assignment expressions with destructuring', () => {
+      const sourceCode = '[a, b] = array;';
+      const node = createMockNode('assignment_expression', sourceCode);
+
+      const result = rule.extract(node, sourceCode);
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('ControlStructureRule', () => {
+    let rule: ControlStructureRule;
+    const sourceCode = `
         if (condition) {
           console.log('test');
         }
       `;
 
-      beforeEach(() => {
-        rule = new ControlStructureRule();
-      });
-
-      test('should extract control structures', () => {
-        const node = createMockNode('if_statement', sourceCode);
-        const result = rule.extract(node, sourceCode);
-        expect(result).toHaveLength(1);
-        expect(result[0].snippetMetadata.snippetType).toBe('control_structure');
-      });
-
-      test('should filter overly simple control structures', () => {
-        const simpleNode = createMockNode('if_statement', 'if(x)y;');
-        const result = rule.extract(simpleNode, 'if(x)y;');
-        expect(result).toHaveLength(0); // Should be filtered out due to simplicity
-      });
+    beforeEach(() => {
+      rule = new ControlStructureRule();
     });
 
-    describe('FunctionCallChainRule', () => {
-      let rule: FunctionCallChainRule;
-
-      beforeEach(() => {
-        rule = new FunctionCallChainRule();
-      });
-
-      test('should extract meaningful function call chains', () => {
-        const sourceCode = 'obj.method1().method2().method3();';
-        const node = createMockNode('call_expression', sourceCode);
-        const result = rule.extract(node, sourceCode);
-        expect(Array.isArray(result)).toBe(true);
-      });
-
-      test('should filter simple function calls', () => {
-        const simpleSource = 'func();';
-        const simpleNode = createMockNode('call_expression', simpleSource);
-        const result = rule.extract(simpleNode, simpleSource);
-        expect(Array.isArray(result)).toBe(true);
-      });
+    test('should extract control structures', () => {
+      const node = createMockNode('if_statement', sourceCode);
+      const result = rule.extract(node, sourceCode);
+      expect(result).toHaveLength(1);
+      expect(result[0].snippetMetadata.snippetType).toBe('control_structure');
     });
 
-    describe('ErrorHandlingRule', () => {
-      let rule: ErrorHandlingRule;
-      const sourceCode = `
+    test('should filter overly simple control structures', () => {
+      const simpleNode = createMockNode('if_statement', 'if(x)y;');
+      const result = rule.extract(simpleNode, 'if(x)y;');
+      expect(result).toHaveLength(0); // Should be filtered out due to simplicity
+    });
+  });
+
+  describe('FunctionCallChainRule', () => {
+    let rule: FunctionCallChainRule;
+
+    beforeEach(() => {
+      rule = new FunctionCallChainRule();
+    });
+
+    test('should extract meaningful function call chains', () => {
+      const sourceCode = 'obj.method1().method2().method3();';
+      const node = createMockNode('call_expression', sourceCode);
+      const result = rule.extract(node, sourceCode);
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    test('should filter simple function calls', () => {
+      const simpleSource = 'func();';
+      const simpleNode = createMockNode('call_expression', simpleSource);
+      const result = rule.extract(simpleNode, simpleSource);
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('ErrorHandlingRule', () => {
+    let rule: ErrorHandlingRule;
+    const sourceCode = `
         try {
           riskyOperation();
         } catch (error) {
@@ -325,78 +321,78 @@ describe('Refactored Rules', () => {
         }
       `;
 
-      beforeEach(() => {
-        rule = new ErrorHandlingRule();
-      });
-
-      test('should extract try statements', () => {
-        const node = createMockNode('try_statement', sourceCode);
-        const result = rule.extract(node, sourceCode);
-        expect(result).toHaveLength(1);
-        expect(result[0].snippetMetadata.snippetType).toBe('error_handling');
-      });
-
-      test('should extract throw statements', () => {
-        const throwNode = createMockNode('throw_statement', 'throw new Error("test");');
-        const result = rule.extract(throwNode, 'throw new Error("test");');
-        expect(result).toHaveLength(1);
-      });
-
-      test('should skip catch clauses', () => {
-        const catchNode = createMockNode('catch_clause', 'catch (error) {}');
-        const result = rule.extract(catchNode, 'catch (error) {}');
-        expect(result).toHaveLength(0);
-      });
+    beforeEach(() => {
+      rule = new ErrorHandlingRule();
     });
 
-    describe('TemplateLiteralRule', () => {
-      let rule: TemplateLiteralRule;
-
-      beforeEach(() => {
-        rule = new TemplateLiteralRule();
-      });
-
-      test('should extract template literals with expressions', () => {
-        const sourceCode = '`Hello ${name}, today is ${day}!`';
-        const node = createMockNode('template_string', sourceCode);
-        const result = rule.extract(node, sourceCode);
-        expect(Array.isArray(result)).toBe(true);
-      });
-
-      test('should skip simple template literals without expressions', () => {
-        const simpleSource = '`Hello World`';
-        const simpleNode = createMockNode('template_string', simpleSource);
-        const result = rule.extract(simpleNode, simpleSource);
-        expect(Array.isArray(result)).toBe(true);
-      });
+    test('should extract try statements', () => {
+      const node = createMockNode('try_statement', sourceCode);
+      const result = rule.extract(node, sourceCode);
+      expect(result).toHaveLength(1);
+      expect(result[0].snippetMetadata.snippetType).toBe('error_handling');
     });
+
+    test('should extract throw statements', () => {
+      const throwNode = createMockNode('throw_statement', 'throw new Error("test");');
+      const result = rule.extract(throwNode, 'throw new Error("test");');
+      expect(result).toHaveLength(1);
+    });
+
+    test('should skip catch clauses', () => {
+      const catchNode = createMockNode('catch_clause', 'catch (error) {}');
+      const result = rule.extract(catchNode, 'catch (error) {}');
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('TemplateLiteralRule', () => {
+    let rule: TemplateLiteralRule;
+
+    beforeEach(() => {
+      rule = new TemplateLiteralRule();
+    });
+
+    test('should extract template literals with expressions', () => {
+      const sourceCode = '`Hello ${name}, today is ${day}!`';
+      const node = createMockNode('template_string', sourceCode);
+      const result = rule.extract(node, sourceCode);
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    test('should skip simple template literals without expressions', () => {
+      const simpleSource = '`Hello World`';
+      const simpleNode = createMockNode('template_string', simpleSource);
+      const result = rule.extract(simpleNode, simpleSource);
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
 });
 
 describe('Performance and Memory', () => {
-    test('should generate consistent hash values', () => {
-      const rule = new TestRule();
-      const sourceCode1 = 'const x = 5;';
-      const sourceCode2 = 'const x = 5;'; // Same content
-      
-      const node1 = createMockNode('test_node', sourceCode1);
-      const node2 = createMockNode('test_node', sourceCode2);
-      
-      const result1 = rule.extract(node1, sourceCode1);
-      const result2 = rule.extract(node2, sourceCode2);
-      
-      expect(Array.isArray(result1)).toBe(true);
-      expect(Array.isArray(result2)).toBe(true);
-      expect(result1.length).toBe(result2.length);
-    });
+  test('should generate consistent hash values', () => {
+    const rule = new TestRule();
+    const sourceCode1 = 'const x = 5;';
+    const sourceCode2 = 'const x = 5;'; // Same content
+
+    const node1 = createMockNode('test_node', sourceCode1);
+    const node2 = createMockNode('test_node', sourceCode2);
+
+    const result1 = rule.extract(node1, sourceCode1);
+    const result2 = rule.extract(node2, sourceCode2);
+
+    expect(Array.isArray(result1)).toBe(true);
+    expect(Array.isArray(result2)).toBe(true);
+    expect(result1.length).toBe(result2.length);
   });
+});
 
 describe('Configuration Integration', () => {
   test('should respect RuleConfiguration', () => {
     const rule = new TestRule({ maxDepth: 10, minComplexity: 5 });
-    
+
     // Create a node that would normally be processed
     const node = createMockNode('test_node', 'simple content');
-    
+
     // With higher minComplexity, simple content might be filtered
     const result = rule.extract(node, 'simple content');
     // The exact behavior depends on the validation logic
@@ -407,12 +403,12 @@ describe('Configuration Integration', () => {
 describe('Error Handling', () => {
   test('should handle malformed nodes gracefully', () => {
     const rule = new TestRule();
-    
+
     // Create a node with null/undefined properties
     const malformedNode: any = createMockNode('test_node', 'test');
     malformedNode.startIndex = null;
     malformedNode.endIndex = undefined;
-    
+
     // Should not throw errors
     expect(() => {
       rule.extract(malformedNode, 'test');
@@ -422,7 +418,7 @@ describe('Error Handling', () => {
   test('should handle empty source code', () => {
     const rule = new TestRule();
     const node = createMockNode('test_node', '');
-    
+
     const result = rule.extract(node, '');
     expect(Array.isArray(result)).toBe(true);
   });

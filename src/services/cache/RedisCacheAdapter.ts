@@ -32,13 +32,13 @@ export class RedisCacheAdapter implements CacheInterface {
     try {
       const ttl = options?.ttl || this.defaultTTL;
       const serialized = JSON.stringify(value);
-      
+
       if (ttl > 0) {
         await this.redis.setex(key, ttl, serialized);
       } else {
         await this.redis.set(key, serialized);
       }
-      
+
       return true;
     } catch (error) {
       this.logger.error(`Redis缓存设置失败: ${key}`, error);
@@ -60,11 +60,11 @@ export class RedisCacheAdapter implements CacheInterface {
     try {
       const pattern = `${this.name}:*`;
       const keys = await this.redis.keys(pattern);
-      
+
       if (keys.length > 0) {
         await this.redis.del(...keys);
       }
-      
+
       return true;
     } catch (error) {
       this.logger.error(`Redis缓存清空失败: ${this.name}`, error);
@@ -86,10 +86,10 @@ export class RedisCacheAdapter implements CacheInterface {
     try {
       const info = await this.redis.info('memory');
       const lines = info.split('\r\n');
-      
+
       let usedMemory = 0;
       let maxMemory = 0;
-      
+
       for (const line of lines) {
         if (line.startsWith('used_memory:')) {
           usedMemory = parseInt(line.split(':')[1]) || 0;
@@ -98,14 +98,14 @@ export class RedisCacheAdapter implements CacheInterface {
           maxMemory = parseInt(line.split(':')[1]) || 0;
         }
       }
-      
+
       return {
         name: this.name,
         size: usedMemory,
         maxSize: maxMemory,
         hitCount: 0,
         missCount: 0,
-        hitRate: 0
+        hitRate: 0,
       };
     } catch (error) {
       this.logger.error(`Redis缓存统计失败: ${this.name}`, error);
@@ -115,7 +115,7 @@ export class RedisCacheAdapter implements CacheInterface {
         maxSize: 0,
         hitCount: 0,
         missCount: 0,
-        hitRate: 0
+        hitRate: 0,
       };
     }
   }

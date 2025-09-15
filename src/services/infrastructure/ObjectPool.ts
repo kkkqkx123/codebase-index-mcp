@@ -42,12 +42,12 @@ export class ObjectPool<T> {
       validator: (obj: T) => true, // Default always valid
       destroy: (obj: T) => {}, // Default no-op destroy
       evictionPolicy: 'lru',
-      ...options
+      ...options,
     };
 
     this.logger = logger;
     this.stats = this.initializeStats();
-    
+
     this.initializePool();
   }
 
@@ -58,12 +58,14 @@ export class ObjectPool<T> {
       // Get object from pool
       obj = this.pool.pop()!;
       this.stats.totalAcquired++;
-      this.stats.hitRate = this.stats.totalAcquired / (this.stats.totalAcquired + this.stats.totalCreated);
+      this.stats.hitRate =
+        this.stats.totalAcquired / (this.stats.totalAcquired + this.stats.totalCreated);
     } else {
       // Create new object
       obj = this.options.creator();
       this.stats.totalCreated++;
-      this.stats.missRate = this.stats.totalCreated / (this.stats.totalAcquired + this.stats.totalCreated);
+      this.stats.missRate =
+        this.stats.totalCreated / (this.stats.totalAcquired + this.stats.totalCreated);
     }
 
     // Track active object
@@ -76,7 +78,7 @@ export class ObjectPool<T> {
       poolSize: this.pool.length,
       activeSize: this.active.size,
       totalCreated: this.stats.totalCreated,
-      totalAcquired: this.stats.totalAcquired
+      totalAcquired: this.stats.totalAcquired,
     });
 
     return obj;
@@ -114,18 +116,18 @@ export class ObjectPool<T> {
       }
     } catch (error) {
       this.logger?.error('Error releasing object to pool', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Destroy object on error
       try {
         this.options.destroy(obj);
       } catch (destroyError) {
         this.logger?.error('Error destroying object during release', {
-          error: destroyError instanceof Error ? destroyError.message : String(destroyError)
+          error: destroyError instanceof Error ? destroyError.message : String(destroyError),
         });
       }
-      
+
       this.stats.totalDestroyed++;
     }
 
@@ -135,7 +137,7 @@ export class ObjectPool<T> {
       poolSize: this.pool.length,
       activeSize: this.active.size,
       totalReleased: this.stats.totalReleased,
-      totalDestroyed: this.stats.totalDestroyed
+      totalDestroyed: this.stats.totalDestroyed,
     });
   }
 
@@ -146,7 +148,7 @@ export class ObjectPool<T> {
         this.options.destroy(obj);
       } catch (error) {
         this.logger?.error('Error destroying object during pool clear', {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -157,7 +159,7 @@ export class ObjectPool<T> {
         this.options.destroy(obj);
       } catch (error) {
         this.logger?.error('Error destroying active object during pool clear', {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -179,7 +181,7 @@ export class ObjectPool<T> {
     if (newMaxSize < oldMaxSize) {
       // Need to remove excess objects
       const excessCount = this.pool.length - newMaxSize;
-      
+
       for (let i = 0; i < excessCount; i++) {
         const obj = this.pool.pop();
         if (obj) {
@@ -188,7 +190,7 @@ export class ObjectPool<T> {
             this.stats.totalDestroyed++;
           } catch (error) {
             this.logger?.error('Error destroying object during pool resize', {
-              error: error instanceof Error ? error.message : String(error)
+              error: error instanceof Error ? error.message : String(error),
             });
           }
         }
@@ -200,7 +202,7 @@ export class ObjectPool<T> {
     this.logger?.info('Object pool resized', {
       oldMaxSize,
       newMaxSize,
-      currentSize: this.pool.length
+      currentSize: this.pool.length,
     });
   }
 
@@ -233,7 +235,7 @@ export class ObjectPool<T> {
     this.logger?.info('Object pool initialized', {
       initialSize: this.options.initialSize,
       maxSize: this.options.maxSize,
-      evictionPolicy: this.options.evictionPolicy
+      evictionPolicy: this.options.evictionPolicy,
     });
   }
 
@@ -244,7 +246,7 @@ export class ObjectPool<T> {
       if (index !== -1) {
         this.accessOrder.splice(index, 1);
       }
-      
+
       // Add to end (most recently used)
       this.accessOrder.push(obj);
     } else if (this.options.evictionPolicy === 'fifo') {
@@ -289,7 +291,7 @@ export class ObjectPool<T> {
           this.stats.totalDestroyed++;
         } catch (error) {
           this.logger?.error('Error destroying object during eviction', {
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -312,7 +314,7 @@ export class ObjectPool<T> {
       availableItems: 0,
       activeItems: 0,
       hitRate: 0,
-      missRate: 0
+      missRate: 0,
     };
   }
 }

@@ -105,27 +105,19 @@ export class LSPSearchService {
       const searchPromises: Promise<void>[] = [];
 
       if (params.searchTypes.includes('symbol')) {
-        searchPromises.push(
-          this.searchSymbols(params, results, metrics).then(() => {})
-        );
+        searchPromises.push(this.searchSymbols(params, results, metrics).then(() => {}));
       }
 
       if (params.searchTypes.includes('definition')) {
-        searchPromises.push(
-          this.searchDefinitions(params, results, metrics).then(() => {})
-        );
+        searchPromises.push(this.searchDefinitions(params, results, metrics).then(() => {}));
       }
 
       if (params.searchTypes.includes('reference')) {
-        searchPromises.push(
-          this.searchReferences(params, results, metrics).then(() => {})
-        );
+        searchPromises.push(this.searchReferences(params, results, metrics).then(() => {}));
       }
 
       if (params.includeDiagnostics && params.searchTypes.includes('diagnostic')) {
-        searchPromises.push(
-          this.searchDiagnostics(params, results, metrics).then(() => {})
-        );
+        searchPromises.push(this.searchDiagnostics(params, results, metrics).then(() => {}));
       }
 
       await Promise.all(searchPromises);
@@ -162,10 +154,10 @@ export class LSPSearchService {
       });
 
       await this.errorHandler.handleError(error as Error, {
-          component: 'LSPSearchService',
-          operation: 'search',
-          metadata: { queryId, params: JSON.stringify(params) }
-        });
+        component: 'LSPSearchService',
+        operation: 'search',
+        metadata: { queryId, params: JSON.stringify(params) },
+      });
 
       return {
         results: [],
@@ -191,7 +183,10 @@ export class LSPSearchService {
     const startTime = Date.now();
     try {
       // 使用工作区符号搜索来搜索整个项目
-      const symbols = await this.lspManager.getWorkspaceSymbols(params.query, params.projectPath || '');
+      const symbols = await this.lspManager.getWorkspaceSymbols(
+        params.query,
+        params.projectPath || ''
+      );
 
       if (symbols) {
         symbols.forEach(symbol => {
@@ -265,13 +260,20 @@ export class LSPSearchService {
     try {
       // 如果指定了文件路径，获取该文件的诊断信息
       if (params.filePath && params.filePath !== '') {
-        const diagnostics = await this.lspManager.getDiagnostics(params.filePath, params.projectPath);
+        const diagnostics = await this.lspManager.getDiagnostics(
+          params.filePath,
+          params.projectPath
+        );
 
         if (diagnostics) {
           diagnostics.diagnostics.forEach(diagnostic => {
             if (this.matchesQuery(diagnostic.message, params.query)) {
               results.push({
-                id: this.generateResultId('diagnostic', params.filePath || 'unknown', diagnostic.range.start.line),
+                id: this.generateResultId(
+                  'diagnostic',
+                  params.filePath || 'unknown',
+                  diagnostic.range.start.line
+                ),
                 type: 'diagnostic',
                 filePath: diagnostics.filePath,
                 name: 'Diagnostic',
@@ -309,21 +311,21 @@ export class LSPSearchService {
 
   private matchesQuery(text: string, query: string): boolean {
     if (!text || !query) return false;
-    
+
     const lowerText = text.toLowerCase();
     const lowerQuery = query.toLowerCase();
-    
+
     return lowerText.includes(lowerQuery);
   }
 
   private calculateSymbolScore(symbolName: string, query: string): number {
     const lowerSymbol = symbolName.toLowerCase();
     const lowerQuery = query.toLowerCase();
-    
+
     if (lowerSymbol === lowerQuery) return 1.0;
     if (lowerSymbol.startsWith(lowerQuery)) return 0.9;
     if (lowerSymbol.includes(lowerQuery)) return 0.7;
-    
+
     return 0.5;
   }
 
@@ -356,17 +358,17 @@ export class LSPSearchService {
       if (a.score !== b.score) {
         return b.score - a.score;
       }
-      
+
       // 按文件路径排序
       if (a.filePath !== b.filePath) {
         return a.filePath.localeCompare(b.filePath);
       }
-      
+
       // 按位置排序
       if (a.range.start.line !== b.range.start.line) {
         return a.range.start.line - b.range.start.line;
       }
-      
+
       return a.range.start.character - b.range.start.character;
     });
   }

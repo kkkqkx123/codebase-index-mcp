@@ -10,14 +10,23 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
   readonly name = 'FunctionalProgrammingRule';
   readonly supportedNodeTypes = new Set([
     // JavaScript/TypeScript
-    'arrow_function', 'call_expression', 'method_call',
+    'arrow_function',
+    'call_expression',
+    'method_call',
     // Python
-    'lambda_expression', 'list_comprehension', 'dict_comprehension', 'set_comprehension',
-    'generator_expression', 'call_expression',
+    'lambda_expression',
+    'list_comprehension',
+    'dict_comprehension',
+    'set_comprehension',
+    'generator_expression',
+    'call_expression',
     // Java
-    'lambda_expression', 'method_reference', 'method_call',
+    'lambda_expression',
+    'method_reference',
+    'method_call',
     // General functional patterns
-    'function_expression', 'function_definition'
+    'function_expression',
+    'function_definition',
   ]);
   protected readonly snippetType = 'functional_programming' as const;
 
@@ -25,9 +34,11 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for functional programming patterns
-    return this.containsFunctionalPattern(content) && this.hasSufficientFunctionalComplexity(content);
+    return (
+      this.containsFunctionalPattern(content) && this.hasSufficientFunctionalComplexity(content)
+    );
   }
 
   protected createSnippet(
@@ -56,7 +67,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...functionalFeatures
+          ...functionalFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
@@ -64,13 +75,15 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
         functionalInfo: {
           usesArrowFunctions: content.includes('=>'),
           usesFunctionComposition: (content.match(/=>/g) || []).length > 1,
-          usesHigherOrderFunctions: /\.(map|filter|reduce|forEach|find|some|every)\s*\(/.test(content),
+          usesHigherOrderFunctions: /\.(map|filter|reduce|forEach|find|some|every)\s*\(/.test(
+            content
+          ),
           usesCurrying: /curry\(/.test(content),
           usesRecursion: /function\s+\w+\s*\([^)]*\)\s*{.*\w+\s*\(/g.test(content),
           usesImmutability: this.usesImmutability(content),
-          complexity: this.calculateFunctionalComplexity(content)
-        }
-      }
+          complexity: this.calculateFunctionalComplexity(content),
+        },
+      },
     };
   }
 
@@ -109,7 +122,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       /Array\.of/,
       /Object\.keys/,
       /Object\.values/,
-      /Object\.entries/
+      /Object\.entries/,
     ];
 
     return functionalPatterns.some(pattern => pattern.test(content));
@@ -121,7 +134,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       (content.match(/\.filter\s*\(/g) || []).length,
       (content.match(/\.reduce\s*\(/g) || []).length,
       (content.match(/=>/g) || []).length,
-      (content.match(/lambda\s+/g) || []).length
+      (content.match(/lambda\s+/g) || []).length,
     ].reduce((sum, count) => sum + count, 0);
 
     // Should have at least 2 functional operations or one complex chain
@@ -142,7 +155,8 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
 
     let functionalLanguage: 'javascript' | 'typescript' | 'python' | 'java' | undefined;
     if (jsTsPatterns.test(content)) {
-      functionalLanguage = content.includes('interface') || content.includes(':') ? 'typescript' : 'javascript';
+      functionalLanguage =
+        content.includes('interface') || content.includes(':') ? 'typescript' : 'javascript';
     } else if (pythonPatterns.test(content)) {
       functionalLanguage = 'python';
     } else if (javaPatterns.test(content)) {
@@ -157,25 +171,25 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       usesImmutability: this.usesImmutability(content),
       usesFunctionComposition: /compose\(|\.then\s*\(|\.reduce\s*\(/.test(content),
       functionalLanguage,
-      functionalDepth
+      functionalDepth,
     };
   }
 
   private calculateFunctionalDepth(content: string): number {
     let depth = 0;
-    
+
     // Calculate method chaining depth
     const methodChains = content.match(/\.\w+\s*\([^)]*\)\s*(?=\.\w+\s*\()/g) || [];
     depth += methodChains.length;
-    
+
     // Calculate arrow function nesting
     const arrowFunctions = content.match(/=>\s*{[^}]*=>/g) || [];
     depth += arrowFunctions.length;
-    
+
     // Calculate comprehension nesting
     const comprehensions = content.match(/\[.*\[.*for.*in.*\].*for.*in.*\]/g) || [];
     depth += comprehensions.length * 2;
-    
+
     return depth;
   }
 
@@ -191,7 +205,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       /const\s+\w+\s*=\s*\w+\.filter/,
       // Return expressions without side effects
       /return\s+\w+\.\w+\(\)/,
-      /=>\s*\w+\.\w+\(\)/
+      /=>\s*\w+\.\w+\(\)/,
     ];
 
     const impurePatterns = [
@@ -205,7 +219,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       // External state access
       /console\./,
       /document\./,
-      /window\./
+      /window\./,
     ];
 
     const hasPure = purePatterns.some(pattern => pattern.test(content));
@@ -229,7 +243,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       /new\s+Set\(/,
       // Immutable return patterns
       /return\s*\{\s*\.\.\.\w+\s*\}/,
-      /return\s*\[\s*\.\.\.\w+\s*\]/
+      /return\s*\[\s*\.\.\.\w+\s*\]/,
     ];
 
     return immutablePatterns.some(pattern => pattern.test(content));
@@ -255,7 +269,8 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
     if ((content.match(/=>/g) || []).length > 1) patterns.push('function_composition');
 
     // Identify operations
-    const operationMatches = content.match(/\.(map|filter|reduce|forEach|find|some|every|sort|slice|concat)\s*\(/g) || [];
+    const operationMatches =
+      content.match(/\.(map|filter|reduce|forEach|find|some|every|sort|slice|concat)\s*\(/g) || [];
     operations.push(...operationMatches.map(op => op.replace(/[.(\s]/g, '')));
 
     // Calculate chaining depth
@@ -270,7 +285,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       operations,
       chainingDepth,
       functionalStyle,
-      purity
+      purity,
     };
   }
 
@@ -285,7 +300,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       /\.filter\s*\(/,
       /\.reduce\s*\(/,
       /\.stream\(\)/,
-      /\[.*for.*in.*\]/
+      /\[.*for.*in.*\]/,
     ];
 
     const imperativePatterns = [
@@ -294,13 +309,17 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       /if\s*\(/,
       /switch\s*\(/,
       /\.push\(/,
-      /\.pop\(/
+      /\.pop\(/,
     ];
 
-    const declarativeCount = declarativePatterns.reduce((count, pattern) => 
-      count + (content.match(pattern) || []).length, 0);
-    const imperativeCount = imperativePatterns.reduce((count, pattern) => 
-      count + (content.match(pattern) || []).length, 0);
+    const declarativeCount = declarativePatterns.reduce(
+      (count, pattern) => count + (content.match(pattern) || []).length,
+      0
+    );
+    const imperativeCount = imperativePatterns.reduce(
+      (count, pattern) => count + (content.match(pattern) || []).length,
+      0
+    );
 
     if (declarativeCount > imperativeCount * 2) return 'declarative';
     if (imperativeCount > declarativeCount * 2) return 'imperative';
@@ -308,12 +327,7 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
   }
 
   private determinePurity(content: string): 'pure' | 'impure' | 'mixed' {
-    const purePatterns = [
-      /\.map\s*\(/,
-      /\.filter\s*\(/,
-      /\.find\s*\(/,
-      /return\s+\w+\.\w+\(\)/
-    ];
+    const purePatterns = [/\.map\s*\(/, /\.filter\s*\(/, /\.find\s*\(/, /return\s+\w+\.\w+\(\)/];
 
     const impurePatterns = [
       /\.push\(/,
@@ -322,13 +336,17 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
       /document\./,
       /window\./,
       /\.sort\(/,
-      /\.reverse\(/
+      /\.reverse\(/,
     ];
 
-    const pureCount = purePatterns.reduce((count, pattern) => 
-      count + (content.match(pattern) || []).length, 0);
-    const impureCount = impurePatterns.reduce((count, pattern) => 
-      count + (content.match(pattern) || []).length, 0);
+    const pureCount = purePatterns.reduce(
+      (count, pattern) => count + (content.match(pattern) || []).length,
+      0
+    );
+    const impureCount = impurePatterns.reduce(
+      (count, pattern) => count + (content.match(pattern) || []).length,
+      0
+    );
 
     if (pureCount > 0 && impureCount === 0) return 'pure';
     if (impureCount > 0 && pureCount === 0) return 'impure';
@@ -339,32 +357,33 @@ export class FunctionalProgrammingRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const functionalComplexity = this.calculateFunctionalComplexity(content);
-    
+
     return baseComplexity + functionalComplexity;
   }
 
   private calculateFunctionalComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for functional operations
-    complexity += (content.match(/\.(map|filter|reduce|forEach|find|some|every)\s*\(/g) || []).length;
-    
+    complexity += (content.match(/\.(map|filter|reduce|forEach|find|some|every)\s*\(/g) || [])
+      .length;
+
     // Add complexity for chaining
     const chainComplexity = this.calculateChainingDepth(content) * 2;
     complexity += chainComplexity;
-    
+
     // Add complexity for comprehensions
     complexity += (content.match(/\[.*for.*in.*\]/g) || []).length * 2;
     complexity += (content.match(/\{.*for.*in.*\}/g) || []).length * 2;
-    
+
     // Add complexity for function composition
     complexity += (content.match(/=>\s*.*=>/g) || []).length * 3;
     complexity += (content.match(/\.then\s*\(/g) || []).length * 2;
-    
+
     // Add complexity for stream operations
     complexity += (content.match(/\.stream\(\)/g) || []).length * 2;
     complexity += (content.match(/::/g) || []).length;
-    
+
     return complexity;
   }
 }

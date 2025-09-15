@@ -2,17 +2,17 @@ import { RealTimeLearningService } from '../RealTimeLearningService';
 
 // Mock dependencies
 const mockConfigService = {
-  get: jest.fn().mockReturnValue({})
+  get: jest.fn().mockReturnValue({}),
 };
 
 const mockLoggerService = {
   info: jest.fn(),
   error: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 };
 
 const mockErrorHandlerService = {
-  handleError: jest.fn()
+  handleError: jest.fn(),
 };
 
 describe('RealTimeLearningService', () => {
@@ -36,7 +36,7 @@ describe('RealTimeLearningService', () => {
         query: 'test query',
         resultId: 'result1',
         relevanceScore: 0.8,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       realTimeLearningService.collectFeedback(feedback);
@@ -56,17 +56,16 @@ describe('RealTimeLearningService', () => {
           query: `test query ${i}`,
           resultId: `result${i}`,
           relevanceScore: 0.8,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
 
         realTimeLearningService.collectFeedback(feedback);
       }
 
       // Verify that batch processing was triggered
-      expect(mockLoggerService.info).toHaveBeenCalledWith(
-        'Processing feedback batch',
-        { batchCount: 10 }
-      );
+      expect(mockLoggerService.info).toHaveBeenCalledWith('Processing feedback batch', {
+        batchCount: 10,
+      });
     });
   });
 
@@ -94,7 +93,7 @@ describe('RealTimeLearningService', () => {
       // Test confidence weighted average
       const cwa = algorithms.confidenceWeightedAverage([
         { value: 0.5, confidence: 0.8 },
-        { value: 0.7, confidence: 0.6 }
+        { value: 0.7, confidence: 0.6 },
       ]);
       expect(cwa).toBeGreaterThan(0);
 
@@ -153,7 +152,7 @@ describe('RealTimeLearningService', () => {
         query: 'test query',
         resultId: 'result1',
         relevanceScore: 0.8,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       realTimeLearningService.collectFeedback(feedback);

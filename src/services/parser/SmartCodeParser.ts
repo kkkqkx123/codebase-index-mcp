@@ -53,32 +53,40 @@ export class SmartCodeParser {
       preserveClassBoundaries: options?.preserveClassBoundaries ?? true,
       includeComments: options?.includeComments ?? false,
       minChunkSize: options?.minChunkSize ?? 100,
-      extractSnippets: options?.extractSnippets ?? true
+      extractSnippets: options?.extractSnippets ?? true,
     };
   }
 
-  async parseFile(filePath: string, content: string, options?: ChunkingOptions): Promise<ParsedFile> {
+  async parseFile(
+    filePath: string,
+    content: string,
+    options?: ChunkingOptions
+  ): Promise<ParsedFile> {
     const startTime = Date.now();
     const hash = this.generateHash(content);
     const mergedOptions = { ...this.defaultOptions, ...options };
-    
+
     const chunks: CodeChunk[] = [];
     const lines = content.split('\n');
     const linesOfCode = lines.filter(line => line.trim().length > 0).length;
-    
+
     let language = 'unknown';
     let snippetCount = 0;
-    
+
     // Try to parse with TreeSitterService if available
     try {
       const parseResult = await this.treeSitterService.parseFile(filePath, content);
       language = parseResult.language.name.toLowerCase();
-      
+
       if (parseResult.success) {
         // Extract syntax-aware chunks
-        const syntaxAwareChunks = await this.createSyntaxAwareChunks(content, parseResult, mergedOptions);
+        const syntaxAwareChunks = await this.createSyntaxAwareChunks(
+          content,
+          parseResult,
+          mergedOptions
+        );
         chunks.push(...syntaxAwareChunks);
-        
+
         // Extract snippets if enabled
         if (mergedOptions.extractSnippets) {
           const snippets = this.treeSitterService.extractSnippets(parseResult.ast, content);
@@ -90,7 +98,7 @@ export class SmartCodeParser {
       // Fall back to generic chunking if TreeSitterService fails
       console.warn('TreeSitterService failed, falling back to generic chunking:', error);
     }
-    
+
     // If no chunks were created, use generic chunking
     if (chunks.length === 0) {
       const genericChunks = this.createGenericChunks(content, mergedOptions);
@@ -113,8 +121,8 @@ export class SmartCodeParser {
         imports: [],
         exports: [],
         linesOfCode,
-        snippets: snippetCount
-      }
+        snippets: snippetCount,
+      },
     };
 
     return parsedFile;
@@ -126,35 +134,39 @@ export class SmartCodeParser {
     options: Required<ChunkingOptions>
   ): Promise<CodeChunk[]> {
     const chunks: CodeChunk[] = [];
-    
+
     // Extract function chunks
     if (options.preserveFunctionBoundaries) {
       const functionChunks = this.createFunctionChunks(content, parseResult, options);
       chunks.push(...functionChunks);
     }
-    
+
     // Extract class chunks
     if (options.preserveClassBoundaries) {
       const classChunks = this.createClassChunks(content, parseResult, options);
       chunks.push(...classChunks);
     }
-    
+
     return chunks;
   }
 
-  private createFunctionChunks(content: string, parseResult: ParseResult, options: Required<ChunkingOptions>): CodeChunk[] {
+  private createFunctionChunks(
+    content: string,
+    parseResult: ParseResult,
+    options: Required<ChunkingOptions>
+  ): CodeChunk[] {
     const chunks: CodeChunk[] = [];
     const functions = this.treeSitterService.extractFunctions(parseResult.ast);
-    
+
     // Early return if no functions found
     if (!functions || functions.length === 0) {
       return chunks;
     }
-    
+
     for (const funcNode of functions) {
       const funcContent = this.treeSitterService.getNodeText(funcNode, content);
       const location = this.treeSitterService.getNodeLocation(funcNode);
-      
+
       const chunk: CodeChunk = {
         id: this.generateChunkId(funcContent, location.startLine),
         content: funcContent,
@@ -169,29 +181,33 @@ export class SmartCodeParser {
         metadata: {
           parameters: this.extractParameters(funcNode, content),
           returnType: this.extractReturnType(funcNode, content),
-          complexity: this.calculateComplexity(funcContent)
-        }
+          complexity: this.calculateComplexity(funcContent),
+        },
       };
-      
+
       chunks.push(chunk);
     }
-    
+
     return chunks;
   }
 
-  private createClassChunks(content: string, parseResult: ParseResult, options: Required<ChunkingOptions>): CodeChunk[] {
+  private createClassChunks(
+    content: string,
+    parseResult: ParseResult,
+    options: Required<ChunkingOptions>
+  ): CodeChunk[] {
     const chunks: CodeChunk[] = [];
     const classes = this.treeSitterService.extractClasses(parseResult.ast);
-    
+
     // Early return if no classes found
     if (!classes || classes.length === 0) {
       return chunks;
     }
-    
+
     for (const classNode of classes) {
       const classContent = this.treeSitterService.getNodeText(classNode, content);
       const location = this.treeSitterService.getNodeLocation(classNode);
-      
+
       const chunk: CodeChunk = {
         id: this.generateChunkId(classContent, location.startLine),
         content: classContent,
@@ -207,13 +223,13 @@ export class SmartCodeParser {
           methods: this.extractMethods(classNode, content).length,
           properties: this.extractProperties(classNode, content).length,
           inheritance: this.extractInheritance(classNode, content),
-          complexity: this.calculateComplexity(classContent)
-        }
+          complexity: this.calculateComplexity(classContent),
+        },
       };
-      
+
       chunks.push(chunk);
     }
-    
+
     return chunks;
   }
 
@@ -229,9 +245,12 @@ export class SmartCodeParser {
 
       if (currentChunk.join('\n').length >= options.maxChunkSize || i === lines.length - 1) {
         const chunkContent = currentChunk.join('\n');
-        
+
         // Create chunk if it meets minimum size OR if it's the last chunk and we have no chunks yet
-        if (chunkContent.length >= options.minChunkSize || (i === lines.length - 1 && chunks.length === 0)) {
+        if (
+          chunkContent.length >= options.minChunkSize ||
+          (i === lines.length - 1 && chunks.length === 0)
+        ) {
           const chunk: CodeChunk = {
             id: this.generateChunkId(chunkContent, currentLine),
             content: chunkContent,
@@ -244,10 +263,10 @@ export class SmartCodeParser {
             exports: [],
             metadata: {
               lineCount: currentChunk.length,
-              complexity: this.calculateComplexity(chunkContent)
-            }
+              complexity: this.calculateComplexity(chunkContent),
+            },
           };
-          
+
           chunks.push(chunk);
         }
 
@@ -267,7 +286,7 @@ export class SmartCodeParser {
         return {
           ...chunk,
           imports: this.treeSitterService.extractImports(parseResult.ast),
-          exports: this.treeSitterService.extractExports(parseResult.ast)
+          exports: this.treeSitterService.extractExports(parseResult.ast),
         };
       }
       return chunk;
@@ -287,7 +306,7 @@ export class SmartCodeParser {
   private extractParameters(node: any, content: string): string[] {
     const paramsNode = node.childForFieldName('parameters');
     if (!paramsNode) return [];
-    
+
     const params: string[] = [];
     for (const child of paramsNode.children) {
       if (child.type === 'identifier' || child.type === 'parameter') {
@@ -314,15 +333,15 @@ export class SmartCodeParser {
     const inheritance: string[] = [];
     const extendsNode = node.childForFieldName('extends');
     const implementsNode = node.childForFieldName('implements');
-    
+
     if (extendsNode) {
       inheritance.push(this.treeSitterService.getNodeText(extendsNode, content));
     }
-    
+
     if (implementsNode) {
       inheritance.push(this.treeSitterService.getNodeText(implementsNode, content));
     }
-    
+
     return inheritance;
   }
 
@@ -339,20 +358,20 @@ export class SmartCodeParser {
       /\bcatch\b/g,
       /\?\./g,
       /\|\|/g,
-      /&&/g
+      /&&/g,
     ];
 
     let complexity = 1;
-    
+
     // Early return for empty or very short code
     if (!code || code.length < 10) {
       return complexity;
     }
-    
+
     // Use a single pass with a combined regex for better performance
     const combinedPattern = /\b(if|else|for|while|switch|case|try|catch)\b|\?\.|&&|\|\|/g;
     let match;
-    
+
     while ((match = combinedPattern.exec(code)) !== null) {
       complexity++;
     }

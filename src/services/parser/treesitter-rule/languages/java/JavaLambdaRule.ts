@@ -11,7 +11,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
     'lambda_expression',
     'method_reference',
     'functional_interface',
-    'parameterized_type'
+    'parameterized_type',
   ]);
   protected readonly snippetType = 'java_lambda' as const;
 
@@ -19,7 +19,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for Java lambda patterns
     return this.containsJavaLambdaPattern(content) && this.hasMeaningfulLambda(content);
   }
@@ -50,13 +50,13 @@ export class JavaLambdaRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...lambdaFeatures
+          ...lambdaFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        javaLambdaInfo: this.extractJavaLambdaInfo(content)
-      }
+        javaLambdaInfo: this.extractJavaLambdaInfo(content),
+      },
     };
   }
 
@@ -66,7 +66,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
       /->\s*\w+/,
       /::\w+/,
       /@\s*FunctionalInterface/,
-      /Consumer|Supplier|Function|Predicate|UnaryOperator|BinaryOperator/
+      /Consumer|Supplier|Function|Predicate|UnaryOperator|BinaryOperator/,
     ];
 
     return lambdaPatterns.some(pattern => pattern.test(content));
@@ -77,7 +77,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
     const hasLambdaBody = /->\s*\{.*\}/.test(content) || /->\s*\w+/.test(content);
     const hasMethodReference = /::\w+/.test(content);
     const hasFunctionalInterface = /@(?:FunctionalInterface|Functional)/.test(content);
-    
+
     return hasLambdaBody || hasMethodReference || hasFunctionalInterface;
   }
 
@@ -89,28 +89,29 @@ export class JavaLambdaRule extends AbstractSnippetRule {
   } {
     const lambdaCount = (content.match(/->/g) || []).length;
     const methodRefCount = (content.match(/::/g) || []).length;
-    const functionalInterfaceCount = (content.match(/@(?:FunctionalInterface|Functional)/g) || []).length;
+    const functionalInterfaceCount = (content.match(/@(?:FunctionalInterface|Functional)/g) || [])
+      .length;
 
     return {
       usesLambdas: lambdaCount > 0,
       usesMethodReferences: methodRefCount > 0,
       usesFunctionalInterfaces: functionalInterfaceCount > 0,
-      lambdaComplexity: this.calculateLambdaComplexity(content)
+      lambdaComplexity: this.calculateLambdaComplexity(content),
     };
   }
 
   private calculateLambdaComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for lambda expressions
     complexity += (content.match(/->/g) || []).length;
-    
+
     // Add complexity for method references
     complexity += (content.match(/::/g) || []).length * 2;
-    
+
     // Add complexity for functional interfaces
     complexity += (content.match(/@(?:FunctionalInterface|Functional)/g) || []).length * 3;
-    
+
     // Add complexity for lambda body complexity
     const lambdaBodies = content.match(/->\s*\{([^}]*)\}/g) || [];
     lambdaBodies.forEach(body => {
@@ -118,7 +119,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
       const bodyComplexity = super.calculateComplexity(bodyContent);
       complexity += bodyComplexity;
     });
-    
+
     return complexity;
   }
 
@@ -135,7 +136,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
     const methodReferences: string[] = [];
     const functionalInterfaces: string[] = [];
     const lambdaParameters: number[] = [];
-    
+
     // Extract lambda expressions
     const lambdaRegex = /\(([^)]*)\)\s*->\s*(?:\{([^}]*)\}|(\w+))/g;
     let match;
@@ -143,27 +144,32 @@ export class JavaLambdaRule extends AbstractSnippetRule {
       const params = match[1].trim();
       const body = match[2] || match[3];
       lambdaExpressions.push(`${params} -> ${body}`);
-      
+
       // Count parameters
       const paramCount = params === '' ? 0 : params.split(',').length;
       lambdaParameters.push(paramCount);
     }
-    
+
     // Extract method references
     const methodRefRegex = /(\w+(?:\.\w+)?)::(\w+)/g;
     while ((match = methodRefRegex.exec(content)) !== null) {
       methodReferences.push(`${match[1]}::${match[2]}`);
     }
-    
+
     // Extract functional interfaces
-    const functionalInterfaceRegex = /@(?:FunctionalInterface|Functional)\s+(?:interface\s+)?(\w+)/g;
+    const functionalInterfaceRegex =
+      /@(?:FunctionalInterface|Functional)\s+(?:interface\s+)?(\w+)/g;
     while ((match = functionalInterfaceRegex.exec(content)) !== null) {
       functionalInterfaces.push(match[1]);
     }
-    
+
     const hasBlockBody = /->\s*\{/.test(content);
     const hasExpressionBody = /->\s*\w+/.test(content) && !hasBlockBody;
-    const purpose = this.inferLambdaPurpose(lambdaExpressions, methodReferences, functionalInterfaces);
+    const purpose = this.inferLambdaPurpose(
+      lambdaExpressions,
+      methodReferences,
+      functionalInterfaces
+    );
 
     return {
       lambdaExpressions,
@@ -172,11 +178,15 @@ export class JavaLambdaRule extends AbstractSnippetRule {
       lambdaParameters,
       hasBlockBody,
       hasExpressionBody,
-      purpose
+      purpose,
     };
   }
 
-  private inferLambdaPurpose(lambdaExpressions: string[], methodReferences: string[], functionalInterfaces: string[]): string {
+  private inferLambdaPurpose(
+    lambdaExpressions: string[],
+    methodReferences: string[],
+    functionalInterfaces: string[]
+  ): string {
     if (methodReferences.length > 0) {
       return 'method_reference';
     }
@@ -198,7 +208,7 @@ export class JavaLambdaRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const lambdaComplexity = this.calculateLambdaComplexity(content);
-    
+
     return baseComplexity + lambdaComplexity;
   }
 }

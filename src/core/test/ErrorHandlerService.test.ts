@@ -1,8 +1,8 @@
-import { 
-  ErrorHandlerService, 
-  CodebaseIndexError, 
-  ErrorContext, 
-  ErrorReport 
+import {
+  ErrorHandlerService,
+  CodebaseIndexError,
+  ErrorContext,
+  ErrorReport,
 } from '../ErrorHandlerService';
 import { LoggerService } from '../LoggerService';
 
@@ -245,8 +245,9 @@ describe('ErrorHandlerService', () => {
         operation: 'testOperation',
       };
 
-      await expect(errorHandlerService.handleAsyncError(operation, context))
-        .rejects.toThrow('Async error');
+      await expect(errorHandlerService.handleAsyncError(operation, context)).rejects.toThrow(
+        'Async error'
+      );
     });
 
     it('should preserve original error when handling async error', async () => {
@@ -257,8 +258,9 @@ describe('ErrorHandlerService', () => {
         operation: 'testOperation',
       };
 
-      await expect(errorHandlerService.handleAsyncError(operation, context))
-        .rejects.toBe(originalError);
+      await expect(errorHandlerService.handleAsyncError(operation, context)).rejects.toBe(
+        originalError
+      );
     });
   });
 
@@ -278,8 +280,7 @@ describe('ErrorHandlerService', () => {
       const originalFn = jest.fn().mockRejectedValue(error);
       const wrappedFn = errorHandlerService.wrapAsync(originalFn, 'TestComponent');
 
-      await expect(wrappedFn('arg1', 'arg2'))
-        .rejects.toThrow('Wrapped error');
+      await expect(wrappedFn('arg1', 'arg2')).rejects.toThrow('Wrapped error');
 
       expect(originalFn).toHaveBeenCalledWith('arg1', 'arg2');
     });
@@ -291,7 +292,7 @@ describe('ErrorHandlerService', () => {
       const unsubscribe = errorHandlerService.onError(callback);
 
       expect(typeof unsubscribe).toBe('function');
-      
+
       // Check that callback is registered
       const errorCallbacks = (errorHandlerService as any).errorCallbacks;
       expect(errorCallbacks).toContain(callback);
@@ -392,9 +393,9 @@ describe('ErrorHandlerService', () => {
         operation: 'operation1',
       });
 
-      const reports = errorHandlerService.getErrorReports({ 
+      const reports = errorHandlerService.getErrorReports({
         severity: 'high',
-        component: 'Component1'
+        component: 'Component1',
       });
 
       expect(reports).toHaveLength(1);
@@ -403,8 +404,8 @@ describe('ErrorHandlerService', () => {
     });
 
     it('should return empty array when no reports match filter', () => {
-      const reports = errorHandlerService.getErrorReports({ 
-        component: 'NonExistentComponent'
+      const reports = errorHandlerService.getErrorReports({
+        component: 'NonExistentComponent',
       });
 
       expect(reports).toHaveLength(0);
@@ -424,9 +425,7 @@ describe('ErrorHandlerService', () => {
 
       expect(result).toBe(true);
       expect(report.handled).toBe(true);
-      expect(mockLoggerService.info).toHaveBeenCalledWith(
-        `Error marked as handled: ${report.id}`
-      );
+      expect(mockLoggerService.info).toHaveBeenCalledWith(`Error marked as handled: ${report.id}`);
     });
 
     it('should return false for non-existent error ID', () => {
@@ -468,7 +467,7 @@ describe('ErrorHandlerService', () => {
   describe('Static Error Factory Methods', () => {
     it('should create config error with high severity', () => {
       const error = ErrorHandlerService.createConfigError('Config validation failed', {
-        input: { invalid: true }
+        input: { invalid: true },
       });
 
       expect(error).toBeInstanceOf(CodebaseIndexError);
@@ -481,7 +480,7 @@ describe('ErrorHandlerService', () => {
 
     it('should create database error with high severity', () => {
       const error = ErrorHandlerService.createDatabaseError('Database connection failed', {
-        metadata: { host: 'localhost' }
+        metadata: { host: 'localhost' },
       });
 
       expect(error).toBeInstanceOf(CodebaseIndexError);
@@ -494,7 +493,7 @@ describe('ErrorHandlerService', () => {
 
     it('should create file error with medium severity', () => {
       const error = ErrorHandlerService.createFileError('File not found', {
-        input: { path: '/test/file.txt' }
+        input: { path: '/test/file.txt' },
       });
 
       expect(error).toBeInstanceOf(CodebaseIndexError);
@@ -507,7 +506,7 @@ describe('ErrorHandlerService', () => {
 
     it('should create embedding error with medium severity', () => {
       const error = ErrorHandlerService.createEmbeddingError('Embedding generation failed', {
-        metadata: { model: 'text-embedding-ada-002' }
+        metadata: { model: 'text-embedding-ada-002' },
       });
 
       expect(error).toBeInstanceOf(CodebaseIndexError);

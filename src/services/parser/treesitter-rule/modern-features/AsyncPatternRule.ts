@@ -10,12 +10,19 @@ export class AsyncPatternRule extends AbstractSnippetRule {
   readonly name = 'AsyncPatternRule';
   readonly supportedNodeTypes = new Set([
     // JavaScript/TypeScript
-    'async_function_declaration', 'async_function_expression', 'arrow_function',
-    'await_expression', 'promise_expression',
+    'async_function_declaration',
+    'async_function_expression',
+    'arrow_function',
+    'await_expression',
+    'promise_expression',
     // Python
-    'async_function_definition', 'async_with_statement', 'async_for_statement',
+    'async_function_definition',
+    'async_with_statement',
+    'async_for_statement',
     // Generic patterns
-    'function_definition', 'function_declaration', 'method_definition'
+    'function_definition',
+    'function_declaration',
+    'method_definition',
   ]);
   protected readonly snippetType = 'async_pattern' as const;
 
@@ -23,7 +30,7 @@ export class AsyncPatternRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for async patterns in the content
     return this.containsAsyncPattern(content) && this.hasSufficientComplexity(content);
   }
@@ -54,13 +61,13 @@ export class AsyncPatternRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...asyncFeatures
+          ...asyncFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        asyncPattern: this.extractAsyncPattern(content)
-      }
+        asyncPattern: this.extractAsyncPattern(content),
+      },
     };
   }
 
@@ -85,7 +92,7 @@ export class AsyncPatternRule extends AbstractSnippetRule {
       // General async indicators
       /\bcoroutine\b/,
       /\bfuture\b/,
-      /\btask\b/
+      /\btask\b/,
     ];
 
     return asyncPatterns.some(pattern => pattern.test(content));
@@ -94,7 +101,7 @@ export class AsyncPatternRule extends AbstractSnippetRule {
   private hasSufficientComplexity(content: string): boolean {
     const lines = content.split('\n').filter(line => line.trim().length > 0);
     const awaitCount = (content.match(/\bawait\s+/g) || []).length;
-    
+
     // Should have multiple lines and actual async operations
     return lines.length > 1 && awaitCount > 0;
   }
@@ -111,7 +118,7 @@ export class AsyncPatternRule extends AbstractSnippetRule {
       usesAwait: /\bawait\s+/.test(content),
       usesPromises: /Promise\.|\.then\(|\.catch\(/.test(content),
       usesGenerators: /function\s*\*|yield\b/.test(content),
-      asyncPattern: this.extractAsyncPattern(content)
+      asyncPattern: this.extractAsyncPattern(content),
     };
   }
 
@@ -138,20 +145,20 @@ export class AsyncPatternRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const asyncComplexity = this.calculateAsyncComplexity(content);
-    
+
     return baseComplexity + asyncComplexity;
   }
 
   private calculateAsyncComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for async operations
     complexity += (content.match(/\bawait\s+/g) || []).length * 2;
     complexity += (content.match(/Promise\.(all|race|allSettled)/g) || []).length * 3;
     complexity += (content.match(/\.then\(/g) || []).length * 2;
     complexity += (content.match(/\.catch\(/g) || []).length * 2;
     complexity += (content.match(/try\s*\{.*\bawait/gs) || []).length * 3;
-    
+
     return complexity;
   }
 }

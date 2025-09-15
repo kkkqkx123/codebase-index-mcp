@@ -25,7 +25,11 @@ export interface RerankedResult extends QueryResult {
 }
 
 export interface IRerankingService {
-  rerank(results: QueryResult[], query: string, options?: RerankingOptions): Promise<RerankedResult[]>;
+  rerank(
+    results: QueryResult[],
+    query: string,
+    options?: RerankingOptions
+  ): Promise<RerankedResult[]>;
   getRerankingStats(): Promise<{
     totalRerankings: number;
     averageImprovement: number;

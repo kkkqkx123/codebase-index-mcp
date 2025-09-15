@@ -66,7 +66,10 @@ export class EmbedderFactory {
     return embedder;
   }
 
-  async embed(input: EmbeddingInput | EmbeddingInput[], provider?: string): Promise<EmbeddingResult | EmbeddingResult[]> {
+  async embed(
+    input: EmbeddingInput | EmbeddingInput[],
+    provider?: string
+  ): Promise<EmbeddingResult | EmbeddingResult[]> {
     const embedder = await this.getEmbedder(provider);
     return embedder.embed(input);
   }
@@ -101,13 +104,13 @@ export class EmbedderFactory {
       name: provider || this.configService.get('embedding').provider,
       model: embedder.getModelName(),
       dimensions: embedder.getDimensions(),
-      available
+      available,
     };
   }
 
   async autoSelectProvider(): Promise<string> {
     const available = await this.getAvailableProviders();
-    
+
     if (available.length === 0) {
       throw new Error('No embedder providers available');
     }

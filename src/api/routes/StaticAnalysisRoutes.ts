@@ -9,7 +9,7 @@ import { SemgrepRuleAdapter } from '../../services/semgrep/SemgrepRuleAdapter';
 import {
   SemgrepScanOptions as ScanOptions,
   SemgrepRule as SecurityRule,
-  SemgrepFinding
+  SemgrepFinding,
 } from '../../models/StaticAnalysisTypes';
 
 /**

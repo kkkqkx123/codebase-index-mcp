@@ -40,35 +40,35 @@ describe('IndexCoordinator', () => {
       findSnippetByHash: jest.fn(),
       findSnippetReferences: jest.fn(),
       analyzeSnippetDependencies: jest.fn(),
-      findSnippetOverlaps: jest.fn()
+      findSnippetOverlaps: jest.fn(),
     } as any;
 
     changeDetectionService = {
       detectChanges: jest.fn(),
       startWatching: jest.fn(),
-      stopWatching: jest.fn()
+      stopWatching: jest.fn(),
     } as any;
 
     parserService = {
       parseFiles: jest.fn(),
       parseFile: jest.fn(),
-      getSupportedLanguages: jest.fn()
+      getSupportedLanguages: jest.fn(),
     } as any;
 
     fileSystemTraversal = {
       traverseDirectory: jest.fn(),
-      getFileStats: jest.fn()
+      getFileStats: jest.fn(),
     } as any;
 
     asyncPipeline = {
       clearSteps: jest.fn(),
       addStep: jest.fn().mockReturnThis(),
       execute: jest.fn(),
-      getMetrics: jest.fn()
+      getMetrics: jest.fn(),
     } as any;
 
     batchProcessor = {
-      processInBatches: jest.fn()
+      processInBatches: jest.fn(),
     } as any;
 
     memoryManager = {
@@ -77,7 +77,7 @@ describe('IndexCoordinator', () => {
       checkMemory: jest.fn(),
       getMemoryStatus: jest.fn(),
       onMemoryUpdate: jest.fn(),
-      forceGarbageCollection: jest.fn()
+      forceGarbageCollection: jest.fn(),
     } as any;
 
     loggerService = container.get(LoggerService);
@@ -97,7 +97,7 @@ describe('IndexCoordinator', () => {
 
     // Create SearchCoordinator mock
     const searchCoordinator = {
-      search: jest.fn()
+      search: jest.fn(),
     } as any;
 
     // Create IndexCoordinator instance
@@ -125,7 +125,7 @@ describe('IndexCoordinator', () => {
       excludePatterns: ['*.test.ts'],
       maxFileSize: 1024 * 1024,
       chunkSize: 1000,
-      overlapSize: 200
+      overlapSize: 200,
     };
 
     it('should successfully create an index with valid parameters', async () => {
@@ -136,10 +136,10 @@ describe('IndexCoordinator', () => {
         fileCount: 2,
         files: [
           { path: 'file1.ts', hash: 'hash1', size: 100, lastModified: new Date() },
-          { path: 'file2.ts', hash: 'hash2', size: 200, lastModified: new Date() }
-        ]
+          { path: 'file2.ts', hash: 'hash2', size: 200, lastModified: new Date() },
+        ],
       };
-      
+
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       const mockTraversalResult: TraversalResult = {
@@ -153,7 +153,7 @@ describe('IndexCoordinator', () => {
             hash: 'hash1',
             lastModified: new Date(),
             language: 'typescript',
-            isBinary: false
+            isBinary: false,
           },
           {
             path: '/test/project/file2.ts',
@@ -164,13 +164,13 @@ describe('IndexCoordinator', () => {
             hash: 'hash2',
             lastModified: new Date(),
             language: 'typescript',
-            isBinary: false
-          }
+            isBinary: false,
+          },
         ],
         directories: [],
         errors: [],
         totalSize: 2500,
-        processingTime: 100
+        processingTime: 100,
       };
       fileSystemTraversal.traverseDirectory.mockResolvedValue(mockTraversalResult);
 
@@ -183,7 +183,7 @@ describe('IndexCoordinator', () => {
           classes: [],
           imports: [],
           exports: [],
-          metadata: {}
+          metadata: {},
         },
         {
           filePath: '/test/project/file2.ts',
@@ -193,15 +193,15 @@ describe('IndexCoordinator', () => {
           classes: [],
           imports: [],
           exports: [],
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
       parserService.parseFiles.mockResolvedValue(mockParseResults);
 
       const mockStorageResult = {
         success: true,
         chunksStored: 10,
-        errors: []
+        errors: [],
       };
       storageCoordinator.store.mockResolvedValue(mockStorageResult);
 
@@ -209,7 +209,7 @@ describe('IndexCoordinator', () => {
         success: true,
         data: {
           traversalResult: mockTraversalResult,
-          storageResult: mockStorageResult
+          storageResult: mockStorageResult,
         },
         totalTime: 1500,
         steps: [
@@ -219,7 +219,7 @@ describe('IndexCoordinator', () => {
             startTime: Date.now() - 1000,
             endTime: Date.now() - 900,
             duration: 100,
-            retryCount: 0
+            retryCount: 0,
           },
           {
             name: 'file-traversal',
@@ -227,7 +227,7 @@ describe('IndexCoordinator', () => {
             startTime: Date.now() - 800,
             endTime: Date.now() - 600,
             duration: 200,
-            retryCount: 0
+            retryCount: 0,
           },
           {
             name: 'batch-parsing',
@@ -235,7 +235,7 @@ describe('IndexCoordinator', () => {
             startTime: Date.now() - 500,
             endTime: Date.now() - 300,
             duration: 200,
-            retryCount: 0
+            retryCount: 0,
           },
           {
             name: 'storage-coordination',
@@ -243,9 +243,9 @@ describe('IndexCoordinator', () => {
             startTime: Date.now() - 200,
             endTime: Date.now(),
             duration: 200,
-            retryCount: 0
-          }
-        ]
+            retryCount: 0,
+          },
+        ],
       };
       asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
 
@@ -260,13 +260,13 @@ describe('IndexCoordinator', () => {
       // Verify pipeline was executed
       expect(asyncPipeline.execute).toHaveBeenCalledWith({
         projectPath: mockProjectPath,
-        options: mockOptions
+        options: mockOptions,
       });
 
       // Verify logging
       expect(loggerService.info).toHaveBeenCalledWith('Starting index creation', {
         projectPath: mockProjectPath,
-        projectId: mockProjectId.hash
+        projectId: mockProjectId.hash,
       });
     });
 
@@ -275,7 +275,7 @@ describe('IndexCoordinator', () => {
         path: mockProjectPath,
         hash: 'test_project_hash',
         fileCount: 0,
-        files: []
+        files: [],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
@@ -292,9 +292,9 @@ describe('IndexCoordinator', () => {
             endTime: Date.now() - 900,
             duration: 100,
             retryCount: 0,
-            error: 'Insufficient memory for indexing operation'
-          }
-        ]
+            error: 'Insufficient memory for indexing operation',
+          },
+        ],
       };
       asyncPipeline.execute.mockResolvedValue(mockPipelineResult);
 
@@ -309,7 +309,7 @@ describe('IndexCoordinator', () => {
       // Verify error logging
       expect(loggerService.error).toHaveBeenCalledWith('Index creation failed', {
         projectId: mockProjectId.hash,
-        error: 'Pipeline step failed: memory-check'
+        error: 'Pipeline step failed: memory-check',
       });
     });
 
@@ -318,7 +318,7 @@ describe('IndexCoordinator', () => {
         path: mockProjectPath,
         hash: 'test_project_hash',
         fileCount: 0,
-        files: []
+        files: [],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
@@ -336,7 +336,7 @@ describe('IndexCoordinator', () => {
       // Verify error logging
       expect(loggerService.error).toHaveBeenCalledWith('Index creation failed', {
         projectId: mockProjectId.hash,
-        error: 'Unexpected database error'
+        error: 'Unexpected database error',
       });
     });
   });
@@ -352,8 +352,8 @@ describe('IndexCoordinator', () => {
         fileCount: 2,
         files: [
           { path: 'file1.ts', hash: 'hash1', size: 100, lastModified: new Date() },
-          { path: 'file2.ts', hash: 'hash2', size: 200, lastModified: new Date() }
-        ]
+          { path: 'file2.ts', hash: 'hash2', size: 200, lastModified: new Date() },
+        ],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
@@ -366,7 +366,7 @@ describe('IndexCoordinator', () => {
           classes: [],
           imports: [],
           exports: [],
-          metadata: {}
+          metadata: {},
         },
         {
           filePath: '/test/project/file2.ts',
@@ -376,15 +376,15 @@ describe('IndexCoordinator', () => {
           classes: [],
           imports: [],
           exports: [],
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
       parserService.parseFiles.mockResolvedValue(mockParseResults);
 
       const mockStorageResult = {
         success: true,
         chunksStored: 8,
-        errors: []
+        errors: [],
       };
       storageCoordinator.store.mockResolvedValue(mockStorageResult);
 
@@ -402,7 +402,7 @@ describe('IndexCoordinator', () => {
       expect(storageCoordinator.store).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ filePath: '/test/project/file1.ts' }),
-          expect.objectContaining({ filePath: '/test/project/file2.ts' })
+          expect.objectContaining({ filePath: '/test/project/file2.ts' }),
         ]),
         mockProjectId.hash
       );
@@ -413,7 +413,7 @@ describe('IndexCoordinator', () => {
         path: mockProjectPath,
         hash: 'test_project_hash',
         fileCount: 0,
-        files: []
+        files: [],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
@@ -437,14 +437,14 @@ describe('IndexCoordinator', () => {
         path: mockProjectPath,
         hash: 'test_project_hash',
         fileCount: 0,
-        files: []
+        files: [],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       const mockDeleteResult = {
         success: true,
         filesDeleted: 10,
-        errors: []
+        errors: [],
       };
       storageCoordinator.deleteProject.mockResolvedValue(mockDeleteResult);
 
@@ -458,10 +458,10 @@ describe('IndexCoordinator', () => {
       // Verify logging
       expect(loggerService.info).toHaveBeenCalledWith('Deleting index', {
         projectPath: mockProjectPath,
-        projectId: mockProjectId.hash
+        projectId: mockProjectId.hash,
       });
       expect(loggerService.info).toHaveBeenCalledWith('Index deleted successfully', {
-        projectId: mockProjectId.hash
+        projectId: mockProjectId.hash,
       });
     });
 
@@ -470,14 +470,14 @@ describe('IndexCoordinator', () => {
         path: mockProjectPath,
         hash: 'test_project_hash',
         fileCount: 0,
-        files: []
+        files: [],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
       const mockDeleteResult = {
         success: false,
         filesDeleted: 0,
-        errors: ['Database connection failed']
+        errors: ['Database connection failed'],
       };
       storageCoordinator.deleteProject.mockResolvedValue(mockDeleteResult);
 
@@ -488,7 +488,7 @@ describe('IndexCoordinator', () => {
       // Verify error logging
       expect(loggerService.error).toHaveBeenCalledWith('Failed to delete index', {
         projectId: mockProjectId.hash,
-        errors: ['Database connection failed']
+        errors: ['Database connection failed'],
       });
     });
   });
@@ -500,20 +500,20 @@ describe('IndexCoordinator', () => {
         type: 'created',
         path: '/test/project/newfile.ts',
         relativePath: 'newfile.ts',
-        timestamp: new Date()
+        timestamp: new Date(),
       },
       {
         type: 'modified',
         path: '/test/project/existing.ts',
         relativePath: 'existing.ts',
-        timestamp: new Date()
+        timestamp: new Date(),
       },
       {
         type: 'deleted',
         path: '/test/project/oldfile.ts',
         relativePath: 'oldfile.ts',
-        timestamp: new Date()
-      }
+        timestamp: new Date(),
+      },
     ];
 
     it('should successfully process incremental changes', async () => {
@@ -521,7 +521,7 @@ describe('IndexCoordinator', () => {
         path: mockProjectPath,
         hash: 'test_project_hash',
         fileCount: 0,
-        files: []
+        files: [],
       };
       jest.spyOn(HashUtils, 'calculateDirectoryHash').mockResolvedValue(mockProjectId);
 
@@ -534,7 +534,7 @@ describe('IndexCoordinator', () => {
           classes: [],
           imports: [],
           exports: [],
-          metadata: {}
+          metadata: {},
         },
         {
           filePath: '/test/project/existing.ts',
@@ -544,21 +544,21 @@ describe('IndexCoordinator', () => {
           classes: [],
           imports: [],
           exports: [],
-          metadata: {}
-        }
+          metadata: {},
+        },
       ];
       parserService.parseFiles.mockResolvedValue(mockParseResults);
 
       storageCoordinator.deleteFiles.mockResolvedValue({
         success: true,
         filesDeleted: 1,
-        errors: []
+        errors: [],
       });
 
       storageCoordinator.store.mockResolvedValue({
         success: true,
         chunksStored: 6,
-        errors: []
+        errors: [],
       });
 
       await indexCoordinator.processIncrementalChanges(mockProjectPath, mockChanges);
@@ -567,16 +567,13 @@ describe('IndexCoordinator', () => {
       expect(storageCoordinator.deleteFiles).toHaveBeenCalledWith(['oldfile.ts']);
 
       // Verify creations and modifications were processed
-      expect(parserService.parseFiles).toHaveBeenCalledWith([
-        'newfile.ts',
-        'existing.ts'
-      ]);
+      expect(parserService.parseFiles).toHaveBeenCalledWith(['newfile.ts', 'existing.ts']);
 
       // Verify storage was called with processed files and project ID
       expect(storageCoordinator.store).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ filePath: '/test/project/newfile.ts' }),
-          expect.objectContaining({ filePath: '/test/project/existing.ts' })
+          expect.objectContaining({ filePath: '/test/project/existing.ts' }),
         ]),
         mockProjectId.hash
       );
@@ -585,12 +582,15 @@ describe('IndexCoordinator', () => {
       expect(loggerService.info).toHaveBeenCalledWith('Processing incremental changes', {
         projectPath: mockProjectPath,
         projectId: mockProjectId.hash,
-        changeCount: 3
+        changeCount: 3,
       });
-      expect(loggerService.info).toHaveBeenCalledWith('Incremental changes processed successfully', {
-        projectId: mockProjectId.hash,
-        changeCount: 3
-      });
+      expect(loggerService.info).toHaveBeenCalledWith(
+        'Incremental changes processed successfully',
+        {
+          projectId: mockProjectId.hash,
+          changeCount: 3,
+        }
+      );
     });
 
     it('should handle empty changes list', async () => {
@@ -612,7 +612,7 @@ describe('IndexCoordinator', () => {
         totalSnippets: 150,
         processedSnippets: 142,
         duplicateSnippets: 8,
-        processingRate: 45.2
+        processingRate: 45.2,
       };
       storageCoordinator.getSnippetStatistics.mockResolvedValue(mockStats);
 
@@ -657,7 +657,7 @@ describe('IndexCoordinator', () => {
       const mockDependencies = {
         dependsOn: ['dep_1', 'dep_2'],
         usedBy: ['user_1'],
-        complexity: 5
+        complexity: 5,
       };
 
       storageCoordinator.analyzeDependencies.mockResolvedValue(mockDependencies.dependsOn);
@@ -689,7 +689,7 @@ describe('IndexCoordinator', () => {
         lastIndexed: expect.any(Date),
         fileCount: 150,
         chunkCount: 450,
-        status: 'completed'
+        status: 'completed',
       });
     });
   });

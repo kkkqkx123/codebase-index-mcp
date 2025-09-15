@@ -16,23 +16,23 @@ class MockConfigService {
         ollama: {
           baseUrl: 'http://localhost:11434',
           model: 'nomic-embed-text',
-          dimensions: 768
-        }
+          dimensions: 768,
+        },
       },
       batchProcessing: {
         processingTimeout: 300000, // 5 minutes
-        maxConcurrentOperations: 5
+        maxConcurrentOperations: 5,
       },
       caching: {
         defaultTTL: 300,
-        maxSize: 1000
+        maxSize: 1000,
       },
       cache: {
         ttl: 300,
         maxEntries: 1000,
-        cleanupInterval: 60
+        cleanupInterval: 60,
       },
-      ...config
+      ...config,
     };
   }
 
@@ -74,12 +74,12 @@ class MockErrorHandlerService {
       stack: error.stack,
       context,
       severity: 'medium',
-      handled: false
+      handled: false,
     };
   }
 
   handleAsyncError(operation: () => Promise<any>, context: any): Promise<any> {
-    return operation().catch((error) => {
+    return operation().catch(error => {
       this.handleError(error, context);
       throw error;
     });
@@ -107,7 +107,7 @@ class MockEmbeddingCacheService {
     return {
       size: this.cache.size,
       maxSize: 100,
-      defaultTTL: 300000
+      defaultTTL: 300000,
     };
   }
 }
@@ -147,8 +147,8 @@ describe('OllamaEmbedder', () => {
     it('should use default configuration when not specified', () => {
       const configWithoutOllama = new MockConfigService({
         embedding: {
-          ollama: {}
-        }
+          ollama: {},
+        },
       });
 
       const embedder = new OllamaEmbedder(
@@ -180,8 +180,8 @@ describe('OllamaEmbedder', () => {
           vector: [0.1, 0.2, 0.3],
           dimensions: 3,
           model: 'nomic-embed-text',
-          processingTime: 100
-        }
+          processingTime: 100,
+        },
       ]);
 
       await ollamaEmbedder.embed(input);
@@ -208,28 +208,28 @@ describe('OllamaEmbedder', () => {
     it('should return true when Ollama is available', async () => {
       // Mock the fetch function to simulate a successful response
       global.fetch = jest.fn().mockResolvedValue({
-        ok: true
+        ok: true,
       }) as jest.Mock;
 
       const result = await ollamaEmbedder.isAvailable();
 
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/tags', {
-        method: 'GET'
+        method: 'GET',
       });
     });
 
     it('should return false when Ollama is not available', async () => {
       // Mock the fetch function to simulate a failed response
       global.fetch = jest.fn().mockResolvedValue({
-        ok: false
+        ok: false,
       }) as jest.Mock;
 
       const result = await ollamaEmbedder.isAvailable();
 
       expect(result).toBe(false);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/tags', {
-        method: 'GET'
+        method: 'GET',
       });
     });
 
@@ -241,7 +241,7 @@ describe('OllamaEmbedder', () => {
 
       expect(result).toBe(false);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/tags', {
-        method: 'GET'
+        method: 'GET',
       });
     });
   });
@@ -254,8 +254,8 @@ describe('OllamaEmbedder', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
-          embedding: [0.1, 0.2, 0.3]
-        })
+          embedding: [0.1, 0.2, 0.3],
+        }),
       }) as jest.Mock;
 
       const results = await (ollamaEmbedder as any).makeEmbeddingRequest(inputs);
@@ -263,12 +263,12 @@ describe('OllamaEmbedder', () => {
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:11434/api/embeddings', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           prompt: 'test text',
-          model: 'nomic-embed-text'
-        })
+          model: 'nomic-embed-text',
+        }),
       });
 
       expect(results).toEqual([
@@ -276,8 +276,8 @@ describe('OllamaEmbedder', () => {
           vector: [0.1, 0.2, 0.3],
           dimensions: 3,
           model: 'nomic-embed-text',
-          processingTime: 0
-        }
+          processingTime: 0,
+        },
       ]);
     });
 
@@ -288,12 +288,12 @@ describe('OllamaEmbedder', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        text: async () => 'Internal Server Error'
+        text: async () => 'Internal Server Error',
       }) as jest.Mock;
 
-      await expect((ollamaEmbedder as any).makeEmbeddingRequest(inputs))
-        .rejects
-        .toThrow('Ollama API request failed with status 500: Internal Server Error');
+      await expect((ollamaEmbedder as any).makeEmbeddingRequest(inputs)).rejects.toThrow(
+        'Ollama API request failed with status 500: Internal Server Error'
+      );
     });
   });
 });

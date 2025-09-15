@@ -94,7 +94,7 @@ export class SemanticAnalysisService {
     @inject(TYPES.TreeSitterCoreService) private treeSitterService: TreeSitterCoreService,
     @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
     @inject(TYPES.LoggerService) private logger: LoggerService
-  ) { }
+  ) {}
 
   async analyzeSemanticContext(
     filePath: string,
@@ -112,13 +112,13 @@ export class SemanticAnalysisService {
       const [controlFlow, dataFlow, crossFunction] = await Promise.all([
         this.analyzeControlFlow(filePath, content, language),
         this.analyzeDataFlow(filePath, content, language),
-        this.analyzeCallGraph(filePath, content, language)
+        this.analyzeCallGraph(filePath, content, language),
       ]);
 
       return {
         controlFlow,
         dataFlow,
-        crossFunction
+        crossFunction,
       };
     } catch (error) {
       this.logger.error(`Failed to analyze semantic context: ${error}`);
@@ -134,7 +134,7 @@ export class SemanticAnalysisService {
     // 使用现有的控制流分析规则
     const cfgRules = [
       'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-      'enhanced-rules/control-flow/complex-nested-conditions.yml'
+      'enhanced-rules/control-flow/complex-nested-conditions.yml',
     ];
 
     const results = await this.semgrepService.scanProject(filePath, { rules: cfgRules });
@@ -151,7 +151,7 @@ export class SemanticAnalysisService {
     // 使用现有的数据流分析规则
     const dataFlowRules = [
       'enhanced-rules/data-flow/advanced-taint-analysis.yml',
-      'enhanced-rules/data-flow/cross-function-taint.yml'
+      'enhanced-rules/data-flow/cross-function-taint.yml',
     ];
 
     const results = await this.semgrepService.scanProject(filePath, { rules: dataFlowRules });
@@ -178,18 +178,19 @@ export class SemanticAnalysisService {
       functions,
       callGraph,
       sideEffects,
-      pureFunctionScore: this.calculatePureFunctionScore(functions, sideEffects)
+      pureFunctionScore: this.calculatePureFunctionScore(functions, sideEffects),
     };
   }
 
   private extractFunctions(ast: any, content: string, language: string): FunctionInfo[] {
     // 使用tree-sitter查询提取函数信息
-    const functionNodes = this.treeSitterService.findNodeByType(ast,
+    const functionNodes = this.treeSitterService.findNodeByType(
+      ast,
       language === 'javascript' || language === 'typescript'
         ? 'function_declaration'
         : language === 'python'
-        ? 'function_definition'
-        : 'function_item'
+          ? 'function_definition'
+          : 'function_item'
     );
 
     return functionNodes.map((node: any) => ({
@@ -197,21 +198,27 @@ export class SemanticAnalysisService {
       parameters: this.extractParameters(node, content),
       returnType: this.extractReturnType(node, content),
       complexity: this.calculateComplexity(node, content),
-      sideEffects: this.analyzeFunctionSideEffects(node, content)
+      sideEffects: this.analyzeFunctionSideEffects(node, content),
     }));
   }
 
-  private buildCallGraph(ast: any, content: string, functions: FunctionInfo[], language: string): CallGraph {
+  private buildCallGraph(
+    ast: any,
+    content: string,
+    functions: FunctionInfo[],
+    language: string
+  ): CallGraph {
     const nodes = functions.map(f => f.name);
     const edges: CallEdge[] = [];
 
     // 分析函数调用关系
-    const callNodes = this.treeSitterService.findNodeByType(ast,
+    const callNodes = this.treeSitterService.findNodeByType(
+      ast,
       language === 'javascript' || language === 'typescript'
         ? 'call_expression'
         : language === 'python'
-        ? 'call'
-        : 'call_expression'
+          ? 'call'
+          : 'call_expression'
     );
 
     // 构建调用图
@@ -223,7 +230,7 @@ export class SemanticAnalysisService {
         edges.push({
           from: caller,
           to: callee,
-          callType: 'direct'
+          callType: 'direct',
         });
       }
     });
@@ -237,24 +244,30 @@ export class SemanticAnalysisService {
     // 分析全局变量修改
     const globalMutations = this.treeSitterService.findNodeByType(ast, 'assignment_expression');
 
-    sideEffects.push(...globalMutations.map((node: any) => ({
-      type: 'mutation' as const,
-      location: this.getLocation(node, content),
-      description: 'Global variable modification'
-    })));
+    sideEffects.push(
+      ...globalMutations.map((node: any) => ({
+        type: 'mutation' as const,
+        location: this.getLocation(node, content),
+        description: 'Global variable modification',
+      }))
+    );
 
     // 分析I/O操作
     const ioOperations = this.treeSitterService.findNodeByType(ast, 'call_expression');
 
-    sideEffects.push(...ioOperations.filter((node: any) =>
-      ['console.log', 'print', 'write', 'read'].some(op =>
-        this.extractCalleeName(node, content).includes(op)
-      )
-    ).map((node: any) => ({
-      type: 'io' as const,
-      location: this.getLocation(node, content),
-      description: 'I/O operation'
-    })));
+    sideEffects.push(
+      ...ioOperations
+        .filter((node: any) =>
+          ['console.log', 'print', 'write', 'read'].some(op =>
+            this.extractCalleeName(node, content).includes(op)
+          )
+        )
+        .map((node: any) => ({
+          type: 'io' as const,
+          location: this.getLocation(node, content),
+          description: 'I/O operation',
+        }))
+    );
 
     return sideEffects;
   }
@@ -269,7 +282,7 @@ export class SemanticAnalysisService {
       nestingDepth: 0, // Would need to extract from findings
       loopPatterns: [], // 从结果中提取循环模式
       unreachableCode: [], // 从结果中提取不可达代码
-      missingBreaks: [] // 从结果中提取缺失的break
+      missingBreaks: [], // 从结果中提取缺失的break
     };
   }
 
@@ -282,7 +295,7 @@ export class SemanticAnalysisService {
       taintSources: [],
       sanitizationPoints: [],
       dataDependencies: [],
-      vulnerabilityPaths: []
+      vulnerabilityPaths: [],
     };
   }
 

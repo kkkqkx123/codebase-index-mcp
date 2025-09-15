@@ -8,13 +8,13 @@ async function searchSnippets(query, projectId, options = {}) {
   const params = new URLSearchParams({
     query,
     projectId,
-    ...options
+    ...options,
   });
-  
+
   try {
     const response = await fetch(`${BASE_URL}/snippets/search?${params}`);
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -31,7 +31,7 @@ async function getSnippetById(snippetId, projectId) {
   try {
     const response = await fetch(`${BASE_URL}/snippets/${snippetId}?projectId=${projectId}`);
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -49,13 +49,13 @@ async function checkForDuplicates(content, projectId) {
     const response = await fetch(`${BASE_URL}/snippets/check-duplicates`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ content, projectId })
+      body: JSON.stringify({ content, projectId }),
     });
-    
+
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -72,7 +72,7 @@ async function getSnippetProcessingStatus(projectId) {
   try {
     const response = await fetch(`${BASE_URL}/snippets/status/${projectId}`);
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -89,7 +89,7 @@ async function detectCrossReferences(snippetId, projectId) {
   try {
     const response = await fetch(`${BASE_URL}/snippets/${snippetId}/references/${projectId}`);
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -106,7 +106,7 @@ async function analyzeDependencies(snippetId, projectId) {
   try {
     const response = await fetch(`${BASE_URL}/snippets/${snippetId}/dependencies/${projectId}`);
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -123,7 +123,7 @@ async function detectOverlaps(snippetId, projectId) {
   try {
     const response = await fetch(`${BASE_URL}/snippets/${snippetId}/overlaps/${projectId}`);
     const result = await response.json();
-    
+
     if (result.success) {
       return result.data;
     } else {
@@ -141,17 +141,20 @@ async function example() {
     // Search for snippets
     const searchResults = await searchSnippets('example function', 'project_123', { limit: 5 });
     console.log('Search results:', searchResults);
-    
+
     // Get a specific snippet
     if (searchResults.length > 0) {
       const snippet = await getSnippetById(searchResults[0].id, 'project_123');
       console.log('Snippet:', snippet);
     }
-    
+
     // Check for duplicates
-    const duplicateCheck = await checkForDuplicates('function example() { return true; }', 'project_123');
+    const duplicateCheck = await checkForDuplicates(
+      'function example() { return true; }',
+      'project_123'
+    );
     console.log('Duplicate check:', duplicateCheck);
-    
+
     // Get processing status
     const status = await getSnippetProcessingStatus('project_123');
     console.log('Processing status:', status);

@@ -22,7 +22,7 @@ const performanceData = TestDataFactory.createPerformanceTestData();
 console.log('性能测试数据:', {
   small: performanceData.small.length,
   medium: performanceData.medium.length,
-  large: performanceData.large.length
+  large: performanceData.large.length,
 });
 
 // 使用示例4：边界测试数据
@@ -32,17 +32,15 @@ console.log('边界测试用例:', boundaryTests.length);
 // 使用示例5：在测试中实际使用
 export function runRuleTests(ruleType: string, ruleValidator: (code: string) => boolean) {
   const testCases = TestDataFactory.getTestCasesForRule(ruleType);
-  
+
   testCases.validCases.forEach(testCase => {
     const result = ruleValidator(testCase.code);
-    console.assert(result === testCase.expectedValid, 
-      `有效用例失败: ${testCase.name}`);
+    console.assert(result === testCase.expectedValid, `有效用例失败: ${testCase.name}`);
   });
-  
+
   testCases.invalidCases.forEach(testCase => {
     const result = ruleValidator(testCase.code);
-    console.assert(result === testCase.expectedValid, 
-      `无效用例失败: ${testCase.name}`);
+    console.assert(result === testCase.expectedValid, `无效用例失败: ${testCase.name}`);
   });
 }
 

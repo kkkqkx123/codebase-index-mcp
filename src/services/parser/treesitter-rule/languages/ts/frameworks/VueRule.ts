@@ -9,18 +9,28 @@ export class VueRule extends AbstractSnippetRule {
   readonly name = 'VueRule';
   readonly supportedNodeTypes = new Set([
     // Component definitions
-    'export_statement', 'variable_declaration', 'function_declaration',
-    'class_declaration', 'object',
-    
+    'export_statement',
+    'variable_declaration',
+    'function_declaration',
+    'class_declaration',
+    'object',
+
     // Template-related
-    'jsx_element', 'jsx_opening_element', 'jsx_closing_element',
-    'jsx_self_closing_element', 'jsx_text',
-    
+    'jsx_element',
+    'jsx_opening_element',
+    'jsx_closing_element',
+    'jsx_self_closing_element',
+    'jsx_text',
+
     // Script setup
-    'import_statement', 'call_expression', 'assignment_expression',
-    
+    'import_statement',
+    'call_expression',
+    'assignment_expression',
+
     // Vue specific patterns
-    'template_literal', 'property_identifier', 'method_definition'
+    'template_literal',
+    'property_identifier',
+    'method_definition',
   ]);
 
   protected readonly snippetType = 'vue_component' as const;
@@ -29,7 +39,7 @@ export class VueRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check if this is Vue.js-related code
     return this.isVueCode(content);
   }
@@ -62,8 +72,8 @@ export class VueRule extends AbstractSnippetRule {
         complexity: this.calculateVueComplexity(content),
         isStandalone: this.isStandaloneVueComponent(node, content),
         hasSideEffects: this.hasSideEffects(content),
-        vueInfo: vueMetadata
-      }
+        vueInfo: vueMetadata,
+      },
     };
   }
 
@@ -73,14 +83,14 @@ export class VueRule extends AbstractSnippetRule {
       /import\s+.*\bfrom\s+['"]vue['"]/,
       /import\s+.*\bfrom\s+['"]@vue\/[^'"]+['"]/,
       /import\s+.*\bfrom\s+['"]vue-[^'"]+['"]/,
-      
+
       // Vue component patterns
       /export\s+default\s+{/,
       /defineComponent\s*\(/,
       /setup\s*\(\)/,
       /<script/,
       /<template/,
-      
+
       // Vue specific APIs
       /ref\s*\(/,
       /reactive\s*\(/,
@@ -88,90 +98,99 @@ export class VueRule extends AbstractSnippetRule {
       /watch\s*\(/,
       /onMounted\s*\(/,
       /onUnmounted\s*\(/,
-      
+
       // Vue directives in JSX
       /v-[a-zA-Z-]+/,
       /@click/,
       /@input/,
       /@submit/,
-      
+
       // Vue Router
       /useRouter\s*\(/,
       /useRoute\s*\(/,
       /router\.push/,
-      
+
       // Vuex/Pinia
       /useStore\s*\(/,
       /defineStore\s*\(/,
       /createPinia\s*\(/,
-      
+
       // Vue CLI patterns
       /\.vue$/,
       /Vue\.createApp/,
       /createSSRApp/,
-      /createApp/
+      /createApp/,
     ];
 
     return vuePatterns.some(pattern => pattern.test(content));
   }
 
-  private extractVueMetadata(
-    node: Parser.SyntaxNode,
-    content: string,
-    sourceCode: string
-  ) {
+  private extractVueMetadata(node: Parser.SyntaxNode, content: string, sourceCode: string) {
     return {
       componentType: this.determineComponentType(content),
       setupFunction: this.extractSetupFunctionInfo(content),
       template: this.extractTemplateInfo(content),
       stateManagement: this.extractStateManagementInfo(content),
       composition: this.extractCompositionInfo(content),
-      routing: this.extractRoutingInfo(content)
+      routing: this.extractRoutingInfo(content),
     };
   }
 
-  private determineComponentType(content: string): 'options_api' | 'composition_api' | 'vue2' | 'vue3' {
+  private determineComponentType(
+    content: string
+  ): 'options_api' | 'composition_api' | 'vue2' | 'vue3' {
     if (content.includes('setup()') || content.includes('setup ()')) {
       return content.includes('ref(') || content.includes('reactive(') ? 'vue3' : 'vue2';
     }
-    
-    if (content.includes('<script setup>') || content.includes('setup>') || content.includes('defineComponent')) {
+
+    if (
+      content.includes('<script setup>') ||
+      content.includes('setup>') ||
+      content.includes('defineComponent')
+    ) {
       return 'composition_api';
     }
-    
-    if (content.includes('data()') || content.includes('methods:') || content.includes('computed:')) {
+
+    if (
+      content.includes('data()') ||
+      content.includes('methods:') ||
+      content.includes('computed:')
+    ) {
       return 'options_api';
     }
-    
+
     // Default to composition API for modern Vue
     return 'composition_api';
   }
 
   private extractSetupFunctionInfo(content: string) {
-    const usesSetup = content.includes('setup(') || content.includes('setup>') || content.includes('defineComponent');
-    
+    const usesSetup =
+      content.includes('setup(') ||
+      content.includes('setup>') ||
+      content.includes('defineComponent');
+
     const reactiveDeclarations = this.extractPatternMatches(content, [
       /ref\s*\(\s*([^)]+)\)/g,
-      /reactive\s*\(\s*([^)]+)\)/g
+      /reactive\s*\(\s*([^)]+)\)/g,
     ]);
 
     const computedProperties = this.extractPatternMatches(content, [
       /computed\s*\(\s*\(\)\s*=>\s*{([^}]+)}\s*\)/g,
-      /computed\s*\(\s*{([^}]+)}\s*\)/g
+      /computed\s*\(\s*{([^}]+)}\s*\)/g,
     ]);
 
     const lifecycleHooks = {
       created: (content.match(/onCreated\s*\(/g) || []).length,
       mounted: (content.match(/onMounted\s*\(/g) || []).length,
       updated: (content.match(/onUpdated\s*\(/g) || []).length,
-      unmounted: (content.match(/onUnmounted\s*\(/g) || []).length
+      unmounted: (content.match(/onUnmounted\s*\(/g) || []).length,
     };
 
     return {
       usesSetup,
       reactiveDeclarations,
       computedProperties,
-      lifecycleHooks
+      lifecycleHooks,
     };
   }
 
@@ -179,12 +198,12 @@ export class VueRule extends AbstractSnippetRule {
     const directives = this.extractPatternMatches(content, [
       /v-([a-zA-Z-]+)/g,
       /:([a-zA-Z-]+)=/g,
-      /@([a-zA-Z-]+)=/g
+      /@([a-zA-Z-]+)=/g,
     ]);
 
     const componentUsage = this.extractPatternMatches(content, [
       /<([A-Z][a-zA-Z0-9]*)/g,
-      /<([a-z][a-zA-Z0-9]*-[a-zA-Z0-9]*)/g
+      /<([a-z][a-zA-Z0-9]*-[a-zA-Z0-9]*)/g,
     ]);
 
     const eventHandling = /@click|@input|@submit|@change/.test(content);
@@ -196,24 +215,24 @@ export class VueRule extends AbstractSnippetRule {
       componentUsage,
       eventHandling,
       conditionalRendering,
-      listRendering
+      listRendering,
     };
   }
 
   private extractStateManagementInfo(content: string) {
     const dataProperties = this.extractPatternMatches(content, [
       /data\s*\(\)\s*{\s*return\s*{([^}]+)}/g,
-      /const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*ref\s*\(/g
+      /const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*ref\s*\(/g,
     ]);
 
     const methods = this.extractPatternMatches(content, [
       /methods:\s*{([^}]+)}/g,
-      /const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\([^)]*\)\s*=>/g
+      /const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\([^)]*\)\s*=>/g,
     ]);
 
     const watchers = this.extractPatternMatches(content, [
       /watch\s*\(\s*([^,]+),\s*\([^)]*\)\s*=>/g,
-      /watch:\s*{([^}]+)}/g
+      /watch:\s*{([^}]+)}/g,
     ]);
 
     const usesVuex = /useStore|store\./.test(content);
@@ -224,23 +243,19 @@ export class VueRule extends AbstractSnippetRule {
       methods,
       watchers,
       usesVuex,
-      usesPinia
+      usesPinia,
     };
   }
 
   private extractCompositionInfo(content: string) {
     const refs = this.extractPatternMatches(content, [
       /ref\s*\(\s*([^)]+)\)/g,
-      /shallowRef\s*\(\s*([^)]+)\)/g
+      /shallowRef\s*\(\s*([^)]+)\)/g,
     ]);
 
-    const reactives = this.extractPatternMatches(content, [
-      /reactive\s*\(\s*([^)]+)\)/g
-    ]);
+    const reactives = this.extractPatternMatches(content, [/reactive\s*\(\s*([^)]+)\)/g]);
 
-    const composables = this.extractPatternMatches(content, [
-      /use[A-Z][a-zA-Z0-9]*/g
-    ]);
+    const composables = this.extractPatternMatches(content, [/use[A-Z][a-zA-Z0-9]*/g]);
 
     const injectProvide = /inject\s*\(|provide\s*\(/.test(content);
 
@@ -248,33 +263,33 @@ export class VueRule extends AbstractSnippetRule {
       refs,
       reactives,
       composables,
-      injectProvide
+      injectProvide,
     };
   }
 
   private extractRoutingInfo(content: string) {
     const usesVueRouter = /useRouter|useRoute|router\./.test(content);
-    
+
     const routeParams = this.extractPatternMatches(content, [
       /route\.params\.([a-zA-Z_][a-zA-Z0-9_]*)/g,
-      /\$route\.params\.([a-zA-Z_][a-zA-Z0-9_]*)/g
+      /\$route\.params\.([a-zA-Z_][a-zA-Z0-9_]*)/g,
     ]);
 
     const navigationMethods = this.extractPatternMatches(content, [
       /router\.([a-zA-Z]+)/g,
-      /\$router\.([a-zA-Z]+)/g
+      /\$router\.([a-zA-Z]+)/g,
     ]);
 
     return {
       usesVueRouter,
       routeParams,
-      navigationMethods
+      navigationMethods,
     };
   }
 
   private extractPatternMatches(content: string, patterns: RegExp[]): string[] {
     const matches: string[] = [];
-    
+
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(content)) !== null) {
@@ -293,11 +308,13 @@ export class VueRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_statement') {
         const importText = this.getNodeText(n, sourceCode);
-        if (importText.includes('vue') || 
-            importText.includes('@vue') ||
-            importText.includes('vue-router') ||
-            importText.includes('vuex') ||
-            importText.includes('pinia')) {
+        if (
+          importText.includes('vue') ||
+          importText.includes('@vue') ||
+          importText.includes('vue-router') ||
+          importText.includes('vuex') ||
+          importText.includes('pinia')
+        ) {
           imports.push(importText);
         }
       }
@@ -325,9 +342,11 @@ export class VueRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'export_statement') {
         const exportText = this.getNodeText(n, sourceCode);
-        if (exportText.includes('default') || 
-            exportText.includes('defineComponent') ||
-            exportText.includes('export {')) {
+        if (
+          exportText.includes('default') ||
+          exportText.includes('defineComponent') ||
+          exportText.includes('export {')
+        ) {
           exports.push(exportText);
         }
       }
@@ -349,11 +368,15 @@ export class VueRule extends AbstractSnippetRule {
     const componentPatterns = [
       /export\s+default\s+{/,
       /defineComponent\s*\(/,
-      /<script\s+(setup|lang)/
+      /<script\s+(setup|lang)/,
     ];
 
-    return (node.type === 'export_statement' || node.type === 'variable_declaration' || node.type === 'object') &&
-           componentPatterns.some(pattern => pattern.test(content));
+    return (
+      (node.type === 'export_statement' ||
+        node.type === 'variable_declaration' ||
+        node.type === 'object') &&
+      componentPatterns.some(pattern => pattern.test(content))
+    );
   }
 
   private calculateVueComplexity(content: string): number {

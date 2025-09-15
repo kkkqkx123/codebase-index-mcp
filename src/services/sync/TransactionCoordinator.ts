@@ -76,10 +76,10 @@ export class TransactionCoordinator {
         operation: op.operation,
         compensatingOperation: op.compensatingOperation,
         executed: false,
-        compensated: false
+        compensated: false,
       })),
       status: 'pending',
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     this.activeTransactions.set(transactionId, transaction);
@@ -87,7 +87,7 @@ export class TransactionCoordinator {
 
     try {
       transaction.status = 'executing';
-      
+
       for (const step of transaction.steps) {
         try {
           await this.executeStep(transaction, step);
@@ -105,22 +105,22 @@ export class TransactionCoordinator {
         transactionId,
         success: true,
         executedSteps: transaction.steps.filter(s => s.executed).length,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       this.transactionHistory.push(transaction);
       this.activeTransactions.delete(transactionId);
 
-      this.logger.info('Transaction completed successfully', { 
-        transactionId, 
-        duration: result.duration 
+      this.logger.info('Transaction completed successfully', {
+        transactionId,
+        duration: result.duration,
       });
 
       return result;
     } catch (error) {
-      this.logger.error('Transaction failed, starting compensation', { 
-        transactionId, 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.error('Transaction failed, starting compensation', {
+        transactionId,
+        error: error instanceof Error ? error.message : String(error),
       });
 
       await this.compensateTransaction(transaction);
@@ -134,7 +134,7 @@ export class TransactionCoordinator {
         success: false,
         executedSteps: transaction.steps.filter(s => s.executed).length,
         error: error instanceof Error ? error.message : String(error),
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       this.transactionHistory.push(transaction);
@@ -145,10 +145,10 @@ export class TransactionCoordinator {
   }
 
   private async executeStep(transaction: Transaction, step: TransactionStep): Promise<void> {
-    this.logger.debug('Executing transaction step', { 
-      transactionId: transaction.id, 
+    this.logger.debug('Executing transaction step', {
+      transactionId: transaction.id,
       stepId: step.id,
-      type: step.type 
+      type: step.type,
     });
 
     try {
@@ -163,16 +163,16 @@ export class TransactionCoordinator {
           await this.executeMappingOperation(step.operation);
           break;
         default:
-          throw new CodebaseIndexError(`Unknown step type: ${step.type}`, { 
-            component: 'TransactionCoordinator', 
-            operation: 'executeStep' 
+          throw new CodebaseIndexError(`Unknown step type: ${step.type}`, {
+            component: 'TransactionCoordinator',
+            operation: 'executeStep',
           });
       }
     } catch (error) {
-      this.logger.error('Step execution failed', { 
-        transactionId: transaction.id, 
+      this.logger.error('Step execution failed', {
+        transactionId: transaction.id,
         stepId: step.id,
-        error: error instanceof Error ? error.message : String(error) 
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -180,27 +180,27 @@ export class TransactionCoordinator {
 
   private async compensateTransaction(transaction: Transaction): Promise<void> {
     transaction.status = 'compensating';
-    
+
     this.logger.info('Starting transaction compensation', { transactionId: transaction.id });
 
     // Execute compensating operations in reverse order
     for (let i = transaction.steps.length - 1; i >= 0; i--) {
       const step = transaction.steps[i];
-      
+
       if (step.executed && step.compensatingOperation) {
         try {
-          this.logger.debug('Executing compensating operation', { 
-            transactionId: transaction.id, 
-            stepId: step.id 
+          this.logger.debug('Executing compensating operation', {
+            transactionId: transaction.id,
+            stepId: step.id,
           });
 
           await this.executeCompensatingOperation(step.compensatingOperation);
           step.compensated = true;
         } catch (error) {
-          this.logger.error('Compensating operation failed', { 
-            transactionId: transaction.id, 
+          this.logger.error('Compensating operation failed', {
+            transactionId: transaction.id,
             stepId: step.id,
-            error: error instanceof Error ? error.message : String(error) 
+            error: error instanceof Error ? error.message : String(error),
           });
           // Continue with other compensating operations even if one fails
         }
@@ -212,7 +212,7 @@ export class TransactionCoordinator {
 
   private async executeVectorOperation(operation: any): Promise<void> {
     this.logger.debug('Executing vector operation', operation);
-    
+
     try {
       switch (operation.type) {
         case 'storeChunks':
@@ -222,27 +222,29 @@ export class TransactionCoordinator {
               operation.chunks.filter((chunk: any) => chunk !== undefined),
               operation.options
             );
-            
+
             if (!result.success) {
-              throw new Error(`Failed to store chunks in vector database: ${result.errors.join(', ')}`);
+              throw new Error(
+                `Failed to store chunks in vector database: ${result.errors.join(', ')}`
+              );
             }
-            
+
             this.logger.debug('Successfully stored chunks in vector database', {
               chunkCount: result.totalChunks,
               uniqueChunks: result.uniqueChunks,
-              processingTime: result.processingTime
+              processingTime: result.processingTime,
             });
           }
           break;
-          
+
         case 'deleteChunks':
           // In a real implementation, we would delete chunks from vector database
           this.logger.debug('Deleting chunks from vector database', {
-            chunkCount: operation.chunkIds?.length || 0
+            chunkCount: operation.chunkIds?.length || 0,
           });
           // For now, we'll just log the operation
           break;
-          
+
         default:
           this.logger.warn('Unknown vector operation type', { type: operation.type });
           throw new Error(`Unknown vector operation type: ${operation.type}`);
@@ -250,7 +252,7 @@ export class TransactionCoordinator {
     } catch (error) {
       this.logger.error('Failed to execute vector operation', {
         operation,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -258,7 +260,7 @@ export class TransactionCoordinator {
 
   private async executeGraphOperation(operation: any): Promise<void> {
     this.logger.debug('Executing graph operation', operation);
-    
+
     try {
       switch (operation.type) {
         case 'storeChunks':
@@ -268,27 +270,29 @@ export class TransactionCoordinator {
               operation.chunks.filter((chunk: any) => chunk !== undefined),
               operation.options
             );
-            
+
             if (!result.success) {
-              throw new Error(`Failed to store chunks in graph database: ${result.errors.join(', ')}`);
+              throw new Error(
+                `Failed to store chunks in graph database: ${result.errors.join(', ')}`
+              );
             }
-            
+
             this.logger.debug('Successfully stored chunks in graph database', {
               chunkCount: result.nodesCreated,
               relationshipsCreated: result.relationshipsCreated,
-              processingTime: result.processingTime
+              processingTime: result.processingTime,
             });
           }
           break;
-          
+
         case 'deleteNodes':
           // In a real implementation, we would delete nodes from graph database
           this.logger.debug('Deleting nodes from graph database', {
-            nodeCount: operation.nodeIds?.length || 0
+            nodeCount: operation.nodeIds?.length || 0,
           });
           // For now, we'll just log the operation
           break;
-          
+
         default:
           this.logger.warn('Unknown graph operation type', { type: operation.type });
           throw new Error(`Unknown graph operation type: ${operation.type}`);
@@ -296,7 +300,7 @@ export class TransactionCoordinator {
     } catch (error) {
       this.logger.error('Failed to execute graph operation', {
         operation,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -306,7 +310,7 @@ export class TransactionCoordinator {
     // This would interact with the entity mapping service
     // For now, we'll simulate the operation
     this.logger.debug('Executing mapping operation', operation);
-    
+
     // Simulate some processing time
     await new Promise(resolve => setTimeout(resolve, 5));
   }
@@ -314,50 +318,50 @@ export class TransactionCoordinator {
   private async executeCompensatingOperation(operation: any): Promise<void> {
     // This would execute the compensating operation
     this.logger.debug('Executing compensating operation', operation);
-    
+
     try {
       // In a real implementation, we would interact with the appropriate service here
       // For now, we'll simulate the operation based on the operation type
-      
+
       switch (operation.type) {
         case 'deleteChunks':
           // Compensating operation for storeChunks - delete the stored chunks
           this.logger.debug('Compensating: Deleting chunks from vector database', {
-            chunkCount: operation.chunkIds?.length || 0
+            chunkCount: operation.chunkIds?.length || 0,
           });
           break;
-          
+
         case 'restoreChunks':
           // Compensating operation for deleteChunks - restore the deleted chunks
           this.logger.debug('Compensating: Restoring chunks to vector database', {
-            chunkCount: operation.chunkIds?.length || 0
+            chunkCount: operation.chunkIds?.length || 0,
           });
           break;
-          
+
         case 'deleteNodes':
           // Compensating operation for storeChunks - delete the created nodes
           this.logger.debug('Compensating: Deleting nodes from graph database', {
-            nodeCount: operation.nodeIds?.length || 0
+            nodeCount: operation.nodeIds?.length || 0,
           });
           break;
-          
+
         case 'restoreNodes':
           // Compensating operation for deleteNodes - restore the deleted nodes
           this.logger.debug('Compensating: Restoring nodes to graph database', {
-            nodeCount: operation.nodeIds?.length || 0
+            nodeCount: operation.nodeIds?.length || 0,
           });
           break;
-          
+
         default:
           this.logger.warn('Unknown compensating operation type', { type: operation.type });
       }
-      
+
       // Simulate some processing time
       await new Promise(resolve => setTimeout(resolve, 10));
     } catch (error) {
       this.logger.error('Failed to execute compensating operation', {
         operation,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -406,13 +410,13 @@ export class TransactionCoordinator {
     }
 
     const transactionId = this.generateTransactionId();
-    
+
     this.currentTransaction = {
       id: transactionId,
       projectId: 'incremental_indexing',
       steps: [],
       status: 'pending',
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     this.logger.debug('Transaction began', { transactionId });
@@ -425,12 +429,12 @@ export class TransactionCoordinator {
     }
 
     const transactionId = this.currentTransaction.id;
-    
+
     try {
       // Execute all queued operations
       if (this.currentTransaction.steps.length > 0) {
         const result = await this.executeTransactionSteps(this.currentTransaction);
-        
+
         if (!result.success) {
           throw new Error(`Transaction execution failed: ${result.error}`);
         }
@@ -438,18 +442,18 @@ export class TransactionCoordinator {
 
       this.currentTransaction.status = 'completed';
       this.currentTransaction.completedAt = new Date();
-      
+
       this.transactionHistory.push(this.currentTransaction);
       this.logger.debug('Transaction committed', { transactionId });
-      
+
       this.currentTransaction = null;
       return true;
     } catch (error) {
       this.logger.error('Failed to commit transaction', {
         transactionId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Attempt to rollback on commit failure
       await this.rollbackTransaction();
       return false;
@@ -463,26 +467,26 @@ export class TransactionCoordinator {
     }
 
     const transactionId = this.currentTransaction.id;
-    
+
     try {
       // Compensate for executed steps
       await this.compensateTransaction(this.currentTransaction);
-      
+
       this.currentTransaction.status = 'failed';
       this.currentTransaction.error = 'Rolled back';
       this.currentTransaction.completedAt = new Date();
-      
+
       this.transactionHistory.push(this.currentTransaction);
       this.logger.debug('Transaction rolled back', { transactionId });
-      
+
       this.currentTransaction = null;
       return true;
     } catch (error) {
       this.logger.error('Failed to rollback transaction', {
         transactionId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Still clear the current transaction even if rollback fails
       this.currentTransaction = null;
       return false;
@@ -500,7 +504,7 @@ export class TransactionCoordinator {
       operation,
       compensatingOperation,
       executed: false,
-      compensated: false
+      compensated: false,
     });
   }
 
@@ -515,16 +519,16 @@ export class TransactionCoordinator {
       operation,
       compensatingOperation,
       executed: false,
-      compensated: false
+      compensated: false,
     });
   }
 
   private async executeTransactionSteps(transaction: Transaction): Promise<TransactionResult> {
     const startTime = Date.now();
-    
+
     try {
       transaction.status = 'executing';
-      
+
       for (const step of transaction.steps) {
         try {
           await this.executeStep(transaction, step);
@@ -542,7 +546,7 @@ export class TransactionCoordinator {
         transactionId: transaction.id,
         success: true,
         executedSteps: transaction.steps.filter(s => s.executed).length,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       return result;
@@ -556,7 +560,7 @@ export class TransactionCoordinator {
         success: false,
         executedSteps: transaction.steps.filter(s => s.executed).length,
         error: error instanceof Error ? error.message : String(error),
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
 
       return result;
@@ -571,9 +575,13 @@ export class TransactionCoordinator {
     return {
       activeTransactions: active,
       recentSuccessRate: recent.length > 0 ? (success / recent.length) * 100 : 0,
-      averageTransactionTime: recent.length > 0
-        ? recent.reduce((sum, t) => sum + (t.completedAt?.getTime() || 0) - t.createdAt.getTime(), 0) / recent.length
-        : 0
+      averageTransactionTime:
+        recent.length > 0
+          ? recent.reduce(
+              (sum, t) => sum + (t.completedAt?.getTime() || 0) - t.createdAt.getTime(),
+              0
+            ) / recent.length
+          : 0,
     };
   }
 }

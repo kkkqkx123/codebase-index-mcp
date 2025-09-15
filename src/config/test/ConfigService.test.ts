@@ -1,23 +1,25 @@
 // Clear environment variables before importing ConfigService
 const originalEnv = { ...process.env };
 Object.keys(process.env).forEach(key => {
-  if (key.startsWith('QDRANT_') || 
-      key.startsWith('NEBULA_') || 
-      key.startsWith('EMBEDDING_') ||
-      key.startsWith('ENABLE_METRICS') ||
-      key.startsWith('OPENAI_') ||
-      key.startsWith('OLLAMA_') ||
-      key.startsWith('GEMINI_') ||
-      key.startsWith('MISTRAL_') ||
-      key.startsWith('SILICONFLOW_') ||
-      key.startsWith('CUSTOM_') ||
-      key.startsWith('LOG_') ||
-      key.startsWith('METRICS_') ||
-      key.startsWith('MAX_') ||
-      key.startsWith('SUPPORTED_') ||
-      key.startsWith('INDEX_') ||
-      key.startsWith('CHUNK_') ||
-      key.startsWith('OVERLAP_')) {
+  if (
+    key.startsWith('QDRANT_') ||
+    key.startsWith('NEBULA_') ||
+    key.startsWith('EMBEDDING_') ||
+    key.startsWith('ENABLE_METRICS') ||
+    key.startsWith('OPENAI_') ||
+    key.startsWith('OLLAMA_') ||
+    key.startsWith('GEMINI_') ||
+    key.startsWith('MISTRAL_') ||
+    key.startsWith('SILICONFLOW_') ||
+    key.startsWith('CUSTOM_') ||
+    key.startsWith('LOG_') ||
+    key.startsWith('METRICS_') ||
+    key.startsWith('MAX_') ||
+    key.startsWith('SUPPORTED_') ||
+    key.startsWith('INDEX_') ||
+    key.startsWith('CHUNK_') ||
+    key.startsWith('OVERLAP_')
+  ) {
     delete process.env[key];
   }
 });
@@ -26,7 +28,7 @@ import { ConfigService, Config } from '../ConfigService';
 
 // Mock dotenv
 jest.mock('dotenv', () => ({
-  config: jest.fn()
+  config: jest.fn(),
 }));
 
 describe('ConfigService', () => {
@@ -167,7 +169,9 @@ describe('ConfigService', () => {
 
       const configService = ConfigService.getInstance();
 
-      expect(configService.get('batchProcessing').monitoring.alertThresholds.highErrorRate).toBe(0.15);
+      expect(configService.get('batchProcessing').monitoring.alertThresholds.highErrorRate).toBe(
+        0.15
+      );
       expect(configService.get('batchProcessing').adaptiveBatching.adjustmentFactor).toBe(1.5);
     });
   });

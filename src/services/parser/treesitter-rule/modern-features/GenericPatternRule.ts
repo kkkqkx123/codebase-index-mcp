@@ -10,17 +10,28 @@ export class GenericPatternRule extends AbstractSnippetRule {
   readonly name = 'GenericPatternRule';
   readonly supportedNodeTypes = new Set([
     // TypeScript/JavaScript
-    'type_parameters', 'generic_type', 'type_argument',
+    'type_parameters',
+    'generic_type',
+    'type_argument',
     // Java
-    'type_parameters', 'type_argument', 'wildcard',
+    'type_parameters',
+    'type_argument',
+    'wildcard',
     // C#
-    'type_parameter_list', 'type_argument_list',
+    'type_parameter_list',
+    'type_argument_list',
     // C++
-    'template_parameter_list', 'template_argument_list',
+    'template_parameter_list',
+    'template_argument_list',
     // Generic nodes that might contain generics
-    'class_definition', 'class_declaration', 'interface_declaration',
-    'function_definition', 'method_definition', 'type_alias_declaration',
-    'variable_declaration', 'parameter_declaration'
+    'class_definition',
+    'class_declaration',
+    'interface_declaration',
+    'function_definition',
+    'method_definition',
+    'type_alias_declaration',
+    'variable_declaration',
+    'parameter_declaration',
   ]);
   protected readonly snippetType = 'generic_pattern' as const;
 
@@ -28,7 +39,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for generic patterns in the content
     return this.containsGenericPattern(content) && this.hasMeaningfulGenericUsage(content);
   }
@@ -59,13 +70,13 @@ export class GenericPatternRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...genericFeatures
+          ...genericFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        genericInfo: this.extractGenericInfo(content)
-      }
+        genericInfo: this.extractGenericInfo(content),
+      },
     };
   }
 
@@ -86,7 +97,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
       // Generic method signatures
       /\bpublic\s+<T>\s+\w+/,
       /\bprivate\s+<T>\s+\w+/,
-      /\bstatic\s+<T>\s+\w+/
+      /\bstatic\s+<T>\s+\w+/,
     ];
 
     return genericPatterns.some(pattern => pattern.test(content));
@@ -96,7 +107,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
     // Should have actual generic type parameters and usage
     const typeParams = (content.match(/<[A-Z]\w*(?:\s*,\s*[A-Z]\w*)*>/g) || []).length;
     const typeUsage = (content.match(/\bT\b|[A-Z]\w*<\w+>/g) || []).length;
-    
+
     return typeParams > 0 && typeUsage > 0;
   }
 
@@ -130,7 +141,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
       usesTypeConstraints: /extends\s+\w+|super\s+\w+|where\s+T\s*:\s*\w+/.test(content),
       usesWildcards: /\?\s+(?:extends|super)\s+\w+/.test(content),
       genericLanguage,
-      genericComplexity
+      genericComplexity,
     };
   }
 
@@ -152,7 +163,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
     while ((match = typeParamRegex.exec(content)) !== null) {
       const params = match[1].split(',').map(p => p.trim());
       typeParameters.push(...params);
-      
+
       // Calculate nesting level
       const nestedParams = match[1].match(/<[^>]*>/g) || [];
       nestingLevel = Math.max(nestingLevel, nestedParams.length);
@@ -162,7 +173,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
     const constraintPatterns = [
       /extends\s+(\w+(?:\s*,\s*\w+)*)/g,
       /super\s+(\w+)/g,
-      /where\s+T\s*:\s*(\w+(?:\s*,\s*\w+)*)/g
+      /where\s+T\s*:\s*(\w+(?:\s*,\s*\w+)*)/g,
     ];
 
     for (const pattern of constraintPatterns) {
@@ -182,11 +193,15 @@ export class GenericPatternRule extends AbstractSnippetRule {
       constraints: [...new Set(constraints)],
       usesWildcards,
       genericPurpose: purpose,
-      nestingLevel
+      nestingLevel,
     };
   }
 
-  private inferGenericPurpose(content: string, typeParameters: string[], constraints: string[]): string {
+  private inferGenericPurpose(
+    content: string,
+    typeParameters: string[],
+    constraints: string[]
+  ): string {
     if (content.includes('interface') || content.includes('abstract')) {
       return 'generic_interface';
     }
@@ -210,32 +225,32 @@ export class GenericPatternRule extends AbstractSnippetRule {
 
   private calculateGenericComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for type parameters
     complexity += (content.match(/<[A-Z]\w*(?:\s*,\s*[A-Z]\w*)*>/g) || []).length;
-    
+
     // Add complexity for constraints
     complexity += (content.match(/extends\s+\w+/g) || []).length * 2;
     complexity += (content.match(/super\s+\w+/g) || []).length * 2;
     complexity += (content.match(/where\s+T\s*:\s*\w+/g) || []).length * 2;
-    
+
     // Add complexity for wildcards
     complexity += (content.match(/\?\s+(?:extends|super)\s+\w+/g) || []).length * 2;
-    
+
     // Add complexity for nested generics
     const nestedGenerics = content.match(/<[^<>]*<[^<>]*>[^<>]*>/g) || [];
     complexity += nestedGenerics.length * 3;
-    
+
     // Add complexity for complex generic types
     const complexTypes = [
       (content.match(/Map<\w+,\s*\w+>/g) || []).length * 2,
       (content.match(/Function<\w+,\s*\w+>/g) || []).length * 2,
       (content.match(/Promise<\w+>/g) || []).length * 2,
-      (content.match(/Optional<\w+>/g) || []).length * 2
+      (content.match(/Optional<\w+>/g) || []).length * 2,
     ].reduce((sum, val) => sum + val, 0);
-    
+
     complexity += complexTypes;
-    
+
     return complexity;
   }
 
@@ -243,7 +258,7 @@ export class GenericPatternRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const genericComplexity = this.calculateGenericComplexity(content);
-    
+
     return baseComplexity + genericComplexity;
   }
 }

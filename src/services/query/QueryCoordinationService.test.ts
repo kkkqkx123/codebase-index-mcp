@@ -344,7 +344,7 @@ describe('QueryCoordinationService', () => {
       // Mock the executeQuery method to return the mock results
       const executeQuerySpy = jest
         .spyOn(queryCoordinationService, 'executeQuery')
-        .mockImplementation(async (request) => {
+        .mockImplementation(async request => {
           const index = queryRequests.indexOf(request);
           return mockResults[index];
         });
@@ -359,7 +359,7 @@ describe('QueryCoordinationService', () => {
       expect(result.results[1].results).toEqual(mockResults[1].results);
       expect(result.totalMetrics.totalQueries).toBe(2);
       expect(executeQuerySpy).toHaveBeenCalledTimes(2);
-      
+
       // Restore the original implementation
       executeQuerySpy.mockRestore();
     });

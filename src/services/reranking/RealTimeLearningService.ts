@@ -34,12 +34,12 @@ export class RealTimeLearningService {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
-  
+
   private feedbackBuffer: UserFeedback[] = [];
   private adaptiveWeights: Record<string, AdaptiveWeight> = {};
   private learningModel: LearningModel;
   private modelHistory: LearningModel[] = [];
-  
+
   // Performance monitoring
   private performanceMetrics: {
     totalFeedback: number;
@@ -50,7 +50,7 @@ export class RealTimeLearningService {
     totalFeedback: 0,
     positiveFeedback: 0,
     negativeFeedback: 0,
-    modelAccuracy: 0.85
+    modelAccuracy: 0.85,
   };
 
   constructor(
@@ -61,17 +61,17 @@ export class RealTimeLearningService {
     this.configService = configService;
     this.logger = logger;
     this.errorHandler = errorHandler;
-    
+
     // Initialize learning model
     this.learningModel = {
       weights: {},
       performanceHistory: [],
-      version: '1.0.0'
+      version: '1.0.0',
     };
-    
+
     // Initialize default adaptive weights
     this.initializeAdaptiveWeights();
-    
+
     this.logger.info('Real-time Learning Service initialized');
   }
 
@@ -85,19 +85,19 @@ export class RealTimeLearningService {
       { name: 'contextual', value: 0.15, confidence: 0.6 },
       { name: 'recency', value: 0.1, confidence: 0.5 },
       { name: 'popularity', value: 0.1, confidence: 0.5 },
-      { name: 'original', value: 0.15, confidence: 0.9 }
+      { name: 'original', value: 0.15, confidence: 0.9 },
     ];
-    
+
     const now = new Date();
     for (const weight of defaultWeights) {
       this.adaptiveWeights[weight.name] = {
         name: weight.name,
         value: weight.value,
         lastUpdated: now,
-        confidence: weight.confidence
+        confidence: weight.confidence,
       };
     }
-    
+
     this.logger.info('Adaptive weights initialized', { weightCount: defaultWeights.length });
   }
 
@@ -108,19 +108,19 @@ export class RealTimeLearningService {
   collectFeedback(feedback: UserFeedback): void {
     this.feedbackBuffer.push(feedback);
     this.performanceMetrics.totalFeedback++;
-    
+
     if (feedback.relevanceScore >= 0.5) {
       this.performanceMetrics.positiveFeedback++;
     } else {
       this.performanceMetrics.negativeFeedback++;
     }
-    
-    this.logger.debug('Feedback collected', { 
-      query: feedback.query, 
+
+    this.logger.debug('Feedback collected', {
+      query: feedback.query,
       resultId: feedback.resultId,
-      relevanceScore: feedback.relevanceScore
+      relevanceScore: feedback.relevanceScore,
     });
-    
+
     // Process feedback in batches
     if (this.feedbackBuffer.length >= 10) {
       this.processFeedbackBatch();
@@ -134,10 +134,10 @@ export class RealTimeLearningService {
     if (this.feedbackBuffer.length === 0) {
       return;
     }
-    
+
     try {
       this.logger.info('Processing feedback batch', { batchCount: this.feedbackBuffer.length });
-      
+
       // Group feedback by query
       const feedbackByQuery: Record<string, UserFeedback[]> = {};
       for (const feedback of this.feedbackBuffer) {
@@ -146,25 +146,27 @@ export class RealTimeLearningService {
         }
         feedbackByQuery[feedback.query].push(feedback);
       }
-      
+
       // Update weights based on feedback patterns
       for (const [query, feedbacks] of Object.entries(feedbackByQuery)) {
         this.updateWeightsBasedOnFeedback(query, feedbacks);
       }
-      
+
       // Clear processed feedback
       this.feedbackBuffer = [];
-      
+
       // Update model accuracy
       this.updateModelAccuracy();
-      
+
       // Record performance history
       this.recordPerformanceHistory();
-      
+
       this.logger.info('Feedback batch processed successfully');
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to process feedback batch: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to process feedback batch: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'RealTimeLearningService', operation: 'processFeedbackBatch' }
       );
     }
@@ -177,12 +179,13 @@ export class RealTimeLearningService {
    */
   private updateWeightsBasedOnFeedback(query: string, feedbacks: UserFeedback[]): void {
     // Calculate average relevance score for this query
-    const avgRelevance = feedbacks.reduce((sum, fb) => sum + fb.relevanceScore, 0) / feedbacks.length;
-    
+    const avgRelevance =
+      feedbacks.reduce((sum, fb) => sum + fb.relevanceScore, 0) / feedbacks.length;
+
     // Determine which weights to adjust based on feedback
     // This is a simplified approach - in a real implementation, this would be more sophisticated
     const weightAdjustments: Record<string, number> = {};
-    
+
     // If relevance is high, reinforce current weights
     // If relevance is low, adjust weights to improve
     if (avgRelevance >= 0.7) {
@@ -196,30 +199,33 @@ export class RealTimeLearningService {
         weightAdjustments[name] = -weight.value * 0.1; // Small negative adjustment
       }
     }
-    
+
     // Apply weight adjustments
     for (const [name, adjustment] of Object.entries(weightAdjustments)) {
       if (this.adaptiveWeights[name]) {
         const currentValue = this.adaptiveWeights[name].value;
         const newValue = Math.max(0, Math.min(1, currentValue + adjustment));
-        
+
         // Update weight with confidence adjustment
         const confidenceAdjustment = Math.abs(adjustment) * 0.1;
-        const newConfidence = Math.min(1, this.adaptiveWeights[name].confidence + confidenceAdjustment);
-        
+        const newConfidence = Math.min(
+          1,
+          this.adaptiveWeights[name].confidence + confidenceAdjustment
+        );
+
         this.adaptiveWeights[name] = {
           name,
           value: newValue,
           lastUpdated: new Date(),
-          confidence: newConfidence
+          confidence: newConfidence,
         };
       }
     }
-    
-    this.logger.debug('Weights updated based on feedback', { 
-      query, 
-      avgRelevance, 
-      adjustments: Object.keys(weightAdjustments).length 
+
+    this.logger.debug('Weights updated based on feedback', {
+      query,
+      avgRelevance,
+      adjustments: Object.keys(weightAdjustments).length,
     });
   }
 
@@ -228,9 +234,11 @@ export class RealTimeLearningService {
    */
   private updateModelAccuracy(): void {
     if (this.performanceMetrics.totalFeedback > 0) {
-      const positiveRate = this.performanceMetrics.positiveFeedback / this.performanceMetrics.totalFeedback;
+      const positiveRate =
+        this.performanceMetrics.positiveFeedback / this.performanceMetrics.totalFeedback;
       // Adjust model accuracy based on positive feedback rate
-      this.performanceMetrics.modelAccuracy = 0.7 * this.performanceMetrics.modelAccuracy + 0.3 * positiveRate;
+      this.performanceMetrics.modelAccuracy =
+        0.7 * this.performanceMetrics.modelAccuracy + 0.3 * positiveRate;
     }
   }
 
@@ -242,9 +250,9 @@ export class RealTimeLearningService {
     this.learningModel.performanceHistory.push({
       timestamp: now,
       accuracy: this.performanceMetrics.modelAccuracy,
-      feedbackCount: this.performanceMetrics.totalFeedback
+      feedbackCount: this.performanceMetrics.totalFeedback,
     });
-    
+
     // Keep only recent history (last 100 entries)
     if (this.learningModel.performanceHistory.length > 100) {
       this.learningModel.performanceHistory = this.learningModel.performanceHistory.slice(-100);
@@ -265,33 +273,33 @@ export class RealTimeLearningService {
    */
   getAdaptiveAlgorithms(): {
     exponentialMovingAverage: (current: number, newValue: number, alpha: number) => number;
-    confidenceWeightedAverage: (values: Array<{value: number, confidence: number}>) => number;
+    confidenceWeightedAverage: (values: Array<{ value: number; confidence: number }>) => number;
     regretBasedAdjustment: (current: number, reward: number, learningRate: number) => number;
   } {
     return {
       exponentialMovingAverage: (current: number, newValue: number, alpha: number) => {
         return alpha * newValue + (1 - alpha) * current;
       },
-      
-      confidenceWeightedAverage: (values: Array<{value: number, confidence: number}>) => {
+
+      confidenceWeightedAverage: (values: Array<{ value: number; confidence: number }>) => {
         if (values.length === 0) return 0;
-        
+
         let weightedSum = 0;
         let confidenceSum = 0;
-        
-        for (const {value, confidence} of values) {
+
+        for (const { value, confidence } of values) {
           weightedSum += value * confidence;
           confidenceSum += confidence;
         }
-        
+
         return confidenceSum > 0 ? weightedSum / confidenceSum : 0;
       },
-      
+
       regretBasedAdjustment: (current: number, reward: number, learningRate: number) => {
         // Simple regret-based adjustment
         const regret = 1 - reward; // Assuming reward is between 0 and 1
         return current - learningRate * regret;
-      }
+      },
     };
   }
 
@@ -301,23 +309,25 @@ export class RealTimeLearningService {
   async saveModel(): Promise<void> {
     try {
       this.logger.info('Saving learning model');
-      
+
       // Save current model to history before updating
       this.modelHistory.push(JSON.parse(JSON.stringify(this.learningModel)));
-      
+
       // Keep only recent model versions (last 10)
       if (this.modelHistory.length > 10) {
         this.modelHistory = this.modelHistory.slice(-10);
       }
-      
+
       // In a real implementation, this would save to a database or file system
-      this.logger.info('Learning model saved successfully', { 
+      this.logger.info('Learning model saved successfully', {
         version: this.learningModel.version,
-        historyCount: this.modelHistory.length 
+        historyCount: this.modelHistory.length,
       });
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to save learning model: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to save learning model: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'RealTimeLearningService', operation: 'saveModel' }
       );
       throw error;
@@ -330,17 +340,19 @@ export class RealTimeLearningService {
   async loadModel(): Promise<void> {
     try {
       this.logger.info('Loading learning model');
-      
+
       // In a real implementation, this would load from a database or file system
       // For now, we'll just ensure the current model is initialized
       if (!this.learningModel.weights || Object.keys(this.learningModel.weights).length === 0) {
         this.initializeAdaptiveWeights();
       }
-      
+
       this.logger.info('Learning model loaded successfully');
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to load learning model: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to load learning model: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'RealTimeLearningService', operation: 'loadModel' }
       );
       throw error;
@@ -354,27 +366,29 @@ export class RealTimeLearningService {
   async rollbackToVersion(version: string): Promise<boolean> {
     try {
       this.logger.info('Rolling back model version', { version });
-      
+
       const modelToRestore = this.modelHistory.find(model => model.version === version);
       if (!modelToRestore) {
         this.logger.warn('Model version not found for rollback', { version });
         return false;
       }
-      
+
       // Save current model before rollback
       this.modelHistory.push(JSON.parse(JSON.stringify(this.learningModel)));
-      
+
       // Restore the selected model
       this.learningModel = JSON.parse(JSON.stringify(modelToRestore));
-      
+
       // Restore adaptive weights
       this.adaptiveWeights = { ...this.learningModel.weights };
-      
+
       this.logger.info('Model rollback completed successfully', { version });
       return true;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to rollback model: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to rollback model: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'RealTimeLearningService', operation: 'rollbackToVersion' }
       );
       return false;
@@ -392,7 +406,10 @@ export class RealTimeLearningService {
     modelAccuracy: number;
     performanceHistory: any[];
   } {
-    return { ...this.performanceMetrics, performanceHistory: [...this.learningModel.performanceHistory] };
+    return {
+      ...this.performanceMetrics,
+      performanceHistory: [...this.learningModel.performanceHistory],
+    };
   }
 
   /**

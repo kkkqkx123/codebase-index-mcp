@@ -81,13 +81,13 @@ export class HealthCheckService {
       qdrant: {
         status: 'unhealthy' as 'healthy' | 'degraded' | 'unhealthy',
         message: '',
-        responseTime: 0
+        responseTime: 0,
       },
       nebula: {
         status: 'unhealthy' as 'healthy' | 'degraded' | 'unhealthy',
         message: '',
-        responseTime: 0
-      }
+        responseTime: 0,
+      },
     };
 
     try {
@@ -126,7 +126,9 @@ export class HealthCheckService {
       results.nebula.responseTime = Date.now() - nebulaStart;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to check database health: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to check database health: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'HealthCheckService', operation: 'checkDatabaseHealth' }
       );
 
@@ -168,11 +170,13 @@ export class HealthCheckService {
         status,
         message,
         memoryUsage: memoryPercent,
-        cpuUsage
+        cpuUsage,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to check system health: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to check system health: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'HealthCheckService', operation: 'checkSystemHealth' }
       );
 
@@ -180,7 +184,7 @@ export class HealthCheckService {
         status: 'unhealthy',
         message: `System health check failed: ${error instanceof Error ? error.message : String(error)}`,
         memoryUsage: 0,
-        cpuUsage: 0
+        cpuUsage: 0,
       };
     }
   }
@@ -189,14 +193,14 @@ export class HealthCheckService {
     try {
       const [databaseChecks, systemCheck] = await Promise.all([
         this.checkDatabaseHealth(),
-        Promise.resolve(this.checkSystemHealth())
+        Promise.resolve(this.checkSystemHealth()),
       ]);
 
       // Determine overall status
       const statuses = [
         databaseChecks.qdrant.status,
         databaseChecks.nebula.status,
-        systemCheck.status
+        systemCheck.status,
       ];
 
       let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
@@ -213,27 +217,28 @@ export class HealthCheckService {
         checks: {
           qdrant: databaseChecks.qdrant,
           nebula: databaseChecks.nebula,
-          system: systemCheck
-        }
+          system: systemCheck,
+        },
       };
 
       // Update Prometheus metrics
       this.prometheusMetricsService.recordAlert(
-        overallStatus === 'unhealthy' ? 'critical' :
-          overallStatus === 'degraded' ? 'high' : 'low'
+        overallStatus === 'unhealthy' ? 'critical' : overallStatus === 'degraded' ? 'high' : 'low'
       );
 
       this.logger.info('Health check completed', {
         overallStatus,
         qdrant: databaseChecks.qdrant.status,
         nebula: databaseChecks.nebula.status,
-        system: systemCheck.status
+        system: systemCheck.status,
       });
 
       return healthStatus;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to perform health check: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to perform health check: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'HealthCheckService', operation: 'performHealthCheck' }
       );
 
@@ -244,20 +249,20 @@ export class HealthCheckService {
           qdrant: {
             status: 'unhealthy',
             message: 'Health check failed',
-            responseTime: 0
+            responseTime: 0,
           },
           nebula: {
             status: 'unhealthy',
             message: 'Health check failed',
-            responseTime: 0
+            responseTime: 0,
           },
           system: {
             status: 'unhealthy',
             message: 'Health check failed',
             memoryUsage: 0,
-            cpuUsage: 0
-          }
-        }
+            cpuUsage: 0,
+          },
+        },
       };
     }
   }
@@ -277,7 +282,7 @@ export class HealthCheckService {
     return this.dependencies.map(dep => ({
       ...dep,
       lastCheck: Date.now(),
-      status: dep.status // In real implementation, this would be dynamically determined
+      status: dep.status, // In real implementation, this would be dynamically determined
     }));
   }
 

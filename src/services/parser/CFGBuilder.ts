@@ -14,7 +14,7 @@ export enum CFGNodeType {
   CATCH = 'catch',
   FINALLY = 'finally',
   BREAK = 'break',
-  CONTINUE = 'continue'
+  CONTINUE = 'continue',
 }
 
 export enum CFGEdgeType {
@@ -26,7 +26,7 @@ export enum CFGEdgeType {
   EXCEPTION = 'exception',
   RETURN = 'return',
   BREAK = 'break',
-  CONTINUE = 'continue'
+  CONTINUE = 'continue',
 }
 
 export interface CFGNode {
@@ -102,10 +102,10 @@ export class ControlFlowGraphImpl implements ControlFlowGraph {
         const currentNode = this.getNode(current);
         return currentNode ? [[...path, currentNode]] : [path];
       }
-      
+
       if (visited.has(current)) return [];
       visited.add(current);
-      
+
       const paths: CFGNode[][] = [];
       const currentNode = this.getNode(current);
       if (currentNode) {
@@ -115,7 +115,7 @@ export class ControlFlowGraphImpl implements ControlFlowGraph {
           paths.push(...findPaths(successor.id, newPath));
         }
       }
-      
+
       return paths;
     };
 
@@ -138,14 +138,14 @@ export class ControlFlowGraphImpl implements ControlFlowGraph {
     const dfs = (current: string): boolean => {
       if (current === to) return true;
       if (visited.has(current)) return false;
-      
+
       visited.add(current);
       const successors = this.getSuccessors(current);
-      
+
       for (const successor of successors) {
         if (dfs(successor.id)) return true;
       }
-      
+
       return false;
     };
 
@@ -173,7 +173,7 @@ export class CFGBuilder {
   build(ast: Parser.SyntaxNode, filePath: string): ControlFlowGraph {
     this.cfg = new ControlFlowGraphImpl();
     this.nodeCounter = 0;
-    
+
     const entryNode = this.createNode('entry', CFGNodeType.ENTRY, 'entry', 0, 0, 'global');
     entryNode.isEntry = true;
     this.cfg.addNode(entryNode);
@@ -245,7 +245,7 @@ export class CFGBuilder {
   private processFunction(node: Parser.SyntaxNode, scope: string): void {
     const functionName = this.extractFunctionName(node);
     const funcScope = functionName || `anonymous_${this.nodeCounter++}`;
-    
+
     const funcNode = this.createNode(
       `func_${funcScope}`,
       CFGNodeType.FUNCTION_CALL,
@@ -254,13 +254,14 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(funcNode);
 
     // 处理函数体
-    const body = node.childForFieldName('body') || 
-                 node.children.find(child => child.type === 'statement_block');
-    
+    const body =
+      node.childForFieldName('body') ||
+      node.children.find(child => child.type === 'statement_block');
+
     if (body) {
       this.processNode(body, funcScope);
     }
@@ -279,11 +280,11 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     if (condition) {
       ifNode.conditions = [condition.text];
     }
-    
+
     this.cfg.addNode(ifNode);
 
     if (consequence) {
@@ -307,11 +308,11 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     if (condition) {
       whileNode.conditions = [condition.text];
     }
-    
+
     this.cfg.addNode(whileNode);
 
     if (body) {
@@ -330,7 +331,7 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(forNode);
 
     if (body) {
@@ -340,8 +341,8 @@ export class CFGBuilder {
 
   private processSwitchStatement(node: Parser.SyntaxNode, scope: string): void {
     const condition = node.childForFieldName('condition');
-    const cases = node.children.filter(child => 
-      child.type === 'switch_case' || child.type === 'switch_default'
+    const cases = node.children.filter(
+      child => child.type === 'switch_case' || child.type === 'switch_default'
     );
 
     const switchNode = this.createNode(
@@ -352,7 +353,7 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(switchNode);
 
     for (const caseNode of cases) {
@@ -373,7 +374,7 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(tryNode);
 
     if (body) {
@@ -398,7 +399,7 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(returnNode);
   }
 
@@ -411,7 +412,7 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(breakNode);
   }
 
@@ -424,7 +425,7 @@ export class CFGBuilder {
       node.endPosition.row,
       scope
     );
-    
+
     this.cfg.addNode(continueNode);
   }
 
@@ -451,13 +452,13 @@ export class CFGBuilder {
       scope,
       isEntry: false,
       isExit: false,
-      conditions: []
+      conditions: [],
     };
   }
 
   private extractFunctionName(node: Parser.SyntaxNode): string | null {
-    const nameNode = node.childForFieldName('name') || 
-                     node.children.find(child => child.type === 'identifier');
+    const nameNode =
+      node.childForFieldName('name') || node.children.find(child => child.type === 'identifier');
     return nameNode ? nameNode.text : null;
   }
 }

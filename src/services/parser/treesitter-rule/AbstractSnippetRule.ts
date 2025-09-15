@@ -3,8 +3,6 @@ import { SnippetChunk, SnippetMetadata } from '../types';
 import { SnippetValidationService } from '../SnippetValidationService';
 import { SnippetExtractionRule } from './SnippetExtractionRule';
 
-
-
 // Configuration interface for rule behavior
 interface RuleConfig {
   maxDepth?: number;
@@ -20,14 +18,50 @@ interface RuleConfig {
 export abstract class AbstractSnippetRule implements SnippetExtractionRule {
   abstract readonly name: string;
   abstract readonly supportedNodeTypes: Set<string>;
-  protected abstract readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' | 'generic_pattern' | 'decorator_pattern' | 'async_pattern' | 'python_comprehension' | 'java_stream' | 'java_lambda' | 'functional_programming' | 'go_goroutine' | 'go_interface' | 'react_component' | 'django_model' | 'django_view' | 'spring_boot_controller' | 'pytorch_neural_network' | 'vue_component' | 'express_route' | 'pytest_test' | 'junit_test' | 'angular_component' | 'fastapi_route' | 'data_manipulation' | 'go_web_framework' | 'build_configuration' | 'package_management' | 'docker_containerization' | 'cicd_configuration';
+  protected abstract readonly snippetType:
+    | 'control_structure'
+    | 'error_handling'
+    | 'function_call_chain'
+    | 'expression_sequence'
+    | 'comment_marked'
+    | 'logic_block'
+    | 'object_array_literal'
+    | 'arithmetic_logical_expression'
+    | 'template_literal'
+    | 'destructuring_assignment'
+    | 'generic_pattern'
+    | 'decorator_pattern'
+    | 'async_pattern'
+    | 'python_comprehension'
+    | 'java_stream'
+    | 'java_lambda'
+    | 'functional_programming'
+    | 'go_goroutine'
+    | 'go_interface'
+    | 'react_component'
+    | 'django_model'
+    | 'django_view'
+    | 'spring_boot_controller'
+    | 'pytorch_neural_network'
+    | 'vue_component'
+    | 'express_route'
+    | 'pytest_test'
+    | 'junit_test'
+    | 'angular_component'
+    | 'fastapi_route'
+    | 'data_manipulation'
+    | 'go_web_framework'
+    | 'build_configuration'
+    | 'package_management'
+    | 'docker_containerization'
+    | 'cicd_configuration';
 
   protected readonly config: RuleConfig = {
     maxDepth: 50,
     minComplexity: 2,
     maxComplexity: 100,
     minLines: 1,
-    maxLines: 50
+    maxLines: 50,
   };
 
   constructor(config?: Partial<RuleConfig>) {
@@ -78,16 +112,45 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
   protected validateSnippet(snippet: SnippetChunk): boolean {
     return SnippetValidationService.enhancedIsValidSnippet(
       snippet.content,
-      this.snippetType as Extract<typeof this.snippetType, 
-        "control_structure" | "error_handling" | "function_call_chain" | "expression_sequence" | 
-        "comment_marked" | "logic_block" | "object_array_literal" | "arithmetic_logical_expression" | 
-        "template_literal" | "destructuring_assignment" | "generic_pattern" | "decorator_pattern" | 
-        "async_pattern" | "python_comprehension" | "java_stream" | "java_lambda" | 
-        "functional_programming" | "go_goroutine" | "go_interface" | "react_component" | 
-        "django_model" | "django_view" | "spring_boot_controller" | "pytorch_neural_network" | 
-        "vue_component" | "express_route" | "pytest_test" | "junit_test" | 
-        "angular_component" | "fastapi_route" | "data_manipulation" | "go_web_framework" | 
-        "build_configuration" | "package_management" | "docker_containerization" | "cicd_configuration">
+      this.snippetType as Extract<
+        typeof this.snippetType,
+        | 'control_structure'
+        | 'error_handling'
+        | 'function_call_chain'
+        | 'expression_sequence'
+        | 'comment_marked'
+        | 'logic_block'
+        | 'object_array_literal'
+        | 'arithmetic_logical_expression'
+        | 'template_literal'
+        | 'destructuring_assignment'
+        | 'generic_pattern'
+        | 'decorator_pattern'
+        | 'async_pattern'
+        | 'python_comprehension'
+        | 'java_stream'
+        | 'java_lambda'
+        | 'functional_programming'
+        | 'go_goroutine'
+        | 'go_interface'
+        | 'react_component'
+        | 'django_model'
+        | 'django_view'
+        | 'spring_boot_controller'
+        | 'pytorch_neural_network'
+        | 'vue_component'
+        | 'express_route'
+        | 'pytest_test'
+        | 'junit_test'
+        | 'angular_component'
+        | 'fastapi_route'
+        | 'data_manipulation'
+        | 'go_web_framework'
+        | 'build_configuration'
+        | 'package_management'
+        | 'docker_containerization'
+        | 'cicd_configuration'
+      >
     );
   }
 
@@ -110,12 +173,17 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
   /**
    * 获取节点位置信息
    */
-  protected getNodeLocation(node: Parser.SyntaxNode): { startLine: number; endLine: number; startColumn: number; endColumn: number } {
+  protected getNodeLocation(node: Parser.SyntaxNode): {
+    startLine: number;
+    endLine: number;
+    startColumn: number;
+    endColumn: number;
+  } {
     return {
       startLine: node.startPosition.row + 1,
       endLine: node.endPosition.row + 1,
       startColumn: node.startPosition.column + 1,
-      endColumn: node.endPosition.column + 1
+      endColumn: node.endPosition.column + 1,
     };
   }
 
@@ -134,8 +202,11 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
     let depth = 0;
     while (parent && depth < this.config.maxDepth!) {
       const functionTypes = [
-        'function_declaration', 'function_definition', 'method_definition',
-        'arrow_function', 'function_expression'
+        'function_declaration',
+        'function_definition',
+        'method_definition',
+        'arrow_function',
+        'function_expression',
       ];
 
       if (functionTypes.includes(parent.type)) {
@@ -172,7 +243,8 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
    */
   protected calculateComplexity(content: string): number {
     const lines = content.split('\n').filter(line => line.trim().length > 0);
-    const cyclomatic = Math.max(1,
+    const cyclomatic = Math.max(
+      1,
       (content.match(/\b(if|else|while|for|switch|case|catch|&&|\|\||\?)/g) || []).length
     );
 
@@ -182,13 +254,19 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
   /**
    * 分析语言特性
    */
-  protected analyzeLanguageFeatures(content: string): { usesAsync?: boolean; usesGenerators?: boolean; usesDestructuring?: boolean; usesSpread?: boolean; usesTemplateLiterals?: boolean } {
+  protected analyzeLanguageFeatures(content: string): {
+    usesAsync?: boolean;
+    usesGenerators?: boolean;
+    usesDestructuring?: boolean;
+    usesSpread?: boolean;
+    usesTemplateLiterals?: boolean;
+  } {
     return {
       usesAsync: /\basync\s+function\b|\bawait\s+\w+/i.test(content),
       usesGenerators: /\bfunction\s*\*\s*\w+|\byield\s+\*?\w*/i.test(content),
       usesDestructuring: /\{\s*\w+|\[\s*\w+/i.test(content),
       usesSpread: /\.\.\./.test(content),
-      usesTemplateLiterals: /`[^`]*\${[^}]*}/.test(content)
+      usesTemplateLiterals: /`[^`]*\${[^}]*}/.test(content),
     };
   }
 
@@ -219,7 +297,7 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
       /indexedDB\./,
       /alert\(/,
       /confirm\(/,
-      /prompt\(/
+      /prompt\(/,
     ];
 
     return sideEffectPatterns.some(pattern => pattern.test(content));
@@ -240,7 +318,7 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(36);
@@ -253,7 +331,9 @@ export abstract class AbstractSnippetRule implements SnippetExtractionRule {
 export class ImprovedDestructuringRule extends AbstractSnippetRule {
   readonly name = 'ImprovedDestructuringRule';
   readonly supportedNodeTypes = new Set([
-    'object_pattern', 'array_pattern', 'assignment_expression'
+    'object_pattern',
+    'array_pattern',
+    'assignment_expression',
   ]);
   protected readonly snippetType = 'destructuring_assignment';
 
@@ -291,8 +371,8 @@ export class ImprovedDestructuringRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }
@@ -303,11 +383,18 @@ export class ImprovedDestructuringRule extends AbstractSnippetRule {
 export class ImprovedControlStructureRule extends AbstractSnippetRule {
   readonly name = 'ImprovedControlStructureRule';
   readonly supportedNodeTypes = new Set([
-    'if_statement', 'else_clause', 'else_if_clause',
-    'for_statement', 'for_in_statement', 'for_of_statement',
-    'while_statement', 'do_statement',
-    'switch_statement', 'case_clause', 'default_clause',
-    'conditional_expression'
+    'if_statement',
+    'else_clause',
+    'else_if_clause',
+    'for_statement',
+    'for_in_statement',
+    'for_of_statement',
+    'while_statement',
+    'do_statement',
+    'switch_statement',
+    'case_clause',
+    'default_clause',
+    'conditional_expression',
   ]);
   protected readonly snippetType = 'control_structure';
 
@@ -345,8 +432,8 @@ export class ImprovedControlStructureRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }
@@ -357,7 +444,10 @@ export class ImprovedControlStructureRule extends AbstractSnippetRule {
 export class ImprovedFunctionCallRule extends AbstractSnippetRule {
   readonly name = 'ImprovedFunctionCallRule';
   readonly supportedNodeTypes = new Set([
-    'call_expression', 'method_call', 'function_call', 'await_expression'
+    'call_expression',
+    'method_call',
+    'function_call',
+    'await_expression',
   ]);
   protected readonly snippetType = 'function_call_chain';
 
@@ -399,8 +489,8 @@ export class ImprovedFunctionCallRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 

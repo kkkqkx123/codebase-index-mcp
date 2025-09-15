@@ -11,7 +11,7 @@ export class JavaStreamRule extends AbstractSnippetRule {
     'method_call',
     'lambda_expression',
     'method_reference',
-    'expression_statement'
+    'expression_statement',
   ]);
   protected readonly snippetType = 'java_stream' as const;
 
@@ -19,7 +19,7 @@ export class JavaStreamRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for Java Stream patterns
     return this.containsJavaStreamPattern(content) && this.hasMeaningfulStreamOperation(content);
   }
@@ -50,13 +50,13 @@ export class JavaStreamRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...streamFeatures
+          ...streamFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        javaStreamInfo: this.extractJavaStreamInfo(content)
-      }
+        javaStreamInfo: this.extractJavaStreamInfo(content),
+      },
     };
   }
 
@@ -71,7 +71,7 @@ export class JavaStreamRule extends AbstractSnippetRule {
       /Arrays\.stream\(/,
       /Collection\.stream\(\)/,
       /List\.stream\(\)/,
-      /Set\.stream\(\)/
+      /Set\.stream\(\)/,
     ];
 
     return streamPatterns.some(pattern => pattern.test(content));
@@ -80,8 +80,11 @@ export class JavaStreamRule extends AbstractSnippetRule {
   private hasMeaningfulStreamOperation(content: string): boolean {
     // Should have actual stream operations, not just .stream()
     const operations = [
-      (content.match(/\.(map|filter|forEach|reduce|collect|sorted|distinct|limit|skip)\s*\(/g) || []).length,
-      (content.match(/::/g) || []).length
+      (
+        content.match(/\.(map|filter|forEach|reduce|collect|sorted|distinct|limit|skip)\s*\(/g) ||
+        []
+      ).length,
+      (content.match(/::/g) || []).length,
     ].reduce((sum, count) => sum + count, 0);
 
     return operations > 0;
@@ -101,20 +104,45 @@ export class JavaStreamRule extends AbstractSnippetRule {
       usesStreamAPI: /\.stream\s*\(\)/.test(content),
       usesMethodReferences: methodReferences > 0,
       usesLambdas: lambdas > 0,
-      streamComplexity: streamOperations
+      streamComplexity: streamOperations,
     };
   }
 
   private countStreamOperations(content: string): number {
     const operations = [
-      'map', 'filter', 'forEach', 'reduce', 'collect', 'sorted', 'distinct',
-      'limit', 'skip', 'peek', 'flatMap', 'mapToInt', 'mapToLong', 'mapToDouble',
-      'boxed', 'toArray', 'findFirst', 'findAny', 'anyMatch', 'allMatch', 'noneMatch',
-      'min', 'max', 'count', 'average', 'sum', 'summaryStatistics'
+      'map',
+      'filter',
+      'forEach',
+      'reduce',
+      'collect',
+      'sorted',
+      'distinct',
+      'limit',
+      'skip',
+      'peek',
+      'flatMap',
+      'mapToInt',
+      'mapToLong',
+      'mapToDouble',
+      'boxed',
+      'toArray',
+      'findFirst',
+      'findAny',
+      'anyMatch',
+      'allMatch',
+      'noneMatch',
+      'min',
+      'max',
+      'count',
+      'average',
+      'sum',
+      'summaryStatistics',
     ];
 
-    return operations.reduce((count, op) => 
-      count + (content.match(new RegExp(`\\.${op}\\s*\\(`, 'g')) || []).length, 0);
+    return operations.reduce(
+      (count, op) => count + (content.match(new RegExp(`\\.${op}\\s*\\(`, 'g')) || []).length,
+      0
+    );
   }
 
   private extractJavaStreamInfo(content: string): {
@@ -129,12 +157,9 @@ export class JavaStreamRule extends AbstractSnippetRule {
   } {
     const operations: string[] = [];
     const collectors: string[] = [];
-    
+
     // Extract operations
-    const opPatterns = [
-      /\.(\w+)\s*\(/g,
-      /::(\w+)/g
-    ];
+    const opPatterns = [/\.(\w+)\s*\(/g, /::(\w+)/g];
 
     for (const pattern of opPatterns) {
       let match;
@@ -144,10 +169,7 @@ export class JavaStreamRule extends AbstractSnippetRule {
     }
 
     // Extract collectors
-    const collectorPatterns = [
-      /Collectors\.(\w+)\s*\(/g,
-      /\.collect\s*\(\s*(\w+)::/g
-    ];
+    const collectorPatterns = [/Collectors\.(\w+)\s*\(/g, /\.collect\s*\(\s*(\w+)::/g];
 
     for (const pattern of collectorPatterns) {
       let match;
@@ -171,7 +193,7 @@ export class JavaStreamRule extends AbstractSnippetRule {
       usesLambdas,
       chainingDepth,
       streamType,
-      purpose
+      purpose,
     };
   }
 
@@ -187,7 +209,10 @@ export class JavaStreamRule extends AbstractSnippetRule {
     if (collectors.includes('joining') || operations.includes('map')) {
       return 'transformation';
     }
-    if (operations.includes('filter') && (collectors.includes('count') || collectors.includes('toList'))) {
+    if (
+      operations.includes('filter') &&
+      (collectors.includes('count') || collectors.includes('toList'))
+    ) {
       return 'filtering_collection';
     }
     if (operations.includes('sorted')) {
@@ -208,33 +233,33 @@ export class JavaStreamRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const streamComplexity = this.calculateJavaStreamComplexity(content);
-    
+
     return baseComplexity + streamComplexity;
   }
 
   private calculateJavaStreamComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for stream operations
     complexity += this.countStreamOperations(content);
-    
+
     // Add complexity for chaining
     complexity += this.calculateStreamChainingDepth(content) * 2;
-    
+
     // Add complexity for parallel streams
     complexity += (content.match(/\.parallelStream\s*\(\)/g) || []).length * 3;
-    
+
     // Add complexity for method references
     complexity += (content.match(/::/g) || []).length * 2;
-    
+
     // Add complexity for complex collectors
     const complexCollectors = [
       (content.match(/Collectors\.(groupingBy|partitioningBy|mapping|reducing)/g) || []).length * 3,
-      (content.match(/Collectors\.(toList|toSet|toMap|joining)/g) || []).length * 2
+      (content.match(/Collectors\.(toList|toSet|toMap|joining)/g) || []).length * 2,
     ].reduce((sum, val) => sum + val, 0);
-    
+
     complexity += complexCollectors;
-    
+
     return complexity;
   }
 }

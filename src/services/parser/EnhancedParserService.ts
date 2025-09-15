@@ -5,7 +5,13 @@ import { LSPManager } from '../lsp/LSPManager';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { ConfigService } from '../../config/ConfigService';
-import { LSPEnhancedParseResult, LSPParseOptions, SymbolKind, LSPTypeDefinition, LSPReference } from '../lsp/types';
+import {
+  LSPEnhancedParseResult,
+  LSPParseOptions,
+  SymbolKind,
+  LSPTypeDefinition,
+  LSPReference,
+} from '../lsp/types';
 
 @injectable()
 export class EnhancedParserService {
@@ -29,13 +35,16 @@ export class EnhancedParserService {
     this.configService = configService;
   }
 
-  async parseFile(filePath: string, options: LSPParseOptions & ParseOptions = {}): Promise<LSPEnhancedParseResult> {
+  async parseFile(
+    filePath: string,
+    options: LSPParseOptions & ParseOptions = {}
+  ): Promise<LSPEnhancedParseResult> {
     const startTime = Date.now();
-    
+
     try {
       // 首先使用基础ParserService进行语法解析
       const baseResult = await this.parserService.parseFile(filePath, options);
-      
+
       // 创建增强结果的基础结构
       const enhancedResult: LSPEnhancedParseResult = {
         ...baseResult,
@@ -48,19 +57,18 @@ export class EnhancedParserService {
           processingTime: 0,
           hasErrors: false,
           symbolCount: 0,
-          diagnosticCount: 0
-        }
+          diagnosticCount: 0,
+        },
       };
 
       // 如果启用了LSP增强
       if (options.enableLSP && this.isLSPEnabled()) {
         try {
           const lspStartTime = Date.now();
-          
+
           // 检查文件是否支持LSP
           const supportedLanguages = this.lspManager.getSupportedLanguages();
           if (supportedLanguages.includes(baseResult.language)) {
-            
             // 获取符号信息
             if (options.includeTypes !== false) {
               try {
@@ -72,7 +80,7 @@ export class EnhancedParserService {
                     range: s.range,
                     detail: s.detail || '',
                     documentation: (s as any).documentation || '',
-                    containerName: (s as any).containerName || ''
+                    containerName: (s as any).containerName || '',
                   }));
                   if (enhancedResult.lspMetadata) {
                     enhancedResult.lspMetadata.symbolCount = symbols.symbols.length;
@@ -81,7 +89,7 @@ export class EnhancedParserService {
               } catch (error) {
                 this.logger.warn('Failed to get LSP symbols', {
                   filePath,
-                  error: error instanceof Error ? error.message : String(error)
+                  error: error instanceof Error ? error.message : String(error),
                 });
               }
             }
@@ -96,17 +104,19 @@ export class EnhancedParserService {
                     severity: d.severity || 1,
                     message: d.message,
                     source: d.source,
-                    code: d.code
+                    code: d.code,
                   }));
                   if (enhancedResult.lspMetadata) {
                     enhancedResult.lspMetadata.diagnosticCount = diagnostics.diagnostics.length;
-                    enhancedResult.lspMetadata.hasErrors = diagnostics.diagnostics.some(d => d.severity === 1); // Error
+                    enhancedResult.lspMetadata.hasErrors = diagnostics.diagnostics.some(
+                      d => d.severity === 1
+                    ); // Error
                   }
                 }
               } catch (error) {
                 this.logger.warn('Failed to get LSP diagnostics', {
                   filePath,
-                  error: error instanceof Error ? error.message : String(error)
+                  error: error instanceof Error ? error.message : String(error),
                 });
               }
             }
@@ -114,17 +124,20 @@ export class EnhancedParserService {
             // 获取类型定义
             if (options.includeTypes !== false) {
               try {
-                const typeDefs = await this.lspManager.getTypeDefinition(filePath, { line: 0, character: 0 });
+                const typeDefs = await this.lspManager.getTypeDefinition(filePath, {
+                  line: 0,
+                  character: 0,
+                });
                 enhancedResult.typeDefinitions = (typeDefs || []).map(def => ({
                   name: 'unknown',
                   type: 'unknown',
                   range: def.targetRange,
-                  filePath: def.targetUri
+                  filePath: def.targetUri,
                 })) as LSPTypeDefinition[];
               } catch (error) {
                 this.logger.warn('Failed to get type definitions', {
                   filePath,
-                  error: error instanceof Error ? error.message : String(error)
+                  error: error instanceof Error ? error.message : String(error),
                 });
               }
             }
@@ -132,25 +145,29 @@ export class EnhancedParserService {
             // 获取引用信息
             if (options.includeReferences !== false) {
               try {
-                const references = await this.lspManager.getReferences(filePath, { line: 0, character: 0 });
+                const references = await this.lspManager.getReferences(filePath, {
+                  line: 0,
+                  character: 0,
+                });
                 enhancedResult.references = (references || []) as LSPReference[];
               } catch (error) {
                 this.logger.warn('Failed to get references', {
                   filePath,
-                  error: error instanceof Error ? error.message : String(error)
+                  error: error instanceof Error ? error.message : String(error),
                 });
               }
             }
 
             if (enhancedResult.lspMetadata) {
-              enhancedResult.lspMetadata.languageServer = this.lspManager.getActiveLanguageServer(filePath);
+              enhancedResult.lspMetadata.languageServer =
+                this.lspManager.getActiveLanguageServer(filePath);
               enhancedResult.lspMetadata.processingTime = Date.now() - lspStartTime;
             }
           }
         } catch (error) {
           this.logger.warn('LSP enhancement failed, falling back to basic parsing', {
             filePath,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
           // 降级处理：保持基础结果，不中断流程
         }
@@ -162,28 +179,33 @@ export class EnhancedParserService {
         hasLSP: options.enableLSP && this.isLSPEnabled(),
         symbolCount: enhancedResult.lspSymbols?.length || 0,
         diagnosticCount: enhancedResult.lspDiagnostics?.length || 0,
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
       });
 
       return enhancedResult;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Enhanced parsing failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Enhanced parsing failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'EnhancedParserService', operation: 'parseFile' }
       );
       throw error;
     }
   }
 
-  async parseFiles(filePaths: string[], options: LSPParseOptions & ParseOptions = {}): Promise<LSPEnhancedParseResult[]> {
+  async parseFiles(
+    filePaths: string[],
+    options: LSPParseOptions & ParseOptions = {}
+  ): Promise<LSPEnhancedParseResult[]> {
     const startTime = Date.now();
-    
+
     this.logger.info('Starting enhanced parsing for multiple files', {
       fileCount: filePaths.length,
       enableLSP: options.enableLSP && this.isLSPEnabled(),
       includeTypes: options.includeTypes,
       includeDiagnostics: options.includeDiagnostics,
-      includeReferences: options.includeReferences
+      includeReferences: options.includeReferences,
     });
 
     const results: LSPEnhancedParseResult[] = [];
@@ -191,18 +213,18 @@ export class EnhancedParserService {
 
     // 批量处理，避免内存问题
     const batchSize = this.configService.get('lsp')?.batchSize ?? 20;
-    
+
     for (let i = 0; i < filePaths.length; i += batchSize) {
       const batch = filePaths.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (filePath) => {
+
+      const batchPromises = batch.map(async filePath => {
         try {
           return await this.parseFile(filePath, options);
         } catch (error) {
           const errorMsg = `Failed to parse ${filePath}: ${error instanceof Error ? error.message : String(error)}`;
           errors.push(errorMsg);
           this.logger.warn(errorMsg);
-          
+
           // 降级到基础解析
           try {
             const baseResult = await this.parserService.parseFile(filePath, options);
@@ -217,8 +239,8 @@ export class EnhancedParserService {
                 processingTime: 0,
                 hasErrors: true,
                 symbolCount: 0,
-                diagnosticCount: 0
-              }
+                diagnosticCount: 0,
+              },
             } as LSPEnhancedParseResult;
           } catch (fallbackError) {
             return null;
@@ -228,11 +250,12 @@ export class EnhancedParserService {
 
       const batchResults = await Promise.allSettled(batchPromises);
       const successfulResults = batchResults
-        .filter((result): result is PromiseFulfilledResult<LSPEnhancedParseResult> => 
-          result.status === 'fulfilled' && result.value !== null
+        .filter(
+          (result): result is PromiseFulfilledResult<LSPEnhancedParseResult> =>
+            result.status === 'fulfilled' && result.value !== null
         )
         .map(result => result.value);
-      
+
       results.push(...successfulResults);
     }
 
@@ -241,7 +264,7 @@ export class EnhancedParserService {
         totalFiles: filePaths.length,
         successCount: results.length,
         errorCount: errors.length,
-        firstFewErrors: errors.slice(0, 5)
+        firstFewErrors: errors.slice(0, 5),
       });
     }
 
@@ -249,7 +272,7 @@ export class EnhancedParserService {
       totalFiles: filePaths.length,
       successfulFiles: results.length,
       processingTime: Date.now() - startTime,
-      averageProcessingTime: (Date.now() - startTime) / results.length
+      averageProcessingTime: (Date.now() - startTime) / results.length,
     });
 
     return results;
@@ -275,8 +298,8 @@ export class EnhancedParserService {
         parserService: 'ok',
         lspManager: 'ok',
         lspEnabled: this.isLSPEnabled(),
-        lspHealth: { healthy: false, error: 'LSP not enabled' }
-      }
+        lspHealth: { healthy: false, error: 'LSP not enabled' },
+      },
     };
 
     try {
@@ -286,9 +309,9 @@ export class EnhancedParserService {
         baseHealth.healthy = baseHealth.healthy && lspHealth.healthy;
       }
     } catch (error) {
-      baseHealth.details.lspHealth = { 
-        healthy: false, 
-        error: error instanceof Error ? error.message : String(error) 
+      baseHealth.details.lspHealth = {
+        healthy: false,
+        error: error instanceof Error ? error.message : String(error),
       };
       baseHealth.healthy = false;
     }

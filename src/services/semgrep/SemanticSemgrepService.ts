@@ -103,7 +103,7 @@ export class SemanticSemgrepService {
     options: SemanticAnalysisOptions = {
       includeControlFlow: true,
       includeDataFlow: true,
-      includeCallGraph: true
+      includeCallGraph: true,
     }
   ): Promise<EnhancedSemgrepResult[]> {
     try {
@@ -114,7 +114,7 @@ export class SemanticSemgrepService {
 
       for (const rule of rules) {
         const scanResult = await this.semgrepService.scanProject(projectPath, {
-          rules: [rule.path]
+          rules: [rule.path],
         });
 
         const enhancedResult = await this.enhanceResults(scanResult, rule.type, options);
@@ -135,12 +135,12 @@ export class SemanticSemgrepService {
     const rules = [
       `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`,
       `${this.enhancedRulesPath}/control-flow/complex-nested-conditions.yml`,
-      `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`
+      `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`,
     ];
 
     return this.runRuleAnalysis(projectPath, rules, 'control-flow', {
       ...options,
-      includeControlFlow: true
+      includeControlFlow: true,
     });
   }
 
@@ -151,12 +151,12 @@ export class SemanticSemgrepService {
     const rules = [
       `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
       `${this.enhancedRulesPath}/data-flow/cross-function-taint.yml`,
-      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`
+      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`,
     ];
 
     return this.runRuleAnalysis(projectPath, rules, 'data-flow', {
       ...options,
-      includeDataFlow: true
+      includeDataFlow: true,
     });
   }
 
@@ -167,13 +167,15 @@ export class SemanticSemgrepService {
     options: Partial<SemanticAnalysisOptions>
   ): Promise<EnhancedSemgrepResult> {
     const scanResult = await this.semgrepService.scanProject(projectPath, {
-      rules: rulePaths
+      rules: rulePaths,
     });
 
     return this.enhanceResults(scanResult, ruleType, options);
   }
 
-  private getSemanticRules(options: SemanticAnalysisOptions): Array<{path: string, type: string}> {
+  private getSemanticRules(
+    options: SemanticAnalysisOptions
+  ): Array<{ path: string; type: string }> {
     const rules = [];
 
     if (options.includeControlFlow) {
@@ -207,13 +209,13 @@ export class SemanticSemgrepService {
           startLine: finding.start.line,
           startCol: finding.start.col,
           endLine: finding.end.line,
-          endCol: finding.end.col
+          endCol: finding.end.col,
         },
         severity: this.mapSeverity(finding.extra?.severity || 'info'),
         message: finding.extra?.message || '',
         code: finding.extra?.lines || '',
         context: await this.extractContext(finding),
-        semanticData: await this.extractSemanticData(finding, ruleType)
+        semanticData: await this.extractSemanticData(finding, ruleType),
       };
 
       enhancedFindings.push(enhancedFinding);
@@ -226,8 +228,8 @@ export class SemanticSemgrepService {
         totalFiles: scanResult.summary?.totalFiles || 0,
         totalFindings: enhancedFindings.length,
         analysisTime: scanResult.duration || 0,
-        rulesApplied: [ruleType]
-      }
+        rulesApplied: [ruleType],
+      },
     };
   }
 
@@ -237,12 +239,12 @@ export class SemanticSemgrepService {
       function: finding.extra?.function || 'global',
       class: finding.extra?.class || 'global',
       complexity: finding.extra?.complexity || 1,
-      nestingLevel: finding.extra?.nesting || 1
+      nestingLevel: finding.extra?.nesting || 1,
     };
   }
 
   private async extractSemanticData(
-    finding: any, 
+    finding: any,
     ruleType: string
   ): Promise<SemanticData | undefined> {
     const semanticData: SemanticData = {};
@@ -252,7 +254,7 @@ export class SemanticSemgrepService {
         complexity: finding.extra?.cyclomaticComplexity || 1,
         nestingDepth: finding.extra?.nestingDepth || 1,
         loopPatterns: finding.extra?.loopPatterns || [],
-        unreachableCode: finding.extra?.unreachableCode || []
+        unreachableCode: finding.extra?.unreachableCode || [],
       };
     }
 
@@ -260,7 +262,7 @@ export class SemanticSemgrepService {
       semanticData.dataFlow = {
         taintSources: finding.extra?.taintSources || [],
         sanitizationPoints: finding.extra?.sanitizationPoints || [],
-        dataDependencies: finding.extra?.dataDependencies || []
+        dataDependencies: finding.extra?.dataDependencies || [],
       };
     }
 
@@ -269,10 +271,10 @@ export class SemanticSemgrepService {
 
   private mapSeverity(severity: string): 'low' | 'medium' | 'high' | 'critical' {
     const severityMap: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
-      'info': 'low',
-      'warning': 'medium',
-      'error': 'high',
-      'critical': 'critical'
+      info: 'low',
+      warning: 'medium',
+      error: 'high',
+      critical: 'critical',
     };
     return severityMap[severity] || 'medium';
   }
@@ -283,7 +285,7 @@ export class SemanticSemgrepService {
       `${this.enhancedRulesPath}/control-flow/complex-nested-conditions.yml`,
       `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`,
       `${this.enhancedRulesPath}/control-flow/missing-break-in-switch.yml`,
-      `${this.enhancedRulesPath}/control-flow/unreachable-code-after-return.yml`
+      `${this.enhancedRulesPath}/control-flow/unreachable-code-after-return.yml`,
     ];
 
     const dataFlowRules = [
@@ -291,7 +293,7 @@ export class SemanticSemgrepService {
       `${this.enhancedRulesPath}/data-flow/cross-function-taint.yml`,
       `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`,
       `${this.enhancedRulesPath}/data-flow/null-pointer-dereference.yml`,
-      `${this.enhancedRulesPath}/data-flow/buffer-overflow-detection.yml`
+      `${this.enhancedRulesPath}/data-flow/buffer-overflow-detection.yml`,
     ];
 
     return [...controlFlowRules, ...dataFlowRules];

@@ -10,11 +10,25 @@ export interface Token {
 }
 
 export type TokenType =
-  | 'RULE' | 'DESCRIPTION' | 'TARGET' | 'CONDITION' | 'ACTION' | 'TYPE' | 'PARAMETERS'
-  | 'STRING' | 'NUMBER' | 'IDENTIFIER'
-  | 'LEFT_BRACE' | 'RIGHT_BRACE' | 'LEFT_PAREN' | 'RIGHT_PAREN'
-  | 'COLON' | 'DOT' | 'COMMA'
-  | 'NEWLINE' | 'EOF';
+  | 'RULE'
+  | 'DESCRIPTION'
+  | 'TARGET'
+  | 'CONDITION'
+  | 'ACTION'
+  | 'TYPE'
+  | 'PARAMETERS'
+  | 'STRING'
+  | 'NUMBER'
+  | 'IDENTIFIER'
+  | 'LEFT_BRACE'
+  | 'RIGHT_BRACE'
+  | 'LEFT_PAREN'
+  | 'RIGHT_PAREN'
+  | 'COLON'
+  | 'DOT'
+  | 'COMMA'
+  | 'NEWLINE'
+  | 'EOF';
 
 export class DSLLexer {
   private tokens: Token[] = [];
@@ -28,7 +42,7 @@ export class DSLLexer {
 
     while (!this.isAtEnd()) {
       const char = this.advance();
-      
+
       switch (char) {
         case ' ':
         case '\r':
@@ -106,7 +120,7 @@ export class DSLLexer {
     this.tokens.push({
       type: 'STRING',
       lexeme: value,
-      literal: value
+      literal: value,
     });
   }
 
@@ -117,12 +131,12 @@ export class DSLLexer {
     }
 
     // 检查是否为关键字
-    const type = this.isKeyword(value) ? value.toUpperCase() as TokenType : 'IDENTIFIER';
-    
+    const type = this.isKeyword(value) ? (value.toUpperCase() as TokenType) : 'IDENTIFIER';
+
     this.tokens.push({
       type,
       lexeme: value,
-      literal: value
+      literal: value,
     });
   }
 
@@ -135,7 +149,7 @@ export class DSLLexer {
     this.tokens.push({
       type: 'NUMBER',
       lexeme: value,
-      literal: parseFloat(value)
+      literal: parseFloat(value),
     });
   }
 

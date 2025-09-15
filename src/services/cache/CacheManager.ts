@@ -28,11 +28,13 @@ export class CacheManager {
 
     const redisConfig = this.configService.get('redis');
     const ttl = defaultTTL || redisConfig.ttl.embedding;
-    
+
     const cache = CacheFactory.createCache(name, redisConfig, ttl);
     this.caches.set(name, cache);
-    
-    this.logger.info(`创建缓存实例: ${name} (TTL: ${ttl}s, MultiLevel: ${redisConfig.useMultiLevel})`);
+
+    this.logger.info(
+      `创建缓存实例: ${name} (TTL: ${ttl}s, MultiLevel: ${redisConfig.useMultiLevel})`
+    );
     return cache;
   }
 
@@ -64,7 +66,7 @@ export class CacheManager {
    */
   async getAllStats(): Promise<Record<string, any>> {
     const stats: Record<string, any> = {};
-    
+
     const entries = Array.from(this.caches.entries());
     for (const [name, cache] of entries) {
       try {
@@ -74,7 +76,7 @@ export class CacheManager {
         stats[name] = { error: (error as Error).message };
       }
     }
-    
+
     return stats;
   }
 
@@ -83,13 +85,11 @@ export class CacheManager {
    */
   async clearAll(): Promise<void> {
     this.logger.info('清空所有缓存...');
-    
-    const promises = Array.from(this.caches.values()).map(cache => 
-      cache.clear().catch(error => 
-        this.logger.error(`清空缓存失败: ${cache.getName()}`, error)
-      )
+
+    const promises = Array.from(this.caches.values()).map(cache =>
+      cache.clear().catch(error => this.logger.error(`清空缓存失败: ${cache.getName()}`, error))
     );
-    
+
     await Promise.all(promises);
     this.logger.info('所有缓存已清空');
   }
@@ -99,16 +99,14 @@ export class CacheManager {
    */
   async shutdown(): Promise<void> {
     this.logger.info('关闭所有缓存连接...');
-    
-    const promises = Array.from(this.caches.values()).map(cache => 
-      cache.close().catch(error => 
-        this.logger.error(`关闭缓存失败: ${cache.getName()}`, error)
-      )
+
+    const promises = Array.from(this.caches.values()).map(cache =>
+      cache.close().catch(error => this.logger.error(`关闭缓存失败: ${cache.getName()}`, error))
     );
-    
+
     await Promise.all(promises);
     this.caches.clear();
-    
+
     await CacheFactory.shutdown();
     this.logger.info('所有缓存连接已关闭');
   }
@@ -118,7 +116,7 @@ export class CacheManager {
    */
   async healthCheck(): Promise<{ [name: string]: any }> {
     const stats: { [name: string]: any } = {};
-    
+
     try {
       const redisConfig = this.configService.get('redis');
       if (!redisConfig || !redisConfig.enabled) {
@@ -130,7 +128,7 @@ export class CacheManager {
       const redis = new Redis(redisConfig.url);
       await redis.ping();
       await redis.quit();
-      
+
       stats.redis = { status: 'healthy' };
     } catch (error) {
       stats.redis = { error: (error as Error).message };

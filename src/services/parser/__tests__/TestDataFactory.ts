@@ -34,8 +34,8 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 4,
             hasSideEffects: true,
-            isStandalone: true
-          }
+            isStandalone: true,
+          },
         },
         {
           name: '复杂的for循环',
@@ -45,23 +45,23 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 5,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '过于简单的if语句',
           code: 'if (true) console.log("hello");',
           expectedValid: false,
-          snippetType: 'control_structure'
+          snippetType: 'control_structure',
         },
         {
           name: '空代码块',
           code: 'if (condition) {}',
           expectedValid: false,
-          snippetType: 'control_structure'
-        }
+          snippetType: 'control_structure',
+        },
       ],
       boundaryCases: [
         {
@@ -72,10 +72,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 2,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -93,17 +93,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 4,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '空的try-catch',
           code: 'try {} catch (e) {}',
           expectedValid: false,
-          snippetType: 'error_handling'
-        }
+          snippetType: 'error_handling',
+        },
       ],
       boundaryCases: [
         {
@@ -114,10 +114,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 2,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -135,17 +135,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 6,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '过于简单的链式调用',
           code: 'obj.method().another();',
           expectedValid: false,
-          snippetType: 'function_call_chain'
-        }
+          snippetType: 'function_call_chain',
+        },
       ],
       boundaryCases: [
         {
@@ -156,10 +156,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 2,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -177,17 +177,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 5,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '过于简单的表达式',
           code: 'x + y',
           expectedValid: false,
-          snippetType: 'arithmetic_logical_expression'
-        }
+          snippetType: 'arithmetic_logical_expression',
+        },
       ],
       boundaryCases: [
         {
@@ -198,10 +198,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 2,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -219,17 +219,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 4,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '过于简单的对象',
           code: '{}',
           expectedValid: false,
-          snippetType: 'object_array_literal'
-        }
+          snippetType: 'object_array_literal',
+        },
       ],
       boundaryCases: [
         {
@@ -240,10 +240,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 1,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -261,17 +261,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 3,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '简单模板',
           code: '`Hello ${name}`',
           expectedValid: false,
-          snippetType: 'template_literal'
-        }
+          snippetType: 'template_literal',
+        },
       ],
       boundaryCases: [
         {
@@ -282,10 +282,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 1,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -303,17 +303,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 3,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '仅注释',
           code: '// This is just a comment',
           expectedValid: false,
-          snippetType: 'comment_marked'
-        }
+          snippetType: 'comment_marked',
+        },
       ],
       boundaryCases: [
         {
@@ -324,10 +324,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 1,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -345,17 +345,17 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 5,
             hasSideEffects: true,
-            isStandalone: true
-          }
-        }
+            isStandalone: true,
+          },
+        },
       ],
       invalidCases: [
         {
           name: '空代码块',
           code: '{}',
           expectedValid: false,
-          snippetType: 'logic_block'
-        }
+          snippetType: 'logic_block',
+        },
       ],
       boundaryCases: [
         {
@@ -366,10 +366,10 @@ export class TestDataFactory {
           expectedMetadata: {
             complexity: 2,
             hasSideEffects: false,
-            isStandalone: true
-          }
-        }
-      ]
+            isStandalone: true,
+          },
+        },
+      ],
     };
   }
 
@@ -385,7 +385,7 @@ export class TestDataFactory {
       object_array_literal: this.createObjectArrayLiteralTestCases(),
       template_literal: this.createTemplateLiteralTestCases(),
       comment_marked: this.createCommentMarkedTestCases(),
-      logic_block: this.createLogicBlockTestCases()
+      logic_block: this.createLogicBlockTestCases(),
     };
   }
 
@@ -394,11 +394,13 @@ export class TestDataFactory {
    */
   static getTestCasesForRule(ruleType: string): RuleTestCases {
     const allCases = this.getAllRuleTestCases();
-    return allCases[ruleType] || {
-      validCases: [],
-      invalidCases: [],
-      boundaryCases: []
-    };
+    return (
+      allCases[ruleType] || {
+        validCases: [],
+        invalidCases: [],
+        boundaryCases: [],
+      }
+    );
   }
 
   /**
@@ -410,18 +412,14 @@ export class TestDataFactory {
     large: string[];
   } {
     return {
-      small: [
-        'if (x > 0) return x;',
-        'const arr = [1, 2, 3];',
-        'obj.method().value'
-      ],
+      small: ['if (x > 0) return x;', 'const arr = [1, 2, 3];', 'obj.method().value'],
       medium: [
         'try {\n  const result = processData(data);\n  if (result.success) {\n    return result.value;\n  }\n} catch (error) {\n  console.error(error);\n}',
-        'const config = {\n  api: { baseUrl: "http://localhost", timeout: 5000 },\n  features: ["auth", "cache"],\n  enabled: true\n};'
+        'const config = {\n  api: { baseUrl: "http://localhost", timeout: 5000 },\n  features: ["auth", "cache"],\n  enabled: true\n};',
       ],
       large: [
-        'async function handleRequest(req, res) {\n  try {\n    const user = await authenticate(req.headers.authorization);\n    if (!user) {\n      return res.status(401).json({ error: "Unauthorized" });\n    }\n    \n    const data = await fetchUserData(user.id);\n    const processed = data\n      .filter(item => item.active)\n      .map(item => ({\n        ...item,\n        processed: true,\n        timestamp: Date.now()\n      }));\n    \n    return res.json({ success: true, data: processed });\n  } catch (error) {\n    console.error("Request error:", error);\n    return res.status(500).json({ error: "Internal server error" });\n  }\n}'
-      ]
+        'async function handleRequest(req, res) {\n  try {\n    const user = await authenticate(req.headers.authorization);\n    if (!user) {\n      return res.status(401).json({ error: "Unauthorized" });\n    }\n    \n    const data = await fetchUserData(user.id);\n    const processed = data\n      .filter(item => item.active)\n      .map(item => ({\n        ...item,\n        processed: true,\n        timestamp: Date.now()\n      }));\n    \n    return res.json({ success: true, data: processed });\n  } catch (error) {\n    console.error("Request error:", error);\n    return res.status(500).json({ error: "Internal server error" });\n  }\n}',
+      ],
     };
   }
 
@@ -435,34 +433,34 @@ export class TestDataFactory {
         code: 'if (x) { y(); }',
         expectedValid: true,
         snippetType: 'control_structure',
-        expectedMetadata: { complexity: 2, hasSideEffects: true, isStandalone: true }
+        expectedMetadata: { complexity: 2, hasSideEffects: true, isStandalone: true },
       },
       {
         name: '最大长度边界代码',
         code: '// 这是一个接近最大长度的代码片段\nconst result = data.filter(item => item.active)\n  .map(item => ({...item, processed: true}))\n  .reduce((acc, curr) => acc + curr.value, 0)\n  .toFixed(2);\nreturn result;',
         expectedValid: true,
         snippetType: 'arithmetic_logical_expression',
-        expectedMetadata: { complexity: 4, hasSideEffects: false, isStandalone: true }
+        expectedMetadata: { complexity: 4, hasSideEffects: false, isStandalone: true },
       },
       {
         name: '特殊字符处理',
         code: 'const str = "Hello \\"World\\"" + "It\'s test";',
         expectedValid: true,
         snippetType: 'arithmetic_logical_expression',
-        expectedMetadata: { complexity: 1, hasSideEffects: false, isStandalone: true }
+        expectedMetadata: { complexity: 1, hasSideEffects: false, isStandalone: true },
       },
       {
         name: '空代码块',
         code: '{}',
         expectedValid: false,
-        snippetType: 'logic_block'
+        snippetType: 'logic_block',
       },
       {
         name: '仅空格和分号',
         code: '   ;   ',
         expectedValid: false,
-        snippetType: 'control_structure'
-      }
+        snippetType: 'control_structure',
+      },
     ];
   }
 }
@@ -475,7 +473,7 @@ describe('TestDataFactory', () => {
     expect(testCases.invalidCases.length).toBeGreaterThan(0);
     expect(testCases.boundaryCases.length).toBeGreaterThan(0);
   });
-  
+
   it('should create error handling test cases', () => {
     const testCases = TestDataFactory.createErrorHandlingTestCases();
     expect(testCases.validCases.length).toBeGreaterThan(0);

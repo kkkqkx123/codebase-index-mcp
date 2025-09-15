@@ -21,12 +21,12 @@ export class CustomRuleService {
     this.compiler = new DSLCompiler();
     this.validator = new RuleValidationService();
     this.storagePath = storagePath;
-    
+
     // 确保存储目录存在
     if (!fs.existsSync(this.storagePath)) {
       fs.mkdirSync(this.storagePath, { recursive: true });
     }
-    
+
     // 从存储中加载现有规则
     this.loadRulesFromStorage();
   }
@@ -46,7 +46,7 @@ export class CustomRuleService {
       createdAt: new Date(),
       updatedAt: new Date(),
       author: 'Unknown',
-      enabled: true
+      enabled: true,
     };
 
     return rule;
@@ -75,7 +75,7 @@ export class CustomRuleService {
 
     // 保存规则到内存中
     this.rules.set(rule.id, rule);
-    
+
     // 保存规则到存储中
     this.saveRuleToStorage(rule);
   }
@@ -127,7 +127,7 @@ export class CustomRuleService {
       createdAt: existingRule.createdAt,
       updatedAt: new Date(),
       author: existingRule.author,
-      enabled: existingRule.enabled
+      enabled: existingRule.enabled,
     };
 
     // 保存更新后的规则
@@ -139,7 +139,7 @@ export class CustomRuleService {
   getRuleVersions(ruleId: string): CustomRule[] {
     const versions: CustomRule[] = [];
     const rule = this.rules.get(ruleId);
-    
+
     if (rule) {
       // 在文件系统中查找所有版本
       const files = fs.readdirSync(this.storagePath);
@@ -154,11 +154,11 @@ export class CustomRuleService {
           versions.push(versionedRule);
         }
       }
-      
+
       // 添加当前版本
       versions.push(rule);
     }
-    
+
     return versions;
   }
 
@@ -168,21 +168,21 @@ export class CustomRuleService {
     if (!rule) {
       throw new Error(`Rule with id ${ruleId} not found`);
     }
-    
+
     // 导出规则为JSON字符串
     return JSON.stringify(rule, null, 2);
- }
+  }
 
   importRule(ruleData: string): CustomRule {
     try {
       const rule: CustomRule = JSON.parse(ruleData);
-      
+
       // 验证导入的规则
       const validationResult = this.validator.validateRule(rule);
       if (!validationResult.isValid) {
         throw new Error(`Invalid imported rule: ${validationResult.errors.join(', ')}`);
       }
-      
+
       // 保存导入的规则
       this.saveRule(rule);
       return rule;
@@ -197,18 +197,18 @@ export class CustomRuleService {
     if (!rule) {
       throw new Error(`Rule with id ${ruleId} not found`);
     }
-    
+
     rule.enabled = !rule.enabled;
     rule.updatedAt = new Date();
     this.saveRule(rule);
-    
+
     return rule.enabled;
   }
 
   private generateRuleId(name: string): string {
     return name.toLowerCase().replace(/\s+/g, '_');
   }
-  
+
   private saveRuleToStorage(rule: CustomRule): void {
     try {
       const filePath = path.join(this.storagePath, `${rule.id}.json`);
@@ -218,7 +218,7 @@ export class CustomRuleService {
       console.error(`Failed to save rule ${rule.id} to storage:`, error);
     }
   }
-  
+
   private deleteRuleFromStorage(ruleId: string): void {
     try {
       const filePath = path.join(this.storagePath, `${ruleId}.json`);
@@ -229,7 +229,7 @@ export class CustomRuleService {
       console.error(`Failed to delete rule ${ruleId} from storage:`, error);
     }
   }
-  
+
   private loadRulesFromStorage(): void {
     try {
       const files = fs.readdirSync(this.storagePath);
@@ -248,13 +248,13 @@ export class CustomRuleService {
       console.error('Failed to load rules from storage:', error);
     }
   }
-  
+
   private incrementVersion(version: string): string {
     const versionParts = version.split('.');
     const major = parseInt(versionParts[0]);
     const minor = parseInt(versionParts[1]);
     const patch = parseInt(versionParts[2]);
-    
+
     return `${major}.${minor}.${patch + 1}`;
   }
 }

@@ -4,18 +4,30 @@ import { SnippetMetadata } from '../types';
 describe('SnippetValidationService', () => {
   describe('enhancedIsValidSnippet', () => {
     it('应该拒绝过短的代码片段', () => {
-      const result = SnippetValidationService.enhancedIsValidSnippet('a', 'control_structure', 'typescript');
+      const result = SnippetValidationService.enhancedIsValidSnippet(
+        'a',
+        'control_structure',
+        'typescript'
+      );
       expect(result).toBe(false);
     });
 
     it('应该拒绝过长的代码片段', () => {
       const longCode = 'a'.repeat(2000);
-      const result = SnippetValidationService.enhancedIsValidSnippet(longCode, 'control_structure', 'typescript');
+      const result = SnippetValidationService.enhancedIsValidSnippet(
+        longCode,
+        'control_structure',
+        'typescript'
+      );
       expect(result).toBe(false);
     });
 
     it('应该拒绝无意义的代码片段', () => {
-      const result = SnippetValidationService.enhancedIsValidSnippet('{ } ;', 'control_structure', 'typescript');
+      const result = SnippetValidationService.enhancedIsValidSnippet(
+        '{ } ;',
+        'control_structure',
+        'typescript'
+      );
       expect(result).toBe(false);
     });
 
@@ -23,13 +35,21 @@ describe('SnippetValidationService', () => {
       const code = `if (condition) {
   console.log('Hello');
 }`;
-      const result = SnippetValidationService.enhancedIsValidSnippet(code, 'control_structure', 'typescript');
+      const result = SnippetValidationService.enhancedIsValidSnippet(
+        code,
+        'control_structure',
+        'typescript'
+      );
       expect(result).toBe(true);
     });
 
     it('应该拒绝不包含控制结构关键字的代码', () => {
       const code = `console.log('Hello');`;
-      const result = SnippetValidationService.enhancedIsValidSnippet(code, 'control_structure', 'typescript');
+      const result = SnippetValidationService.enhancedIsValidSnippet(
+        code,
+        'control_structure',
+        'typescript'
+      );
       expect(result).toBe(false);
     });
   });

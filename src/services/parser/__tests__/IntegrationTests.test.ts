@@ -27,16 +27,16 @@ describe('Integration Tests', () => {
     controlStructureRule = new ControlStructureRule();
     errorHandlingRule = new ErrorHandlingRule();
     functionCallChainRule = new FunctionCallChainRule();
-    
+
     // Create rules array for SnippetExtractionService
     const rules: SnippetExtractionRule[] = [
       controlStructureRule,
       errorHandlingRule,
-      functionCallChainRule
+      functionCallChainRule,
     ];
-    
+
     snippetExtractionService = new SnippetExtractionService(treeSitterService, rules);
-    
+
     // Clear cache before each test
     treeSitterService.clearCache();
   });
@@ -47,11 +47,11 @@ describe('Integration Tests', () => {
     language: string = 'javascript'
   ): Promise<IntegrationTestResult> => {
     const startTime = Date.now();
-    
+
     try {
       // Step 1: Parse the code
       const parseResult = await treeSitterService.parseCode(code, language);
-      
+
       if (!parseResult.success) {
         return {
           name,
@@ -59,37 +59,37 @@ describe('Integration Tests', () => {
           snippetCount: 0,
           processingTime: Date.now() - startTime,
           cacheHitRate: '0%',
-          details: `Parsing failed: ${parseResult.error}`
+          details: `Parsing failed: ${parseResult.error}`,
         };
       }
-      
+
       // Step 2: Extract snippets using different rules
       const allSnippets = [];
-      
+
       // Control structures
       const controlSnippets = controlStructureRule.extract(parseResult.ast, code);
       allSnippets.push(...controlSnippets);
-      
+
       // Error handling
       const errorSnippets = errorHandlingRule.extract(parseResult.ast, code);
       allSnippets.push(...errorSnippets);
-      
+
       // Function call chains
       const functionSnippets = functionCallChainRule.extract(parseResult.ast, code);
       allSnippets.push(...functionSnippets);
-      
+
       // Step 3: Validate all snippets
-      const validSnippets = allSnippets.filter(snippet => 
+      const validSnippets = allSnippets.filter(snippet =>
         SnippetValidationService.enhancedIsValidSnippet(
-          snippet.content, 
-          snippet.snippetMetadata.snippetType, 
+          snippet.content,
+          snippet.snippetMetadata.snippetType,
           language
         )
       );
-      
+
       const processingTime = Date.now() - startTime;
       const cacheStats = treeSitterService.getCacheStats();
-      
+
       return {
         name,
         success: true,
@@ -100,8 +100,8 @@ describe('Integration Tests', () => {
           totalSnippets: allSnippets.length,
           validSnippets: validSnippets.length,
           invalidSnippets: allSnippets.length - validSnippets.length,
-          cacheStats
-        }
+          cacheStats,
+        },
       };
     } catch (error) {
       return {
@@ -110,7 +110,7 @@ describe('Integration Tests', () => {
         snippetCount: 0,
         processingTime: Date.now() - startTime,
         cacheHitRate: '0%',
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       };
     }
   };
@@ -158,9 +158,9 @@ describe('Integration Tests', () => {
           .then(results => console.log('Success:', results))
           .catch(error => console.error('Error:', error));
       `;
-      
+
       const result = await runIntegrationTest('Complex JavaScript Processing', complexCode);
-      
+
       expect(result.success).toBe(true);
       expect(result.snippetCount).toBeGreaterThanOrEqual(5);
       expect(result.processingTime).toBeLessThan(200);
@@ -210,9 +210,13 @@ describe('Integration Tests', () => {
           }
         }
       `;
-      
-      const result = await runIntegrationTest('TypeScript Processing', typescriptCode, 'typescript');
-      
+
+      const result = await runIntegrationTest(
+        'TypeScript Processing',
+        typescriptCode,
+        'typescript'
+      );
+
       expect(result.success).toBe(true);
       expect(result.snippetCount).toBeGreaterThanOrEqual(2);
       expect(result.processingTime).toBeLessThan(150);
@@ -288,9 +292,9 @@ describe('Integration Tests', () => {
                 await asyncio.sleep(0.01)
                 print(f"Saved item {item.id}")
       `;
-      
+
       const result = await runIntegrationTest('Python Processing', pythonCode, 'python');
-      
+
       expect(result.success).toBe(true);
       expect(result.snippetCount).toBeGreaterThanOrEqual(0);
       expect(result.processingTime).toBeLessThan(200);
@@ -332,27 +336,27 @@ describe('Integration Tests', () => {
           }
         }
       `;
-      
+
       // First run - no cache
       const firstResult = await runIntegrationTest('First Run', code);
-      
+
       // Second run - should benefit from cache
       const secondResult = await runIntegrationTest('Second Run', code);
-      
+
       // Third run - maximum cache benefit
       const thirdResult = await runIntegrationTest('Third Run', code);
-      
+
       expect(firstResult.success).toBe(true);
       expect(secondResult.success).toBe(true);
       expect(thirdResult.success).toBe(true);
-      
+
       // Cache hit rate should increase
       const firstHitRate = parseFloat(firstResult.cacheHitRate);
       const secondHitRate = parseFloat(secondResult.cacheHitRate);
       const thirdHitRate = parseFloat(thirdResult.cacheHitRate);
-      
+
       expect(thirdHitRate).toBeGreaterThan(firstHitRate);
-      
+
       // Processing time should generally decrease with caching (allow for measurement precision)
       if (secondResult.processingTime > 0 && firstResult.processingTime > 0) {
         // Allow for some variance in measurements, but cached should generally be faster or equal
@@ -370,20 +374,20 @@ describe('Integration Tests', () => {
     it('should handle cache invalidation correctly', async () => {
       const code1 = `function test1() { return 1; }`;
       const code2 = `function test2() { return 2; }`;
-      
+
       // Process first code
       const result1 = await runIntegrationTest('Code 1', code1);
-      
+
       // Process second code
       const result2 = await runIntegrationTest('Code 2', code2);
-      
+
       // Process first code again
       const result3 = await runIntegrationTest('Code 1 Again', code1);
-      
+
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
       expect(result3.success).toBe(true);
-      
+
       // Cache should still work for the same code
       expect(parseFloat(result3.cacheHitRate)).toBeGreaterThan(0);
     });
@@ -402,15 +406,18 @@ describe('Integration Tests', () => {
             this.value = 42
           // Missing closing brace
       `;
-      
+
       const result = await runIntegrationTest('Malformed Code', malformedCode);
-      
+
       // Should still succeed because we're using mock parser
       expect(result.success).toBe(true);
     });
 
     it('should handle edge cases with very large code', async () => {
-      const largeCode = Array(100).fill(0).map((_, i) => `
+      const largeCode = Array(100)
+        .fill(0)
+        .map(
+          (_, i) => `
         function function_${i}() {
           const data = [${i}, ${i + 1}, ${i + 2}];
           const result = data.map(x => x * 2).filter(x => x > ${i});
@@ -422,10 +429,12 @@ describe('Integration Tests', () => {
         } else {
           console.log('Odd number:', ${i});
         }
-      `).join('\n');
-      
+      `
+        )
+        .join('\n');
+
       const result = await runIntegrationTest('Large Code Processing', largeCode);
-      
+
       expect(result.success).toBe(true);
       expect(result.snippetCount).toBeGreaterThan(50);
       expect(result.processingTime).toBeLessThan(1000);
@@ -449,7 +458,7 @@ describe('Integration Tests', () => {
               }
             };
           `,
-          language: 'javascript'
+          language: 'javascript',
         },
         {
           name: 'TypeScript with Generics',
@@ -471,7 +480,7 @@ describe('Integration Tests', () => {
               }
             }
           `,
-          language: 'typescript'
+          language: 'typescript',
         },
         {
           name: 'Python with Type Hints',
@@ -495,22 +504,22 @@ describe('Integration Tests', () => {
                         raise ValueError("No item set")
                     return self.item
           `,
-          language: 'python'
-        }
+          language: 'python',
+        },
       ];
-      
+
       const results = [];
       for (const testCase of testCases) {
         const result = await runIntegrationTest(testCase.name, testCase.code, testCase.language);
         results.push(result);
       }
-      
+
       // All languages should process successfully
       results.forEach(result => {
         expect(result.success).toBe(true);
         expect(result.snippetCount).toBeGreaterThanOrEqual(0);
       });
-      
+
       // Cache should work across different languages
       const finalCacheStats = treeSitterService.getCacheStats();
       expect(parseFloat(finalCacheStats.hitRate)).toBeGreaterThanOrEqual(0);
@@ -585,13 +594,13 @@ describe('Integration Tests', () => {
           }
         }
       `;
-      
+
       const result = await runIntegrationTest('Performance Benchmark', benchmarkCode);
-      
+
       expect(result.success).toBe(true);
       expect(result.snippetCount).toBeGreaterThanOrEqual(3);
       expect(result.processingTime).toBeLessThan(300);
-      
+
       // Cache should be working
       const cacheHitRate = parseFloat(result.cacheHitRate);
       expect(cacheHitRate).toBeGreaterThanOrEqual(0);

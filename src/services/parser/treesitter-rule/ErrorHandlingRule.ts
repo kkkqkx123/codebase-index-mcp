@@ -9,12 +9,12 @@ export class ErrorHandlingRule extends AbstractSnippetRule {
 
   protected shouldProcessNode(node: Parser.SyntaxNode, sourceCode: string): boolean {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
-    
+
     // Skip catch and finally clauses as they're handled with try statements
     if (node.type === 'catch_clause' || node.type === 'finally_clause') {
       return false;
     }
-    
+
     return true;
   }
 
@@ -44,8 +44,8 @@ export class ErrorHandlingRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }

@@ -25,7 +25,10 @@ export class EmbeddingService {
     this.embedderFactory = embedderFactory;
   }
 
-  async convertChunksToVectorPoints(chunks: CodeChunk[], options: IndexingOptions): Promise<VectorPoint[]> {
+  async convertChunksToVectorPoints(
+    chunks: CodeChunk[],
+    options: IndexingOptions
+  ): Promise<VectorPoint[]> {
     const vectorPoints: VectorPoint[] = [];
     const batchSize = options.batchSize || 100;
 
@@ -59,17 +62,17 @@ export class EmbeddingService {
                 exports: chunk.exports || [],
                 complexity: chunk.metadata.complexity || 1,
                 parameters: chunk.metadata.parameters || [],
-                returnType: chunk.metadata.returnType || 'unknown'
+                returnType: chunk.metadata.returnType || 'unknown',
               },
-              timestamp: new Date()
-            }
+              timestamp: new Date(),
+            },
           };
 
           vectorPoints.push(vectorPoint);
         } catch (error) {
           this.logger.warn('Failed to generate embedding for chunk', {
             chunkId: chunk.id,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -82,14 +85,14 @@ export class EmbeddingService {
     try {
       // Use the embedder factory to get the configured embedder and generate embedding
       const result = await this.embedderFactory.embed({ text: content });
-      
+
       // Handle both single result and array result
       const embeddingResult = Array.isArray(result) ? result[0] : result;
       return embeddingResult.vector;
     } catch (error) {
       this.logger.error('Failed to generate embedding', {
         error: error instanceof Error ? error.message : String(error),
-        contentLength: content.length
+        contentLength: content.length,
       });
       throw error;
     }
@@ -134,7 +137,7 @@ export class EmbeddingService {
     options: IndexingOptions
   ): Promise<VectorPoint[]> {
     // Generate embeddings concurrently for better performance
-    const embeddingPromises = batch.map(async (chunk) => {
+    const embeddingPromises = batch.map(async chunk => {
       try {
         const vector = await this.generateEmbedding(chunk.content);
 
@@ -161,17 +164,17 @@ export class EmbeddingService {
               exports: chunk.exports || [],
               complexity: chunk.metadata.complexity || 1,
               parameters: chunk.metadata.parameters || [],
-              returnType: chunk.metadata.returnType || 'unknown'
+              returnType: chunk.metadata.returnType || 'unknown',
             },
-            timestamp: new Date()
-          }
+            timestamp: new Date(),
+          },
         };
 
         return vectorPoint;
       } catch (error) {
         this.logger.warn('Failed to generate embedding for chunk', {
           chunkId: chunk.id,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
         return null; // Filter out failed chunks
       }

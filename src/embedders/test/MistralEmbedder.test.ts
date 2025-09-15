@@ -16,23 +16,23 @@ class MockConfigService {
         mistral: {
           apiKey: 'test-api-key',
           baseUrl: 'https://api.mistral.ai',
-          model: 'mistral-embed'
-        }
+          model: 'mistral-embed',
+        },
       },
       batchProcessing: {
         processingTimeout: 300000, // 5 minutes
-        maxConcurrentOperations: 5
+        maxConcurrentOperations: 5,
       },
       caching: {
         defaultTTL: 300,
-        maxSize: 1000
+        maxSize: 1000,
       },
       cache: {
         ttl: 300,
         maxEntries: 1000,
-        cleanupInterval: 60
+        cleanupInterval: 60,
       },
-      ...config
+      ...config,
     };
   }
 
@@ -74,12 +74,12 @@ class MockErrorHandlerService {
       stack: error.stack,
       context,
       severity: 'medium',
-      handled: false
+      handled: false,
     };
   }
 
   handleAsyncError(operation: () => Promise<any>, context: any): Promise<any> {
-    return operation().catch((error) => {
+    return operation().catch(error => {
       this.handleError(error, context);
       throw error;
     });
@@ -107,7 +107,7 @@ class MockEmbeddingCacheService {
     return {
       size: this.cache.size,
       maxSize: 100,
-      defaultTTL: 300000
+      defaultTTL: 300000,
     };
   }
 }
@@ -149,10 +149,10 @@ describe('MistralEmbedder', () => {
         embedding: {
           mistral: {
             apiKey: 'test-api-key',
-            baseUrl: 'https://api.mistral.ai'
+            baseUrl: 'https://api.mistral.ai',
             // No model specified
-          }
-        }
+          },
+        },
       });
 
       const embedder = new MistralEmbedder(
@@ -177,10 +177,10 @@ describe('MistralEmbedder', () => {
         embedding: {
           mistral: {
             apiKey: 'test-api-key',
-            model: 'mistral-embed'
+            model: 'mistral-embed',
             // No baseUrl specified
-          }
-        }
+          },
+        },
       });
 
       const embedder = new MistralEmbedder(
@@ -247,8 +247,8 @@ describe('MistralEmbedder', () => {
           vector: [0.1, 0.2, 0.3],
           dimensions: 3,
           model: 'mistral-embed',
-          processingTime: 100
-        }
+          processingTime: 100,
+        },
       ]);
 
       await mistralEmbedder.embed(input);

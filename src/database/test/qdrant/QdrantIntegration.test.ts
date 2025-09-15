@@ -28,19 +28,28 @@ class MockErrorHandlerService {
   handleError(error: Error, context?: any) {
     console.error(`[ERROR HANDLER] ${error.message}`, context);
     console.error(`[ERROR STACK] ${error.stack}`);
-    return { id: 'test-error-id', timestamp: new Date(), type: 'test', message: error.message, stack: error.stack, context: context || {}, severity: 'medium', handled: false };
+    return {
+      id: 'test-error-id',
+      timestamp: new Date(),
+      type: 'test',
+      message: error.message,
+      stack: error.stack,
+      context: context || {},
+      severity: 'medium',
+      handled: false,
+    };
   }
 }
 
 // Function to run PowerShell script
 async function runPowerShellScript(scriptName: string): Promise<boolean> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const scriptPath = join(__dirname, scriptName);
     const child = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
-      cwd: __dirname
+      cwd: __dirname,
     });
 
-    child.on('close', (code) => {
+    child.on('close', code => {
       resolve(code === 0);
     });
 
@@ -83,11 +92,7 @@ describe('Qdrant Integration', () => {
     const loggerService = new MockLoggerService() as unknown as LoggerService;
     const errorHandlerService = new MockErrorHandlerService() as unknown as ErrorHandlerService;
 
-    qdrantClient = new QdrantClientWrapper(
-      configService,
-      loggerService,
-      errorHandlerService
-    );
+    qdrantClient = new QdrantClientWrapper(configService, loggerService, errorHandlerService);
   });
 
   afterEach(async () => {
@@ -159,8 +164,8 @@ describe('Qdrant Integration', () => {
           startLine: 1,
           endLine: 10,
           metadata: { category: 'test' },
-          timestamp: new Date()
-        }
+          timestamp: new Date(),
+        },
       },
       {
         id: 2,
@@ -173,9 +178,9 @@ describe('Qdrant Integration', () => {
           startLine: 15,
           endLine: 25,
           metadata: { category: 'test' },
-          timestamp: new Date()
-        }
-      }
+          timestamp: new Date(),
+        },
+      },
     ];
 
     const upsertResult = await qdrantClient.upsertPoints(collectionName, points);
@@ -187,8 +192,8 @@ describe('Qdrant Integration', () => {
       limit: 5,
       scoreThreshold: 0.1,
       filter: {
-        language: ['typescript']
-      }
+        language: ['typescript'],
+      },
     });
 
     expect(results).toBeDefined();
@@ -217,9 +222,9 @@ describe('Qdrant Integration', () => {
           startLine: 1,
           endLine: 10,
           metadata: {},
-          timestamp: new Date()
-        }
-      }
+          timestamp: new Date(),
+        },
+      },
     ];
 
     await qdrantClient.upsertPoints(collectionName, points);
@@ -255,9 +260,9 @@ describe('Qdrant Integration', () => {
           startLine: 1,
           endLine: 10,
           metadata: {},
-          timestamp: new Date()
-        }
-      }
+          timestamp: new Date(),
+        },
+      },
     ];
 
     await qdrantClient.upsertPoints(collectionName, points);

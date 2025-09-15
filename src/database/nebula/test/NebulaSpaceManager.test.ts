@@ -9,18 +9,18 @@ const mockLogger = {
   info: jest.fn(),
   error: jest.fn(),
   debug: jest.fn(),
-  warn: jest.fn()
+  warn: jest.fn(),
 };
 
 const mockErrorHandler = {
-  handleError: jest.fn()
+  handleError: jest.fn(),
 };
 
 const mockConfigService = {
   get: jest.fn().mockReturnValue({
     partitionNum: 10,
     replicaFactor: 1,
-    vidType: 'FIXED_STRING(32)'
+    vidType: 'FIXED_STRING(32)',
   }),
   getAll: jest.fn().mockReturnValue({
     nebula: {
@@ -28,14 +28,14 @@ const mockConfigService = {
       port: 9669,
       username: 'root',
       password: 'nebula',
-      space: 'test_space'
-    }
-  })
+      space: 'test_space',
+    },
+  }),
 };
 
 const mockNebulaService = {
   executeReadQuery: jest.fn(),
-  executeWriteQuery: jest.fn()
+  executeWriteQuery: jest.fn(),
 };
 
 describe('NebulaSpaceManager', () => {
@@ -72,7 +72,7 @@ describe('NebulaSpaceManager', () => {
       const result = await spaceManager.createSpace(mockProjectId, {
         partitionNum: 10,
         replicaFactor: 1,
-        vidType: 'FIXED_STRING(32)'
+        vidType: 'FIXED_STRING(32)',
       });
 
       expect(result).toBe(true);
@@ -87,7 +87,7 @@ describe('NebulaSpaceManager', () => {
       const result = await spaceManager.createSpace(mockProjectId, {
         partitionNum: 10,
         replicaFactor: 1,
-        vidType: 'FIXED_STRING(32)'
+        vidType: 'FIXED_STRING(32)',
       });
 
       expect(result).toBe(false);
@@ -120,10 +120,7 @@ describe('NebulaSpaceManager', () => {
   describe('listSpaces', () => {
     it('should list spaces successfully', async () => {
       mockNebulaService.executeReadQuery.mockResolvedValueOnce({
-        data: [
-          { Name: 'space1' },
-          { Name: 'project_test-project-id' }
-        ]
+        data: [{ Name: 'space1' }, { Name: 'project_test-project-id' }],
       });
 
       const result = await spaceManager.listSpaces();
@@ -149,11 +146,11 @@ describe('NebulaSpaceManager', () => {
         replica_factor: 1,
         vid_type: 'FIXED_STRING(32)',
         charset: 'utf8',
-        collate: 'utf8_bin'
+        collate: 'utf8_bin',
       };
 
       mockNebulaService.executeReadQuery.mockResolvedValueOnce({
-        data: [mockSpaceInfo]
+        data: [mockSpaceInfo],
       });
 
       const result = await spaceManager.getSpaceInfo(mockProjectId);
@@ -163,7 +160,7 @@ describe('NebulaSpaceManager', () => {
 
     it('should return null when space does not exist', async () => {
       mockNebulaService.executeReadQuery.mockResolvedValueOnce({
-        data: []
+        data: [],
       });
 
       const result = await spaceManager.getSpaceInfo(mockProjectId);
@@ -175,10 +172,7 @@ describe('NebulaSpaceManager', () => {
   describe('checkSpaceExists', () => {
     it('should return true when space exists', async () => {
       mockNebulaService.executeReadQuery.mockResolvedValueOnce({
-        data: [
-          { Name: 'space1' },
-          { Name: 'project_test-project-id' }
-        ]
+        data: [{ Name: 'space1' }, { Name: 'project_test-project-id' }],
       });
 
       const result = await spaceManager.checkSpaceExists(mockProjectId);
@@ -188,10 +182,7 @@ describe('NebulaSpaceManager', () => {
 
     it('should return false when space does not exist', async () => {
       mockNebulaService.executeReadQuery.mockResolvedValueOnce({
-        data: [
-          { Name: 'space1' },
-          { Name: 'space2' }
-        ]
+        data: [{ Name: 'space1' }, { Name: 'space2' }],
       });
 
       const result = await spaceManager.checkSpaceExists(mockProjectId);

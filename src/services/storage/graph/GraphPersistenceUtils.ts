@@ -39,12 +39,12 @@ export class GraphPersistenceUtils {
     @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(TYPES.NebulaService) private nebulaService: NebulaService,
     @inject(TYPES.NebulaQueryBuilder) private queryBuilder: NebulaQueryBuilder
-  ) { }
+  ) {}
 
   createProjectNode(projectId: string): GraphQuery {
     return {
       nGQL: `INSERT VERTEX Project(id, name, createdAt, updatedAt) VALUES $projectId:($projectId, $projectId, now(), now())`,
-      parameters: { projectId }
+      parameters: { projectId },
     };
   }
 
@@ -63,8 +63,8 @@ export class GraphPersistenceUtils {
         linesOfCode: file.metadata.linesOfCode,
         functions: file.metadata.functions,
         classes: file.metadata.classes,
-        lastModified: new Date().toISOString()
-      }
+        lastModified: new Date().toISOString(),
+      },
     };
 
     queries.push(fileQuery);
@@ -72,7 +72,7 @@ export class GraphPersistenceUtils {
     if (options.projectId) {
       queries.push({
         nGQL: `INSERT EDGE BELONGS_TO() VALUES $fileId->$projectId:()`,
-        parameters: { fileId: file.id, projectId: options.projectId }
+        parameters: { fileId: file.id, projectId: options.projectId },
       });
     }
 
@@ -87,7 +87,11 @@ export class GraphPersistenceUtils {
     return this.createChunkNodeQueries(chunk, null, options);
   }
 
-  private createChunkNodeQueries(chunk: CodeChunk, file: ParsedFile | null, options: GraphPersistenceOptions): GraphQuery[] {
+  private createChunkNodeQueries(
+    chunk: CodeChunk,
+    file: ParsedFile | null,
+    options: GraphPersistenceOptions
+  ): GraphQuery[] {
     const queries: GraphQuery[] = [];
 
     if (chunk.type === 'function') {
@@ -102,14 +106,14 @@ export class GraphPersistenceUtils {
           complexity: chunk.metadata.complexity || 1,
           parameters: chunk.metadata.parameters || [],
           returnType: chunk.metadata.returnType || 'unknown',
-          language: chunk.metadata.language || 'unknown'
-        }
+          language: chunk.metadata.language || 'unknown',
+        },
       });
 
       if (file) {
         queries.push({
           nGQL: `INSERT EDGE CONTAINS() VALUES $fileId->$chunkId:()`,
-          parameters: { fileId: file.id, chunkId: chunk.id }
+          parameters: { fileId: file.id, chunkId: chunk.id },
         });
       }
     }
@@ -126,14 +130,14 @@ export class GraphPersistenceUtils {
           methods: chunk.metadata.methods || 0,
           properties: chunk.metadata.properties || 0,
           inheritance: chunk.metadata.inheritance || [],
-          language: chunk.metadata.language || 'unknown'
-        }
+          language: chunk.metadata.language || 'unknown',
+        },
       });
 
       if (file) {
         queries.push({
           nGQL: `INSERT EDGE CONTAINS() VALUES $fileId->$chunkId:()`,
-          parameters: { fileId: file.id, chunkId: chunk.id }
+          parameters: { fileId: file.id, chunkId: chunk.id },
         });
       }
     }
@@ -150,16 +154,16 @@ export class GraphPersistenceUtils {
           nGQL: `INSERT VERTEX Import(id, module, updatedAt) VALUES $importId:($importId, $importName, now())`,
           parameters: {
             importId: `import_${file.id}_${importName}`,
-            importName: importName
-          }
+            importName: importName,
+          },
         });
 
         queries.push({
           nGQL: `INSERT EDGE IMPORTS() VALUES $fileId->$importId:()`,
           parameters: {
             fileId: file.id,
-            importId: `import_${file.id}_${importName}`
-          }
+            importId: `import_${file.id}_${importName}`,
+          },
         });
       }
     }
@@ -196,7 +200,7 @@ export class GraphPersistenceUtils {
           this.logger.debug('Operation failed, retrying', {
             attempt,
             maxAttempts,
-            error: lastError.message
+            error: lastError.message,
           });
 
           // Wait before retrying
@@ -220,7 +224,7 @@ export class GraphPersistenceUtils {
           complexity: chunk.metadata.complexity || 1,
           parameters: chunk.metadata.parameters || [],
           returnType: chunk.metadata.returnType || 'unknown',
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         });
         queries.push({ nGQL: updateQuery.query, parameters: updateQuery.params });
       }
@@ -233,7 +237,7 @@ export class GraphPersistenceUtils {
           methods: chunk.metadata.methods || 0,
           properties: chunk.metadata.properties || 0,
           inheritance: chunk.metadata.inheritance || [],
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         });
         queries.push({ nGQL: updateQuery.query, parameters: updateQuery.params });
       }
@@ -242,7 +246,10 @@ export class GraphPersistenceUtils {
     return queries;
   }
 
-  async getExistingNodeIds(nodeType: string, options: GraphPersistenceOptions = {}): Promise<string[]> {
+  async getExistingNodeIds(
+    nodeType: string,
+    options: GraphPersistenceOptions = {}
+  ): Promise<string[]> {
     try {
       const query = this.queryBuilder.buildPagedQuery(
         `(n:${nodeType})`,
@@ -262,7 +269,7 @@ export class GraphPersistenceUtils {
     } catch (error) {
       this.logger.error('Failed to get existing node IDs', {
         nodeType,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       throw error;
     }
@@ -298,13 +305,16 @@ export class GraphPersistenceUtils {
       this.logger.error('Failed to get existing node IDs by IDs', {
         nodeType,
         nodeIdsCount: nodeIds.length,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       throw error;
     }
   }
 
-  async getNodeIdsByFiles(filePaths: string[], options: GraphPersistenceOptions = {}): Promise<Record<string, string[]>> {
+  async getNodeIdsByFiles(
+    filePaths: string[],
+    options: GraphPersistenceOptions = {}
+  ): Promise<Record<string, string[]>> {
     try {
       const result: Record<string, string[]> = {};
 
@@ -330,7 +340,7 @@ export class GraphPersistenceUtils {
     } catch (error) {
       this.logger.error('Failed to get node IDs by files', {
         filePaths,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       throw error;
     }
@@ -345,7 +355,7 @@ export class GraphPersistenceUtils {
     this.logger.debug('Memory usage', {
       usedMemory: `${usedMemory.toFixed(2)}MB`,
       totalMemory: `${totalMemory.toFixed(2)}MB`,
-      memoryUsagePercent: `${memoryUsagePercent.toFixed(2)}%`
+      memoryUsagePercent: `${memoryUsagePercent.toFixed(2)}%`,
     });
 
     return memoryUsagePercent < 80;
@@ -364,10 +374,7 @@ export class GraphPersistenceUtils {
       return totalItems;
     }
 
-    const optimalSize = Math.min(
-      Math.floor(baseSize * Math.log10(totalItems)),
-      maxSize
-    );
+    const optimalSize = Math.min(Math.floor(baseSize * Math.log10(totalItems)), maxSize);
 
     return Math.max(baseSize, optimalSize);
   }
@@ -388,8 +395,8 @@ export class GraphPersistenceUtils {
 
   async waitForSpaceDeletion(
     nebulaService: NebulaService,
-    spaceName: string, 
-    maxRetries: number = 30, 
+    spaceName: string,
+    maxRetries: number = 30,
     retryDelay: number = 1000
   ): Promise<void> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -409,7 +416,7 @@ export class GraphPersistenceUtils {
         this.logger.debug('Waiting for space deletion', {
           spaceName,
           attempt,
-          maxRetries
+          maxRetries,
         });
 
         await this.delay(retryDelay);
@@ -417,11 +424,13 @@ export class GraphPersistenceUtils {
         this.logger.warn('Error checking space deletion status', {
           spaceName,
           error: (error as Error).message,
-          attempt
+          attempt,
         });
 
         if (attempt === maxRetries) {
-          throw new Error(`Failed to confirm space deletion after ${maxRetries} attempts: ${(error as Error).message}`);
+          throw new Error(
+            `Failed to confirm space deletion after ${maxRetries} attempts: ${(error as Error).message}`
+          );
         }
 
         await this.delay(retryDelay);
@@ -442,7 +451,7 @@ export class GraphPersistenceUtils {
         'CREATE EDGE INDEX IF NOT EXISTS unique_contains_id ON Contains();',
         'CREATE EDGE INDEX IF NOT EXISTS unique_imports_id ON Imports();',
         'CREATE EDGE INDEX IF NOT EXISTS unique_extends_id ON Extends();',
-        'CREATE EDGE INDEX IF NOT EXISTS unique_implements_id ON Implements();'
+        'CREATE EDGE INDEX IF NOT EXISTS unique_implements_id ON Implements();',
       ];
 
       for (const constraint of constraints) {
@@ -452,7 +461,7 @@ export class GraphPersistenceUtils {
       logger.debug('Constraints ensured successfully');
     } catch (error) {
       logger.error('Failed to ensure constraints', {
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       throw error;
     }
@@ -463,17 +472,21 @@ export class GraphPersistenceUtils {
       id: record.id || record._id,
       type: record.type || record.tag || 'Unknown',
       name: record.name || 'Unknown',
-      properties: record.properties || {}
+      properties: record.properties || {},
     };
   }
 
-  recordToGraphRelationship(record: any, sourceId: string, targetId: string): CodeGraphRelationship {
+  recordToGraphRelationship(
+    record: any,
+    sourceId: string,
+    targetId: string
+  ): CodeGraphRelationship {
     return {
       id: record.id || record._id,
       type: record.type || record.edge || 'Unknown',
       sourceId,
       targetId,
-      properties: record.properties || {}
+      properties: record.properties || {},
     };
   }
 
@@ -485,7 +498,7 @@ export class GraphPersistenceUtils {
       // Monitor connection pool status
       const stats = await nebulaService.getDatabaseStats();
       performanceMonitor.updateConnectionPoolStatus('healthy');
-      
+
       // Set up periodic monitoring
       const interval = setInterval(async () => {
         try {
@@ -497,7 +510,7 @@ export class GraphPersistenceUtils {
           performanceMonitor.updateConnectionPoolStatus('error');
         }
       }, 30000); // Check every 30 seconds
-      
+
       // Ensure interval doesn't prevent Node.js from exiting
       if (interval && interval.unref) {
         interval.unref();
@@ -507,15 +520,12 @@ export class GraphPersistenceUtils {
     }
   }
 
-  async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  async processWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-      
+
       operation()
         .then(result => {
           clearTimeout(timeout);
@@ -542,23 +552,26 @@ export class GraphPersistenceUtils {
       // Use NebulaQueryBuilder to build count queries
       const tagResult = await nebulaService.executeReadQuery('SHOW TAGS');
       const edgeResult = await nebulaService.executeReadQuery('SHOW EDGES');
-      
+
       const nodeTypes: Record<string, number> = {};
       const relationshipTypes: Record<string, number> = {};
-      
+
       // Count nodes for each tag
       if (tagResult && Array.isArray(tagResult)) {
         for (const tag of tagResult) {
           const tagName = tag.Name || tag.name || 'Unknown';
           const countQuery = queryBuilder.buildCountQuery(tagName);
-          const countResult = await nebulaService.executeReadQuery(countQuery.query, countQuery.params);
-          
+          const countResult = await nebulaService.executeReadQuery(
+            countQuery.query,
+            countQuery.params
+          );
+
           if (countResult && Array.isArray(countResult) && countResult.length > 0) {
             nodeTypes[tagName] = countResult[0].total || 0;
           }
         }
       }
-      
+
       // Count relationships for each edge type
       if (edgeResult && Array.isArray(edgeResult)) {
         for (const edge of edgeResult) {
@@ -568,15 +581,18 @@ export class GraphPersistenceUtils {
           relationshipTypes[edgeName] = 0;
         }
       }
-      
+
       const totalNodes = Object.values(nodeTypes).reduce((sum, count) => sum + count, 0);
-      const totalRelationships = Object.values(relationshipTypes).reduce((sum, count) => sum + count, 0);
-      
+      const totalRelationships = Object.values(relationshipTypes).reduce(
+        (sum, count) => sum + count,
+        0
+      );
+
       return {
         nodeCount: totalNodes,
         relationshipCount: totalRelationships,
         nodeTypes,
-        relationshipTypes
+        relationshipTypes,
       };
     } catch (error) {
       // Fallback to basic implementation
@@ -584,7 +600,7 @@ export class GraphPersistenceUtils {
         nodeCount: 0,
         relationshipCount: 0,
         nodeTypes: {},
-        relationshipTypes: {}
+        relationshipTypes: {},
       } as const;
     }
   }

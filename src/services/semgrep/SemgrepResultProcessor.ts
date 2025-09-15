@@ -1,7 +1,15 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
-import { SemgrepScanResult, SemgrepFinding, SemgrepError, ErrorInfo, GraphNode, VectorDocument, EnhancedAnalysisResult } from '../../models/StaticAnalysisTypes';
+import {
+  SemgrepScanResult,
+  SemgrepFinding,
+  SemgrepError,
+  ErrorInfo,
+  GraphNode,
+  VectorDocument,
+  EnhancedAnalysisResult,
+} from '../../models/StaticAnalysisTypes';
 
 /**
  * Semgrep结果处理器
@@ -9,9 +17,7 @@ import { SemgrepScanResult, SemgrepFinding, SemgrepError, ErrorInfo, GraphNode, 
  */
 @injectable()
 export class SemgrepResultProcessor {
-  constructor(
-    @inject(TYPES.LoggerService) private logger: LoggerService
-  ) {}
+  constructor(@inject(TYPES.LoggerService) private logger: LoggerService) {}
 
   /**
    * 处理原始Semgrep结果
@@ -34,7 +40,7 @@ export class SemgrepResultProcessor {
           semgrepVersion: '',
           configHash: '',
           projectHash: '',
-        }
+        },
       };
     } catch (error) {
       this.logger.error('Failed to process Semgrep result:', error);
@@ -44,11 +50,13 @@ export class SemgrepResultProcessor {
         scanTime: new Date(),
         duration: 0,
         findings: [],
-        errors: [{
-          type: 'ProcessingError',
-          message: error instanceof Error ? error.message : String(error),
-          level: 'ERROR'
-        }],
+        errors: [
+          {
+            type: 'ProcessingError',
+            message: error instanceof Error ? error.message : String(error),
+            level: 'ERROR',
+          },
+        ],
         summary: {
           totalFiles: 0,
           totalFindings: 0,
@@ -63,13 +71,13 @@ export class SemgrepResultProcessor {
             matchingTime: 0,
             ruleParseTime: 0,
             fileParseTime: 0,
-          }
+          },
         },
         metadata: {
           semgrepVersion: '',
           configHash: '',
           projectHash: '',
-        }
+        },
       };
     }
   }
@@ -82,9 +90,11 @@ export class SemgrepResultProcessor {
       return [];
     }
 
-    return rawResult.findings.map((result: any) => {
-      return this.transformFinding(result);
-    }).filter(Boolean);
+    return rawResult.findings
+      .map((result: any) => {
+        return this.transformFinding(result);
+      })
+      .filter(Boolean);
   }
 
   /**
@@ -104,14 +114,14 @@ export class SemgrepResultProcessor {
           start: {
             line: result.start?.line || 1,
             col: result.start?.col || 1,
-            offset: 0
+            offset: 0,
           },
           end: {
             line: result.end?.line || result.start?.line || 1,
             col: result.end?.col || result.start?.col || 1,
-            offset: 0
+            offset: 0,
           },
-          lines: result.extra?.lines || []
+          lines: result.extra?.lines || [],
         },
         extra: result.extra || {},
         codeContext: {
@@ -131,7 +141,7 @@ export class SemgrepResultProcessor {
         cwe: result.extra?.metadata?.cwe || [],
         owasp: result.extra?.metadata?.owasp || [],
         references: result.extra?.metadata?.references || [],
-        fix: result.extra?.fix
+        fix: result.extra?.fix,
       };
 
       return finding;
@@ -144,7 +154,10 @@ export class SemgrepResultProcessor {
   /**
    * 计算统计信息
    */
-  private calculateSummary(rawResult: any, findings: SemgrepFinding[]): {
+  private calculateSummary(
+    rawResult: any,
+    findings: SemgrepFinding[]
+  ): {
     totalFiles: number;
     totalFindings: number;
     errorCount: number;
@@ -174,7 +187,7 @@ export class SemgrepResultProcessor {
         matchingTime: 0,
         ruleParseTime: 0,
         fileParseTime: 0,
-      }
+      },
     };
   }
 
@@ -191,24 +204,24 @@ export class SemgrepResultProcessor {
         return {
           type: 'GenericError',
           message: error,
-          level: 'ERROR'
+          level: 'ERROR',
         };
       }
-      
+
       if (error.message) {
         return {
           type: error.type || 'Error',
           message: error.message,
           level: error.level || 'ERROR',
           details: error.details,
-          path: error.path
+          path: error.path,
         };
       }
-      
+
       return {
         type: 'UnknownError',
         message: JSON.stringify(error),
-        level: 'ERROR'
+        level: 'ERROR',
       };
     });
   }
@@ -218,12 +231,12 @@ export class SemgrepResultProcessor {
    */
   private mapSemgrepSeverity(severity: string): 'ERROR' | 'WARNING' | 'INFO' {
     const severityMap: Record<string, 'ERROR' | 'WARNING' | 'INFO'> = {
-      'ERROR': 'ERROR',
-      'error': 'ERROR',
-      'WARNING': 'WARNING',
-      'warning': 'WARNING',
-      'INFO': 'INFO',
-      'info': 'INFO',
+      ERROR: 'ERROR',
+      error: 'ERROR',
+      WARNING: 'WARNING',
+      warning: 'WARNING',
+      INFO: 'INFO',
+      info: 'INFO',
     };
 
     return severityMap[severity] || 'INFO';
@@ -305,23 +318,23 @@ export class SemgrepResultProcessor {
   } {
     const severityCounts = this.groupBySeverity(result.findings);
     const categoryCounts = this.groupByCategory(result.findings);
-    
+
     const summary = `扫描完成：发现 ${result.findings.length} 个问题，${result.summary.totalFiles} 个文件被扫描`;
-    
+
     return {
       summary,
       details: [
         {
           type: 'severity',
           counts: severityCounts,
-          description: '按严重程度分类'
+          description: '按严重程度分类',
         },
         {
           type: 'category',
           counts: categoryCounts,
-          description: '按类别分类'
-        }
-      ]
+          description: '按类别分类',
+        },
+      ],
     };
   }
 
@@ -330,8 +343,16 @@ export class SemgrepResultProcessor {
    */
   processEnhancedResults(enhancedResult: EnhancedAnalysisResult): void {
     const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
-    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
-    this.logger.info(`处理增强型扫描结果: ${issues.length} 个问题, ${controlFlow.nodes.length} 个控制流节点`);
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || {
+      nodes: [],
+      edges: [],
+      entryPoint: '',
+      exitPoints: [],
+      functions: [],
+    };
+    this.logger.info(
+      `处理增强型扫描结果: ${issues.length} 个问题, ${controlFlow.nodes.length} 个控制流节点`
+    );
   }
 
   /**
@@ -342,26 +363,37 @@ export class SemgrepResultProcessor {
     details: any[];
   } {
     const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
-    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
-    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || { variables: [], flows: [], taintSources: [], taintSinks: [] };
-    
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || {
+      nodes: [],
+      edges: [],
+      entryPoint: '',
+      exitPoints: [],
+      functions: [],
+    };
+    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || {
+      variables: [],
+      flows: [],
+      taintSources: [],
+      taintSinks: [],
+    };
+
     const severityCounts = this.groupBySeverity(issues as any);
     const categoryCounts = this.groupByCategory(issues);
-    
+
     const summary = `增强型扫描完成：发现 ${issues.length} 个问题，${controlFlow.nodes.length} 个控制流节点，${dataFlow.flows.length} 条数据流路径`;
-    
+
     return {
       summary,
       details: [
         {
           type: 'severity',
           counts: severityCounts,
-          description: '按严重程度分类'
+          description: '按严重程度分类',
         },
         {
           type: 'category',
           counts: categoryCounts,
-          description: '按类别分类'
+          description: '按类别分类',
         },
         {
           type: 'analysis',
@@ -369,11 +401,11 @@ export class SemgrepResultProcessor {
             controlFlowNodes: controlFlow.nodes.length,
             dataFlowPaths: dataFlow.flows.length,
             taintSources: dataFlow.taintSources.length,
-            taintSinks: dataFlow.taintSinks.length
+            taintSinks: dataFlow.taintSinks.length,
           },
-          description: '深度分析结果'
-        }
-      ]
+          description: '深度分析结果',
+        },
+      ],
     };
   }
 
@@ -385,8 +417,19 @@ export class SemgrepResultProcessor {
     const edges: any[] = [];
 
     const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
-    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
-    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || { variables: [], flows: [], taintSources: [], taintSinks: [] };
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || {
+      nodes: [],
+      edges: [],
+      entryPoint: '',
+      exitPoints: [],
+      functions: [],
+    };
+    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || {
+      variables: [],
+      flows: [],
+      taintSources: [],
+      taintSinks: [],
+    };
 
     // 添加问题节点
     issues.forEach((issue, index) => {
@@ -403,12 +446,12 @@ export class SemgrepResultProcessor {
           location: {
             file: issue.location.file,
             line: issue.location.line,
-            column: issue.location.column
+            column: issue.location.column,
           },
           cwe: [],
-          owasp: []
+          owasp: [],
         },
-        relationships: []
+        relationships: [],
       });
     });
 
@@ -423,9 +466,9 @@ export class SemgrepResultProcessor {
           name: node.type,
           type: node.type,
           location: node.location,
-          content: node.content
+          content: node.content,
         },
-        relationships: []
+        relationships: [],
       });
     });
 
@@ -441,9 +484,9 @@ export class SemgrepResultProcessor {
           type: variable.type,
           scope: variable.scope,
           definitions: variable.definitions,
-          uses: variable.uses
+          uses: variable.uses,
         },
-        relationships: []
+        relationships: [],
       });
     });
 
@@ -457,8 +500,19 @@ export class SemgrepResultProcessor {
     const documents: VectorDocument[] = [];
 
     const issues = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
-    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || { nodes: [], edges: [], entryPoint: '', exitPoints: [], functions: [] };
-    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || { variables: [], flows: [], taintSources: [], taintSinks: [] };
+    const controlFlow = enhancedResult.enhancedAnalysis?.controlFlow || {
+      nodes: [],
+      edges: [],
+      entryPoint: '',
+      exitPoints: [],
+      functions: [],
+    };
+    const dataFlow = enhancedResult.enhancedAnalysis?.dataFlow || {
+      variables: [],
+      flows: [],
+      taintSources: [],
+      taintSinks: [],
+    };
 
     // 为每个问题创建向量文档
     issues.forEach((issue, index) => {
@@ -473,11 +527,11 @@ export class SemgrepResultProcessor {
           location: {
             file: issue.location.file,
             line: issue.location.line,
-            column: issue.location.column
+            column: issue.location.column,
           },
           cwe: [],
-          owasp: []
-        }
+          owasp: [],
+        },
       });
     });
 
@@ -491,8 +545,8 @@ export class SemgrepResultProcessor {
           content: `控制流节点: ${node.type} at ${node.location.file}:${node.location.line}`,
           nodeType: node.type,
           file: node.location.file,
-          line: node.location.line
-        }
+          line: node.location.line,
+        },
       });
     });
 
@@ -506,8 +560,8 @@ export class SemgrepResultProcessor {
           content: `变量: ${variable.name} (${variable.type}) in scope ${variable.scope}`,
           name: variable.name,
           variableType: variable.type,
-          scope: variable.scope
-        }
+          scope: variable.scope,
+        },
       });
     });
 
@@ -534,8 +588,12 @@ export class SemgrepResultProcessor {
     }
 
     // 基于严重性建议
-    const errorCount = result.findings.filter((f: { severity: string; }) => f.severity === 'ERROR').length;
-    const warningCount = result.findings.filter((f: { severity: string; }) => f.severity === 'WARNING').length;
+    const errorCount = result.findings.filter(
+      (f: { severity: string }) => f.severity === 'ERROR'
+    ).length;
+    const warningCount = result.findings.filter(
+      (f: { severity: string }) => f.severity === 'WARNING'
+    ).length;
 
     if (errorCount > 0) {
       recommendations.push(`Address ${errorCount} critical errors immediately`);

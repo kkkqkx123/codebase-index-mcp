@@ -54,7 +54,7 @@ export class LSPManager extends EventEmitter {
 
   constructor(config: LSPManagerConfig = {}) {
     super();
-    
+
     this.config = {
       enableLSP: config.enableLSP ?? true,
       poolConfig: {
@@ -71,7 +71,7 @@ export class LSPManager extends EventEmitter {
     this.pool = new LSPClientPool(this.config.poolConfig);
     this.registry = LanguageServerRegistry.getInstance();
     this.errorHandler = globalErrorHandler;
-    
+
     this.setupEventHandlers();
   }
 
@@ -83,19 +83,19 @@ export class LSPManager extends EventEmitter {
   }
 
   private setupEventHandlers(): void {
-    this.pool.on('clientCreated', (data) => {
+    this.pool.on('clientCreated', data => {
       this.emit('clientCreated', data);
     });
 
-    this.pool.on('clientDestroyed', (data) => {
+    this.pool.on('clientDestroyed', data => {
       this.emit('clientDestroyed', data);
     });
 
-    this.pool.on('error', (error) => {
+    this.pool.on('error', error => {
       this.emit('error', error);
     });
 
-    this.errorHandler.on('errorHandled', (data) => {
+    this.errorHandler.on('errorHandled', data => {
       this.emit('errorHandled', data);
     });
   }
@@ -108,7 +108,7 @@ export class LSPManager extends EventEmitter {
 
     try {
       const language = this.registry.detectProjectLanguage(workspaceRoot);
-      
+
       if (!language) {
         this.emit('warning', `No supported language detected for ${workspaceRoot}`);
         return false;
@@ -121,10 +121,10 @@ export class LSPManager extends EventEmitter {
 
       // 预加载连接池
       await this.pool.preload(workspaceRoot);
-      
+
       this.isInitialized = true;
       this.emit('initialized', { workspaceRoot, language: language.language });
-      
+
       return true;
     } catch (error) {
       const context = this.errorHandler.createErrorContext(
@@ -133,15 +133,18 @@ export class LSPManager extends EventEmitter {
         'unknown',
         'initialize'
       );
-      
+
       await this.errorHandler.handleError(context);
       this.emit('error', error);
-      
+
       return false;
     }
   }
 
-  async getDiagnostics(filePath: string, projectPath?: string): Promise<LSPDiagnosticsResult | null> {
+  async getDiagnostics(
+    filePath: string,
+    projectPath?: string
+  ): Promise<LSPDiagnosticsResult | null> {
     if (!this.isInitialized) {
       return null;
     }
@@ -152,12 +155,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(workspaceRoot);
-      
+
       const diagnostics = await client.getDiagnostics(filePath);
-      
+
       return {
         filePath,
         diagnostics: diagnostics.map(d => ({
@@ -177,7 +180,7 @@ export class LSPManager extends EventEmitter {
         'getDiagnostics',
         filePath
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -198,12 +201,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(workspaceRoot);
-      
+
       const symbols = await client.getDocumentSymbols(filePath);
-      
+
       return {
         filePath,
         symbols: symbols.map(s => ({
@@ -222,7 +225,7 @@ export class LSPManager extends EventEmitter {
         'getSymbols',
         filePath
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -232,7 +235,10 @@ export class LSPManager extends EventEmitter {
     }
   }
 
-  async getWorkspaceSymbols(query: string, projectPath: string): Promise<Array<{
+  async getWorkspaceSymbols(
+    query: string,
+    projectPath: string
+  ): Promise<Array<{
     name: string;
     kind: string;
     range: {
@@ -247,12 +253,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(projectPath);
-      
+
       const symbols = await client.getWorkspaceSymbols(query);
-      
+
       return symbols.map(s => ({
         name: s.name,
         kind: this.getSymbolKindName(s.kind),
@@ -269,7 +275,7 @@ export class LSPManager extends EventEmitter {
         'getWorkspaceSymbols',
         query
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -304,12 +310,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(workspaceRoot);
-      
+
       const definitions = await client.getDefinition(filePath, position);
-      
+
       return definitions.map(d => ({
         targetUri: filePath,
         targetRange: d.range,
@@ -324,7 +330,7 @@ export class LSPManager extends EventEmitter {
         'getDefinition',
         filePath
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -355,12 +361,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(workspaceRoot);
-      
+
       const references = await client.getReferences(filePath, position);
-      
+
       return references.map(r => ({
         uri: filePath,
         range: r.range,
@@ -374,7 +380,7 @@ export class LSPManager extends EventEmitter {
         'getReferences',
         filePath
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -409,12 +415,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(workspaceRoot);
-      
+
       const typeDefinitions = await client.getTypeDefinition(filePath, position);
-      
+
       return typeDefinitions.map(d => ({
         targetUri: filePath,
         targetRange: d.range,
@@ -429,7 +435,7 @@ export class LSPManager extends EventEmitter {
         'getTypeDefinition',
         filePath
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -464,12 +470,12 @@ export class LSPManager extends EventEmitter {
     }
 
     let client: LSPClient | null = null;
-    
+
     try {
       client = await this.pool.acquire(workspaceRoot);
-      
+
       const implementations = await client.getImplementation(filePath, position);
-      
+
       return implementations.map(d => ({
         targetUri: filePath,
         targetRange: d.range,
@@ -484,7 +490,7 @@ export class LSPManager extends EventEmitter {
         'getImplementation',
         filePath
       );
-      
+
       await this.errorHandler.handleError(context);
       return null;
     } finally {
@@ -493,8 +499,6 @@ export class LSPManager extends EventEmitter {
       }
     }
   }
-
-
 
   getActiveLanguageServer(filePath: string): string | undefined {
     const workspaceRoot = this.findWorkspaceRoot(filePath);
@@ -535,7 +539,7 @@ export class LSPManager extends EventEmitter {
       25: 'Operator',
       26: 'TypeParameter',
     };
-    
+
     return symbolKinds[kind] || 'Unknown';
   }
 
@@ -544,10 +548,12 @@ export class LSPManager extends EventEmitter {
     const parts = filePath.split(path.sep);
     for (let i = parts.length - 1; i >= 0; i--) {
       const dirPath = parts.slice(0, i + 1).join(path.sep);
-      if (fs.existsSync(path.join(dirPath, 'package.json')) ||
-          fs.existsSync(path.join(dirPath, 'tsconfig.json')) ||
-          fs.existsSync(path.join(dirPath, 'pyproject.toml')) ||
-          fs.existsSync(path.join(dirPath, 'setup.py'))) {
+      if (
+        fs.existsSync(path.join(dirPath, 'package.json')) ||
+        fs.existsSync(path.join(dirPath, 'tsconfig.json')) ||
+        fs.existsSync(path.join(dirPath, 'pyproject.toml')) ||
+        fs.existsSync(path.join(dirPath, 'setup.py'))
+      ) {
         return dirPath;
       }
     }
@@ -566,7 +572,7 @@ export class LSPManager extends EventEmitter {
   getHealthStatus() {
     const errorHealth = this.errorHandler.getHealthStatus();
     const poolStats = this.pool.getStats();
-    
+
     return {
       healthy: errorHealth.healthy && this.isInitialized,
       lspEnabled: this.config.enableLSP,
@@ -587,7 +593,7 @@ export class LSPManager extends EventEmitter {
       const healthStatus = this.getHealthStatus();
       return {
         healthy: healthStatus.healthy,
-        error: healthStatus.healthy ? '' : 'LSP health check failed'
+        error: healthStatus.healthy ? '' : 'LSP health check failed',
       };
     } catch (error) {
       return {

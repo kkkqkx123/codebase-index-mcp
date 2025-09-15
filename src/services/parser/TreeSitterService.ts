@@ -61,11 +61,11 @@ export class TreeSitterService {
     return this.coreService.getNodeText(node, sourceCode);
   }
 
-  getNodeLocation(node: Parser.SyntaxNode): { 
-    startLine: number; 
-    endLine: number; 
-    startColumn: number; 
-    endColumn: number 
+  getNodeLocation(node: Parser.SyntaxNode): {
+    startLine: number;
+    endLine: number;
+    startColumn: number;
+    endColumn: number;
   } {
     return this.coreService.getNodeLocation(node);
   }
@@ -74,7 +74,10 @@ export class TreeSitterService {
     return this.coreService.findNodeByType(ast, type);
   }
 
-  queryTree(ast: Parser.SyntaxNode, pattern: string): Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> {
+  queryTree(
+    ast: Parser.SyntaxNode,
+    pattern: string
+  ): Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> {
     return this.coreService.queryTree(ast, pattern);
   }
 }

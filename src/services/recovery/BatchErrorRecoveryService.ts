@@ -3,7 +3,10 @@ import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
+import {
+  BatchProcessingMetrics,
+  BatchOperationMetrics,
+} from '../monitoring/BatchProcessingMetrics';
 
 export interface BatchErrorContext {
   batchId: string;
@@ -72,10 +75,10 @@ export class BatchErrorRecoveryService {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
-  
+
   // Recovery strategies
   private strategies: Map<string, RecoveryStrategy> = new Map();
-  
+
   // Recovery history
   private recoveryReports: RecoveryReport[] = [];
   private recoveryMetrics: RecoveryMetrics = {
@@ -84,16 +87,16 @@ export class BatchErrorRecoveryService {
     failedRecoveries: 0,
     averageRecoveryTime: 0,
     recoveryRate: 0,
-    strategiesSuccess: new Map()
+    strategiesSuccess: new Map(),
   };
-  
+
   // Configuration
   private maxRecoveryReports: number = 1000;
   private defaultMaxRetries: number = 3;
   private defaultRetryDelay: number = 1000;
   private defaultBackoffFactor: number = 2;
   private defaultTimeout: number = 30000;
-  
+
   constructor(
     @inject(TYPES.ConfigService) configService: ConfigService,
     @inject(TYPES.LoggerService) logger: LoggerService,
@@ -104,7 +107,7 @@ export class BatchErrorRecoveryService {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.batchMetrics = batchMetrics;
-    
+
     this.initializeMetrics();
     this.initializeStrategies();
   }
@@ -116,7 +119,7 @@ export class BatchErrorRecoveryService {
       failedRecoveries: 0,
       averageRecoveryTime: 0,
       recoveryRate: 0,
-      strategiesSuccess: new Map()
+      strategiesSuccess: new Map(),
     };
   }
 
@@ -131,11 +134,12 @@ export class BatchErrorRecoveryService {
       retryDelay: this.defaultRetryDelay,
       backoffFactor: this.defaultBackoffFactor,
       timeout: this.defaultTimeout,
-      canRecover: (context) => {
-        return context.retryCount < this.defaultMaxRetries &&
-               this.isRecoverableError(context.error);
+      canRecover: context => {
+        return (
+          context.retryCount < this.defaultMaxRetries && this.isRecoverableError(context.error)
+        );
       },
-      recover: async (context) => {
+      recover: async context => {
         // This is a placeholder - actual implementation would depend on the operation
         // In a real implementation, this would call the original operation again
         return {
@@ -143,11 +147,11 @@ export class BatchErrorRecoveryService {
           recoveredItems: context.items.length,
           failedItems: 0,
           recoveryTime: 100,
-          strategyUsed: 'retry'
+          strategyUsed: 'retry',
         };
-      }
+      },
     });
-    
+
     // Reduce Batch Size Strategy
     this.registerStrategy({
       id: 'reduce-batch-size',
@@ -158,25 +162,27 @@ export class BatchErrorRecoveryService {
       retryDelay: this.defaultRetryDelay * 2,
       backoffFactor: this.defaultBackoffFactor,
       timeout: this.defaultTimeout * 2,
-      canRecover: (context) => {
-        return context.batchSize > 1 &&
-               (this.isMemoryError(context.error) || this.isTimeoutError(context.error));
+      canRecover: context => {
+        return (
+          context.batchSize > 1 &&
+          (this.isMemoryError(context.error) || this.isTimeoutError(context.error))
+        );
       },
-      recover: async (context) => {
+      recover: async context => {
         // This is a placeholder - actual implementation would split the batch
         // and retry with smaller batches
         const newBatchSize = Math.max(1, Math.floor(context.batchSize / 2));
-        
+
         return {
           success: true,
           recoveredItems: context.items.length,
           failedItems: 0,
           recoveryTime: 200,
-          strategyUsed: 'reduce-batch-size'
+          strategyUsed: 'reduce-batch-size',
         };
-      }
+      },
     });
-    
+
     // Memory Cleanup Strategy
     this.registerStrategy({
       id: 'memory-cleanup',
@@ -187,28 +193,28 @@ export class BatchErrorRecoveryService {
       retryDelay: this.defaultRetryDelay * 3,
       backoffFactor: this.defaultBackoffFactor,
       timeout: this.defaultTimeout * 1.5,
-      canRecover: (context) => {
+      canRecover: context => {
         return this.isMemoryError(context.error);
       },
-      recover: async (context) => {
+      recover: async context => {
         // Perform garbage collection if available
         if (global.gc) {
           global.gc();
         }
-        
+
         // Wait a bit for memory to be freed
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         return {
           success: true,
           recoveredItems: context.items.length,
           failedItems: 0,
           recoveryTime: 1500,
-          strategyUsed: 'memory-cleanup'
+          strategyUsed: 'memory-cleanup',
         };
-      }
+      },
     });
-    
+
     // Skip Failed Items Strategy
     this.registerStrategy({
       id: 'skip-failed',
@@ -219,25 +225,25 @@ export class BatchErrorRecoveryService {
       retryDelay: 0,
       backoffFactor: 1,
       timeout: 5000,
-      canRecover: (context) => {
+      canRecover: context => {
         return this.isDataError(context.error) && context.items.length > 1;
       },
-      recover: async (context) => {
+      recover: async context => {
         // This is a placeholder - actual implementation would identify and skip
         // the problematic items
         const failedItems = Math.min(1, context.items.length);
         const recoveredItems = context.items.length - failedItems;
-        
+
         return {
           success: true,
           recoveredItems,
           failedItems,
           recoveryTime: 100,
-          strategyUsed: 'skip-failed'
+          strategyUsed: 'skip-failed',
         };
-      }
+      },
     });
-    
+
     // Fallback Strategy
     this.registerStrategy({
       id: 'fallback',
@@ -248,10 +254,10 @@ export class BatchErrorRecoveryService {
       retryDelay: this.defaultRetryDelay,
       backoffFactor: 1,
       timeout: this.defaultTimeout,
-      canRecover: (context) => {
+      canRecover: context => {
         return this.isComplexityError(context.error);
       },
-      recover: async (context) => {
+      recover: async context => {
         // This is a placeholder - actual implementation would use a simplified
         // version of the operation
         return {
@@ -259,30 +265,30 @@ export class BatchErrorRecoveryService {
           recoveredItems: Math.floor(context.items.length * 0.8), // Assume 80% success with fallback
           failedItems: Math.ceil(context.items.length * 0.2),
           recoveryTime: 500,
-          strategyUsed: 'fallback'
+          strategyUsed: 'fallback',
         };
-      }
+      },
     });
-    
+
     this.logger.info('Batch error recovery strategies initialized', {
-      strategyCount: this.strategies.size
+      strategyCount: this.strategies.size,
     });
   }
 
   registerStrategy(strategy: RecoveryStrategy): void {
     this.strategies.set(strategy.id, strategy);
-    
+
     // Initialize metrics for this strategy
     if (!this.recoveryMetrics.strategiesSuccess.has(strategy.id)) {
       this.recoveryMetrics.strategiesSuccess.set(strategy.id, {
         attempts: 0,
-        successes: 0
+        successes: 0,
       });
     }
-    
+
     this.logger.debug('Recovery strategy registered', {
       strategyId: strategy.id,
-      strategyName: strategy.name
+      strategyName: strategy.name,
     });
   }
 
@@ -292,17 +298,17 @@ export class BatchErrorRecoveryService {
   ): Promise<RecoveryReport> {
     const startTime = Date.now();
     const strategiesUsed: string[] = [];
-    
+
     this.logger.warn('Batch error occurred, starting recovery', {
       batchId: context.batchId,
       operationType: context.operationType,
       error: context.error.message,
-      retryCount: context.retryCount
+      retryCount: context.retryCount,
     });
-    
+
     // Update metrics
     this.recoveryMetrics.totalRecoveryAttempts++;
-    
+
     try {
       // Find applicable strategies
       const applicableStrategies = Array.from(this.strategies.values())
@@ -311,13 +317,13 @@ export class BatchErrorRecoveryService {
           // Sort by priority (strategies with fewer retries first)
           return a.maxRetries - b.maxRetries;
         });
-      
+
       if (applicableStrategies.length === 0) {
         this.logger.error('No applicable recovery strategies found', {
           batchId: context.batchId,
-          error: context.error.message
+          error: context.error.message,
         });
-        
+
         return this.createRecoveryReport(
           context,
           0,
@@ -328,42 +334,42 @@ export class BatchErrorRecoveryService {
           'No applicable recovery strategies found'
         );
       }
-      
+
       // Try each strategy until one succeeds
       for (const strategy of applicableStrategies) {
         strategiesUsed.push(strategy.id);
-        
+
         // Update strategy metrics
         const strategyMetrics = this.recoveryMetrics.strategiesSuccess.get(strategy.id);
         if (strategyMetrics) {
           strategyMetrics.attempts++;
         }
-        
+
         this.logger.debug('Attempting recovery strategy', {
           batchId: context.batchId,
           strategyId: strategy.id,
-          strategyName: strategy.name
+          strategyName: strategy.name,
         });
-        
+
         try {
           // Apply the recovery strategy
           const result = await this.applyRecoveryStrategy(strategy, context, operation);
-          
+
           if (result.success) {
             // Update metrics
             this.recoveryMetrics.successfulRecoveries++;
             if (strategyMetrics) {
               strategyMetrics.successes++;
             }
-            
+
             this.logger.info('Recovery strategy succeeded', {
               batchId: context.batchId,
               strategyId: strategy.id,
               recoveredItems: result.recoveredItems,
               failedItems: result.failedItems,
-              recoveryTime: result.recoveryTime
+              recoveryTime: result.recoveryTime,
             });
-            
+
             return this.createRecoveryReport(
               context,
               result.recoveredItems,
@@ -377,20 +383,20 @@ export class BatchErrorRecoveryService {
           this.logger.warn('Recovery strategy failed', {
             batchId: context.batchId,
             strategyId: strategy.id,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
-      
+
       // All strategies failed
       this.recoveryMetrics.failedRecoveries++;
-      
+
       this.logger.error('All recovery strategies failed', {
         batchId: context.batchId,
         strategiesUsed,
-        error: context.error.message
+        error: context.error.message,
       });
-      
+
       return this.createRecoveryReport(
         context,
         0,
@@ -403,14 +409,14 @@ export class BatchErrorRecoveryService {
     } catch (error) {
       // Error during recovery process
       this.recoveryMetrics.failedRecoveries++;
-      
+
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Error during recovery process', {
         batchId: context.batchId,
-        error: errorMessage
+        error: errorMessage,
       });
-      
+
       return this.createRecoveryReport(
         context,
         0,
@@ -431,13 +437,13 @@ export class BatchErrorRecoveryService {
     if (context.retryCount >= strategy.maxRetries) {
       return false;
     }
-    
+
     // Check if error type is applicable
     const errorType = this.getErrorType(context.error);
     if (!strategy.applicableErrorTypes.includes(errorType)) {
       return false;
     }
-    
+
     // Check if strategy can recover this specific error
     return strategy.canRecover(context);
   }
@@ -448,21 +454,21 @@ export class BatchErrorRecoveryService {
     operation: (items: any[]) => Promise<any>
   ): Promise<RecoveryResult> {
     const startTime = Date.now();
-    
+
     try {
       // Apply the recovery strategy
       const result = await strategy.recover(context);
-      
+
       // If recovery suggests retrying the operation, do so
       if (result.success && result.recoveredItems > 0) {
         // This is a simplified implementation - in a real system, the strategy
         // would provide the items to retry and the operation would be called again
         // For now, we'll just return the result from the strategy
       }
-      
+
       return {
         ...result,
-        recoveryTime: Date.now() - startTime
+        recoveryTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -471,7 +477,7 @@ export class BatchErrorRecoveryService {
         failedItems: context.items.length,
         recoveryTime: Date.now() - startTime,
         strategyUsed: strategy.id,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -495,21 +501,21 @@ export class BatchErrorRecoveryService {
       recoveryTime,
       strategiesUsed,
       success,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     if (finalError) {
       report.finalError = finalError;
     }
-    
+
     // Store the report
     this.recoveryReports.push(report);
-    
+
     // Maintain reports history size
     if (this.recoveryReports.length > this.maxRecoveryReports) {
       this.recoveryReports = this.recoveryReports.slice(-this.maxRecoveryReports);
     }
-    
+
     return report;
   }
 
@@ -518,10 +524,10 @@ export class BatchErrorRecoveryService {
     if (totalAttempts === 0) {
       return;
     }
-    
+
     // Calculate recovery rate
     this.recoveryMetrics.recoveryRate = this.recoveryMetrics.successfulRecoveries / totalAttempts;
-    
+
     // Calculate average recovery time
     const totalTime = this.recoveryReports.reduce((sum, report) => sum + report.recoveryTime, 0);
     this.recoveryMetrics.averageRecoveryTime = totalTime / this.recoveryReports.length;
@@ -529,7 +535,7 @@ export class BatchErrorRecoveryService {
 
   private getErrorType(error: Error): string {
     const errorMessage = error.message.toLowerCase();
-    
+
     if (errorMessage.includes('timeout') || errorMessage.includes('time out')) {
       return 'TimeoutError';
     } else if (errorMessage.includes('memory') || errorMessage.includes('out of memory')) {
@@ -557,13 +563,8 @@ export class BatchErrorRecoveryService {
 
   private isRecoverableError(error: Error): boolean {
     const errorType = this.getErrorType(error);
-    const recoverableTypes = [
-      'TimeoutError',
-      'NetworkError',
-      'TemporaryError',
-      'ResourceError'
-    ];
-    
+    const recoverableTypes = ['TimeoutError', 'NetworkError', 'TemporaryError', 'ResourceError'];
+
     return recoverableTypes.includes(errorType);
   }
 
@@ -588,16 +589,14 @@ export class BatchErrorRecoveryService {
   }
 
   getRecoveryReports(limit: number = 50): RecoveryReport[] {
-    return this.recoveryReports
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, limit);
+    return this.recoveryReports.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
   }
 
   getRecoveryMetrics(): RecoveryMetrics {
     // Create a deep copy to avoid external modification
     return {
       ...this.recoveryMetrics,
-      strategiesSuccess: new Map(this.recoveryMetrics.strategiesSuccess)
+      strategiesSuccess: new Map(this.recoveryMetrics.strategiesSuccess),
     };
   }
 
@@ -611,11 +610,15 @@ export class BatchErrorRecoveryService {
 
   exportRecoveryReports(format: 'json' | 'csv' = 'json'): string {
     if (format === 'json') {
-      return JSON.stringify({
-        exportedAt: new Date().toISOString(),
-        reports: this.recoveryReports,
-        metrics: this.getRecoveryMetrics()
-      }, null, 2);
+      return JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          reports: this.recoveryReports,
+          metrics: this.getRecoveryMetrics(),
+        },
+        null,
+        2
+      );
     } else {
       return this.exportReportsToCsv();
     }
@@ -633,7 +636,7 @@ export class BatchErrorRecoveryService {
       'strategiesUsed',
       'success',
       'finalError',
-      'timestamp'
+      'timestamp',
     ];
 
     const rows = this.recoveryReports.map(report => [
@@ -647,7 +650,7 @@ export class BatchErrorRecoveryService {
       report.strategiesUsed.join(';'),
       report.success,
       report.finalError || '',
-      report.timestamp
+      report.timestamp,
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');

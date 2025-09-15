@@ -38,36 +38,48 @@ export class SnippetController {
   /**
    * Search for snippets using vector and graph search
    */
-  async searchSnippets(query: string, options: {
-    projectId?: string;
-    limit?: number;
-    offset?: number;
-    filters?: Record<string, any>;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  } = {}): Promise<any> {
+  async searchSnippets(
+    query: string,
+    options: {
+      projectId?: string;
+      limit?: number;
+      offset?: number;
+      filters?: Record<string, any>;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    } = {}
+  ): Promise<any> {
     try {
       this.logger.info('Searching snippets', { query, options });
-      
+
       // Extract projectId from options or use default
       const projectId = options.projectId || 'default';
-      
+
       // Use the index service to perform the search
-      const results = await this.indexService.search(query, projectId, { ...options, searchType: 'snippet' });
-      
+      const results = await this.indexService.search(query, projectId, {
+        ...options,
+        searchType: 'snippet',
+      });
+
       return {
         success: true,
-        data: results
+        data: results,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to search snippets: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'searchSnippets', metadata: { query, options } }
+        new Error(
+          `Failed to search snippets: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        {
+          component: 'SnippetController',
+          operation: 'searchSnippets',
+          metadata: { query, options },
+        }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -78,7 +90,7 @@ export class SnippetController {
   async getSnippetById(snippetId: string, projectId: string): Promise<any> {
     try {
       this.logger.info('Getting snippet by ID', { snippetId, projectId });
-      
+
       // In a real implementation, this would query the storage for the snippet
       // For now, we'll return mock data
       const mockSnippet = {
@@ -91,23 +103,29 @@ export class SnippetController {
         metadata: {
           projectId,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
+          updatedAt: new Date().toISOString(),
+        },
       };
-      
+
       return {
         success: true,
-        data: mockSnippet
+        data: mockSnippet,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get snippet by ID: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'getSnippetById', metadata: { snippetId, projectId } }
+        new Error(
+          `Failed to get snippet by ID: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        {
+          component: 'SnippetController',
+          operation: 'getSnippetById',
+          metadata: { snippetId, projectId },
+        }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -118,23 +136,29 @@ export class SnippetController {
   async getSnippetProcessingStatus(projectId: string): Promise<any> {
     try {
       this.logger.info('Getting snippet processing status', { projectId });
-      
+
       // Delegate to index coordinator
       const status = await this.indexCoordinator.getSnippetProcessingStatus(projectId);
-      
+
       return {
         success: true,
-        data: status
+        data: status,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get snippet processing status: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'getSnippetProcessingStatus', metadata: { projectId } }
+        new Error(
+          `Failed to get snippet processing status: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        {
+          component: 'SnippetController',
+          operation: 'getSnippetProcessingStatus',
+          metadata: { projectId },
+        }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -145,29 +169,31 @@ export class SnippetController {
   async checkForDuplicates(snippetContent: string, projectId: string): Promise<any> {
     try {
       this.logger.info('Checking for duplicate snippets', { projectId });
-      
+
       // Calculate content hash
       const contentHash = HashUtils.calculateStringHash(snippetContent);
-      
+
       // Delegate to index coordinator
       const isDuplicate = await this.indexCoordinator.checkForDuplicates(snippetContent, projectId);
-      
+
       return {
         success: true,
         data: {
           isDuplicate,
-          contentHash
-        }
+          contentHash,
+        },
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to check for duplicates: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to check for duplicates: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'SnippetController', operation: 'checkForDuplicates', metadata: { projectId } }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -178,23 +204,29 @@ export class SnippetController {
   async detectCrossReferences(snippetId: string, projectId: string): Promise<any> {
     try {
       this.logger.info('Detecting cross-references', { snippetId, projectId });
-      
+
       // Delegate to index coordinator
       const references = await this.indexCoordinator.detectCrossReferences(projectId);
-      
+
       return {
         success: true,
-        data: references
+        data: references,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to detect cross-references: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'detectCrossReferences', metadata: { snippetId, projectId } }
+        new Error(
+          `Failed to detect cross-references: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        {
+          component: 'SnippetController',
+          operation: 'detectCrossReferences',
+          metadata: { snippetId, projectId },
+        }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -205,23 +237,29 @@ export class SnippetController {
   async analyzeDependencies(snippetId: string, projectId: string): Promise<any> {
     try {
       this.logger.info('Analyzing dependencies', { snippetId, projectId });
-      
+
       // Delegate to index coordinator
       const dependencies = await this.indexCoordinator.analyzeDependencies(projectId);
-      
+
       return {
         success: true,
-        data: dependencies
+        data: dependencies,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to analyze dependencies: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'analyzeDependencies', metadata: { snippetId, projectId } }
+        new Error(
+          `Failed to analyze dependencies: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        {
+          component: 'SnippetController',
+          operation: 'analyzeDependencies',
+          metadata: { snippetId, projectId },
+        }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -229,26 +267,32 @@ export class SnippetController {
   /**
    * Detect overlapping snippets
    */
- async detectOverlaps(snippetId: string, projectId: string): Promise<any> {
+  async detectOverlaps(snippetId: string, projectId: string): Promise<any> {
     try {
       this.logger.info('Detecting overlaps', { snippetId, projectId });
-      
+
       // Delegate to index coordinator
       const overlaps = await this.indexCoordinator.detectOverlaps(projectId);
-      
+
       return {
         success: true,
-        data: overlaps
+        data: overlaps,
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to detect overlaps: ${error instanceof Error ? error.message : String(error)}`),
-        { component: 'SnippetController', operation: 'detectOverlaps', metadata: { snippetId, projectId } }
+        new Error(
+          `Failed to detect overlaps: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        {
+          component: 'SnippetController',
+          operation: 'detectOverlaps',
+          metadata: { snippetId, projectId },
+        }
       );
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

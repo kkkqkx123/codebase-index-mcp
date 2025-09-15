@@ -49,7 +49,15 @@ describe('TransactionCoordinator', () => {
     } as any;
 
     mockVectorStorageService = {
-      storeChunks: jest.fn().mockResolvedValue({ success: true, totalChunks: 0, uniqueChunks: 0, processingTime: 0, errors: [] }),
+      storeChunks: jest
+        .fn()
+        .mockResolvedValue({
+          success: true,
+          totalChunks: 0,
+          uniqueChunks: 0,
+          processingTime: 0,
+          errors: [],
+        }),
       deleteChunks: jest.fn(),
       searchSimilarChunks: jest.fn(),
       getChunkById: jest.fn(),
@@ -58,7 +66,16 @@ describe('TransactionCoordinator', () => {
 
     mockGraphPersistenceService = {
       storeParsedFiles: jest.fn(),
-      storeChunks: jest.fn().mockResolvedValue({ success: true, nodesCreated: 0, relationshipsCreated: 0, nodesUpdated: 0, processingTime: 0, errors: [] }),
+      storeChunks: jest
+        .fn()
+        .mockResolvedValue({
+          success: true,
+          nodesCreated: 0,
+          relationshipsCreated: 0,
+          nodesUpdated: 0,
+          processingTime: 0,
+          errors: [],
+        }),
       deleteNodes: jest.fn(),
       findRelatedNodes: jest.fn(),
       initialize: jest.fn(),
@@ -126,7 +143,8 @@ describe('TransactionCoordinator', () => {
       ];
 
       // Make the second operation fail
-      jest.spyOn(transactionCoordinator as any, 'executeStep')
+      jest
+        .spyOn(transactionCoordinator as any, 'executeStep')
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error('Operation failed'));
 
@@ -140,10 +158,13 @@ describe('TransactionCoordinator', () => {
         duration: expect.any(Number),
       });
 
-      expect(mockLoggerService.error).toHaveBeenCalledWith('Transaction failed, starting compensation', {
-        transactionId: expect.any(String),
-        error: 'Operation failed',
-      });
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'Transaction failed, starting compensation',
+        {
+          transactionId: expect.any(String),
+          error: 'Operation failed',
+        }
+      );
 
       expect(mockLoggerService.info).toHaveBeenCalledWith('Starting transaction compensation', {
         transactionId: expect.any(String),
@@ -261,11 +282,13 @@ describe('TransactionCoordinator', () => {
       };
 
       // Make the operation fail
-      jest.spyOn(transactionCoordinator as any, 'executeVectorOperation')
+      jest
+        .spyOn(transactionCoordinator as any, 'executeVectorOperation')
         .mockRejectedValueOnce(new Error('Vector operation failed'));
 
-      await expect((transactionCoordinator as any).executeStep(transaction, step))
-        .rejects.toThrow('Vector operation failed');
+      await expect((transactionCoordinator as any).executeStep(transaction, step)).rejects.toThrow(
+        'Vector operation failed'
+      );
 
       expect(mockLoggerService.error).toHaveBeenCalledWith('Step execution failed', {
         transactionId: transaction.id,
@@ -371,7 +394,8 @@ describe('TransactionCoordinator', () => {
       });
 
       // Make the compensating operation fail
-      jest.spyOn(transactionCoordinator as any, 'executeCompensatingOperation')
+      jest
+        .spyOn(transactionCoordinator as any, 'executeCompensatingOperation')
         .mockRejectedValueOnce(new Error('Compensation failed'));
 
       await (transactionCoordinator as any).compensateTransaction(transaction);
@@ -400,11 +424,14 @@ describe('TransactionCoordinator', () => {
       await (transactionCoordinator as any).executeVectorOperation(operation);
 
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing vector operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Successfully stored chunks in vector database', {
-        chunkCount: 0,
-        uniqueChunks: 0,
-        processingTime: 0,
-      });
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Successfully stored chunks in vector database',
+        {
+          chunkCount: 0,
+          uniqueChunks: 0,
+          processingTime: 0,
+        }
+      );
     });
 
     it('should execute deleteChunks operation', async () => {
@@ -426,8 +453,9 @@ describe('TransactionCoordinator', () => {
         type: 'unknown',
       };
 
-      await expect((transactionCoordinator as any).executeVectorOperation(operation))
-        .rejects.toThrow('Unknown vector operation type: unknown');
+      await expect(
+        (transactionCoordinator as any).executeVectorOperation(operation)
+      ).rejects.toThrow('Unknown vector operation type: unknown');
 
       expect(mockLoggerService.warn).toHaveBeenCalledWith('Unknown vector operation type', {
         type: 'unknown',
@@ -443,8 +471,9 @@ describe('TransactionCoordinator', () => {
       // Since the actual implementation uses setTimeout for simulation and error handling
       // is internal to the method, we'll test that the method can handle errors gracefully
       // by verifying it doesn't throw for valid input
-      await expect((transactionCoordinator as any).executeVectorOperation(operation))
-        .resolves.not.toThrow();
+      await expect(
+        (transactionCoordinator as any).executeVectorOperation(operation)
+      ).resolves.not.toThrow();
 
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing vector operation', operation);
     });
@@ -461,11 +490,14 @@ describe('TransactionCoordinator', () => {
       await (transactionCoordinator as any).executeGraphOperation(operation);
 
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing graph operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Successfully stored chunks in graph database', {
-        chunkCount: 0,
-        relationshipsCreated: 0,
-        processingTime: 0,
-      });
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Successfully stored chunks in graph database',
+        {
+          chunkCount: 0,
+          relationshipsCreated: 0,
+          processingTime: 0,
+        }
+      );
     });
 
     it('should execute deleteNodes operation', async () => {
@@ -487,8 +519,9 @@ describe('TransactionCoordinator', () => {
         type: 'unknown',
       };
 
-      await expect((transactionCoordinator as any).executeGraphOperation(operation))
-        .rejects.toThrow('Unknown graph operation type: unknown');
+      await expect(
+        (transactionCoordinator as any).executeGraphOperation(operation)
+      ).rejects.toThrow('Unknown graph operation type: unknown');
 
       expect(mockLoggerService.warn).toHaveBeenCalledWith('Unknown graph operation type', {
         type: 'unknown',
@@ -504,8 +537,9 @@ describe('TransactionCoordinator', () => {
       // Since the actual implementation uses setTimeout for simulation and error handling
       // is internal to the method, we'll test that the method can handle errors gracefully
       // by verifying it doesn't throw for valid input
-      await expect((transactionCoordinator as any).executeGraphOperation(operation))
-        .resolves.not.toThrow();
+      await expect(
+        (transactionCoordinator as any).executeGraphOperation(operation)
+      ).resolves.not.toThrow();
 
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing graph operation', operation);
     });
@@ -520,10 +554,16 @@ describe('TransactionCoordinator', () => {
 
       await (transactionCoordinator as any).executeCompensatingOperation(operation);
 
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing compensating operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Compensating: Deleting chunks from vector database', {
-        chunkCount: 2,
-      });
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Executing compensating operation',
+        operation
+      );
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Compensating: Deleting chunks from vector database',
+        {
+          chunkCount: 2,
+        }
+      );
     });
 
     it('should execute restoreChunks compensating operation', async () => {
@@ -534,10 +574,16 @@ describe('TransactionCoordinator', () => {
 
       await (transactionCoordinator as any).executeCompensatingOperation(operation);
 
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing compensating operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Compensating: Restoring chunks to vector database', {
-        chunkCount: 2,
-      });
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Executing compensating operation',
+        operation
+      );
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Compensating: Restoring chunks to vector database',
+        {
+          chunkCount: 2,
+        }
+      );
     });
 
     it('should execute deleteNodes compensating operation', async () => {
@@ -548,10 +594,16 @@ describe('TransactionCoordinator', () => {
 
       await (transactionCoordinator as any).executeCompensatingOperation(operation);
 
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing compensating operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Compensating: Deleting nodes from graph database', {
-        nodeCount: 2,
-      });
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Executing compensating operation',
+        operation
+      );
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Compensating: Deleting nodes from graph database',
+        {
+          nodeCount: 2,
+        }
+      );
     });
 
     it('should execute restoreNodes compensating operation', async () => {
@@ -562,10 +614,16 @@ describe('TransactionCoordinator', () => {
 
       await (transactionCoordinator as any).executeCompensatingOperation(operation);
 
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing compensating operation', operation);
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Compensating: Restoring nodes to graph database', {
-        nodeCount: 2,
-      });
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Executing compensating operation',
+        operation
+      );
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Compensating: Restoring nodes to graph database',
+        {
+          nodeCount: 2,
+        }
+      );
     });
 
     it('should handle unknown compensating operation type', async () => {
@@ -588,10 +646,14 @@ describe('TransactionCoordinator', () => {
 
       // Since the actual implementation has internal error handling, we'll test that
       // the method can handle errors gracefully by verifying it doesn't throw for valid input
-      await expect((transactionCoordinator as any).executeCompensatingOperation(operation))
-        .resolves.not.toThrow();
+      await expect(
+        (transactionCoordinator as any).executeCompensatingOperation(operation)
+      ).resolves.not.toThrow();
 
-      expect(mockLoggerService.debug).toHaveBeenCalledWith('Executing compensating operation', operation);
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'Executing compensating operation',
+        operation
+      );
     });
   });
 
@@ -738,8 +800,9 @@ describe('TransactionCoordinator', () => {
       await transactionCoordinator.beginTransaction();
 
       // Try to start second transaction
-      await expect(transactionCoordinator.beginTransaction())
-        .rejects.toThrow('A transaction is already in progress');
+      await expect(transactionCoordinator.beginTransaction()).rejects.toThrow(
+        'A transaction is already in progress'
+      );
     });
   });
 
@@ -772,12 +835,11 @@ describe('TransactionCoordinator', () => {
       ];
 
       // Mock the executeTransactionSteps method
-      jest.spyOn(transactionCoordinator as any, 'executeTransactionSteps')
-        .mockResolvedValueOnce({
-          success: true,
-          executedSteps: 1,
-          duration: 100,
-        });
+      jest.spyOn(transactionCoordinator as any, 'executeTransactionSteps').mockResolvedValueOnce({
+        success: true,
+        executedSteps: 1,
+        duration: 100,
+      });
 
       const result = await transactionCoordinator.commitTransaction();
 
@@ -801,11 +863,10 @@ describe('TransactionCoordinator', () => {
       ];
 
       // Make execution fail
-      jest.spyOn(transactionCoordinator as any, 'executeTransactionSteps')
-        .mockResolvedValueOnce({
-          success: false,
-          error: 'Execution failed',
-        });
+      jest.spyOn(transactionCoordinator as any, 'executeTransactionSteps').mockResolvedValueOnce({
+        success: false,
+        error: 'Execution failed',
+      });
 
       const result = await transactionCoordinator.commitTransaction();
 
@@ -815,8 +876,9 @@ describe('TransactionCoordinator', () => {
     });
 
     it('should throw error when no active transaction', async () => {
-      await expect(transactionCoordinator.commitTransaction())
-        .rejects.toThrow('No active transaction to commit');
+      await expect(transactionCoordinator.commitTransaction()).rejects.toThrow(
+        'No active transaction to commit'
+      );
     });
   });
 
@@ -849,7 +911,8 @@ describe('TransactionCoordinator', () => {
       const transactionId = await transactionCoordinator.beginTransaction();
 
       // Make compensation fail
-      jest.spyOn(transactionCoordinator as any, 'compensateTransaction')
+      jest
+        .spyOn(transactionCoordinator as any, 'compensateTransaction')
         .mockRejectedValueOnce(new Error('Compensation failed'));
 
       const result = await transactionCoordinator.rollbackTransaction();
@@ -882,81 +945,83 @@ describe('TransactionCoordinator', () => {
     });
 
     it('should throw error when no active transaction', async () => {
-      await expect(transactionCoordinator.addVectorOperation({ type: 'storeChunks' }, { type: 'deleteChunks' }))
-        .rejects.toThrow('No active transaction');
+      await expect(
+        transactionCoordinator.addVectorOperation({ type: 'storeChunks' }, { type: 'deleteChunks' })
+      ).rejects.toThrow('No active transaction');
     });
 
-  describe('addGraphOperation', () => {
-    it('should add graph operation to current transaction', async () => {
-      const transactionId = await transactionCoordinator.beginTransaction();
+    describe('addGraphOperation', () => {
+      it('should add graph operation to current transaction', async () => {
+        const transactionId = await transactionCoordinator.beginTransaction();
 
-      const operation = { type: 'storeChunks' };
-      const compensatingOperation = { type: 'deleteNodes' };
+        const operation = { type: 'storeChunks' };
+        const compensatingOperation = { type: 'deleteNodes' };
 
-      await transactionCoordinator.addGraphOperation(operation, compensatingOperation);
+        await transactionCoordinator.addGraphOperation(operation, compensatingOperation);
 
-      const currentTransaction = (transactionCoordinator as any).currentTransaction;
-      expect(currentTransaction.steps).toHaveLength(1);
-      expect(currentTransaction.steps[0]).toEqual({
-        id: 'step_0',
-        type: 'graph',
-        operation,
-        compensatingOperation,
-        executed: false,
-        compensated: false,
+        const currentTransaction = (transactionCoordinator as any).currentTransaction;
+        expect(currentTransaction.steps).toHaveLength(1);
+        expect(currentTransaction.steps[0]).toEqual({
+          id: 'step_0',
+          type: 'graph',
+          operation,
+          compensatingOperation,
+          executed: false,
+          compensated: false,
+        });
+      });
+
+      it('should throw error when no active transaction', async () => {
+        await expect(
+          transactionCoordinator.addGraphOperation({ type: 'storeChunks' })
+        ).rejects.toThrow('No active transaction');
       });
     });
 
-    it('should throw error when no active transaction', async () => {
-      await expect(transactionCoordinator.addGraphOperation({ type: 'storeChunks' }))
-        .rejects.toThrow('No active transaction');
+    describe('getStats', () => {
+      it('should return correct stats with no transactions', () => {
+        const stats = transactionCoordinator.getStats();
+
+        expect(stats).toEqual({
+          activeTransactions: 0,
+          recentSuccessRate: 0,
+          averageTransactionTime: 0,
+        });
+      });
+
+      it('should return correct stats with transactions', () => {
+        const now = Date.now();
+        const transactions = [
+          createMockTransaction({
+            id: 'tx_1',
+            status: 'completed' as const,
+            createdAt: new Date(now - 1000),
+            completedAt: new Date(now),
+          }),
+          createMockTransaction({
+            id: 'tx_2',
+            status: 'failed' as const,
+            createdAt: new Date(now - 2000),
+            completedAt: new Date(now - 1000),
+          }),
+          createMockTransaction({
+            id: 'tx_3',
+            status: 'completed' as const,
+            createdAt: new Date(now - 3000),
+            completedAt: new Date(now - 2000),
+          }),
+        ];
+
+        (transactionCoordinator as any).transactionHistory = transactions;
+
+        const stats = transactionCoordinator.getStats();
+
+        expect(stats).toEqual({
+          activeTransactions: 0,
+          recentSuccessRate: (2 / 3) * 100, // 2 out of 3 transactions succeeded
+          averageTransactionTime: 1000, // Average of 1000ms, 1000ms, and 1000ms
+        });
+      });
     });
   });
-
-  describe('getStats', () => {
-    it('should return correct stats with no transactions', () => {
-      const stats = transactionCoordinator.getStats();
-
-      expect(stats).toEqual({
-        activeTransactions: 0,
-        recentSuccessRate: 0,
-        averageTransactionTime: 0,
-      });
-    });
-
-    it('should return correct stats with transactions', () => {
-      const now = Date.now();
-      const transactions = [
-        createMockTransaction({
-          id: 'tx_1',
-          status: 'completed' as const,
-          createdAt: new Date(now - 1000),
-          completedAt: new Date(now),
-        }),
-        createMockTransaction({
-          id: 'tx_2',
-          status: 'failed' as const,
-          createdAt: new Date(now - 2000),
-          completedAt: new Date(now - 1000),
-        }),
-        createMockTransaction({
-          id: 'tx_3',
-          status: 'completed' as const,
-          createdAt: new Date(now - 3000),
-          completedAt: new Date(now - 2000),
-        }),
-      ];
-
-      (transactionCoordinator as any).transactionHistory = transactions;
-
-      const stats = transactionCoordinator.getStats();
-
-      expect(stats).toEqual({
-        activeTransactions: 0,
-        recentSuccessRate: (2 / 3) * 100, // 2 out of 3 transactions succeeded
-        averageTransactionTime: 1000, // Average of 1000ms, 1000ms, and 1000ms
-      });
-    });
-  });
-});
 });

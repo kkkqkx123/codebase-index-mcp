@@ -20,7 +20,7 @@ export class MemoryCacheAdapter implements CacheInterface {
     this.name = name;
     this.logger = LoggerService.getInstance();
     this.defaultTTL = defaultTTL;
-    
+
     // 在非测试环境中启动清理过期数据的定时器
     if (process.env.NODE_ENV !== 'test') {
       this.startCleanupTimer();
@@ -30,7 +30,7 @@ export class MemoryCacheAdapter implements CacheInterface {
   async get<T>(key: string): Promise<T | null> {
     try {
       const entry = this.cache.get(key);
-      
+
       if (!entry) {
         this.missCount++;
         return null;
@@ -56,13 +56,13 @@ export class MemoryCacheAdapter implements CacheInterface {
     try {
       const ttl = options?.ttl || this.defaultTTL;
       const expiresAt = ttl > 0 ? Date.now() + ttl * 1000 : Infinity;
-      
+
       this.cache.set(key, {
         value,
         expiresAt,
-        accessedAt: Date.now()
+        accessedAt: Date.now(),
       });
-      
+
       return true;
     } catch (error) {
       this.logger.error(`内存缓存设置失败: ${key}`, error);
@@ -95,12 +95,12 @@ export class MemoryCacheAdapter implements CacheInterface {
     try {
       const entry = this.cache.get(key);
       if (!entry) return false;
-      
+
       if (this.isExpired(entry)) {
         this.cache.delete(key);
         return false;
       }
-      
+
       return true;
     } catch (error) {
       this.logger.error(`内存缓存检查存在失败: ${key}`, error);
@@ -111,19 +111,19 @@ export class MemoryCacheAdapter implements CacheInterface {
   async getStats(): Promise<CacheStats> {
     try {
       this.cleanupExpired();
-      
+
       const total = this.cache.size;
       const hits = this.hitCount;
       const misses = this.missCount;
       const totalRequests = hits + misses;
-      
+
       return {
         name: this.name,
         size: total,
         maxSize: 10000, // 内存缓存最大条目数限制
         hitCount: hits,
         missCount: misses,
-        hitRate: totalRequests > 0 ? hits / totalRequests : 0
+        hitRate: totalRequests > 0 ? hits / totalRequests : 0,
       };
     } catch (error) {
       this.logger.error(`内存缓存统计失败: ${this.name}`, error);
@@ -133,7 +133,7 @@ export class MemoryCacheAdapter implements CacheInterface {
         maxSize: 10000,
         hitCount: 0,
         missCount: 0,
-        hitRate: 0
+        hitRate: 0,
       };
     }
   }
@@ -146,7 +146,7 @@ export class MemoryCacheAdapter implements CacheInterface {
     this.cache.clear();
     this.hitCount = 0;
     this.missCount = 0;
-    
+
     // 清理定时器
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
@@ -161,14 +161,14 @@ export class MemoryCacheAdapter implements CacheInterface {
   private cleanupExpired(): void {
     const now = Date.now();
     const keysToDelete: string[] = [];
-    
+
     const entries = Array.from(this.cache.entries());
     for (const [key, entry] of entries) {
       if (this.isExpired(entry)) {
         keysToDelete.push(key);
       }
     }
-    
+
     for (const key of keysToDelete) {
       this.cache.delete(key);
     }

@@ -50,7 +50,7 @@ describe('LSP Integration Tests', () => {
     it('should initialize LSP service successfully', async () => {
       lspService.initialize.mockResolvedValue(true);
       lspService.isLanguageSupported.mockReturnValue(true);
-      
+
       const result = await lspService.initialize('/test/path', 'typescript');
       expect(result).toBe(true);
       expect(lspService.isLanguageSupported('typescript')).toBe(true);
@@ -59,7 +59,7 @@ describe('LSP Integration Tests', () => {
     it('should return false for unsupported languages', async () => {
       lspService.initialize.mockResolvedValue(false);
       lspService.isLanguageSupported.mockReturnValue(false);
-      
+
       const result = await lspService.initialize('/test/path', 'unsupported');
       expect(result).toBe(false);
       expect(lspService.isLanguageSupported('unsupported')).toBe(false);
@@ -86,11 +86,11 @@ describe('LSP Integration Tests', () => {
           processingTime: 0,
           hasErrors: false,
           symbolCount: 0,
-          diagnosticCount: 0
-        }
+          diagnosticCount: 0,
+        },
       };
       enhancedParserService.parseFile.mockResolvedValue(mockResult);
-      
+
       const result = await enhancedParserService.parseFile('/test/path/test.ts');
       expect(result).toBeDefined();
       expect(result.functions).toBeDefined();
@@ -115,11 +115,11 @@ describe('LSP Integration Tests', () => {
           processingTime: 0,
           hasErrors: true,
           symbolCount: 0,
-          diagnosticCount: 1
-        }
+          diagnosticCount: 1,
+        },
       };
       enhancedParserService.parseFile.mockResolvedValue(mockResult);
-      
+
       const result = await enhancedParserService.parseFile('/test/path/error.ts');
       expect(result).toBeDefined();
       expect(result.lspMetadata?.hasErrors).toBe(true);
@@ -129,14 +129,14 @@ describe('LSP Integration Tests', () => {
   describe('Health Check Integration', () => {
     it('should check LSP service health', async () => {
       lspService.isHealthy.mockReturnValue(true);
-      
+
       const isHealthy = lspService.isHealthy('typescript');
       expect(isHealthy).toBe(true);
     });
 
     it('should handle LSP service unhealthy', async () => {
       lspService.isHealthy.mockReturnValue(false);
-      
+
       const isHealthy = lspService.isHealthy('typescript');
       expect(isHealthy).toBe(false);
     });
@@ -150,12 +150,12 @@ describe('LSP Integration Tests', () => {
         details: {
           clients: {
             typescript: { status: 'healthy', symbols: 10, diagnostics: 2 },
-            python: { status: 'healthy', symbols: 5, diagnostics: 0 }
-          }
-        }
+            python: { status: 'healthy', symbols: 5, diagnostics: 0 },
+          },
+        },
       };
 
-      jest.spyOn(lspService, 'isHealthy').mockImplementation((lang) => {
+      jest.spyOn(lspService, 'isHealthy').mockImplementation(lang => {
         return lang === 'typescript' || lang === 'python';
       });
 
@@ -170,7 +170,7 @@ describe('LSP Integration Tests', () => {
       lspService.clearCache.mockImplementation(() => {
         // Mock implementation
       });
-      
+
       expect(() => lspService.clearCache()).not.toThrow();
     });
 
@@ -178,7 +178,7 @@ describe('LSP Integration Tests', () => {
       lspService.clearCache.mockImplementation(() => {
         // Mock implementation
       });
-      
+
       expect(() => lspService.clearCache()).not.toThrow();
     });
   });

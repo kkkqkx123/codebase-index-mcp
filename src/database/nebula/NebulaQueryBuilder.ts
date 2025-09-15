@@ -27,31 +27,35 @@ export class NebulaQueryBuilder {
    * @param properties 属性对象
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  insertVertex(tag: string, vertexId: string, properties: Record<string, any>): { query: string, params: Record<string, any> } {
+  insertVertex(
+    tag: string,
+    vertexId: string,
+    properties: Record<string, any>
+  ): { query: string; params: Record<string, any> } {
     // 获取属性键
     const propertyKeys = Object.keys(properties);
-    
+
     // 如果没有属性，构建简单的INSERT语句
     if (propertyKeys.length === 0) {
       const query = `INSERT VERTEX ${tag}() VALUES ${vertexId}:()`;
       return { query, params: {} };
     }
-    
+
     // 构建属性名列表
     const propertyNames = propertyKeys.join(', ');
-    
+
     // 构建参数占位符
     const paramPlaceholders = propertyKeys.map((_, index) => `$param${index}`).join(', ');
-    
+
     // 构建查询语句
     const query = `INSERT VERTEX ${tag}(${propertyNames}) VALUES ${vertexId}:(${paramPlaceholders})`;
-    
+
     // 构建参数对象
     const params: Record<string, any> = {};
     propertyKeys.forEach((key, index) => {
       params[`param${index}`] = properties[key];
     });
-    
+
     return { query, params };
   }
 
@@ -60,19 +64,22 @@ export class NebulaQueryBuilder {
    * @param vertices 顶点数组
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  batchInsertVertices(vertices: BatchVertex[]): { query: string, params: Record<string, any> } {
+  batchInsertVertices(vertices: BatchVertex[]): { query: string; params: Record<string, any> } {
     if (vertices.length === 0) {
       return { query: '', params: {} };
     }
 
     // Group vertices by tag for more efficient batch insertion
-    const verticesByTag = vertices.reduce((acc, vertex) => {
-      if (!acc[vertex.tag]) {
-        acc[vertex.tag] = [];
-      }
-      acc[vertex.tag].push(vertex);
-      return acc;
-    }, {} as Record<string, BatchVertex[]>);
+    const verticesByTag = vertices.reduce(
+      (acc, vertex) => {
+        if (!acc[vertex.tag]) {
+          acc[vertex.tag] = [];
+        }
+        acc[vertex.tag].push(vertex);
+        return acc;
+      },
+      {} as Record<string, BatchVertex[]>
+    );
 
     const queries: string[] = [];
     const params: Record<string, any> = {};
@@ -87,18 +94,22 @@ export class NebulaQueryBuilder {
       });
 
       const propertyNames = Array.from(allPropertyKeys).join(', ');
-      
-      // Build values clause for each vertex
-      const valuesClauses = tagVertices.map((vertex, vertexIndex) => {
-        const paramPrefix = `${tag}_${vertex.id}`;
-        const paramPlaceholders = Array.from(allPropertyKeys).map((key, keyIndex) => {
-          const paramName = `${paramPrefix}_param${keyIndex}`;
-          params[paramName] = vertex.properties[key] || null;
-          return `$${paramName}`;
-        }).join(', ');
 
-        return `${vertex.id}:(${paramPlaceholders})`;
-      }).join(', ');
+      // Build values clause for each vertex
+      const valuesClauses = tagVertices
+        .map((vertex, vertexIndex) => {
+          const paramPrefix = `${tag}_${vertex.id}`;
+          const paramPlaceholders = Array.from(allPropertyKeys)
+            .map((key, keyIndex) => {
+              const paramName = `${paramPrefix}_param${keyIndex}`;
+              params[paramName] = vertex.properties[key] || null;
+              return `$${paramName}`;
+            })
+            .join(', ');
+
+          return `${vertex.id}:(${paramPlaceholders})`;
+        })
+        .join(', ');
 
       const query = `INSERT VERTEX ${tag}(${propertyNames}) VALUES ${valuesClauses}`;
       queries.push(query);
@@ -106,7 +117,7 @@ export class NebulaQueryBuilder {
 
     return { query: queries.join('; '), params };
   }
-  
+
   /**
    * 构建INSERT EDGE语句
    * @param edgeType 边类型
@@ -115,31 +126,36 @@ export class NebulaQueryBuilder {
    * @param properties 属性对象
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  insertEdge(edgeType: string, srcId: string, dstId: string, properties: Record<string, any>): { query: string, params: Record<string, any> } {
+  insertEdge(
+    edgeType: string,
+    srcId: string,
+    dstId: string,
+    properties: Record<string, any>
+  ): { query: string; params: Record<string, any> } {
     // 获取属性键
     const propertyKeys = Object.keys(properties);
-    
+
     // 如果没有属性，构建简单的INSERT语句
     if (propertyKeys.length === 0) {
       const query = `INSERT EDGE ${edgeType}() VALUES ${srcId}->${dstId}:()`;
       return { query, params: {} };
     }
-    
+
     // 构建属性名列表
     const propertyNames = propertyKeys.join(', ');
-    
+
     // 构建参数占位符
     const paramPlaceholders = propertyKeys.map((_, index) => `$param${index}`).join(', ');
-    
+
     // 构建查询语句
     const query = `INSERT EDGE ${edgeType}(${propertyNames}) VALUES ${srcId}->${dstId}:(${paramPlaceholders})`;
-    
+
     // 构建参数对象
     const params: Record<string, any> = {};
     propertyKeys.forEach((key, index) => {
       params[`param${index}`] = properties[key];
     });
-    
+
     return { query, params };
   }
 
@@ -148,24 +164,29 @@ export class NebulaQueryBuilder {
    * @param edges 边数组
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  batchInsertEdges(edges: Array<{
-    type: string;
-    srcId: string;
-    dstId: string;
-    properties: Record<string, any>;
-  }>): { query: string, params: Record<string, any> } {
+  batchInsertEdges(
+    edges: Array<{
+      type: string;
+      srcId: string;
+      dstId: string;
+      properties: Record<string, any>;
+    }>
+  ): { query: string; params: Record<string, any> } {
     if (edges.length === 0) {
       return { query: '', params: {} };
     }
 
     // Group edges by type for more efficient batch insertion
-    const edgesByType = edges.reduce((acc, edge) => {
-      if (!acc[edge.type]) {
-        acc[edge.type] = [];
-      }
-      acc[edge.type].push(edge);
-      return acc;
-    }, {} as Record<string, typeof edges>);
+    const edgesByType = edges.reduce(
+      (acc, edge) => {
+        if (!acc[edge.type]) {
+          acc[edge.type] = [];
+        }
+        acc[edge.type].push(edge);
+        return acc;
+      },
+      {} as Record<string, typeof edges>
+    );
 
     const queries: string[] = [];
     const params: Record<string, any> = {};
@@ -180,18 +201,22 @@ export class NebulaQueryBuilder {
       });
 
       const propertyNames = Array.from(allPropertyKeys).join(', ');
-      
-      // Build values clause for each edge
-      const valuesClauses = typeEdges.map((edge, edgeIndex) => {
-        const paramPrefix = `${edgeType}_${edge.srcId}_${edge.dstId}`;
-        const paramPlaceholders = Array.from(allPropertyKeys).map((key, keyIndex) => {
-          const paramName = `${paramPrefix}_param${keyIndex}`;
-          params[paramName] = edge.properties[key] || null;
-          return `$${paramName}`;
-        }).join(', ');
 
-        return `${edge.srcId}->${edge.dstId}:(${paramPlaceholders})`;
-      }).join(', ');
+      // Build values clause for each edge
+      const valuesClauses = typeEdges
+        .map((edge, edgeIndex) => {
+          const paramPrefix = `${edgeType}_${edge.srcId}_${edge.dstId}`;
+          const paramPlaceholders = Array.from(allPropertyKeys)
+            .map((key, keyIndex) => {
+              const paramName = `${paramPrefix}_param${keyIndex}`;
+              params[paramName] = edge.properties[key] || null;
+              return `$${paramName}`;
+            })
+            .join(', ');
+
+          return `${edge.srcId}->${edge.dstId}:(${paramPlaceholders})`;
+        })
+        .join(', ');
 
       const query = `INSERT EDGE ${edgeType}(${propertyNames}) VALUES ${valuesClauses}`;
       queries.push(query);
@@ -199,7 +224,7 @@ export class NebulaQueryBuilder {
 
     return { query: queries.join('; '), params };
   }
-  
+
   /**
    * 构建GO语句
    * @param steps 步数
@@ -210,13 +235,13 @@ export class NebulaQueryBuilder {
    */
   go(steps: number, vertexId: string, yieldFields: string, edgeType?: string): string {
     let query = `GO ${steps} STEPS FROM ${vertexId}`;
-    
+
     if (edgeType) {
       query += ` OVER ${edgeType}`;
     }
-    
+
     query += ` YIELD ${yieldFields}`;
-    
+
     return query;
   }
 
@@ -231,18 +256,14 @@ export class NebulaQueryBuilder {
     startId: string,
     edgeTypes: string[],
     options: ComplexTraversalOptions = {}
-  ): { query: string, params: Record<string, any> } {
-    const {
-      maxDepth = 3,
-      filterConditions = [],
-      returnFields = ['vertex'],
-      limit = 100
-    } = options;
-    
+  ): { query: string; params: Record<string, any> } {
+    const { maxDepth = 3, filterConditions = [], returnFields = ['vertex'], limit = 100 } = options;
+
     const edgeTypeClause = edgeTypes.length > 0 ? `OVER ${edgeTypes.join(',')}` : 'OVER *';
-    const filterClause = filterConditions.length > 0 ? `WHERE ${filterConditions.join(' AND ')}` : '';
+    const filterClause =
+      filterConditions.length > 0 ? `WHERE ${filterConditions.join(' AND ')}` : '';
     const returnClause = returnFields.join(', ');
-    
+
     const query = `
       GO ${maxDepth} STEPS FROM $startId ${edgeTypeClause}
       YIELD dst(edge) AS destination
@@ -250,10 +271,10 @@ export class NebulaQueryBuilder {
       | FETCH PROP ON * $-.destination YIELD ${returnClause}
       LIMIT ${limit}
     `;
-    
+
     return { query, params: { startId } };
   }
-  
+
   /**
    * 构建MATCH语句
    * @param pattern 匹配模式
@@ -263,13 +284,13 @@ export class NebulaQueryBuilder {
    */
   match(pattern: string, returnClause: string, whereClause?: string): string {
     let query = `MATCH ${pattern}`;
-    
+
     if (whereClause) {
       query += ` WHERE ${whereClause}`;
     }
-    
+
     query += ` RETURN ${returnClause}`;
-    
+
     return query;
   }
 
@@ -284,17 +305,17 @@ export class NebulaQueryBuilder {
     pattern: string,
     conditions: Record<string, any>,
     returnFields: string[]
-  ): { query: string, params: Record<string, any> } {
+  ): { query: string; params: Record<string, any> } {
     const whereClause = Object.entries(conditions)
       .map(([key, value]) => `${key} = $${key}`)
       .join(' AND ');
-    
+
     const query = `
       MATCH ${pattern}
       WHERE ${whereClause}
       RETURN ${returnFields.join(', ')}
     `;
-    
+
     return { query, params: conditions };
   }
 
@@ -311,13 +332,13 @@ export class NebulaQueryBuilder {
     targetId: string,
     edgeTypes: string[] = [],
     maxDepth = 10
-  ): { query: string, params: Record<string, any> } {
+  ): { query: string; params: Record<string, any> } {
     const edgeTypeClause = edgeTypes.length > 0 ? `OVER ${edgeTypes.join(',')}` : 'OVER *';
-    
+
     const query = `
       FIND SHORTEST PATH FROM $sourceId TO $targetId ${edgeTypeClause} UPTO ${maxDepth} STEPS
     `;
-    
+
     return { query, params: { sourceId, targetId } };
   }
 
@@ -328,28 +349,34 @@ export class NebulaQueryBuilder {
    * @param properties 更新的属性对象
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  updateVertex(vertexId: string, tag: string, properties: Record<string, any>): { query: string, params: Record<string, any> } {
+  updateVertex(
+    vertexId: string,
+    tag: string,
+    properties: Record<string, any>
+  ): { query: string; params: Record<string, any> } {
     const propertyKeys = Object.keys(properties);
-    
+
     if (propertyKeys.length === 0) {
       return { query: '', params: {} };
     }
-    
-    const setClauses = propertyKeys.map((key, index) => {
-      const paramName = `set_param${index}`;
-      return `${key} = $${paramName}`;
-    }).join(', ');
-    
+
+    const setClauses = propertyKeys
+      .map((key, index) => {
+        const paramName = `set_param${index}`;
+        return `${key} = $${paramName}`;
+      })
+      .join(', ');
+
     const query = `
       UPDATE VERTEX ON ${tag} ${vertexId}
       SET ${setClauses}
     `;
-    
+
     const params: Record<string, any> = {};
     propertyKeys.forEach((key, index) => {
       params[`set_param${index}`] = properties[key];
     });
-    
+
     return { query, params };
   }
 
@@ -361,28 +388,35 @@ export class NebulaQueryBuilder {
    * @param properties 更新的属性对象
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  updateEdge(srcId: string, dstId: string, edgeType: string, properties: Record<string, any>): { query: string, params: Record<string, any> } {
+  updateEdge(
+    srcId: string,
+    dstId: string,
+    edgeType: string,
+    properties: Record<string, any>
+  ): { query: string; params: Record<string, any> } {
     const propertyKeys = Object.keys(properties);
-    
+
     if (propertyKeys.length === 0) {
       return { query: '', params: {} };
     }
-    
-    const setClauses = propertyKeys.map((key, index) => {
-      const paramName = `set_param${index}`;
-      return `${key} = $${paramName}`;
-    }).join(', ');
-    
+
+    const setClauses = propertyKeys
+      .map((key, index) => {
+        const paramName = `set_param${index}`;
+        return `${key} = $${paramName}`;
+      })
+      .join(', ');
+
     const query = `
       UPDATE EDGE ON ${edgeType} ${srcId} -> ${dstId}
       SET ${setClauses}
     `;
-    
+
     const params: Record<string, any> = {};
     propertyKeys.forEach((key, index) => {
       params[`set_param${index}`] = properties[key];
     });
-    
+
     return { query, params };
   }
 
@@ -392,7 +426,10 @@ export class NebulaQueryBuilder {
    * @param tag 标签名称（可选）
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  deleteVertices(vertexIds: string[], tag?: string): { query: string, params: Record<string, any> } {
+  deleteVertices(
+    vertexIds: string[],
+    tag?: string
+  ): { query: string; params: Record<string, any> } {
     if (vertexIds.length === 0) {
       return { query: '', params: {} };
     }
@@ -416,32 +453,40 @@ export class NebulaQueryBuilder {
    * @param edges 边数组
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  deleteEdges(edges: Array<{ srcId: string; dstId: string; edgeType: string }>): { query: string, params: Record<string, any> } {
+  deleteEdges(edges: Array<{ srcId: string; dstId: string; edgeType: string }>): {
+    query: string;
+    params: Record<string, any>;
+  } {
     if (edges.length === 0) {
       return { query: '', params: {} };
     }
 
-    const deleteClauses = edges.map((edge, index) => {
-      const srcParam = `src${index}`;
-      const dstParam = `dst${index}`;
-      params[srcParam] = edge.srcId;
-      params[dstParam] = edge.dstId;
-      return `$${srcParam} -> $${dstParam}`;
-    }).join(', ');
+    const deleteClauses = edges
+      .map((edge, index) => {
+        const srcParam = `src${index}`;
+        const dstParam = `dst${index}`;
+        params[srcParam] = edge.srcId;
+        params[dstParam] = edge.dstId;
+        return `$${srcParam} -> $${dstParam}`;
+      })
+      .join(', ');
 
     const params: Record<string, any> = {};
 
     const query = `DELETE EDGE ${deleteClauses}`;
     return { query, params };
   }
-  
+
   /**
    * 处理参数化查询
    * @param query 查询语句
    * @param params 参数对象
    * @returns 处理后的查询语句和参数
    */
-  parameterize(query: string, params: Record<string, any>): { query: string, params: Record<string, any> } {
+  parameterize(
+    query: string,
+    params: Record<string, any>
+  ): { query: string; params: Record<string, any> } {
     // 在nGQL中，参数使用$符号前缀
     // 这个方法可以用于确保参数正确传递
     return { query, params };
@@ -452,7 +497,7 @@ export class NebulaQueryBuilder {
    * @param tag 标签名称（可选，如果为空则统计所有节点）
    * @returns {query: string, params: Record<string, any>} 查询语句和参数
    */
-  buildCountQuery(tag?: string): { query: string, params: Record<string, any> } {
+  buildCountQuery(tag?: string): { query: string; params: Record<string, any> } {
     let query;
     if (tag) {
       query = `MATCH (n:${tag}) RETURN count(n) as total`;
@@ -479,21 +524,21 @@ export class NebulaQueryBuilder {
     orderBy?: string,
     limit = 50,
     offset = 0
-  ): { query: string, params: Record<string, any> } {
+  ): { query: string; params: Record<string, any> } {
     let query = `MATCH ${pattern}`;
-    
+
     if (whereClause) {
       query += ` WHERE ${whereClause}`;
     }
-    
+
     query += ` RETURN ${returnClause}`;
-    
+
     if (orderBy) {
       query += ` ORDER BY ${orderBy}`;
     }
-    
+
     query += ` LIMIT ${limit} OFFSET ${offset}`;
-    
+
     return { query, params: {} };
   }
 }

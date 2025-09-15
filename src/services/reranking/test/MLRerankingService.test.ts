@@ -5,18 +5,18 @@ const mockConfigService = {
   get: jest.fn().mockReturnValue({
     modelType: 'linear',
     features: ['semanticScore', 'graphScore', 'contextualScore'],
-    trainingEnabled: true
-  })
+    trainingEnabled: true,
+  }),
 };
 
 const mockLoggerService = {
   info: jest.fn(),
   error: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 };
 
 const mockErrorHandlerService = {
-  handleError: jest.fn()
+  handleError: jest.fn(),
 };
 
 describe('MLRerankingService', () => {
@@ -39,9 +39,7 @@ describe('MLRerankingService', () => {
       await mlRerankingService.initializeModel();
 
       // Verify that the model was initialized
-      expect(mockLoggerService.info).toHaveBeenCalledWith(
-        'ML model initialized successfully'
-      );
+      expect(mockLoggerService.info).toHaveBeenCalledWith('ML model initialized successfully');
     });
   });
 
@@ -50,7 +48,7 @@ describe('MLRerankingService', () => {
       const features = {
         semanticScore: 0.8,
         graphScore: 0.6,
-        contextualScore: 0.4
+        contextualScore: 0.4,
       };
 
       const prediction = await mlRerankingService.predict(features);
@@ -62,7 +60,7 @@ describe('MLRerankingService', () => {
     it('should initialize model if not already initialized', async () => {
       const features = {
         semanticScore: 0.8,
-        graphScore: 0.6
+        graphScore: 0.6,
       };
 
       // Mock that model is not initialized
@@ -72,10 +70,9 @@ describe('MLRerankingService', () => {
 
       expect(prediction).toBeGreaterThanOrEqual(0);
       expect(prediction).toBeLessThanOrEqual(1);
-      expect(mockLoggerService.info).toHaveBeenCalledWith(
-        'Initializing ML model',
-        { modelType: 'linear' }
-      );
+      expect(mockLoggerService.info).toHaveBeenCalledWith('Initializing ML model', {
+        modelType: 'linear',
+      });
     });
   });
 
@@ -85,7 +82,7 @@ describe('MLRerankingService', () => {
         features: { semanticScore: 0.8, graphScore: 0.6 },
         label: 0.7,
         query: 'test query',
-        documentId: 'doc1'
+        documentId: 'doc1',
       };
 
       mlRerankingService.addTrainingData(trainingData);
@@ -101,8 +98,8 @@ describe('MLRerankingService', () => {
         get: jest.fn().mockReturnValue({
           modelType: 'linear',
           features: ['semanticScore', 'graphScore'],
-          trainingEnabled: false
-        })
+          trainingEnabled: false,
+        }),
       };
 
       const service = new MLRerankingService(
@@ -115,7 +112,7 @@ describe('MLRerankingService', () => {
         features: { semanticScore: 0.8, graphScore: 0.6 },
         label: 0.7,
         query: 'test query',
-        documentId: 'doc1'
+        documentId: 'doc1',
       };
 
       service.addTrainingData(trainingData);
@@ -132,7 +129,7 @@ describe('MLRerankingService', () => {
         features: { semanticScore: 0.8, graphScore: 0.6 },
         label: 0.7,
         query: 'test query',
-        documentId: 'doc1'
+        documentId: 'doc1',
       };
 
       mlRerankingService.addTrainingData(trainingData);

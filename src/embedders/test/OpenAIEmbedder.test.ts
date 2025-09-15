@@ -17,23 +17,23 @@ class MockConfigService {
           apiKey: 'test-api-key',
           baseUrl: 'https://api.openai.com',
           model: 'text-embedding-ada-02',
-          dimensions: 1536
-        }
+          dimensions: 1536,
+        },
       },
       batchProcessing: {
         processingTimeout: 300000, // 5 minutes
-        maxConcurrentOperations: 5
+        maxConcurrentOperations: 5,
       },
       caching: {
         defaultTTL: 300,
-        maxSize: 1000
+        maxSize: 1000,
       },
       cache: {
         ttl: 300,
         maxEntries: 1000,
-        cleanupInterval: 60
+        cleanupInterval: 60,
       },
-      ...config
+      ...config,
     };
   }
 
@@ -75,12 +75,12 @@ class MockErrorHandlerService {
       stack: error.stack,
       context,
       severity: 'medium',
-      handled: false
+      handled: false,
     };
   }
 
   handleAsyncError(operation: () => Promise<any>, context: any): Promise<any> {
-    return operation().catch((error) => {
+    return operation().catch(error => {
       this.handleError(error, context);
       throw error;
     });
@@ -108,7 +108,7 @@ class MockEmbeddingCacheService {
     return {
       size: this.cache.size,
       maxSize: 1000,
-      defaultTTL: 300000
+      defaultTTL: 300000,
     };
   }
 }
@@ -150,10 +150,10 @@ describe('OpenAIEmbedder', () => {
         embedding: {
           openai: {
             apiKey: 'test-api-key',
-            baseUrl: 'https://api.openai.com'
+            baseUrl: 'https://api.openai.com',
             // No model specified
-          }
-        }
+          },
+        },
       });
 
       const embedder = new OpenAIEmbedder(
@@ -178,10 +178,10 @@ describe('OpenAIEmbedder', () => {
         embedding: {
           openai: {
             apiKey: 'test-api-key',
-            model: 'text-embedding-ada-002'
+            model: 'text-embedding-ada-002',
             // No baseUrl specified
-          }
-        }
+          },
+        },
       });
 
       const embedder = new OpenAIEmbedder(
@@ -248,8 +248,8 @@ describe('OpenAIEmbedder', () => {
           vector: [0.1, 0.2, 0.3],
           dimensions: 3,
           model: 'text-embedding-ada-002',
-          processingTime: 100
-        }
+          processingTime: 100,
+        },
       ]);
 
       await openAIEmbedder.embed(input);

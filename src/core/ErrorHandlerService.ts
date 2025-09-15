@@ -59,7 +59,7 @@ export class ErrorHandlerService {
       stack: error.stack,
       context,
       severity: error instanceof CodebaseIndexError ? error.severity : 'medium',
-      handled: false
+      handled: false,
     };
 
     this.errorReports.set(report.id, report);
@@ -70,21 +70,18 @@ export class ErrorHandlerService {
   }
 
   handleAsyncError(operation: () => Promise<any>, context: ErrorContext): Promise<any> {
-    return operation().catch((error) => {
+    return operation().catch(error => {
       this.handleError(error, context);
       throw error;
     });
   }
 
-  wrapAsync<T extends (...args: any[]) => Promise<any>>(
-    fn: T,
-    component: string
-  ): T {
+  wrapAsync<T extends (...args: any[]) => Promise<any>>(fn: T, component: string): T {
     return ((...args: any[]) => {
       const context: ErrorContext = {
         component,
         operation: fn.name,
-        input: args
+        input: args,
       };
       return this.handleAsyncError(() => fn(...args), context);
     }) as T;
@@ -149,7 +146,7 @@ export class ErrorHandlerService {
       severity: report.severity,
       component: report.context.component,
       operation: report.context.operation,
-      metadata: report.context.metadata
+      metadata: report.context.metadata,
     };
 
     switch (report.severity) {
@@ -177,34 +174,50 @@ export class ErrorHandlerService {
   }
 
   static createConfigError(message: string, context: Partial<ErrorContext>): CodebaseIndexError {
-    return new CodebaseIndexError(message, {
-      component: 'ConfigService',
-      operation: 'validation',
-      ...context
-    }, 'high');
+    return new CodebaseIndexError(
+      message,
+      {
+        component: 'ConfigService',
+        operation: 'validation',
+        ...context,
+      },
+      'high'
+    );
   }
 
   static createDatabaseError(message: string, context: Partial<ErrorContext>): CodebaseIndexError {
-    return new CodebaseIndexError(message, {
-      component: 'DatabaseService',
-      operation: 'query',
-      ...context
-    }, 'high');
+    return new CodebaseIndexError(
+      message,
+      {
+        component: 'DatabaseService',
+        operation: 'query',
+        ...context,
+      },
+      'high'
+    );
   }
 
   static createFileError(message: string, context: Partial<ErrorContext>): CodebaseIndexError {
-    return new CodebaseIndexError(message, {
-      component: 'FileService',
-      operation: 'io',
-      ...context
-    }, 'medium');
+    return new CodebaseIndexError(
+      message,
+      {
+        component: 'FileService',
+        operation: 'io',
+        ...context,
+      },
+      'medium'
+    );
   }
 
   static createEmbeddingError(message: string, context: Partial<ErrorContext>): CodebaseIndexError {
-    return new CodebaseIndexError(message, {
-      component: 'EmbeddingService',
-      operation: 'embedding',
-      ...context
-    }, 'medium');
+    return new CodebaseIndexError(
+      message,
+      {
+        component: 'EmbeddingService',
+        operation: 'embedding',
+        ...context,
+      },
+      'medium'
+    );
   }
 }

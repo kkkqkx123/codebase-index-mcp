@@ -96,7 +96,7 @@ export class EnhancedRuleFactory {
       new JavaBuildSystemsRule(),
       new NpmYarnPackageManagementRule(),
       new DockerContainerizationRule(),
-      new CICDConfigurationRule()
+      new CICDConfigurationRule(),
     ];
   }
 
@@ -121,7 +121,7 @@ export class EnhancedRuleFactory {
       new ObjectArrayLiteralRule(),
       new ArithmeticLogicalRule(),
       new TemplateLiteralRule(),
-      new DestructuringAssignmentRule()
+      new DestructuringAssignmentRule(),
     ];
 
     switch (language.toLowerCase()) {
@@ -139,7 +139,7 @@ export class EnhancedRuleFactory {
           new ExpressRule(),
           new NpmYarnPackageManagementRule(),
           new DockerContainerizationRule(),
-          new CICDConfigurationRule()
+          new CICDConfigurationRule(),
         ];
 
       case 'python':
@@ -150,7 +150,7 @@ export class EnhancedRuleFactory {
           new FastAPIRule(),
           new PyTorchRule(),
           new PandasNumpyRule(),
-          new PytestRule()
+          new PytestRule(),
         ];
 
       case 'java':
@@ -160,16 +160,11 @@ export class EnhancedRuleFactory {
           new JavaLambdaRule(),
           new SpringBootRule(),
           new JUnitRule(),
-          new JavaBuildSystemsRule()
+          new JavaBuildSystemsRule(),
         ];
 
       case 'go':
-        return [
-          ...baseRules,
-          new GoGoroutineRule(),
-          new GoInterfaceRule(),
-          new GoFrameworkRule()
-        ];
+        return [...baseRules, new GoGoroutineRule(), new GoInterfaceRule(), new GoFrameworkRule()];
 
       default:
         return baseRules;
@@ -179,11 +174,13 @@ export class EnhancedRuleFactory {
   /**
    * Create rules focused on specific aspects
    */
-  static createFocusedRules(focus: 'performance' | 'architecture' | 'security' | 'testing'): SnippetExtractionRule[] {
+  static createFocusedRules(
+    focus: 'performance' | 'architecture' | 'security' | 'testing'
+  ): SnippetExtractionRule[] {
     const baseRules = [
       new ControlStructureRule(),
       new ErrorHandlingRule(),
-      new FunctionCallChainRule()
+      new FunctionCallChainRule(),
     ];
 
     switch (focus) {
@@ -197,7 +194,7 @@ export class EnhancedRuleFactory {
           new ReactRule(),
           new VueRule(),
           new PyTorchRule(),
-          new PandasNumpyRule()
+          new PandasNumpyRule(),
         ];
 
       case 'architecture':
@@ -218,7 +215,7 @@ export class EnhancedRuleFactory {
           new JavaBuildSystemsRule(),
           new NpmYarnPackageManagementRule(),
           new DockerContainerizationRule(),
-          new CICDConfigurationRule()
+          new CICDConfigurationRule(),
         ];
 
       case 'security':
@@ -232,7 +229,7 @@ export class EnhancedRuleFactory {
           new FastAPIRule(),
           new DjangoRule(),
           new DockerContainerizationRule(),
-          new CICDConfigurationRule()
+          new CICDConfigurationRule(),
         ];
 
       case 'testing':
@@ -242,7 +239,7 @@ export class EnhancedRuleFactory {
           new ErrorHandlingRule(),
           new FunctionCallChainRule(),
           new PytestRule(),
-          new JUnitRule()
+          new JUnitRule(),
         ];
 
       default:
@@ -311,11 +308,7 @@ export class EnhancedRuleFactory {
    * Create minimal rules for quick analysis
    */
   static createMinimalRules(): SnippetExtractionRule[] {
-    return [
-      new ControlStructureRule(),
-      new FunctionCallChainRule(),
-      new ErrorHandlingRule()
-    ];
+    return [new ControlStructureRule(), new FunctionCallChainRule(), new ErrorHandlingRule()];
   }
 
   /**
@@ -329,7 +322,7 @@ export class EnhancedRuleFactory {
       new FunctionalProgrammingRule(),
       new ReactRule(),
       new VueRule(),
-      new ExpressRule()
+      new ExpressRule(),
     ];
   }
 
@@ -343,7 +336,7 @@ export class EnhancedRuleFactory {
       new FastAPIRule(),
       new PyTorchRule(),
       new PandasNumpyRule(),
-      new PytestRule()
+      new PytestRule(),
     ];
   }
 
@@ -351,33 +344,21 @@ export class EnhancedRuleFactory {
    * Create enterprise Java rules
    */
   static createEnterpriseJavaRules(): SnippetExtractionRule[] {
-    return [
-      new JavaStreamRule(),
-      new JavaLambdaRule(),
-      new SpringBootRule(),
-      new JUnitRule()
-    ];
+    return [new JavaStreamRule(), new JavaLambdaRule(), new SpringBootRule(), new JUnitRule()];
   }
 
   /**
    * Create testing framework rules
    */
   static createTestingRules(): SnippetExtractionRule[] {
-    return [
-      new PytestRule(),
-      new JUnitRule()
-    ];
+    return [new PytestRule(), new JUnitRule()];
   }
 
   /**
    * Create concurrent programming rules
    */
   static createConcurrentRules(): SnippetExtractionRule[] {
-    return [
-      new AsyncPatternRule(),
-      new GoGoroutineRule(),
-      new JavaStreamRule()
-    ];
+    return [new AsyncPatternRule(), new GoGoroutineRule(), new JavaStreamRule()];
   }
 
   /**
@@ -416,7 +397,7 @@ export class EnhancedRuleFactory {
    */
   static getRuleStatistics() {
     const allRules = this.createAllRules();
-    
+
     const categories = {
       control: 0,
       errorHandling: 0,
@@ -430,7 +411,7 @@ export class EnhancedRuleFactory {
       destructuring: 0,
       modern: 0,
       language: 0,
-      framework: 0
+      framework: 0,
     };
 
     const languageSupport: Record<string, number> = {};
@@ -447,18 +428,45 @@ export class EnhancedRuleFactory {
       else if (rule.name.includes('Arithmetic')) categories.arithmetic++;
       else if (rule.name.includes('Template')) categories.template++;
       else if (rule.name.includes('Destructuring')) categories.destructuring++;
-      else if (rule.name.includes('Async') || rule.name.includes('Decorator') || rule.name.includes('Generic') || rule.name.includes('Functional')) categories.modern++;
-      else if (rule.name.includes('Python') || rule.name.includes('Java') || rule.name.includes('Go')) categories.language++;
-      else if (rule.name.includes('React') || rule.name.includes('Django') || rule.name.includes('Spring') || rule.name.includes('PyTorch')) categories.framework++;
+      else if (
+        rule.name.includes('Async') ||
+        rule.name.includes('Decorator') ||
+        rule.name.includes('Generic') ||
+        rule.name.includes('Functional')
+      )
+        categories.modern++;
+      else if (
+        rule.name.includes('Python') ||
+        rule.name.includes('Java') ||
+        rule.name.includes('Go')
+      )
+        categories.language++;
+      else if (
+        rule.name.includes('React') ||
+        rule.name.includes('Django') ||
+        rule.name.includes('Spring') ||
+        rule.name.includes('PyTorch')
+      )
+        categories.framework++;
 
       // Count language support from supportedNodeTypes
       rule.supportedNodeTypes.forEach(nodeType => {
         // This is a simplified approach - in reality you'd want to map node types to languages
-        if (['javascript', 'typescript', 'python', 'java', 'go'].some(lang => rule.name.toLowerCase().includes(lang))) {
-          const lang = rule.name.toLowerCase().includes('python') ? 'python' :
-                      rule.name.toLowerCase().includes('java') ? 'java' :
-                      rule.name.toLowerCase().includes('react') || rule.name.toLowerCase().includes('typescript') ? 'typescript' :
-                      rule.name.toLowerCase().includes('go') ? 'go' : 'javascript';
+        if (
+          ['javascript', 'typescript', 'python', 'java', 'go'].some(lang =>
+            rule.name.toLowerCase().includes(lang)
+          )
+        ) {
+          const lang = rule.name.toLowerCase().includes('python')
+            ? 'python'
+            : rule.name.toLowerCase().includes('java')
+              ? 'java'
+              : rule.name.toLowerCase().includes('react') ||
+                  rule.name.toLowerCase().includes('typescript')
+                ? 'typescript'
+                : rule.name.toLowerCase().includes('go')
+                  ? 'go'
+                  : 'javascript';
           languageSupport[lang] = (languageSupport[lang] || 0) + 1;
         }
       });
@@ -467,7 +475,7 @@ export class EnhancedRuleFactory {
     return {
       totalRules: allRules.length,
       categories,
-      languageSupport
+      languageSupport,
     };
   }
 }

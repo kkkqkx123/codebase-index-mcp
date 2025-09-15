@@ -1,4 +1,9 @@
-import { CustomRuleDefinition, CompiledRule, RuleCondition, RuleAction } from '../../models/CustomRuleTypes';
+import {
+  CustomRuleDefinition,
+  CompiledRule,
+  RuleCondition,
+  RuleAction,
+} from '../../models/CustomRuleTypes';
 import * as Parser from 'tree-sitter';
 import { SnippetChunk } from '../parser/types';
 
@@ -14,7 +19,7 @@ export class DSLCompiler {
       description: ruleDefinition.description,
       targetType: ruleDefinition.targetType,
       conditionEvaluator: this.createConditionEvaluator(ruleDefinition.conditions),
-      actionExecutor: this.createActionExecutor(ruleDefinition.actions)
+      actionExecutor: this.createActionExecutor(ruleDefinition.actions),
     };
   }
 
@@ -22,7 +27,9 @@ export class DSLCompiler {
     return name.toLowerCase().replace(/\s+/g, '_');
   }
 
- private createConditionEvaluator(conditions: RuleCondition[]): (node: any, sourceCode: string) => boolean {
+  private createConditionEvaluator(
+    conditions: RuleCondition[]
+  ): (node: any, sourceCode: string) => boolean {
     return (node: any, sourceCode: string): boolean => {
       // 检查节点类型
       const typeCondition = conditions.find(c => c.type === 'nodeType');
@@ -81,21 +88,23 @@ export class DSLCompiler {
     }
   }
 
- private calculateComplexity(content: string): number {
+  private calculateComplexity(content: string): number {
     let complexity = 1;
-    
-    const controlStructures = content.match(/\b(?:if|else|for|while|switch|case|try|catch|finally)\b/g);
+
+    const controlStructures = content.match(
+      /\b(?:if|else|for|while|switch|case|try|catch|finally)\b/g
+    );
     complexity += controlStructures ? controlStructures.length : 0;
-    
+
     const logicalOps = content.match(/&&|\|\|/g);
     complexity += logicalOps ? logicalOps.length : 0;
-    
+
     const brackets = content.match(/[{}[\]()]/g);
     complexity += brackets ? brackets.length * 0.5 : 0;
-    
+
     const functionCalls = content.match(/\w+\s*\(/g);
     complexity += functionCalls ? functionCalls.length * 0.3 : 0;
-    
+
     return Math.round(complexity);
   }
 
@@ -116,7 +125,9 @@ export class DSLCompiler {
     }
   }
 
- private createActionExecutor(actions: RuleAction[]): (node: any, sourceCode: string) => SnippetChunk | null {
+  private createActionExecutor(
+    actions: RuleAction[]
+  ): (node: any, sourceCode: string) => SnippetChunk | null {
     return (node: any, sourceCode: string): SnippetChunk | null => {
       // 目前只处理第一个动作
       if (actions.length === 0) {
@@ -144,13 +155,13 @@ export class DSLCompiler {
             snippetMetadata: {
               snippetType: 'function_call_chain', // 默认类型，实际应根据规则动态确定
               contextInfo: {
-                nestingLevel: 0
+                nestingLevel: 0,
               },
               languageFeatures: this.analyzeLanguageFeatures(content),
               complexity: this.calculateComplexity(content),
               isStandalone: true,
-              hasSideEffects: this.hasSideEffects(content)
-            }
+              hasSideEffects: this.hasSideEffects(content),
+            },
           };
         case 'highlight':
           // 高亮动作不需要返回代码片段，但可以记录需要高亮的信息
@@ -173,25 +184,25 @@ export class DSLCompiler {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(36);
   }
 
-  private analyzeLanguageFeatures(content: string): { 
-    usesAsync?: boolean; 
-    usesGenerators?: boolean; 
-    usesDestructuring?: boolean; 
-    usesSpread?: boolean; 
-    usesTemplateLiterals?: boolean 
+  private analyzeLanguageFeatures(content: string): {
+    usesAsync?: boolean;
+    usesGenerators?: boolean;
+    usesDestructuring?: boolean;
+    usesSpread?: boolean;
+    usesTemplateLiterals?: boolean;
   } {
     return {
       usesAsync: /\basync\b/.test(content) && /\bawait\b/.test(content),
       usesGenerators: /\bfunction\*\b/.test(content) || /\byield\b/.test(content),
       usesDestructuring: /[{[]\s*\w+/.test(content) || /=\s*[{[]/.test(content),
       usesSpread: /\.\.\./.test(content),
-      usesTemplateLiterals: /`[^`]*\$\{[^}]*\}[^`]*`/.test(content)
+      usesTemplateLiterals: /`[^`]*\$\{[^}]*\}[^`]*`/.test(content),
     };
   }
 
@@ -200,21 +211,21 @@ export class DSLCompiler {
       /\+\+|--/,
       /\b(?:delete|new|throw)\b/,
       /\.\w+\s*=/,
-      /\b(?:console\.log|process\.exit|process\.kill)\b/
+      /\b(?:console\.log|process\.exit|process\.kill)\b/,
     ];
-    
+
     const hasSideEffect = sideEffectPatterns.some(pattern => pattern.test(content));
-    
+
     if (!hasSideEffect && /=/.test(content)) {
       if (/\.\w+\s*=/.test(content)) {
         return true;
       }
-      
+
       if (/\b(?:window|global|document|console|process|module|exports)\.\w+\s*=/.test(content)) {
         return true;
       }
     }
-    
+
     return hasSideEffect;
   }
 }

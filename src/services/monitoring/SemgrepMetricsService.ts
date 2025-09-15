@@ -34,12 +34,12 @@ export class SemgrepMetricsService {
     findingsBySeverity: {
       error: 0,
       warning: 0,
-      info: 0
+      info: 0,
     },
     findingsByCategory: new Map(),
     rulesExecuted: 0,
     cacheHits: 0,
-    cacheMisses: 0
+    cacheMisses: 0,
   };
 
   constructor(
@@ -55,7 +55,7 @@ export class SemgrepMetricsService {
   recordScan(duration: number, success: boolean, findingsCount: number = 0): void {
     try {
       this.scanStats.totalScans++;
-      
+
       if (success) {
         this.scanStats.successfulScans++;
         this.scanStats.totalFindings += findingsCount;
@@ -64,18 +64,22 @@ export class SemgrepMetricsService {
       }
 
       // 更新平均扫描时长（移动平均）
-      const previousTotalDuration = this.scanStats.averageScanDuration * (this.scanStats.totalScans - 1);
-      this.scanStats.averageScanDuration = (previousTotalDuration + duration) / this.scanStats.totalScans;
+      const previousTotalDuration =
+        this.scanStats.averageScanDuration * (this.scanStats.totalScans - 1);
+      this.scanStats.averageScanDuration =
+        (previousTotalDuration + duration) / this.scanStats.totalScans;
 
-      this.logger.debug('Semgrep scan recorded', { 
-        duration, 
-        success, 
+      this.logger.debug('Semgrep scan recorded', {
+        duration,
+        success,
         findingsCount,
-        totalScans: this.scanStats.totalScans 
+        totalScans: this.scanStats.totalScans,
       });
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to record semgrep scan: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to record semgrep scan: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'SemgrepMetricsService', operation: 'recordScan' }
       );
     }
@@ -104,13 +108,15 @@ export class SemgrepMetricsService {
         this.scanStats.findingsByCategory.set(category, currentCount + 1);
       });
 
-      this.logger.debug('Semgrep scan details recorded', { 
+      this.logger.debug('Semgrep scan details recorded', {
         findingsCount: findings.length,
-        severityBreakdown: this.scanStats.findingsBySeverity 
+        severityBreakdown: this.scanStats.findingsBySeverity,
       });
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to record semgrep scan details: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to record semgrep scan details: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'SemgrepMetricsService', operation: 'recordScanDetails' }
       );
     }
@@ -122,21 +128,23 @@ export class SemgrepMetricsService {
   recordRuleExecution(ruleId: string, cacheHit: boolean = false): void {
     try {
       this.scanStats.rulesExecuted++;
-      
+
       if (cacheHit) {
         this.scanStats.cacheHits++;
       } else {
         this.scanStats.cacheMisses++;
       }
 
-      this.logger.debug('Semgrep rule execution recorded', { 
-        ruleId, 
+      this.logger.debug('Semgrep rule execution recorded', {
+        ruleId,
         cacheHit,
-        rulesExecuted: this.scanStats.rulesExecuted 
+        rulesExecuted: this.scanStats.rulesExecuted,
       });
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to record semgrep rule execution: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to record semgrep rule execution: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'SemgrepMetricsService', operation: 'recordRuleExecution' }
       );
     }
@@ -151,24 +159,26 @@ export class SemgrepMetricsService {
         total: this.scanStats.totalScans,
         successful: this.scanStats.successfulScans,
         failed: this.scanStats.failedScans,
-        averageDuration: this.scanStats.averageScanDuration
+        averageDuration: this.scanStats.averageScanDuration,
       },
       findings: {
         total: this.scanStats.totalFindings,
         bySeverity: this.scanStats.findingsBySeverity,
-        byCategory: Object.fromEntries(this.scanStats.findingsByCategory)
+        byCategory: Object.fromEntries(this.scanStats.findingsByCategory),
       },
       rules: {
         totalExecuted: this.scanStats.rulesExecuted,
-        mostFrequent: this.getMostFrequentRules()
+        mostFrequent: this.getMostFrequentRules(),
       },
       cache: {
         hits: this.scanStats.cacheHits,
         misses: this.scanStats.cacheMisses,
-        hitRate: this.scanStats.cacheHits + this.scanStats.cacheMisses > 0 
-          ? (this.scanStats.cacheHits / (this.scanStats.cacheHits + this.scanStats.cacheMisses)) * 100 
-          : 0
-      }
+        hitRate:
+          this.scanStats.cacheHits + this.scanStats.cacheMisses > 0
+            ? (this.scanStats.cacheHits / (this.scanStats.cacheHits + this.scanStats.cacheMisses)) *
+              100
+            : 0,
+      },
     };
   }
 
@@ -185,14 +195,14 @@ export class SemgrepMetricsService {
       findingsBySeverity: {
         error: 0,
         warning: 0,
-        info: 0
+        info: 0,
       },
       findingsByCategory: new Map(),
       rulesExecuted: 0,
       cacheHits: 0,
-      cacheMisses: 0
+      cacheMisses: 0,
     };
-    
+
     this.logger.info('Semgrep metrics statistics reset');
   }
 
@@ -210,12 +220,15 @@ export class SemgrepMetricsService {
   /**
    * 获取最频繁使用的规则
    */
-  private getMostFrequentRules(): Array<{ruleId: string; count: number}> {
+  private getMostFrequentRules(): Array<{ ruleId: string; count: number }> {
     // 这里简化实现，实际中需要跟踪每个规则的执行次数
     return [
       { ruleId: 'security.injection', count: Math.floor(this.scanStats.rulesExecuted * 0.3) },
-      { ruleId: 'performance.optimization', count: Math.floor(this.scanStats.rulesExecuted * 0.25) },
-      { ruleId: 'best-practices', count: Math.floor(this.scanStats.rulesExecuted * 0.2) }
+      {
+        ruleId: 'performance.optimization',
+        count: Math.floor(this.scanStats.rulesExecuted * 0.25),
+      },
+      { ruleId: 'best-practices', count: Math.floor(this.scanStats.rulesExecuted * 0.2) },
     ];
   }
 }

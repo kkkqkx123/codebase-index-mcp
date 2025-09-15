@@ -87,13 +87,13 @@ export class ConsistencyChecker {
       issuesFound: issues.length,
       issues,
       checkedAt: new Date(),
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
 
-    this.logger.info('Consistency check completed', { 
-      projectId, 
+    this.logger.info('Consistency check completed', {
+      projectId,
       issuesFound: issues.length,
-      duration: result.duration 
+      duration: result.duration,
     });
 
     return result;
@@ -112,7 +112,7 @@ export class ConsistencyChecker {
         projectId: mapping.projectId,
         severity: 'medium',
         description: `Entity ${mapping.entityId} is missing vector data`,
-        detectedAt: new Date()
+        detectedAt: new Date(),
       });
     }
 
@@ -126,7 +126,7 @@ export class ConsistencyChecker {
         projectId: mapping.projectId,
         severity: 'medium',
         description: `Entity ${mapping.entityId} is missing graph data`,
-        detectedAt: new Date()
+        detectedAt: new Date(),
       });
     }
 
@@ -141,7 +141,7 @@ export class ConsistencyChecker {
         projectId: mapping.projectId,
         severity: 'high',
         description: `Data mismatch between vector and graph stores for entity ${mapping.entityId}`,
-        detectedAt: new Date()
+        detectedAt: new Date(),
       });
     }
 
@@ -152,35 +152,38 @@ export class ConsistencyChecker {
     // This would compare the actual data between vector and graph stores
     // For now, we'll simulate the check
     // In a real implementation, this would fetch data from both databases and compare
-    
+
     // Simulate some processing time
     await new Promise(resolve => setTimeout(resolve, 5));
-    
+
     // Return false (no mismatch) for now
     return false;
   }
 
-  async repairIssue(issueId: string, strategy: 'auto' | 'manual' = 'auto'): Promise<DataRepairResult> {
+  async repairIssue(
+    issueId: string,
+    strategy: 'auto' | 'manual' = 'auto'
+  ): Promise<DataRepairResult> {
     const issue = this.consistencyIssues.get(issueId);
     if (!issue) {
-      throw new CodebaseIndexError(`Issue not found: ${issueId}`, { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairIssue' 
+      throw new CodebaseIndexError(`Issue not found: ${issueId}`, {
+        component: 'ConsistencyChecker',
+        operation: 'repairIssue',
       });
     }
 
     if (issue.resolvedAt) {
-      throw new CodebaseIndexError(`Issue already resolved: ${issueId}`, { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairIssue' 
+      throw new CodebaseIndexError(`Issue already resolved: ${issueId}`, {
+        component: 'ConsistencyChecker',
+        operation: 'repairIssue',
       });
     }
 
     // Handle manual strategy by throwing an error
     if (strategy === 'manual') {
-      throw new CodebaseIndexError('Manual repair not implemented', { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairIssue' 
+      throw new CodebaseIndexError('Manual repair not implemented', {
+        component: 'ConsistencyChecker',
+        operation: 'repairIssue',
       });
     }
 
@@ -188,13 +191,13 @@ export class ConsistencyChecker {
 
     try {
       const result = await this.performRepair(issue, strategy);
-      
+
       // Mark issue as resolved
       issue.resolvedAt = new Date();
       issue.resolution = result.message;
-      
+
       this.repairHistory.push(result);
-      
+
       this.logger.info('Issue repaired successfully', { issueId, action: result.action });
       return result;
     } catch (error) {
@@ -203,25 +206,28 @@ export class ConsistencyChecker {
         success: false,
         action: 'repair_failed',
         message: error instanceof Error ? error.message : String(error),
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-      
+
       this.repairHistory.push(errorResult);
       this.logger.error('Failed to repair issue', { issueId, error });
-      
+
       throw error;
     }
   }
 
-  private async performRepair(issue: ConsistencyIssue, strategy: 'auto' | 'manual'): Promise<DataRepairResult> {
+  private async performRepair(
+    issue: ConsistencyIssue,
+    strategy: 'auto' | 'manual'
+  ): Promise<DataRepairResult> {
     // Handle manual strategy by throwing an error for all issue types
     if (strategy === 'manual') {
-      throw new CodebaseIndexError('Manual repair not implemented', { 
-        component: 'ConsistencyChecker', 
-        operation: 'performRepair' 
+      throw new CodebaseIndexError('Manual repair not implemented', {
+        component: 'ConsistencyChecker',
+        operation: 'performRepair',
       });
     }
-    
+
     switch (issue.type) {
       case 'missing_vector':
         return await this.repairMissingVector(issue, strategy);
@@ -232,183 +238,209 @@ export class ConsistencyChecker {
       case 'orphaned_entity':
         return await this.repairOrphanedEntity(issue, strategy);
       default:
-        throw new CodebaseIndexError(`Unknown issue type: ${issue.type}`, { 
-          component: 'ConsistencyChecker', 
-          operation: 'performRepair' 
+        throw new CodebaseIndexError(`Unknown issue type: ${issue.type}`, {
+          component: 'ConsistencyChecker',
+          operation: 'performRepair',
         });
     }
   }
 
-  private async repairMissingVector(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
+  private async repairMissingVector(
+    issue: ConsistencyIssue,
+    strategy: string
+  ): Promise<DataRepairResult> {
     if (strategy === 'auto') {
       try {
         // Get the entity mapping
         const mapping = this.entityIdManager.getMapping(issue.entityId);
         if (!mapping) {
-          throw new CodebaseIndexError(`Entity mapping not found: ${issue.entityId}`, { 
-            component: 'ConsistencyChecker', 
-            operation: 'repairMissingVector' 
+          throw new CodebaseIndexError(`Entity mapping not found: ${issue.entityId}`, {
+            component: 'ConsistencyChecker',
+            operation: 'repairMissingVector',
           });
         }
 
         // Create a transaction for vector repair
-        const operations = [{
-          type: 'vector' as const,
-          operation: {
-            type: 'storeChunks',
-            chunks: [mapping], // Using the entire mapping as the chunk data
-            options: { projectId: issue.projectId }
-          }
-        }];
+        const operations = [
+          {
+            type: 'vector' as const,
+            operation: {
+              type: 'storeChunks',
+              chunks: [mapping], // Using the entire mapping as the chunk data
+              options: { projectId: issue.projectId },
+            },
+          },
+        ];
 
-        const result = await this.transactionCoordinator.executeTransaction(issue.projectId, operations);
-        
+        const result = await this.transactionCoordinator.executeTransaction(
+          issue.projectId,
+          operations
+        );
+
         if (result.success) {
           // Get the current mapping to preserve the graphId
           const currentMapping = this.entityIdManager.getMapping(issue.entityId);
           // Update the mapping with vector ID
           await this.entityIdManager.updateMapping(issue.entityId, {
             vectorId: issue.entityId,
-            graphId: currentMapping?.graphId
+            graphId: currentMapping?.graphId,
           });
-          
+
           return {
             issueId: issue.id,
             success: true,
             action: 'created_vector_data',
             message: `Created missing vector data for entity ${issue.entityId}`,
-            timestamp: new Date()
+            timestamp: new Date(),
           };
         } else {
           throw new Error(result.error || 'Transaction failed');
         }
       } catch (error) {
-        this.logger.error('Failed to repair missing vector data', { 
-          entityId: issue.entityId, 
-          error: error instanceof Error ? error.message : String(error) 
+        this.logger.error('Failed to repair missing vector data', {
+          entityId: issue.entityId,
+          error: error instanceof Error ? error.message : String(error),
         });
-        
+
         throw error;
       }
     } else {
-      throw new CodebaseIndexError('Manual repair not implemented', { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairMissingVector' 
+      throw new CodebaseIndexError('Manual repair not implemented', {
+        component: 'ConsistencyChecker',
+        operation: 'repairMissingVector',
       });
     }
   }
 
-  private async repairMissingGraph(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
+  private async repairMissingGraph(
+    issue: ConsistencyIssue,
+    strategy: string
+  ): Promise<DataRepairResult> {
     if (strategy === 'auto') {
       try {
         // Get the entity mapping
         const mapping = this.entityIdManager.getMapping(issue.entityId);
         if (!mapping) {
-          throw new CodebaseIndexError(`Entity mapping not found: ${issue.entityId}`, { 
-            component: 'ConsistencyChecker', 
-            operation: 'repairMissingGraph' 
+          throw new CodebaseIndexError(`Entity mapping not found: ${issue.entityId}`, {
+            component: 'ConsistencyChecker',
+            operation: 'repairMissingGraph',
           });
         }
 
         // Create a transaction for graph repair
-        const operations = [{
-          type: 'graph' as const,
-          operation: {
-            type: 'storeChunks',
-            chunks: [mapping], // Using the entire mapping as the chunk data
-            options: { projectId: issue.projectId }
-          }
-        }];
+        const operations = [
+          {
+            type: 'graph' as const,
+            operation: {
+              type: 'storeChunks',
+              chunks: [mapping], // Using the entire mapping as the chunk data
+              options: { projectId: issue.projectId },
+            },
+          },
+        ];
 
-        const result = await this.transactionCoordinator.executeTransaction(issue.projectId, operations);
-        
+        const result = await this.transactionCoordinator.executeTransaction(
+          issue.projectId,
+          operations
+        );
+
         if (result.success) {
           // Get the current mapping to preserve the vectorId
           const currentMapping = this.entityIdManager.getMapping(issue.entityId);
           // Update the mapping with graph ID
           await this.entityIdManager.updateMapping(issue.entityId, {
             vectorId: currentMapping?.vectorId,
-            graphId: issue.entityId
+            graphId: issue.entityId,
           });
-          
+
           return {
             issueId: issue.id,
             success: true,
             action: 'created_graph_data',
             message: `Created missing graph data for entity ${issue.entityId}`,
-            timestamp: new Date()
+            timestamp: new Date(),
           };
         } else {
           throw new Error(result.error || 'Transaction failed');
         }
       } catch (error) {
-        this.logger.error('Failed to repair missing graph data', { 
-          entityId: issue.entityId, 
-          error: error instanceof Error ? error.message : String(error) 
+        this.logger.error('Failed to repair missing graph data', {
+          entityId: issue.entityId,
+          error: error instanceof Error ? error.message : String(error),
         });
-        
+
         throw error;
       }
     } else {
-      throw new CodebaseIndexError('Manual repair not implemented', { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairMissingGraph' 
+      throw new CodebaseIndexError('Manual repair not implemented', {
+        component: 'ConsistencyChecker',
+        operation: 'repairMissingGraph',
       });
     }
   }
 
-  private async repairDataMismatch(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
+  private async repairDataMismatch(
+    issue: ConsistencyIssue,
+    strategy: string
+  ): Promise<DataRepairResult> {
     // This would resolve data mismatches
     // For now, we'll simulate the repair
-    
+
     if (strategy === 'auto') {
       // Simulate repair process
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       return {
         issueId: issue.id,
         success: true,
         action: 'resolved_data_mismatch',
         message: `Resolved data mismatch for entity ${issue.entityId}`,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } else {
-      throw new CodebaseIndexError('Manual repair not implemented', { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairDataMismatch' 
+      throw new CodebaseIndexError('Manual repair not implemented', {
+        component: 'ConsistencyChecker',
+        operation: 'repairDataMismatch',
       });
     }
   }
 
-  private async repairOrphanedEntity(issue: ConsistencyIssue, strategy: string): Promise<DataRepairResult> {
+  private async repairOrphanedEntity(
+    issue: ConsistencyIssue,
+    strategy: string
+  ): Promise<DataRepairResult> {
     // This would handle orphaned entities
     // For now, we'll simulate the repair
-    
+
     if (strategy === 'auto') {
       // Simulate repair process
       await new Promise(resolve => setTimeout(resolve, 30));
-      
+
       // Remove the orphaned mapping
       this.entityIdManager.deleteMapping(issue.entityId);
-      
+
       return {
         issueId: issue.id,
         success: true,
         action: 'removed_orphaned_entity',
         message: `Removed orphaned entity ${issue.entityId}`,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } else {
-      throw new CodebaseIndexError('Manual repair not implemented', { 
-        component: 'ConsistencyChecker', 
-        operation: 'repairOrphanedEntity' 
+      throw new CodebaseIndexError('Manual repair not implemented', {
+        component: 'ConsistencyChecker',
+        operation: 'repairOrphanedEntity',
       });
     }
   }
 
-  async repairAllIssues(projectId?: string, strategy: 'auto' | 'manual' = 'auto'): Promise<DataRepairResult[]> {
-    const issues = Array.from(this.consistencyIssues.values())
-      .filter(issue => !issue.resolvedAt && (projectId ? issue.projectId === projectId : true));
+  async repairAllIssues(
+    projectId?: string,
+    strategy: 'auto' | 'manual' = 'auto'
+  ): Promise<DataRepairResult[]> {
+    const issues = Array.from(this.consistencyIssues.values()).filter(
+      issue => !issue.resolvedAt && (projectId ? issue.projectId === projectId : true)
+    );
 
     const results: DataRepairResult[] = [];
 
@@ -424,20 +456,20 @@ export class ConsistencyChecker {
           success: false,
           action: 'repair_failed',
           message: error instanceof Error ? error.message : String(error),
-          timestamp: new Date()
+          timestamp: new Date(),
         });
-        this.logger.error('Failed to repair issue during bulk repair', { 
-          issueId: issue.id, 
-          error 
+        this.logger.error('Failed to repair issue during bulk repair', {
+          issueId: issue.id,
+          error,
         });
       }
     }
 
     const successCount = results.filter(r => r.success).length;
-    this.logger.info('Bulk repair completed', { 
-      projectId, 
-      successCount, 
-      totalCount: results.length 
+    this.logger.info('Bulk repair completed', {
+      projectId,
+      successCount,
+      totalCount: results.length,
     });
 
     return results;
@@ -462,8 +494,9 @@ export class ConsistencyChecker {
   }
 
   getConsistencyStats(projectId?: string) {
-    const issues = Array.from(this.consistencyIssues.values())
-      .filter(issue => projectId ? issue.projectId === projectId : true);
+    const issues = Array.from(this.consistencyIssues.values()).filter(issue =>
+      projectId ? issue.projectId === projectId : true
+    );
 
     const total = issues.length;
     const resolved = issues.filter(i => i.resolvedAt).length;
@@ -471,7 +504,7 @@ export class ConsistencyChecker {
       critical: issues.filter(i => i.severity === 'critical').length,
       high: issues.filter(i => i.severity === 'high').length,
       medium: issues.filter(i => i.severity === 'medium').length,
-      low: issues.filter(i => i.severity === 'low').length
+      low: issues.filter(i => i.severity === 'low').length,
     };
 
     return {
@@ -483,15 +516,15 @@ export class ConsistencyChecker {
         missing_vector: issues.filter(i => i.type === 'missing_vector').length,
         missing_graph: issues.filter(i => i.type === 'missing_graph').length,
         data_mismatch: issues.filter(i => i.type === 'data_mismatch').length,
-        orphaned_entity: issues.filter(i => i.type === 'orphaned_entity').length
+        orphaned_entity: issues.filter(i => i.type === 'orphaned_entity').length,
       },
-      bySeverity
+      bySeverity,
     };
   }
 
   clearResolvedIssues(projectId?: string): number {
     let clearedCount = 0;
-    
+
     for (const [issueId, issue] of this.consistencyIssues.entries()) {
       if (issue.resolvedAt && (!projectId || issue.projectId === projectId)) {
         this.consistencyIssues.delete(issueId);

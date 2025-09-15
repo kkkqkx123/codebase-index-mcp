@@ -36,7 +36,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
     'environment',
     'build',
     'ports',
-    'deploy'
+    'deploy',
   ]);
 
   protected snippetType = 'docker_containerization' as const;
@@ -74,7 +74,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
     'mysql:',
     'postgres:',
     'redis:',
-    'mongo:'
+    'mongo:',
   ];
 
   // Docker Compose patterns
@@ -117,7 +117,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
     'dns:',
     'dns_search:',
     'tmpfs:',
-    'privileged:'
+    'privileged:',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -127,31 +127,38 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
 
   private isDockerPattern(text: string): boolean {
     const isDockerfile = text.includes('FROM') || text.includes('RUN') || text.includes('CMD');
-    const isCompose = text.includes('version:') || text.includes('services:') || text.includes('build:');
+    const isCompose =
+      text.includes('version:') || text.includes('services:') || text.includes('build:');
     const hasDockerPatterns = this.dockerfilePatterns.some(pattern => text.includes(pattern));
     const hasComposePatterns = this.composePatterns.some(pattern => text.includes(pattern));
-    
+
     return isDockerfile || isCompose || hasDockerPatterns || hasComposePatterns;
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const content = this.getNodeText(node, sourceCode);
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
-    
-    if (!this.validateSnippet({
-      id: '',
-      content,
-      startLine: location.startLine,
-      endLine: location.endLine,
-      startByte: node.startIndex,
-      endByte: node.endIndex,
-      type: 'snippet',
-      imports: [],
-      exports: [],
-      metadata: {},
-      snippetMetadata: {} as SnippetMetadata
-    })) {
+
+    if (
+      !this.validateSnippet({
+        id: '',
+        content,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: node.startIndex,
+        endByte: node.endIndex,
+        type: 'snippet',
+        imports: [],
+        exports: [],
+        metadata: {},
+        snippetMetadata: {} as SnippetMetadata,
+      })
+    ) {
       return null;
     }
 
@@ -165,7 +172,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
       languageFeatures: this.analyzeLanguageFeatures(content),
       complexity,
       isStandalone: true,
-      hasSideEffects: this.hasSideEffects(content)
+      hasSideEffects: this.hasSideEffects(content),
     };
 
     return {
@@ -179,7 +186,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
       imports: [],
       exports: [],
       metadata: {},
-      snippetMetadata: metadata
+      snippetMetadata: metadata,
     };
   }
 
@@ -195,7 +202,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
       isCompose: text.includes('version:') || text.includes('services:'),
       stageCount: 0,
       instructionCount: 0,
-      serviceCount: 0
+      serviceCount: 0,
     };
 
     // Count stages (multi-stage builds)
@@ -243,7 +250,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
 
   private extractExposedPorts(text: string): string[] {
     const ports: string[] = [];
-    
+
     // Dockerfile EXPOSE
     const exposeMatches = text.match(/EXPOSE\s+(\d+(?:\/\w+)?)/gi) || [];
     exposeMatches.forEach(match => {
@@ -387,11 +394,15 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
         if (restartMatch) deployConfig.restartPolicy = restartMatch[1].trim();
 
         // Extract resource limits
-        const resourcesSection = deploySection[1].match(/resources:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i);
+        const resourcesSection = deploySection[1].match(
+          /resources:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i
+        );
         if (resourcesSection) {
           deployConfig.resources = {};
-          
-          const limitsSection = resourcesSection[1].match(/limits:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i);
+
+          const limitsSection = resourcesSection[1].match(
+            /limits:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i
+          );
           if (limitsSection) {
             deployConfig.resources.limits = {};
             const limitDefs = limitsSection[1].match(/^\s+(\w+):\s*([^\n]+)/gm) || [];
@@ -445,7 +456,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
             services[serviceName] = {
               image: this.extractServiceImage(text, serviceName),
               ports: this.extractServicePorts(text, serviceName),
-              depends_on: this.extractServiceDependencies(text, serviceName)
+              depends_on: this.extractServiceDependencies(text, serviceName),
             };
           }
         });
@@ -456,7 +467,9 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
   }
 
   private extractServiceImage(text: string, serviceName: string): string {
-    const serviceSection = text.match(new RegExp(`${serviceName}:\\s*\\n([\\s\\S]*?)(?=\\n\\w+:\\s*$|\\n*$)`, 'i'));
+    const serviceSection = text.match(
+      new RegExp(`${serviceName}:\\s*\\n([\\s\\S]*?)(?=\\n\\w+:\\s*$|\\n*$)`, 'i')
+    );
     if (serviceSection) {
       const imageMatch = serviceSection[1].match(/image:\s*([^\n]+)/i);
       return imageMatch ? imageMatch[1].trim() : 'unknown';
@@ -466,7 +479,9 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
 
   private extractServicePorts(text: string, serviceName: string): string[] {
     const ports: string[] = [];
-    const serviceSection = text.match(new RegExp(`${serviceName}:\\s*\\n([\\s\\S]*?)(?=\\n\\w+:\\s*$|\\n*$)`, 'i'));
+    const serviceSection = text.match(
+      new RegExp(`${serviceName}:\\s*\\n([\\s\\S]*?)(?=\\n\\w+:\\s*$|\\n*$)`, 'i')
+    );
     if (serviceSection) {
       const portDefs = serviceSection[1].match(/^\s*-\s*"?\d+:\d+"?/gm) || [];
       portDefs.forEach(def => {
@@ -479,9 +494,13 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
 
   private extractServiceDependencies(text: string, serviceName: string): string[] {
     const dependencies: string[] = [];
-    const serviceSection = text.match(new RegExp(`${serviceName}:\\s*\\n([\\s\\S]*?)(?=\\n\\w+:\\s*$|\\n*$)`, 'i'));
+    const serviceSection = text.match(
+      new RegExp(`${serviceName}:\\s*\\n([\\s\\S]*?)(?=\\n\\w+:\\s*$|\\n*$)`, 'i')
+    );
     if (serviceSection) {
-      const dependsSection = serviceSection[1].match(/depends_on:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i);
+      const dependsSection = serviceSection[1].match(
+        /depends_on:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i
+      );
       if (dependsSection) {
         const depDefs = dependsSection[1].match(/^\s*-\s*(\w+)/gm) || [];
         depDefs.forEach(def => {
@@ -522,7 +541,11 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
     complexity += text.split('\n').length * 0.3;
 
     // Instruction complexity
-    const instructionCount = (text.match(/(FROM|RUN|COPY|ADD|CMD|ENTRYPOINT|EXPOSE|ENV|ARG|VOLUME|USER|WORKDIR|LABEL|HEALTHCHECK)\s+/gi) || []).length;
+    const instructionCount = (
+      text.match(
+        /(FROM|RUN|COPY|ADD|CMD|ENTRYPOINT|EXPOSE|ENV|ARG|VOLUME|USER|WORKDIR|LABEL|HEALTHCHECK)\s+/gi
+      ) || []
+    ).length;
     complexity += instructionCount * 0.5;
 
     // Multi-stage complexity
@@ -605,7 +628,7 @@ export class DockerContainerizationRule extends AbstractSnippetRule {
     const lines = sourceCode.split('\n');
     const startLine = node.startPosition.row;
     const endLine = node.endPosition.row;
-    
+
     return lines.slice(startLine, endLine + 1).join('\n');
   }
 

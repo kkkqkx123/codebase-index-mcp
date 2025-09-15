@@ -30,7 +30,7 @@ describe('IndexService', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
-    
+
     // Create mock instances
     mockLogger = {
       info: jest.fn(),
@@ -39,17 +39,17 @@ describe('IndexService', () => {
       debug: jest.fn(),
       verbose: jest.fn(),
     } as unknown as jest.Mocked<LoggerService>;
-    
+
     mockErrorHandler = {
       handleError: jest.fn(),
       reportError: jest.fn(),
     } as unknown as jest.Mocked<ErrorHandlerService>;
-    
+
     mockConfigService = {
       get: jest.fn(),
       getAll: jest.fn(),
     } as unknown as jest.Mocked<ConfigService>;
-    
+
     mockBatchMetrics = {
       startBatchOperation: jest.fn(),
       updateBatchOperation: jest.fn(),
@@ -60,7 +60,7 @@ describe('IndexService', () => {
       getOperationHistory: jest.fn(),
       exportMetrics: jest.fn(),
     } as unknown as jest.Mocked<BatchProcessingMetrics>;
-    
+
     mockIndexCoordinator = {
       createIndex: jest.fn(),
       updateIndex: jest.fn(),
@@ -70,7 +70,7 @@ describe('IndexService', () => {
       search: jest.fn(),
       getActiveIndexing: jest.fn(),
     } as unknown as jest.Mocked<IndexCoordinator>;
-    
+
     mockSearchCoordinator = {
       search: jest.fn(),
     } as unknown as jest.Mocked<SearchCoordinator>;
@@ -80,7 +80,7 @@ describe('IndexService', () => {
       path: '/test/project',
       hash: 'test-hash-12345',
       fileCount: 5,
-      files: []
+      files: [],
     });
 
     // Create IndexService instance with mocked dependencies
@@ -96,7 +96,7 @@ describe('IndexService', () => {
     it('should call IndexCoordinator.createIndex with correct parameters', async () => {
       const projectPath = '/test/project';
       const options = { includePatterns: ['**/*.ts'], excludePatterns: ['node_modules/**'] };
-      
+
       // Mock the IndexCoordinator response
       mockIndexCoordinator.createIndex.mockResolvedValue({
         success: true,
@@ -104,7 +104,7 @@ describe('IndexService', () => {
         filesSkipped: 0,
         chunksCreated: 50,
         processingTime: 1000,
-        errors: []
+        errors: [],
       });
 
       const result = await indexService.createIndex(projectPath, options);
@@ -131,9 +131,9 @@ describe('IndexService', () => {
           chunkType: 'function',
           metadata: { functionName: 'Button', component: true },
           rankingFeatures: {
-            semanticScore: 0.95
-          }
-        }
+            semanticScore: 0.95,
+          },
+        },
       ]);
 
       // Act
@@ -141,11 +141,11 @@ describe('IndexService', () => {
       const projectId = 'test-project-id';
       const options = { limit: 10 };
       const results = await indexService.search(query, projectId, options);
-      
+
       // Assert
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      
+
       // Check the structure of the first result
       expect(results[0]).toHaveProperty('id');
       expect(results[0]).toHaveProperty('score');
@@ -162,13 +162,13 @@ describe('IndexService', () => {
         totalFiles: 150,
         totalChunks: 450,
         totalSize: 1024000,
-        languages: ['typescript', 'javascript']
+        languages: ['typescript', 'javascript'],
       });
 
       // Act
       const projectPath = '/test/project';
       const status = await indexService.getStatus(projectPath);
-      
+
       // Assert
       expect(status).toHaveProperty('projectId');
       expect(status).toHaveProperty('isIndexing');

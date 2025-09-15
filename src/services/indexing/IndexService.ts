@@ -27,7 +27,7 @@ export interface IndexResult {
 export interface SearchOptions {
   limit?: number;
   threshold?: number;
- includeGraph?: boolean;
+  includeGraph?: boolean;
   filters?: {
     language?: string[];
     fileType?: string[];
@@ -37,7 +37,6 @@ export interface SearchOptions {
   };
   searchType?: 'semantic' | 'keyword' | 'hybrid' | 'snippet';
 }
-
 
 export interface IndexStatus {
   projectId: string;
@@ -54,7 +53,7 @@ export class IndexService {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private indexCoordinator: IndexCoordinator;
-  
+
   private currentIndexing: Map<string, boolean> = new Map();
 
   constructor(
@@ -78,7 +77,9 @@ export class IndexService {
       return result;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Index creation failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Index creation failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'IndexService', operation: 'createIndex' }
       );
       throw error;
@@ -94,12 +95,12 @@ export class IndexService {
         text: query,
         filters: {
           projectId,
-          ...options.filters
+          ...options.filters,
         },
         options: {
           ...options,
-          searchType: 'general'
-        }
+          searchType: 'general',
+        },
       };
       const result = await this.indexCoordinator.search(searchQuery);
       return result;
@@ -112,7 +113,11 @@ export class IndexService {
     }
   }
 
-  async searchSnippets(query: string, projectId: string, options: SearchOptions = {}): Promise<any[]> {
+  async searchSnippets(
+    query: string,
+    projectId: string,
+    options: SearchOptions = {}
+  ): Promise<any[]> {
     this.logger.info('Performing snippet search', { query, projectId, options });
 
     try {
@@ -121,18 +126,20 @@ export class IndexService {
         text: query,
         filters: {
           projectId,
-          ...options.filters
+          ...options.filters,
         },
         options: {
           ...options,
-          searchType: 'snippet'
-        }
+          searchType: 'snippet',
+        },
       };
       const result = await this.indexCoordinator.search(searchQuery);
       return result;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Snippet search failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Snippet search failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'IndexService', operation: 'searchSnippets' }
       );
       throw error;
@@ -151,11 +158,13 @@ export class IndexService {
         lastIndexed: status.lastUpdated || undefined,
         fileCount: status.totalFiles,
         chunkCount: status.totalChunks,
-        status: status.exists ? 'completed' : 'idle'
+        status: status.exists ? 'completed' : 'idle',
       };
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to get status: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get status: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'IndexService', operation: 'getStatus' }
       );
       throw error;
@@ -165,7 +174,7 @@ export class IndexService {
   async updateIndex(projectPath: string, changedFiles: string[]): Promise<IndexResult> {
     this.logger.info('Starting index update', {
       projectPath,
-      changedFiles: changedFiles.length
+      changedFiles: changedFiles.length,
     });
 
     try {
@@ -190,7 +199,9 @@ export class IndexService {
       return result;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Index deletion failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Index deletion failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'IndexService', operation: 'deleteIndex' }
       );
       throw error;

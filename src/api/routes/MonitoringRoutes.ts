@@ -85,7 +85,11 @@ export class MonitoringRoutes {
     }
   }
 
-  private async getPerformanceReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  private async getPerformanceReport(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { start, end } = req.query;
       const period = start && end ? { start: start as string, end: end as string } : undefined;

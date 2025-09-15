@@ -5,17 +5,17 @@ export class TreeSitterUtils {
     return sourceCode.substring(node.startIndex, node.endIndex);
   }
 
-  static getNodeLocation(node: Parser.SyntaxNode): { 
-    startLine: number; 
-    endLine: number; 
-    startColumn: number; 
-    endColumn: number 
+  static getNodeLocation(node: Parser.SyntaxNode): {
+    startLine: number;
+    endLine: number;
+    startColumn: number;
+    endColumn: number;
   } {
     return {
       startLine: node.startPosition.row + 1,
       endLine: node.endPosition.row + 1,
       startColumn: node.startPosition.column + 1,
-      endColumn: node.endPosition.column + 1
+      endColumn: node.endPosition.column + 1,
     };
   }
 
@@ -52,7 +52,7 @@ export class TreeSitterUtils {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(36);

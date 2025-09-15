@@ -35,29 +35,29 @@ describe('Performance Benchmarks', () => {
   const measureOperation = async (operation: () => Promise<any>): Promise<BenchmarkResult> => {
     const startMemory = process.memoryUsage();
     const startTime = Date.now();
-    
+
     try {
       const result = await operation();
       const endTime = Date.now();
       const endMemory = process.memoryUsage();
-      
+
       return {
         operation: operation.name || 'anonymous',
         duration: endTime - startTime,
         memoryUsage: endMemory.heapUsed - startMemory.heapUsed,
         success: true,
-        details: result
+        details: result,
       };
     } catch (error) {
       const endTime = Date.now();
       const endMemory = process.memoryUsage();
-      
+
       return {
         operation: operation.name || 'anonymous',
         duration: endTime - startTime,
         memoryUsage: endMemory.heapUsed - startMemory.heapUsed,
         success: false,
-        details: error
+        details: error,
       };
     }
   };
@@ -68,16 +68,16 @@ describe('Performance Benchmarks', () => {
     iterations: number = 10
   ): Promise<PerformanceMetrics> => {
     const results: BenchmarkResult[] = [];
-    
+
     for (let i = 0; i < iterations; i++) {
       const result = await measureOperation(operation);
       results.push(result);
     }
-    
+
     const successfulResults = results.filter(r => r.success);
     const durations = successfulResults.map(r => r.duration);
     const memoryUsages = successfulResults.map(r => r.memoryUsage);
-    
+
     return {
       name,
       averageTime: durations.reduce((a, b) => a + b, 0) / durations.length,
@@ -85,7 +85,7 @@ describe('Performance Benchmarks', () => {
       maxTime: Math.max(...durations),
       memoryUsage: memoryUsages.reduce((a, b) => a + b, 0) / memoryUsages.length,
       cacheHitRate: 0, // Will be calculated separately
-      iterations
+      iterations,
     };
   };
 
@@ -94,10 +94,13 @@ describe('Performance Benchmarks', () => {
       const smallCode = `function test() {
         return 'hello world';
       }`;
-      
-      const metrics = await runBenchmark('Small File Parsing', 
-        () => service.parseCode(smallCode, 'javascript'), 20);
-      
+
+      const metrics = await runBenchmark(
+        'Small File Parsing',
+        () => service.parseCode(smallCode, 'javascript'),
+        20
+      );
+
       expect(metrics.averageTime).toBeLessThan(50); // Target: <50ms
       expect(metrics.memoryUsage).toBeLessThan(1024 * 1024); // <1MB
     });
@@ -132,10 +135,13 @@ describe('Performance Benchmarks', () => {
         const processor = new DataProcessor([1, 2, 3]);
         export default processor;
       `;
-      
-      const metrics = await runBenchmark('Medium File Parsing',
-        () => service.parseCode(mediumCode, 'typescript'), 10);
-      
+
+      const metrics = await runBenchmark(
+        'Medium File Parsing',
+        () => service.parseCode(mediumCode, 'typescript'),
+        10
+      );
+
       expect(metrics.averageTime).toBeLessThan(100); // Target: <100ms
       expect(metrics.memoryUsage).toBeLessThan(2 * 1024 * 1024); // <2MB
     });
@@ -171,13 +177,15 @@ describe('Performance Benchmarks', () => {
           console.log(result);
         }
       `;
-      
+
       // First parse (no cache)
       const firstParse = await measureOperation(() => service.parseCode(complexCode, 'javascript'));
-      
+
       // Second parse (with cache)
-      const secondParse = await measureOperation(() => service.parseCode(complexCode, 'javascript'));
-      
+      const secondParse = await measureOperation(() =>
+        service.parseCode(complexCode, 'javascript')
+      );
+
       // Cached parse should be significantly faster or at least as fast
       // Allow for measurement precision issues with very fast operations
       if (firstParse.duration > 0) {
@@ -186,7 +194,7 @@ describe('Performance Benchmarks', () => {
         // If first parse was extremely fast (<1ms), cached parse should be 0ms
         expect(secondParse.duration).toBe(0);
       }
-      
+
       // Check cache statistics
       const stats = service.getCacheStats();
       expect(parseFloat(stats.hitRate)).toBeGreaterThanOrEqual(50); // 1 hit out of 2 requests (50%+)
@@ -214,12 +222,15 @@ describe('Performance Benchmarks', () => {
           console.log(i);
         }
       `;
-      
+
       const parseResult = await service.parseCode(code, 'javascript');
-      
-      const metrics = await runBenchmark('Node Query Performance',
-        () => Promise.resolve(service.findNodeByType(parseResult.ast, 'function_declaration')), 20);
-      
+
+      const metrics = await runBenchmark(
+        'Node Query Performance',
+        () => Promise.resolve(service.findNodeByType(parseResult.ast, 'function_declaration')),
+        20
+      );
+
       expect(metrics.averageTime).toBeLessThan(10); // Target: <10ms
     });
 
@@ -232,23 +243,25 @@ describe('Performance Benchmarks', () => {
         if (x > y) { console.log('x > y'); }
         class TestClass { constructor() {} }
       `;
-      
+
       const parseResult = await service.parseCode(code, 'javascript');
-      
+
       // Individual queries
       const individualStartTime = Date.now();
       const functions = service.findNodeByType(parseResult.ast, 'function_declaration');
       const variables = service.findNodeByType(parseResult.ast, 'variable_declaration');
       const classes = service.findNodeByType(parseResult.ast, 'class_declaration');
       const individualTime = Date.now() - individualStartTime;
-      
+
       // Batch query
       const batchStartTime = Date.now();
       const batchResults = service.findNodesByTypes(parseResult.ast, [
-        'function_declaration', 'variable_declaration', 'class_declaration'
+        'function_declaration',
+        'variable_declaration',
+        'class_declaration',
       ]);
       const batchTime = Date.now() - batchStartTime;
-      
+
       // Batch query should be faster or equal (allow for measurement precision)
       if (individualTime > 0) {
         expect(batchTime).toBeLessThanOrEqual(individualTime);
@@ -284,17 +297,24 @@ describe('Performance Benchmarks', () => {
           throw new Error('Unauthorized');
         }
       `;
-      
+
       const parseResult = await service.parseCode(complexControlStructure, 'javascript');
-      
-      const metrics = await runBenchmark('Rule Processing Performance',
-        () => Promise.resolve(controlStructureRule.extract(parseResult.ast, complexControlStructure)), 10);
-      
+
+      const metrics = await runBenchmark(
+        'Rule Processing Performance',
+        () =>
+          Promise.resolve(controlStructureRule.extract(parseResult.ast, complexControlStructure)),
+        10
+      );
+
       expect(metrics.averageTime).toBeLessThan(50); // Target: <50ms
     });
 
     it('should handle large input volumes efficiently', async () => {
-      const largeCode = Array(100).fill(0).map((_, i) => `
+      const largeCode = Array(100)
+        .fill(0)
+        .map(
+          (_, i) => `
         function testFunction${i}() {
           const data = [${i}, ${i + 1}, ${i + 2}];
           return data.map(x => x * 2).filter(x => x > ${i});
@@ -303,11 +323,16 @@ describe('Performance Benchmarks', () => {
         if (${i} > 50) {
           console.log('Large number:', ${i});
         }
-      `).join('\n');
-      
-      const metrics = await runBenchmark('Large Input Processing',
-        () => service.parseCode(largeCode, 'javascript'), 5);
-      
+      `
+        )
+        .join('\n');
+
+      const metrics = await runBenchmark(
+        'Large Input Processing',
+        () => service.parseCode(largeCode, 'javascript'),
+        5
+      );
+
       expect(metrics.averageTime).toBeLessThan(500); // Target: <500ms
       expect(metrics.memoryUsage).toBeLessThan(10 * 1024 * 1024); // <10MB
     });
@@ -333,31 +358,41 @@ describe('Performance Benchmarks', () => {
             .sort((a, b) => b.value - a.value);
         }
       `;
-      
-      const metrics = await runBenchmark('Validation Performance',
-        () => Promise.resolve(SnippetValidationService.enhancedIsValidSnippet(validCode, 'logic_block', 'typescript')), 50);
-      
+
+      const metrics = await runBenchmark(
+        'Validation Performance',
+        () =>
+          Promise.resolve(
+            SnippetValidationService.enhancedIsValidSnippet(validCode, 'logic_block', 'typescript')
+          ),
+        50
+      );
+
       expect(metrics.averageTime).toBeLessThan(5); // Target: <5ms
     });
 
     it('should handle bulk validation efficiently', async () => {
-      const codeSnippets = Array(100).fill(0).map((_, i) => `
+      const codeSnippets = Array(100)
+        .fill(0)
+        .map(
+          (_, i) => `
         function test${i}() {
           const x = ${i};
           const y = x * 2;
           return y > ${i} ? y : ${i};
         }
-      `);
-      
+      `
+        );
+
       const startTime = Date.now();
       const results = codeSnippets.map(code =>
         SnippetValidationService.enhancedIsValidSnippet(code, 'logic_block', 'javascript')
       );
       const endTime = Date.now();
-      
+
       const totalTime = endTime - startTime;
       const averageTime = totalTime / codeSnippets.length;
-      
+
       expect(averageTime).toBeLessThan(2); // Target: <2ms per snippet
     });
   });
@@ -365,43 +400,51 @@ describe('Performance Benchmarks', () => {
   describe('Memory Usage Optimization', () => {
     it('should demonstrate memory efficiency with repeated operations', async () => {
       const code = `function test() { return 'hello'; }`;
-      
+
       // Clear cache to start fresh
       service.clearCache();
-      
+
       const initialMemory = process.memoryUsage();
-      
+
       // Perform multiple operations
       for (let i = 0; i < 100; i++) {
         await service.parseCode(code, 'javascript');
-        service.findNodeByType((await service.parseCode(code, 'javascript')).ast, 'function_declaration');
+        service.findNodeByType(
+          (await service.parseCode(code, 'javascript')).ast,
+          'function_declaration'
+        );
       }
-      
+
       const finalMemory = process.memoryUsage();
       const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
-      
+
       // Memory increase should be reasonable (less than 10MB for 100 operations)
       expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
-      
+
       // Cache should be working
       const stats = service.getCacheStats();
       expect(parseFloat(stats.hitRate)).toBeGreaterThanOrEqual(99); // High cache hit rate (99%+)
     });
 
     it('should clean up memory when cache is cleared', async () => {
-      const largeCode = Array(1000).fill(0).map((_, i) => `
+      const largeCode = Array(1000)
+        .fill(0)
+        .map(
+          (_, i) => `
         function func${i}() { return ${i}; }
-      `).join('\n');
-      
+      `
+        )
+        .join('\n');
+
       // Populate cache
       for (let i = 0; i < 10; i++) {
         await service.parseCode(largeCode, 'javascript');
       }
-      
+
       const memoryBeforeClear = process.memoryUsage();
       service.clearCache();
       const memoryAfterClear = process.memoryUsage();
-      
+
       // Memory should be freed after cache clear
       // Note: This is a rough test as garbage collection is not immediate
       // Allow for small measurement differences due to GC timing
@@ -430,19 +473,22 @@ describe('Performance Benchmarks', () => {
           }
         }
       `;
-      
-      const metrics = await runBenchmark('Baseline Performance',
-        () => service.parseCode(baselineCode, 'typescript'), 10);
-      
+
+      const metrics = await runBenchmark(
+        'Baseline Performance',
+        () => service.parseCode(baselineCode, 'typescript'),
+        10
+      );
+
       // These are our baseline metrics - should not regress
       expect(metrics.averageTime).toBeLessThan(100);
       expect(metrics.memoryUsage).toBeLessThan(2 * 1024 * 1024);
-      
+
       console.log('Baseline Metrics:', {
         averageTime: `${metrics.averageTime.toFixed(2)}ms`,
         memoryUsage: `${(metrics.memoryUsage / 1024 / 1024).toFixed(2)}MB`,
         minTime: `${metrics.minTime}ms`,
-        maxTime: `${metrics.maxTime}ms`
+        maxTime: `${metrics.maxTime}ms`,
       });
     });
   });

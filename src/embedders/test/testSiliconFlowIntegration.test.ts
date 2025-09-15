@@ -18,7 +18,12 @@ function testSiliconFlowIntegration() {
     const cacheService = new EmbeddingCacheService(configService, logger, {} as any);
 
     // Initialize SiliconFlow embedder
-    const siliconFlowEmbedder = new SiliconFlowEmbedder(configService, logger, errorHandler, cacheService);
+    const siliconFlowEmbedder = new SiliconFlowEmbedder(
+      configService,
+      logger,
+      errorHandler,
+      cacheService
+    );
 
     // Test configuration
     const config = configService.get('embedding');
@@ -29,8 +34,9 @@ function testSiliconFlowIntegration() {
     console.log('');
 
     console.log('SiliconFlow embedder created successfully.');
-    console.log('Note: Actual API integration testing requires a valid SiliconFlow API key and URL.');
-
+    console.log(
+      'Note: Actual API integration testing requires a valid SiliconFlow API key and URL.'
+    );
   } catch (error) {
     console.error('Error testing SiliconFlow integration:', error);
   }

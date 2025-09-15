@@ -14,25 +14,16 @@ export class FileWatcherExample {
   async startExample(): Promise<void> {
     // Define the paths to watch
     const watchOptions: FileWatcherOptions = {
-      watchPaths: [
-        './src',
-        './test'
-      ],
-      ignored: [
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/dist/**',
-        '**/build/**',
-        '**/*.log'
-      ],
+      watchPaths: ['./src', './test'],
+      ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**', '**/*.log'],
       ignoreInitial: true,
       followSymlinks: false,
       usePolling: false,
       awaitWriteFinish: true,
       awaitWriteFinishOptions: {
         stabilityThreshold: 2000,
-        pollInterval: 100
-      }
+        pollInterval: 100,
+      },
     };
 
     // Define callbacks for file events
@@ -70,7 +61,7 @@ export class FileWatcherExample {
       onReady: () => {
         console.log('File watcher is ready and watching for changes');
         // Perform initial setup after watcher is ready
-      }
+      },
     };
 
     // Set the callbacks
@@ -114,20 +105,20 @@ export class FileWatcherExample {
 // Example of how to use the FileWatcherExample class
 async function runExample() {
   const example = new FileWatcherExample();
-  
+
   try {
     await example.startExample();
-    
+
     // Keep the application running
     console.log('Press Ctrl+C to stop the file watcher...');
-    
+
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
       console.log('\nReceived SIGINT, stopping file watcher...');
       await example.stopExample();
       process.exit(0);
     });
-    
+
     process.on('SIGTERM', async () => {
       console.log('\nReceived SIGTERM, stopping file watcher...');
       await example.stopExample();

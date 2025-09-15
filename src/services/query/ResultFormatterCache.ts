@@ -3,7 +3,7 @@ import { injectable } from 'inversify';
 export interface CacheEntry<T> {
   data: T;
   timestamp: number;
- ttl: number;
+  ttl: number;
 }
 
 @injectable()
@@ -13,7 +13,8 @@ export class ResultFormatterCache {
   private defaultTTL: number;
   private cleanupInterval: NodeJS.Timeout | null = null;
 
-  constructor(maxSize: number = 1000, defaultTTL: number = 300000) { // 5 minutes default
+  constructor(maxSize: number = 1000, defaultTTL: number = 300000) {
+    // 5 minutes default
     this.maxSize = maxSize;
     this.defaultTTL = defaultTTL;
     this.startCleanupInterval();
@@ -31,13 +32,13 @@ export class ResultFormatterCache {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
   }
 
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }

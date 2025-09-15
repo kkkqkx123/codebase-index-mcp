@@ -23,7 +23,7 @@ const createMockNode = (
     namedChild: (index: number) => null,
     namedChildren: [],
     hasChanges: false,
-    text
+    text,
   };
   return mockNode as Parser.SyntaxNode;
 };
@@ -60,8 +60,8 @@ class TestRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 
@@ -98,7 +98,7 @@ describe('AbstractSnippetRule Tests', () => {
   test('should respect max depth limit', () => {
     const deepNode = createMockNode('test_node', 'deep content');
     const childNode = createMockNode('test_node', 'child content');
-    
+
     // Simulate deep nesting
     let currentNode = deepNode;
     for (let i = 0; i < 60; i++) {
@@ -124,7 +124,7 @@ describe('AbstractSnippetRule Tests', () => {
       startLine: 1,
       endLine: 2,
       startColumn: 1,
-      endColumn: 1
+      endColumn: 1,
     });
   });
 
@@ -189,7 +189,7 @@ describe('AbstractSnippetRule Tests', () => {
     const content = 'test content';
     const hash1 = (rule as any)['simpleHash'](content);
     const hash2 = (rule as any)['simpleHash'](content);
-    
+
     expect(hash1).toBe(hash2);
     expect(typeof hash1).toBe('string');
   });
@@ -199,7 +199,7 @@ describe('AbstractSnippetRule Tests', () => {
     const malformedNode: any = createMockNode('test_node', 'test');
     malformedNode.startIndex = null;
     malformedNode.endIndex = undefined;
-    
+
     // Should not throw errors
     expect(() => {
       rule.extract(malformedNode, 'test');
@@ -208,7 +208,7 @@ describe('AbstractSnippetRule Tests', () => {
 
   test('should handle empty source code', () => {
     const node = createMockNode('test_node', '');
-    
+
     const result = rule.extract(node, '');
     expect(Array.isArray(result)).toBe(true);
   });

@@ -34,10 +34,10 @@ describe('LoggerService', () => {
       debug: jest.fn(),
       verbose: jest.fn(),
     };
-    
+
     // Mock createLogger to return our mock
     winston.createLogger.mockReturnValue(mockLogger);
-    
+
     // Create LoggerService instance
     loggerService = new LoggerService();
   });
@@ -57,7 +57,7 @@ describe('LoggerService', () => {
     it('should use environment variables when provided', () => {
       const originalLogLevel = process.env.LOG_LEVEL;
       const originalLogFormat = process.env.LOG_FORMAT;
-      
+
       process.env.LOG_LEVEL = 'debug';
       process.env.LOG_FORMAT = 'text';
 
@@ -167,7 +167,7 @@ describe('LoggerService', () => {
 
       testCases.forEach(({ level }) => {
         process.env.LOG_LEVEL = level;
-        
+
         const newLoggerService = new LoggerService();
 
         expect(winston.createLogger).toHaveBeenCalledWith(

@@ -3,7 +3,10 @@ import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
+import {
+  BatchProcessingMetrics,
+  BatchOperationMetrics,
+} from '../monitoring/BatchProcessingMetrics';
 
 export interface ProcessingTask<T, R> {
   id: string;
@@ -55,7 +58,7 @@ export class ConcurrentProcessingService {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
-  
+
   // Default configuration
   private maxConcurrency: number = 5;
   private defaultBatchSize: number = 50;
@@ -76,13 +79,13 @@ export class ConcurrentProcessingService {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.batchMetrics = batchMetrics;
-    
+
     this.initializeConfig();
   }
 
   private initializeConfig(): void {
     const batchConfig = this.configService.get('batchProcessing');
-    
+
     this.maxConcurrency = batchConfig.maxConcurrentOperations;
     this.defaultBatchSize = batchConfig.defaultBatchSize;
     this.maxBatchSize = batchConfig.maxBatchSize;
@@ -91,7 +94,7 @@ export class ConcurrentProcessingService {
     this.retryDelay = batchConfig.retryDelay;
     this.memoryThreshold = batchConfig.memoryThreshold;
     this.continueOnError = batchConfig.continueOnError;
-    
+
     this.logger.info('Concurrent processing service initialized', {
       maxConcurrency: this.maxConcurrency,
       defaultBatchSize: this.defaultBatchSize,
@@ -99,7 +102,7 @@ export class ConcurrentProcessingService {
       defaultTimeout: this.defaultTimeout,
       retryAttempts: this.retryAttempts,
       memoryThreshold: this.memoryThreshold,
-      continueOnError: this.continueOnError
+      continueOnError: this.continueOnError,
     });
   }
 
@@ -111,7 +114,7 @@ export class ConcurrentProcessingService {
     const startTime = Date.now();
     const startMemory = process.memoryUsage().heapUsed;
     let peakMemory = startMemory;
-    
+
     // Apply options with defaults
     const maxConcurrency = options.maxConcurrency || this.maxConcurrency;
     const batchSize = options.batchSize || this.defaultBatchSize;
@@ -119,33 +122,30 @@ export class ConcurrentProcessingService {
     const retryAttempts = options.retryAttempts || this.retryAttempts;
     const retryDelay = options.retryDelay || this.retryDelay;
     const memoryThreshold = options.memoryThreshold || this.memoryThreshold;
-    const continueOnError = options.continueOnError !== undefined ? options.continueOnError : this.continueOnError;
-    
+    const continueOnError =
+      options.continueOnError !== undefined ? options.continueOnError : this.continueOnError;
+
     // Start batch operation metrics
-    const batchMetrics = this.batchMetrics.startBatchOperation(
-      batchId, 
-      'file', 
-      batchSize
-    );
-    
+    const batchMetrics = this.batchMetrics.startBatchOperation(batchId, 'file', batchSize);
+
     this.logger.info('Starting concurrent processing', {
       batchId,
       totalItems: tasks.length,
       maxConcurrency,
       batchSize,
-      timeout
+      timeout,
     });
-    
+
     const results: ProcessingResult<T, R>[] = [];
     let successfulItems = 0;
     let failedItems = 0;
-    
+
     try {
       // Check memory usage before starting
       if (!this.checkMemoryUsage(memoryThreshold)) {
         throw new Error('Insufficient memory available for concurrent processing');
       }
-      
+
       // Process tasks in batches
       for (let i = 0; i < tasks.length; i += batchSize) {
         const batch = tasks.slice(i, i + batchSize);
@@ -158,42 +158,42 @@ export class ConcurrentProcessingService {
           memoryThreshold,
           continueOnError
         );
-        
+
         results.push(...batchResults);
         successfulItems += batchResults.filter(r => r.success).length;
         failedItems += batchResults.filter(r => !r.success).length;
-        
+
         // Update peak memory usage
         const currentMemory = process.memoryUsage().heapUsed;
         if (currentMemory > peakMemory) {
           peakMemory = currentMemory;
         }
-        
+
         // Check memory usage between batches
         if (!this.checkMemoryUsage(memoryThreshold)) {
           this.logger.warn('Memory threshold exceeded during batch processing', {
             batchId,
             memoryUsage: (currentMemory / process.memoryUsage().heapTotal) * 100,
-            threshold: memoryThreshold
+            threshold: memoryThreshold,
           });
-          
+
           if (!continueOnError) {
             throw new Error('Memory threshold exceeded and continueOnError is false');
           }
         }
       }
-      
+
       const processingTime = Date.now() - startTime;
       const endMemory = process.memoryUsage().heapUsed;
-      const throughput = processingTime > 0 ? (successfulItems / (processingTime / 1000)) : 0;
-      
+      const throughput = processingTime > 0 ? successfulItems / (processingTime / 1000) : 0;
+
       // Update batch metrics
       this.batchMetrics.updateBatchOperation(batchId, {
         processedCount: tasks.length,
         successCount: successfulItems,
-        errorCount: failedItems
+        errorCount: failedItems,
       });
-      
+
       const result: BatchProcessingResult<T, R> = {
         batchId,
         success: failedItems === 0 || continueOnError,
@@ -206,38 +206,38 @@ export class ConcurrentProcessingService {
         memoryUsage: {
           start: startMemory,
           end: endMemory,
-          peak: peakMemory
-        }
+          peak: peakMemory,
+        },
       };
-      
+
       this.logger.info('Concurrent processing completed', {
         batchId,
         totalItems: tasks.length,
         successfulItems,
         failedItems,
         processingTime,
-        throughput: throughput.toFixed(2)
+        throughput: throughput.toFixed(2),
       });
-      
+
       return result;
     } catch (error) {
       const processingTime = Date.now() - startTime;
       const endMemory = process.memoryUsage().heapUsed;
-      
+
       // Update batch metrics with error
       this.batchMetrics.updateBatchOperation(batchId, {
         processedCount: tasks.length,
         successCount: successfulItems,
-        errorCount: tasks.length - successfulItems
+        errorCount: tasks.length - successfulItems,
       });
-      
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Concurrent processing failed', {
         batchId,
         error: errorMessage,
-        processingTime
+        processingTime,
       });
-      
+
       return {
         batchId,
         success: false,
@@ -250,8 +250,8 @@ export class ConcurrentProcessingService {
         memoryUsage: {
           start: startMemory,
           end: endMemory,
-          peak: peakMemory
-        }
+          peak: peakMemory,
+        },
       };
     } finally {
       // End batch operation metrics
@@ -271,20 +271,20 @@ export class ConcurrentProcessingService {
     const results: ProcessingResult<T, R>[] = [];
     const inProgress: Map<string, Promise<void>> = new Map();
     const pendingTasks = [...tasks];
-    
+
     while (pendingTasks.length > 0 || inProgress.size > 0) {
       // Start new tasks if we have capacity
       while (pendingTasks.length > 0 && inProgress.size < maxConcurrency) {
         const task = pendingTasks.shift()!;
-        
+
         // Check memory usage before starting each task
         if (!this.checkMemoryUsage(memoryThreshold)) {
           this.logger.warn('Memory threshold exceeded before starting task', {
             taskId: task.id,
             memoryUsage: (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100,
-            threshold: memoryThreshold
+            threshold: memoryThreshold,
           });
-          
+
           if (!continueOnError) {
             // Add failed result for this task
             results.push({
@@ -292,34 +292,29 @@ export class ConcurrentProcessingService {
               success: false,
               error: 'Memory threshold exceeded',
               processingTime: 0,
-              retryCount: 0
+              retryCount: 0,
             });
             continue;
           }
         }
-        
-        const taskPromise = this.processTaskWithRetry(
-          task,
-          timeout,
-          retryAttempts,
-          retryDelay
-        )
+
+        const taskPromise = this.processTaskWithRetry(task, timeout, retryAttempts, retryDelay)
           .then(result => {
             results.push(result);
           })
           .finally(() => {
             inProgress.delete(task.id);
           });
-        
+
         inProgress.set(task.id, taskPromise);
       }
-      
+
       // Wait for at least one task to complete if we're at capacity
       if (inProgress.size >= maxConcurrency || (pendingTasks.length === 0 && inProgress.size > 0)) {
         await Promise.race(inProgress.values());
       }
     }
-    
+
     return results;
   }
 
@@ -333,60 +328,57 @@ export class ConcurrentProcessingService {
     let lastError: string = 'Unknown error';
     const actualTimeout = task.timeout || timeout;
     const actualMaxAttempts = (task.retryCount || 0) + 1 + maxAttempts;
-    
+
     for (let attempt = 1; attempt <= actualMaxAttempts; attempt++) {
       try {
         const result = await this.processWithTimeout(
           () => task.processor(task.item),
           actualTimeout
         );
-        
+
         const processingTime = Date.now() - startTime;
-        
+
         return {
           taskId: task.id,
           success: true,
           result,
           processingTime,
-          retryCount: attempt - 1
+          retryCount: attempt - 1,
         };
       } catch (error) {
         lastError = error instanceof Error ? error.message : String(error);
-        
+
         if (attempt < actualMaxAttempts) {
           this.logger.debug('Task failed, retrying', {
             taskId: task.id,
             attempt,
             maxAttempts: actualMaxAttempts,
-            error: lastError
+            error: lastError,
           });
-          
+
           // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
       }
     }
-    
+
     const processingTime = Date.now() - startTime;
-    
+
     return {
       taskId: task.id,
       success: false,
       error: lastError,
       processingTime,
-      retryCount: actualMaxAttempts - 1
+      retryCount: actualMaxAttempts - 1,
     };
   }
 
-  private async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  private async processWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-      
+
       operation()
         .then(result => {
           clearTimeout(timeout);
@@ -402,7 +394,7 @@ export class ConcurrentProcessingService {
   private checkMemoryUsage(threshold: number): boolean {
     const memUsage = process.memoryUsage();
     const memoryUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-    
+
     return memoryUsagePercent <= threshold;
   }
 
@@ -415,9 +407,9 @@ export class ConcurrentProcessingService {
     const tasks: ProcessingTask<T, R>[] = files.map(file => ({
       id: `file_${file.filePath.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
       item: file,
-      processor
+      processor,
     }));
-    
+
     return this.processConcurrently(tasks, options);
   }
 
@@ -430,9 +422,9 @@ export class ConcurrentProcessingService {
     const tasks: ProcessingTask<T, R>[] = chunks.map(chunk => ({
       id: `chunk_${chunk.id}`,
       item: chunk,
-      processor
+      processor,
     }));
-    
+
     return this.processConcurrently(tasks, options);
   }
 }

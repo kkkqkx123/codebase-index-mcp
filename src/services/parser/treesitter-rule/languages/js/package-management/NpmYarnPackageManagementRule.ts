@@ -17,7 +17,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
     'key',
     'value',
     'comment',
-    'json_document'
+    'json_document',
   ]);
 
   protected snippetType = 'package_management' as const;
@@ -87,7 +87,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
     '"prebuild":',
     '"postbuild":',
     '"prepare":',
-    '"prepublishOnly":'
+    '"prepublishOnly":',
   ];
 
   // yarn-specific patterns
@@ -100,7 +100,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
     '".yarnrc.yml"',
     '".yarn"',
     '"plugins":',
-    '"packageExtensions":'
+    '"packageExtensions":',
   ];
 
   // npm-specific patterns
@@ -109,7 +109,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
     '"npm-shrinkwrap.json"',
     '".npmrc"',
     '"npx":',
-    '"npm audit"'
+    '"npm audit"',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -123,28 +123,34 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
     const hasPackagePatterns = this.npmPatterns.some(pattern => text.includes(pattern));
     const hasYarnPatterns = this.yarnPatterns.some(pattern => text.includes(pattern));
     const hasNpmPatterns = this.npmSpecificPatterns.some(pattern => text.includes(pattern));
-    
+
     return isPackageJson || hasPackagePatterns || hasYarnPatterns || hasNpmPatterns;
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const content = this.getNodeText(node, sourceCode);
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
-    
-    if (!this.validateSnippet({
-      id: '',
-      content,
-      startLine: location.startLine,
-      endLine: location.endLine,
-      startByte: node.startIndex,
-      endByte: node.endIndex,
-      type: 'snippet',
-      imports: [],
-      exports: [],
-      metadata: {},
-      snippetMetadata: {} as SnippetMetadata
-    })) {
+
+    if (
+      !this.validateSnippet({
+        id: '',
+        content,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: node.startIndex,
+        endByte: node.endIndex,
+        type: 'snippet',
+        imports: [],
+        exports: [],
+        metadata: {},
+        snippetMetadata: {} as SnippetMetadata,
+      })
+    ) {
       return null;
     }
 
@@ -158,7 +164,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
       languageFeatures: this.analyzeLanguageFeatures(content),
       complexity,
       isStandalone: true,
-      hasSideEffects: this.hasSideEffects(content)
+      hasSideEffects: this.hasSideEffects(content),
     };
 
     return {
@@ -172,7 +178,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
       imports: [],
       exports: [],
       metadata: {},
-      snippetMetadata: metadata
+      snippetMetadata: metadata,
     };
   }
 
@@ -264,9 +270,14 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
   }
 
   private countDependencies(text: string): number {
-    const depSections = ['"dependencies":', '"devDependencies":', '"peerDependencies":', '"optionalDependencies"'];
+    const depSections = [
+      '"dependencies":',
+      '"devDependencies":',
+      '"peerDependencies":',
+      '"optionalDependencies"',
+    ];
     let count = 0;
-    
+
     depSections.forEach(section => {
       const sectionMatch = text.match(new RegExp(section + '\\s*\\{([^}]*)\\}', 's'));
       if (sectionMatch) {
@@ -274,14 +285,14 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
         count += depCount;
       }
     });
-    
+
     return count;
   }
 
   private countScripts(text: string): number {
     const scriptsMatch = text.match(/"scripts":\s*\{([^}]*)\}/s);
     if (!scriptsMatch) return 0;
-    
+
     return (scriptsMatch[1].match(/"[^"]+":/g) || []).length;
   }
 
@@ -300,63 +311,96 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
       '"next":',
       '"react-scripts":',
       '"vue":',
-      '"angular":'
+      '"angular":',
     ];
-    
+
     return configFiles.some(config => text.includes(config));
   }
 
   private extractBuildTools(text: string): string[] {
     const tools: string[] = [];
-    
+
     const buildTools = [
-      'webpack', 'vite', 'rollup', 'parcel', 'esbuild',
-      'babel', 'typescript', 'tsc', 'swc', 'tsx',
-      'next', 'nuxt', 'gatsby', 'astro', 'sveltekit',
-      'react-scripts', 'vue-cli', '@angular/cli', 'ionic'
+      'webpack',
+      'vite',
+      'rollup',
+      'parcel',
+      'esbuild',
+      'babel',
+      'typescript',
+      'tsc',
+      'swc',
+      'tsx',
+      'next',
+      'nuxt',
+      'gatsby',
+      'astro',
+      'sveltekit',
+      'react-scripts',
+      'vue-cli',
+      '@angular/cli',
+      'ionic',
     ];
-    
+
     buildTools.forEach(tool => {
       if (text.includes(tool)) {
         tools.push(tool);
       }
     });
-    
+
     return tools;
   }
 
   private extractTestFrameworks(text: string): string[] {
     const frameworks: string[] = [];
-    
+
     const testFrameworks = [
-      'jest', 'mocha', 'chai', 'jasmine', 'cypress',
-      'playwright', 'puppeteer', 'vitest', 'uvu',
-      'ava', 'tape', 'qunit', 'karma', 'protractor'
+      'jest',
+      'mocha',
+      'chai',
+      'jasmine',
+      'cypress',
+      'playwright',
+      'puppeteer',
+      'vitest',
+      'uvu',
+      'ava',
+      'tape',
+      'qunit',
+      'karma',
+      'protractor',
     ];
-    
+
     testFrameworks.forEach(framework => {
       if (text.includes(framework)) {
         frameworks.push(framework);
       }
     });
-    
+
     return frameworks;
   }
 
   private extractLintTools(text: string): string[] {
     const tools: string[] = [];
-    
+
     const lintTools = [
-      'eslint', 'prettier', 'standard', 'xo', 'semistandard',
-      'stylelint', 'htmlhint', 'textlint', 'commitlint'
+      'eslint',
+      'prettier',
+      'standard',
+      'xo',
+      'semistandard',
+      'stylelint',
+      'htmlhint',
+      'textlint',
+      'commitlint',
     ];
-    
+
     lintTools.forEach(tool => {
       if (text.includes(tool)) {
         tools.push(tool);
       }
     });
-    
+
     return tools;
   }
 
@@ -454,7 +498,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
       dependencies: [],
       devDependencies: [],
       peerDependencies: [],
-      optionalDependencies: []
+      optionalDependencies: [],
     };
 
     Object.keys(dependencies).forEach(section => {
@@ -517,7 +561,7 @@ export class NpmYarnPackageManagementRule extends AbstractSnippetRule {
     const lines = sourceCode.split('\n');
     const startLine = node.startPosition.row;
     const endLine = node.endPosition.row;
-    
+
     return lines.slice(startLine, endLine + 1).join('\n');
   }
 

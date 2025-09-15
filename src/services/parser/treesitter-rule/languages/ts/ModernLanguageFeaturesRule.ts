@@ -10,40 +10,74 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
   readonly name = 'ModernLanguageFeaturesRule';
   readonly supportedNodeTypes = new Set([
     // 异步特性
-    'async_function', 'await_expression', 'async_arrow_function',
+    'async_function',
+    'await_expression',
+    'async_arrow_function',
 
     // 装饰器
-    'decorator', 'decorated_statement', 'decorated_class_declaration',
+    'decorator',
+    'decorated_statement',
+    'decorated_class_declaration',
 
     // 可选链和空值合并
-    'optional_member_expression', 'optional_call_expression',
-    'nullish_coalescing_expression', 'logical_or_expression',
+    'optional_member_expression',
+    'optional_call_expression',
+    'nullish_coalescing_expression',
+    'logical_or_expression',
 
     // 私有字段和方法
-    'private_identifier', 'private_field_definition',
-    'private_method_definition', 'private_property_identifier',
+    'private_identifier',
+    'private_field_definition',
+    'private_method_definition',
+    'private_property_identifier',
 
     // 解构和展开
-    'rest_pattern', 'spread_element', 'spread_pattern',
+    'rest_pattern',
+    'spread_element',
+    'spread_pattern',
 
     // 类型特性
-    'type_annotation', 'type_alias_declaration', 'interface_declaration',
-    'generic_type', 'type_parameter_declaration', 'type_assertion',
+    'type_annotation',
+    'type_alias_declaration',
+    'interface_declaration',
+    'generic_type',
+    'type_parameter_declaration',
+    'type_assertion',
 
     // 模块特性
-    'import_statement', 'export_statement', 'export_named_declaration',
-    'export_default_declaration', 'export_all_declaration',
+    'import_statement',
+    'export_statement',
+    'export_named_declaration',
+    'export_default_declaration',
+    'export_all_declaration',
 
     // 类特性
-    'class_declaration', 'class_expression', 'extends_clause',
-    'implements_clause', 'constructor_declaration',
+    'class_declaration',
+    'class_expression',
+    'extends_clause',
+    'implements_clause',
+    'constructor_declaration',
 
     // 高级特性
-    'generator_function', 'yield_expression', 'for_await_statement',
-    'dynamic_import', 'import_expression', 'big_int_literal'
+    'generator_function',
+    'yield_expression',
+    'for_await_statement',
+    'dynamic_import',
+    'import_expression',
+    'big_int_literal',
   ]);
 
-  protected readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' = 'expression_sequence';
+  protected readonly snippetType:
+    | 'control_structure'
+    | 'error_handling'
+    | 'function_call_chain'
+    | 'expression_sequence'
+    | 'comment_marked'
+    | 'logic_block'
+    | 'object_array_literal'
+    | 'arithmetic_logical_expression'
+    | 'template_literal'
+    | 'destructuring_assignment' = 'expression_sequence';
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
@@ -82,8 +116,8 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: this.isStandaloneSnippet(node),
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 
@@ -105,46 +139,47 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
       /extends\s+\w+/i,
       /implements\s+\w+/i,
       /BigInt\(/,
-      /\d+n/ // BigInt字面量
+      /\d+n/, // BigInt字面量
     ];
 
     return modernPatterns.some(pattern => pattern.test(content));
   }
 
-  private identifyFeatureType(
-    node: Parser.SyntaxNode,
-    content: string
-  ): string {
+  private identifyFeatureType(node: Parser.SyntaxNode, content: string): string {
     const featureMap: Record<string, string> = {
-      'async_function': 'async_function',
-      'await_expression': 'await_expression',
-      'decorator': 'decorator',
-      'optional_member_expression': 'optional_chaining',
-      'optional_call_expression': 'optional_chaining',
-      'nullish_coalescing_expression': 'nullish_coalescing',
-      'private_identifier': 'private_field',
-      'private_field_definition': 'private_field',
-      'type_annotation': 'type_annotation',
-      'type_alias_declaration': 'type_alias',
-      'interface_declaration': 'interface',
-      'class_declaration': 'class_declaration',
-      'extends_clause': 'inheritance',
-      'implements_clause': 'interface_implementation',
-      'generator_function': 'generator_function',
-      'yield_expression': 'yield_expression',
-      'dynamic_import': 'dynamic_import',
-      'import_expression': 'dynamic_import',
-      'big_int_literal': 'bigint_literal'
+      async_function: 'async_function',
+      await_expression: 'await_expression',
+      decorator: 'decorator',
+      optional_member_expression: 'optional_chaining',
+      optional_call_expression: 'optional_chaining',
+      nullish_coalescing_expression: 'nullish_coalescing',
+      private_identifier: 'private_field',
+      private_field_definition: 'private_field',
+      type_annotation: 'type_annotation',
+      type_alias_declaration: 'type_alias',
+      interface_declaration: 'interface',
+      class_declaration: 'class_declaration',
+      extends_clause: 'inheritance',
+      implements_clause: 'interface_implementation',
+      generator_function: 'generator_function',
+      yield_expression: 'yield_expression',
+      dynamic_import: 'dynamic_import',
+      import_expression: 'dynamic_import',
+      big_int_literal: 'bigint_literal',
     };
 
     return featureMap[node.type] || 'unknown_modern_feature';
   }
 
-  private extractModernFeatures(content: string): { usesAsync?: boolean; usesGenerators?: boolean; usesDestructuring?: boolean; usesSpread?: boolean; usesTemplateLiterals?: boolean } {
+  private extractModernFeatures(content: string): {
+    usesAsync?: boolean;
+    usesGenerators?: boolean;
+    usesDestructuring?: boolean;
+    usesSpread?: boolean;
+    usesTemplateLiterals?: boolean;
+  } {
     return this.analyzeLanguageFeatures(content);
   }
-
-
 
   private extractImports(node: Parser.SyntaxNode, sourceCode: string): string[] {
     const imports: string[] = [];
@@ -203,8 +238,12 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
   private isStandaloneSnippet(node: Parser.SyntaxNode): boolean {
     // 判断是否可以独立使用
     const standaloneTypes = [
-      'class_declaration', 'function_declaration', 'type_alias_declaration',
-      'interface_declaration', 'async_function', 'generator_function'
+      'class_declaration',
+      'function_declaration',
+      'type_alias_declaration',
+      'interface_declaration',
+      'async_function',
+      'generator_function',
     ];
 
     return standaloneTypes.includes(node.type);
@@ -218,10 +257,23 @@ export class ModernLanguageFeaturesRule extends AbstractSnippetRule {
 export class ReactiveProgrammingRule extends AbstractSnippetRule {
   readonly name = 'ReactiveProgrammingRule';
   readonly supportedNodeTypes = new Set([
-    'call_expression', 'method_call', 'property_access_expression',
-    'pipe_expression', 'subscription_expression'
+    'call_expression',
+    'method_call',
+    'property_access_expression',
+    'pipe_expression',
+    'subscription_expression',
   ]);
-  protected readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' = 'logic_block';
+  protected readonly snippetType:
+    | 'control_structure'
+    | 'error_handling'
+    | 'function_call_chain'
+    | 'expression_sequence'
+    | 'comment_marked'
+    | 'logic_block'
+    | 'object_array_literal'
+    | 'arithmetic_logical_expression'
+    | 'template_literal'
+    | 'destructuring_assignment' = 'logic_block';
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
@@ -247,7 +299,7 @@ export class ReactiveProgrammingRule extends AbstractSnippetRule {
       /distinctUntilChanged/,
       /catchError/,
       /retry/,
-      /shareReplay/
+      /shareReplay/,
     ];
 
     return reactivePatterns.some(pattern => pattern.test(content));
@@ -279,8 +331,8 @@ export class ReactiveProgrammingRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: false,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 
@@ -329,9 +381,22 @@ export class ReactiveProgrammingRule extends AbstractSnippetRule {
 export class TestCodeRule extends AbstractSnippetRule {
   readonly name = 'TestCodeRule';
   readonly supportedNodeTypes = new Set([
-    'call_expression', 'method_call', 'function_call', 'arrow_function'
+    'call_expression',
+    'method_call',
+    'function_call',
+    'arrow_function',
   ]);
-  protected readonly snippetType: 'control_structure' | 'error_handling' | 'function_call_chain' | 'expression_sequence' | 'comment_marked' | 'logic_block' | 'object_array_literal' | 'arithmetic_logical_expression' | 'template_literal' | 'destructuring_assignment' = 'comment_marked';
+  protected readonly snippetType:
+    | 'control_structure'
+    | 'error_handling'
+    | 'function_call_chain'
+    | 'expression_sequence'
+    | 'comment_marked'
+    | 'logic_block'
+    | 'object_array_literal'
+    | 'arithmetic_logical_expression'
+    | 'template_literal'
+    | 'destructuring_assignment' = 'comment_marked';
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
     const content = this.getNodeText(node, sourceCode);
@@ -352,7 +417,7 @@ export class TestCodeRule extends AbstractSnippetRule {
       /mocha/,
       /chai/,
       /sinon/,
-      /vitest/
+      /vitest/,
     ];
 
     return testPatterns.some(pattern => pattern.test(content));
@@ -384,8 +449,8 @@ export class TestCodeRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: false
-      }
+        hasSideEffects: false,
+      },
     };
   }
 

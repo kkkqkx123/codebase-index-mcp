@@ -22,24 +22,24 @@ describe('Base URL Priority Tests', () => {
         openai: {
           apiKey: 'test-key',
           baseUrl: 'https://api.openai.com/v1',
-          model: 'text-embedding-ada-002'
+          model: 'text-embedding-ada-002',
         },
         gemini: {
           apiKey: 'test-key',
           baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-          model: 'embedding-001'
+          model: 'embedding-001',
         },
         mistral: {
           apiKey: 'test-key',
           baseUrl: 'https://api.mistral.ai/v1',
-          model: 'mistral-embed'
+          model: 'mistral-embed',
         },
         ollama: {
           baseUrl: 'http://localhost:11434',
-          model: 'nomic-embed-text'
-        }
+          model: 'nomic-embed-text',
+        },
       }),
-      getAll: jest.fn().mockReturnValue({})
+      getAll: jest.fn().mockReturnValue({}),
     } as any;
 
     logger = {
@@ -52,7 +52,7 @@ describe('Base URL Priority Tests', () => {
     errorHandler = {
       handleError: jest.fn(),
       handleAsyncError: jest.fn(),
-      wrapAsync: jest.fn().mockImplementation((fn) => fn),
+      wrapAsync: jest.fn().mockImplementation(fn => fn),
     } as any;
 
     cacheService = {
@@ -91,16 +91,16 @@ describe('Base URL Priority Tests', () => {
       get: jest.fn().mockReturnValue({
         openai: {
           apiKey: 'test-key',
-          model: 'text-embedding-ada-002'
+          model: 'text-embedding-ada-002',
           // baseUrl is missing
         },
         gemini: {
           apiKey: 'test-key',
-          model: 'embedding-001'
+          model: 'embedding-001',
           // baseUrl is missing
-        }
+        },
       }),
-      getAll: jest.fn().mockReturnValue({})
+      getAll: jest.fn().mockReturnValue({}),
     } as any;
 
     expect(() => {

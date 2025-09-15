@@ -1,4 +1,9 @@
-import { FileSystemTraversal, FileInfo, TraversalOptions, TraversalResult } from './FileSystemTraversal';
+import {
+  FileSystemTraversal,
+  FileInfo,
+  TraversalOptions,
+  TraversalResult,
+} from './FileSystemTraversal';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -31,8 +36,8 @@ describe('FileSystemTraversal', () => {
     // Mock path functions
     mockPath.resolve.mockImplementation((...paths) => paths.join('/'));
     mockPath.relative.mockImplementation((from, to) => to.replace(from + '/', ''));
-    mockPath.basename.mockImplementation((p) => p.split('/').pop() || '');
-    mockPath.extname.mockImplementation((p) => {
+    mockPath.basename.mockImplementation(p => p.split('/').pop() || '');
+    mockPath.extname.mockImplementation(p => {
       const match = p.match(/\.[^.]+$/);
       return match ? match[0] : '';
     });
@@ -47,9 +52,39 @@ describe('FileSystemTraversal', () => {
     } as any);
 
     mockFs.readdir.mockResolvedValue([
-      { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
-      { name: Buffer.from('file2.js'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
-      { name: Buffer.from('subdir'), isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+      {
+        name: Buffer.from('file1.ts'),
+        isDirectory: () => false,
+        isFile: () => true,
+        isSymbolicLink: () => false,
+        isBlockDevice: () => false,
+        isCharacterDevice: () => false,
+        isFIFO: () => false,
+        isSocket: () => false,
+        parentPath: '/test/root',
+      },
+      {
+        name: Buffer.from('file2.js'),
+        isDirectory: () => false,
+        isFile: () => true,
+        isSymbolicLink: () => false,
+        isBlockDevice: () => false,
+        isCharacterDevice: () => false,
+        isFIFO: () => false,
+        isSocket: () => false,
+        parentPath: '/test/root',
+      },
+      {
+        name: Buffer.from('subdir'),
+        isDirectory: () => true,
+        isFile: () => false,
+        isSymbolicLink: () => false,
+        isBlockDevice: () => false,
+        isCharacterDevice: () => false,
+        isFIFO: () => false,
+        isSocket: () => false,
+        parentPath: '/test/root',
+      },
     ]);
 
     // Mock hash
@@ -100,7 +135,20 @@ describe('FileSystemTraversal', () => {
       const defaultOptions = (traversal as any).defaultOptions;
 
       expect(defaultOptions.maxFileSize).toBe(5 * 1024 * 1024);
-      expect(defaultOptions.supportedExtensions).toEqual(['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.h', '.hpp']);
+      expect(defaultOptions.supportedExtensions).toEqual([
+        '.ts',
+        '.js',
+        '.tsx',
+        '.jsx',
+        '.py',
+        '.java',
+        '.go',
+        '.rs',
+        '.cpp',
+        '.c',
+        '.h',
+        '.hpp',
+      ]);
       expect(defaultOptions.followSymlinks).toBe(false);
     });
   });
@@ -111,12 +159,12 @@ describe('FileSystemTraversal', () => {
     it('should traverse directory successfully', async () => {
       // Reset all mocks before this test
       jest.clearAllMocks();
-      
+
       // Create a fresh instance for this test
       const testFileSystemTraversal = new FileSystemTraversal();
-      
+
       // Set up the default mocks again
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/root') {
           return Promise.resolve({
             isDirectory: () => true,
@@ -134,14 +182,46 @@ describe('FileSystemTraversal', () => {
       });
 
       mockFs.readdir.mockResolvedValue([
-        { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
-        { name: Buffer.from('file2.js'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
-        { name: Buffer.from('subdir'), isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+        {
+          name: Buffer.from('file1.ts'),
+          isDirectory: () => false,
+          isFile: () => true,
+          isSymbolicLink: () => false,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+          parentPath: '/test/root',
+        },
+        {
+          name: Buffer.from('file2.js'),
+          isDirectory: () => false,
+          isFile: () => true,
+          isSymbolicLink: () => false,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+          parentPath: '/test/root',
+        },
+        {
+          name: Buffer.from('subdir'),
+          isDirectory: () => true,
+          isFile: () => false,
+          isSymbolicLink: () => false,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+          parentPath: '/test/root',
+        },
       ]);
 
       // Mock helper methods to ensure files are processed
       jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
-      jest.spyOn(testFileSystemTraversal as any, 'calculateFileHash').mockResolvedValue('test-hash');
+      jest
+        .spyOn(testFileSystemTraversal as any, 'calculateFileHash')
+        .mockResolvedValue('test-hash');
 
       const result = await testFileSystemTraversal.traverseDirectory(rootPath);
 
@@ -183,14 +263,14 @@ describe('FileSystemTraversal', () => {
     it('should measure processing time', async () => {
       // Add a small delay to ensure processing time is measurable
       jest.useFakeTimers();
-      
+
       const startTime = Date.now();
       const result = await fileSystemTraversal.traverseDirectory(rootPath);
       const endTime = Date.now();
 
       expect(result.processingTime).toBeGreaterThanOrEqual(0);
       expect(result.processingTime).toBeLessThan(endTime - startTime + 10); // Allow some buffer
-      
+
       jest.useRealTimers();
     });
   });
@@ -357,9 +437,11 @@ describe('FileSystemTraversal', () => {
     it('should handle file processing errors', async () => {
       // Mock isBinaryFile to return false so we get to the readFile call
       jest.spyOn(fileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
-      
+
       // Mock calculateFileHash to throw an error
-      jest.spyOn(fileSystemTraversal as any, 'calculateFileHash').mockRejectedValue(new Error('Hash failed'));
+      jest
+        .spyOn(fileSystemTraversal as any, 'calculateFileHash')
+        .mockRejectedValue(new Error('Hash failed'));
 
       const result: TraversalResult = {
         files: [],
@@ -482,13 +564,33 @@ describe('FileSystemTraversal', () => {
       // Save original mock implementations
       const originalReaddir = mockFs.readdir;
       const originalStat = mockFs.stat;
-      
+
       // Set up the mock to return different results based on the path
-      mockFs.readdir.mockImplementation((path) => {
+      mockFs.readdir.mockImplementation(path => {
         if (path === '/test/root/subdir') {
           return Promise.resolve([
-            { name: Buffer.from('subfile.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root/subdir' },
-            { name: Buffer.from('subsubdir'), isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root/subdir' },
+            {
+              name: Buffer.from('subfile.ts'),
+              isDirectory: () => false,
+              isFile: () => true,
+              isSymbolicLink: () => false,
+              isBlockDevice: () => false,
+              isCharacterDevice: () => false,
+              isFIFO: () => false,
+              isSocket: () => false,
+              parentPath: '/test/root/subdir',
+            },
+            {
+              name: Buffer.from('subsubdir'),
+              isDirectory: () => true,
+              isFile: () => false,
+              isSymbolicLink: () => false,
+              isBlockDevice: () => false,
+              isCharacterDevice: () => false,
+              isFIFO: () => false,
+              isSocket: () => false,
+              parentPath: '/test/root/subdir',
+            },
           ]);
         } else if (path === '/test/root/subdir/subsubdir') {
           return Promise.resolve([]);
@@ -497,7 +599,7 @@ describe('FileSystemTraversal', () => {
       });
 
       // Mock stat for subsubdir
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/root/subdir/subsubdir') {
           return Promise.resolve({
             isDirectory: () => true,
@@ -526,7 +628,7 @@ describe('FileSystemTraversal', () => {
       );
 
       expect(mockFs.readdir).toHaveBeenCalledTimes(2); // Once for subdir, once for subsubdir
-      
+
       // Restore original mock implementations
       mockFs.readdir.mockImplementation(originalReaddir);
       mockFs.stat.mockImplementation(originalStat);
@@ -536,9 +638,19 @@ describe('FileSystemTraversal', () => {
       // Save original mock implementations
       const originalReaddir = mockFs.readdir;
       const originalStat = mockFs.stat;
-      
+
       mockFs.readdir.mockResolvedValue([
-        { name: Buffer.from('symlink.ts'), isDirectory: () => false, isFile: () => false, isSymbolicLink: () => true, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root/subdir' },
+        {
+          name: Buffer.from('symlink.ts'),
+          isDirectory: () => false,
+          isFile: () => false,
+          isSymbolicLink: () => true,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+          parentPath: '/test/root/subdir',
+        },
       ]);
 
       const result: TraversalResult = {
@@ -562,9 +674,9 @@ describe('FileSystemTraversal', () => {
 
       // Reset stat call count for the next test
       mockFs.stat.mockClear();
-      
+
       // Mock stat for the symlink
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/root/subdir/symlink.ts') {
           return Promise.resolve({
             isDirectory: () => false,
@@ -577,7 +689,10 @@ describe('FileSystemTraversal', () => {
       });
 
       // Test with followSymlinks = true
-      const optionsWithSymlinks = { ...(fileSystemTraversal as any).defaultOptions, followSymlinks: true };
+      const optionsWithSymlinks = {
+        ...(fileSystemTraversal as any).defaultOptions,
+        followSymlinks: true,
+      };
       await (fileSystemTraversal as any).processDirectory(
         dirPath,
         relativePath,
@@ -587,7 +702,7 @@ describe('FileSystemTraversal', () => {
       );
 
       expect(mockFs.stat).toHaveBeenCalledTimes(1); // Only for the symlink
-      
+
       // Restore original mock implementations
       mockFs.readdir.mockImplementation(originalReaddir);
       mockFs.stat.mockImplementation(originalStat);
@@ -624,7 +739,7 @@ describe('FileSystemTraversal', () => {
         const options = {
           ...(fileSystemTraversal as any).defaultOptions,
           ignoreHiddenFiles: false,
-          ignoreDirectories: [] // Clear the ignore directories list
+          ignoreDirectories: [], // Clear the ignore directories list
         };
         const shouldIgnore = (fileSystemTraversal as any).shouldIgnoreDirectory('.git', options);
         expect(shouldIgnore).toBe(false);
@@ -645,9 +760,9 @@ describe('FileSystemTraversal', () => {
         // Let's test with a more specific pattern
         const options = {
           ...(fileSystemTraversal as any).defaultOptions,
-          excludePatterns: ['node_modules/lodash/index.js']
+          excludePatterns: ['node_modules/lodash/index.js'],
         };
-        
+
         const shouldIgnore = (fileSystemTraversal as any).shouldIgnoreFile(
           'node_modules/lodash/index.js',
           options
@@ -690,7 +805,9 @@ describe('FileSystemTraversal', () => {
         // Test with exact match
         expect(matchesPattern('src/index.ts', 'src/index.ts')).toBe(true);
         expect(matchesPattern('test/file.test.ts', 'test/file.test.ts')).toBe(true);
-        expect(matchesPattern('node_modules/lodash/index.js', 'node_modules/lodash/index.js')).toBe(true);
+        expect(matchesPattern('node_modules/lodash/index.js', 'node_modules/lodash/index.js')).toBe(
+          true
+        );
         expect(matchesPattern('src/index.ts', 'src/index.js')).toBe(false);
         expect(matchesPattern('src/components/Header.tsx', 'src/components/Header.tsx')).toBe(true);
       });
@@ -863,9 +980,7 @@ describe('FileSystemTraversal', () => {
 
         jest.spyOn(fileSystemTraversal, 'traverseDirectory').mockResolvedValue(mockTraversalResult);
 
-        const previousHashes = new Map([
-          ['file1.ts', 'same-hash'],
-        ]);
+        const previousHashes = new Map([['file1.ts', 'same-hash']]);
 
         const changedFiles = await fileSystemTraversal.findChangedFiles('/test', previousHashes);
 
@@ -995,10 +1110,10 @@ describe('FileSystemTraversal', () => {
     it('should handle readdir errors gracefully', async () => {
       // Reset all mocks before this test
       jest.clearAllMocks();
-      
+
       // Create a fresh instance for this test
       const testFileSystemTraversal = new FileSystemTraversal();
-      
+
       // Mock stat to always succeed
       mockFs.stat.mockResolvedValue({
         isDirectory: () => true,
@@ -1006,15 +1121,25 @@ describe('FileSystemTraversal', () => {
         size: 1024,
         mtime: new Date('2023-01-01'),
       } as any);
-      
+
       // Set up a mock that will fail on the second call
       let callCount = 0;
-      mockFs.readdir.mockImplementation((path) => {
+      mockFs.readdir.mockImplementation(path => {
         callCount++;
         if (callCount === 1) {
           // First call succeeds
           return Promise.resolve([
-            { name: Buffer.from('subdir'), isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+            {
+              name: Buffer.from('subdir'),
+              isDirectory: () => true,
+              isFile: () => false,
+              isSymbolicLink: () => false,
+              isBlockDevice: () => false,
+              isCharacterDevice: () => false,
+              isFIFO: () => false,
+              isSocket: () => false,
+              parentPath: '/test/root',
+            },
           ]);
         } else {
           // Second call fails
@@ -1031,12 +1156,12 @@ describe('FileSystemTraversal', () => {
     it('should handle file read errors gracefully', async () => {
       // Reset all mocks before this test
       jest.clearAllMocks();
-      
+
       // Create a fresh instance for this test
       const testFileSystemTraversal = new FileSystemTraversal();
-      
+
       // Set up the default mocks
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/root') {
           return Promise.resolve({
             isDirectory: () => true,
@@ -1054,12 +1179,26 @@ describe('FileSystemTraversal', () => {
       });
 
       mockFs.readdir.mockResolvedValue([
-        { name: Buffer.from('error-file.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+        {
+          name: Buffer.from('error-file.ts'),
+          isDirectory: () => false,
+          isFile: () => true,
+          isSymbolicLink: () => false,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+          parentPath: '/test/root',
+        },
       ]);
-      
+
       // Mock the helper method to throw an error during file processing
-      jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockRejectedValue(new Error('File read error'));
-      jest.spyOn(testFileSystemTraversal as any, 'calculateFileHash').mockResolvedValue('test-hash');
+      jest
+        .spyOn(testFileSystemTraversal as any, 'isBinaryFile')
+        .mockRejectedValue(new Error('File read error'));
+      jest
+        .spyOn(testFileSystemTraversal as any, 'calculateFileHash')
+        .mockResolvedValue('test-hash');
 
       const result = await testFileSystemTraversal.traverseDirectory('/test/root');
 
@@ -1070,12 +1209,12 @@ describe('FileSystemTraversal', () => {
     it('should handle hash calculation errors gracefully', async () => {
       // Reset all mocks before this test
       jest.clearAllMocks();
-      
+
       // Create a fresh instance for this test
       const testFileSystemTraversal = new FileSystemTraversal();
-      
+
       // Set up the default mocks
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/root') {
           return Promise.resolve({
             isDirectory: () => true,
@@ -1093,14 +1232,26 @@ describe('FileSystemTraversal', () => {
       });
 
       mockFs.readdir.mockResolvedValue([
-        { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/root' },
+        {
+          name: Buffer.from('file1.ts'),
+          isDirectory: () => false,
+          isFile: () => true,
+          isSymbolicLink: () => false,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+          parentPath: '/test/root',
+        },
       ]);
-      
+
       // Mock isBinaryFile to return false so we get to the hash calculation
       jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
-      
+
       // Mock calculateFileHash to throw an error directly
-      jest.spyOn(testFileSystemTraversal as any, 'calculateFileHash').mockRejectedValue(new Error('Stream error'));
+      jest
+        .spyOn(testFileSystemTraversal as any, 'calculateFileHash')
+        .mockRejectedValue(new Error('Stream error'));
 
       const result = await testFileSystemTraversal.traverseDirectory('/test/root');
 
@@ -1113,10 +1264,10 @@ describe('FileSystemTraversal', () => {
     it('should handle large directories efficiently', async () => {
       // Reset all mocks before this test
       jest.clearAllMocks();
-      
+
       // Create a fresh instance for this test
       const testFileSystemTraversal = new FileSystemTraversal();
-      
+
       // Mock a large directory with many files
       const manyFiles = Array.from({ length: 100 }, (_, i) => ({
         name: Buffer.from(`file${i}.ts`),
@@ -1131,7 +1282,7 @@ describe('FileSystemTraversal', () => {
       }));
 
       // Mock stat to handle both directory and file cases
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/large') {
           return Promise.resolve({
             isDirectory: () => true,
@@ -1150,12 +1301,14 @@ describe('FileSystemTraversal', () => {
 
       mockFs.readdir.mockResolvedValue(manyFiles);
       mockFs.readFile.mockResolvedValue(Buffer.from('content'));
-      
+
       // Mock isBinaryFile to return false for all files
       jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
-      
+
       // Mock calculateFileHash to return a consistent hash
-      jest.spyOn(testFileSystemTraversal as any, 'calculateFileHash').mockResolvedValue('test-hash');
+      jest
+        .spyOn(testFileSystemTraversal as any, 'calculateFileHash')
+        .mockResolvedValue('test-hash');
 
       const result = await testFileSystemTraversal.traverseDirectory('/test/large');
 
@@ -1166,16 +1319,36 @@ describe('FileSystemTraversal', () => {
     it('should handle deep directory structures', async () => {
       // Reset all mocks before this test
       jest.clearAllMocks();
-      
+
       // Create a fresh instance for this test
       const testFileSystemTraversal = new FileSystemTraversal();
-      
+
       // Mock a deep directory structure
-      mockFs.readdir.mockImplementation((path) => {
+      mockFs.readdir.mockImplementation(path => {
         if (path === '/test/deep') {
           return Promise.resolve([
-            { name: Buffer.from('file1.ts'), isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/deep' },
-            { name: Buffer.from('level1'), isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, isBlockDevice: () => false, isCharacterDevice: () => false, isFIFO: () => false, isSocket: () => false, parentPath: '/test/deep' },
+            {
+              name: Buffer.from('file1.ts'),
+              isDirectory: () => false,
+              isFile: () => true,
+              isSymbolicLink: () => false,
+              isBlockDevice: () => false,
+              isCharacterDevice: () => false,
+              isFIFO: () => false,
+              isSocket: () => false,
+              parentPath: '/test/deep',
+            },
+            {
+              name: Buffer.from('level1'),
+              isDirectory: () => true,
+              isFile: () => false,
+              isSymbolicLink: () => false,
+              isBlockDevice: () => false,
+              isCharacterDevice: () => false,
+              isFIFO: () => false,
+              isSocket: () => false,
+              parentPath: '/test/deep',
+            },
           ]);
         } else if (path === '/test/deep/level1') {
           return Promise.resolve([]);
@@ -1184,7 +1357,7 @@ describe('FileSystemTraversal', () => {
       });
 
       // Mock stat for all paths
-      mockFs.stat.mockImplementation((path) => {
+      mockFs.stat.mockImplementation(path => {
         if (path === '/test/deep') {
           return Promise.resolve({
             isDirectory: () => true,
@@ -1210,9 +1383,11 @@ describe('FileSystemTraversal', () => {
 
       // Mock isBinaryFile to return false for all files
       jest.spyOn(testFileSystemTraversal as any, 'isBinaryFile').mockResolvedValue(false);
-      
+
       // Mock calculateFileHash to return a consistent hash
-      jest.spyOn(testFileSystemTraversal as any, 'calculateFileHash').mockResolvedValue('test-hash');
+      jest
+        .spyOn(testFileSystemTraversal as any, 'calculateFileHash')
+        .mockResolvedValue('test-hash');
 
       const result = await testFileSystemTraversal.traverseDirectory('/test/deep');
 

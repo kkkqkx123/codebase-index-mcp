@@ -1,6 +1,15 @@
 import { AsyncPipeline, PipelineStep } from './AsyncPipeline';
 import { LoggerService } from '../../core/LoggerService';
-import { describe, beforeAll, afterAll, beforeEach, afterEach, it, expect, jest } from '@jest/globals';
+import {
+  describe,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  it,
+  expect,
+  jest,
+} from '@jest/globals';
 
 // Mock logger for testing
 const createMockLogger = () => ({
@@ -34,12 +43,12 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step1: PipelineStep<number, number> = {
         name: 'step1',
-        execute: async (data) => data + 1
+        execute: async data => data + 1,
       };
 
       const step2: PipelineStep<number, number> = {
         name: 'step2',
-        execute: async (data) => data * 2
+        execute: async data => data * 2,
       };
 
       pipeline.addStep(step1).addStep(step2);
@@ -71,14 +80,14 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step1: PipelineStep<number, number> = {
         name: 'step1',
-        execute: async (data) => {
+        execute: async data => {
           throw new Error('Step failed');
-        }
+        },
       };
 
       const step2: PipelineStep<number, number> = {
         name: 'step2',
-        execute: async (data) => data * 2
+        execute: async data => data * 2,
       };
 
       pipeline.addStep(step1).addStep(step2);
@@ -97,15 +106,15 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step1: PipelineStep<number, number> = {
         name: 'step1',
-        execute: async (data) => {
+        execute: async data => {
           throw new Error('Step failed');
         },
-        continueOnError: true
+        continueOnError: true,
       };
 
       const step2: PipelineStep<number, number> = {
         name: 'step2',
-        execute: async (data) => data * 2
+        execute: async data => data * 2,
       };
 
       pipeline = new AsyncPipeline({ continueOnError: true }, logger);
@@ -129,7 +138,7 @@ describe('AsyncPipeline Integration Tests', () => {
       let attemptCount = 0;
       const step: PipelineStep<number, number> = {
         name: 'retryStep',
-        execute: async (data) => {
+        execute: async data => {
           attemptCount++;
           if (attemptCount < 2) {
             throw new Error('Temporary failure');
@@ -137,7 +146,7 @@ describe('AsyncPipeline Integration Tests', () => {
           return data + 1;
         },
         retryAttempts: 3,
-        retryDelay: 10
+        retryDelay: 10,
       };
 
       pipeline.addStep(step);
@@ -156,12 +165,12 @@ describe('AsyncPipeline Integration Tests', () => {
       let attemptCount = 0;
       const step: PipelineStep<number, number> = {
         name: 'failingStep',
-        execute: async (data) => {
+        execute: async data => {
           attemptCount++;
           throw new Error(`Permanent failure ${attemptCount}`);
         },
         retryAttempts: 2,
-        retryDelay: 100
+        retryDelay: 100,
       };
 
       pipeline.addStep(step);
@@ -181,11 +190,11 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step: PipelineStep<number, number> = {
         name: 'slowStep',
-        execute: async (data) => {
+        execute: async data => {
           await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
           return data + 1;
         },
-        timeout: 100 // 100ms timeout
+        timeout: 100, // 100ms timeout
       };
 
       pipeline.addStep(step);
@@ -202,11 +211,11 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step: PipelineStep<number, number> = {
         name: 'fastStep',
-        execute: async (data) => {
+        execute: async data => {
           await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
           return data + 1;
         },
-        timeout: 100 // 100ms timeout
+        timeout: 100, // 100ms timeout
       };
 
       pipeline.addStep(step);
@@ -224,15 +233,15 @@ describe('AsyncPipeline Integration Tests', () => {
     it('should collect metrics when enabled', async () => {
       // Arrange
       pipeline = new AsyncPipeline({ enableMetrics: true }, logger);
-      
+
       const step1: PipelineStep<number, number> = {
         name: 'step1',
-        execute: async (data) => data + 1
+        execute: async data => data + 1,
       };
 
       const step2: PipelineStep<number, number> = {
         name: 'step2',
-        execute: async (data) => data * 2
+        execute: async data => data * 2,
       };
 
       pipeline.addStep(step1).addStep(step2);
@@ -256,12 +265,12 @@ describe('AsyncPipeline Integration Tests', () => {
     it('should track failed executions in metrics', async () => {
       // Arrange
       pipeline = new AsyncPipeline({ enableMetrics: true }, logger);
-      
+
       const step: PipelineStep<number, number> = {
         name: 'failingStep',
-        execute: async (data) => {
+        execute: async data => {
           throw new Error('Failed');
-        }
+        },
       };
 
       pipeline.addStep(step);
@@ -281,10 +290,10 @@ describe('AsyncPipeline Integration Tests', () => {
     it('should reset metrics', async () => {
       // Arrange
       pipeline = new AsyncPipeline({ enableMetrics: true }, logger);
-      
+
       const step: PipelineStep<number, number> = {
         name: 'step',
-        execute: async (data) => data + 1
+        execute: async data => data + 1,
       };
 
       pipeline.addStep(step);
@@ -307,7 +316,7 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step: PipelineStep<number, number> = {
         name: 'testStep',
-        execute: async (data) => data + 1
+        execute: async data => data + 1,
       };
 
       pipeline.addStep(step);
@@ -326,7 +335,7 @@ describe('AsyncPipeline Integration Tests', () => {
       let attemptCount = 0;
       const step: PipelineStep<number, number> = {
         name: 'retryStep',
-        execute: async (data) => {
+        execute: async data => {
           attemptCount++;
           if (attemptCount < 2) {
             throw new Error('Temporary failure');
@@ -334,7 +343,7 @@ describe('AsyncPipeline Integration Tests', () => {
           return data + 1;
         },
         retryAttempts: 3,
-        retryDelay: 10
+        retryDelay: 10,
       };
 
       pipeline.addStep(step);
@@ -343,18 +352,21 @@ describe('AsyncPipeline Integration Tests', () => {
       await pipeline.execute(5);
 
       // Assert
-      expect(logger.warn).toHaveBeenCalledWith('Pipeline step failed, retrying', expect.any(Object));
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Pipeline step failed, retrying',
+        expect.any(Object)
+      );
     });
 
     it('should log final failures', async () => {
       // Arrange
       const step: PipelineStep<number, number> = {
         name: 'failingStep',
-        execute: async (data) => {
+        execute: async data => {
           throw new Error('Permanent failure');
         },
         retryAttempts: 1,
-        retryDelay: 10 // Add small retry delay to prevent timeout
+        retryDelay: 10, // Add small retry delay to prevent timeout
       };
 
       pipeline.addStep(step);
@@ -363,7 +375,10 @@ describe('AsyncPipeline Integration Tests', () => {
       await pipeline.execute(5);
 
       // Assert
-      expect(logger.error).toHaveBeenCalledWith('Pipeline step failed after all retries', expect.any(Object));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Pipeline step failed after all retries',
+        expect.any(Object)
+      );
       // Pipeline execution doesn't fail because we continue on individual step errors
     });
   });
@@ -373,7 +388,7 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step: PipelineStep<number, number> = {
         name: 'step',
-        execute: async (data) => data + 1
+        execute: async data => data + 1,
       };
 
       pipeline.addStep(step);
@@ -394,7 +409,7 @@ describe('AsyncPipeline Integration Tests', () => {
       pipeline = new AsyncPipeline({ enableMetrics: true }, logger);
       const step: PipelineStep<number, number> = {
         name: 'step',
-        execute: async (data) => data + 1
+        execute: async data => data + 1,
       };
 
       pipeline.addStep(step);
@@ -418,12 +433,12 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step1: PipelineStep<{ value: number }, { value: number }> = {
         name: 'step1',
-        execute: async (data) => ({ value: data.value + 1 })
+        execute: async data => ({ value: data.value + 1 }),
       };
 
       const step2: PipelineStep<{ value: number }, { value: number }> = {
         name: 'step2',
-        execute: async (data) => ({ value: data.value * 2 })
+        execute: async data => ({ value: data.value * 2 }),
       };
 
       pipeline.addStep(step1).addStep(step2);
@@ -440,7 +455,7 @@ describe('AsyncPipeline Integration Tests', () => {
       // Arrange
       const step: PipelineStep<number[], number[]> = {
         name: 'step',
-        execute: async (data) => data.map(x => x * 2)
+        execute: async data => data.map(x => x * 2),
       };
 
       pipeline.addStep(step);

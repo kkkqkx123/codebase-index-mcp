@@ -8,8 +8,14 @@ export interface LSPClient {
   initialize(rootPath: string): Promise<void>;
   getDocumentSymbols(filePath: string): Promise<LSPSymbol[]>;
   getDiagnostics(filePath: string): Promise<LSPDiagnostic[]>;
-  getTypeDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]>;
-  getReferences(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]>;
+  getTypeDefinition(
+    filePath: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]>;
+  getReferences(
+    filePath: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]>;
   shutdown(): Promise<void>;
   isHealthy(): boolean;
 }
@@ -35,13 +41,23 @@ export class LSPService {
   ) {
     this.logger = logger;
     this.configService = configService;
-    
+
     const lspConfig = configService.get('lsp') || {};
     this.options = {
       timeout: lspConfig.timeout ?? 30000,
       maxRetries: lspConfig.retryAttempts ?? 3,
       enableCaching: lspConfig.cacheEnabled ?? true,
-      supportedLanguages: lspConfig.supportedLanguages ?? ['typescript', 'javascript', 'python', 'java', 'c', 'cpp', 'csharp', 'go', 'rust']
+      supportedLanguages: lspConfig.supportedLanguages ?? [
+        'typescript',
+        'javascript',
+        'python',
+        'java',
+        'c',
+        'cpp',
+        'csharp',
+        'go',
+        'rust',
+      ],
     };
   }
 
@@ -59,10 +75,10 @@ export class LSPService {
 
       const client = await this.createLSPClient(language, rootPath);
       await client.initialize(rootPath);
-      
+
       this.clients.set(language, client);
       this.logger.info(`LSP client for ${language} initialized successfully`);
-      
+
       return true;
     } catch (error) {
       this.logger.error(`Failed to initialize LSP client for ${language}`, error);
@@ -126,7 +142,11 @@ export class LSPService {
     }
   }
 
-  async getTypeDefinition(filePath: string, language: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+  async getTypeDefinition(
+    filePath: string,
+    language: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]> {
     try {
       const client = this.clients.get(language);
       if (!client || !client.isHealthy()) {
@@ -154,7 +174,11 @@ export class LSPService {
     }
   }
 
-  async getReferences(filePath: string, language: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+  async getReferences(
+    filePath: string,
+    language: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]> {
     try {
       const client = this.clients.get(language);
       if (!client || !client.isHealthy()) {
@@ -216,10 +240,10 @@ export class LSPService {
   private async createLSPClient(language: string, rootPath: string): Promise<LSPClient> {
     // 这里应该根据语言创建具体的LSP客户端
     // 这是一个基础实现，实际项目中需要根据具体语言实现对应的LSP客户端
-    
+
     const MockLSPClient = class implements LSPClient {
       private healthy = true;
-      
+
       async initialize(rootPath: string): Promise<void> {
         // Mock initialization
         this.healthy = true;
@@ -233,10 +257,10 @@ export class LSPService {
             kind: SymbolKind.Function,
             range: {
               start: { line: 0, character: 0 },
-              end: { line: 10, character: 0 }
+              end: { line: 10, character: 0 },
             },
-            containerName: 'mockContainer'
-          }
+            containerName: 'mockContainer',
+          },
         ];
       }
 
@@ -246,20 +270,26 @@ export class LSPService {
           {
             range: {
               start: { line: 5, character: 0 },
-              end: { line: 5, character: 10 }
+              end: { line: 5, character: 10 },
             },
             severity: DiagnosticSeverity.Warning,
             message: 'Mock warning',
-            source: 'mock-lsp'
-          }
+            source: 'mock-lsp',
+          },
         ];
       }
 
-      async getTypeDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+      async getTypeDefinition(
+        filePath: string,
+        position: { line: number; character: number }
+      ): Promise<LSPSymbol[]> {
         return [];
       }
 
-      async getReferences(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+      async getReferences(
+        filePath: string,
+        position: { line: number; character: number }
+      ): Promise<LSPSymbol[]> {
         return [];
       }
 
@@ -278,9 +308,9 @@ export class LSPService {
   private async withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
     return Promise.race([
       promise,
-      new Promise<T>((_, reject) => 
+      new Promise<T>((_, reject) =>
         setTimeout(() => reject(new Error('LSP operation timeout')), timeout)
-      )
+      ),
     ]);
   }
 }

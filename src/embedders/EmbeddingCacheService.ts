@@ -43,16 +43,20 @@ export class EmbeddingCacheService {
       const cache = await this.getCache();
       const key = this.generateKey(text, model);
       const result = await cache.get<EmbeddingResult>(key);
-      
+
       if (result) {
         this.logger.debug('Cache hit', { key, model });
       } else {
         this.logger.debug('Cache miss', { key, model });
       }
-      
+
       return result;
     } catch (error) {
-      this.logger.error('Error getting embedding from cache', { error, text: text.substring(0, 50), model });
+      this.logger.error('Error getting embedding from cache', {
+        error,
+        text: text.substring(0, 50),
+        model,
+      });
       return null;
     }
   }
@@ -66,11 +70,15 @@ export class EmbeddingCacheService {
       const key = this.generateKey(text, model);
       const redisConfig = this.configService.get('redis') || { ttl: { embedding: 86400 } };
       const ttl = redisConfig.ttl?.embedding || 86400; // 默认24小时
-      
+
       await cache.set(key, result, { ttl });
       this.logger.debug('Cache set', { key, model, ttl });
     } catch (error) {
-      this.logger.error('Error setting embedding to cache', { error, text: text.substring(0, 50), model });
+      this.logger.error('Error setting embedding to cache', {
+        error,
+        text: text.substring(0, 50),
+        model,
+      });
     }
   }
 
@@ -97,7 +105,7 @@ export class EmbeddingCacheService {
       return {
         size: stats.size,
         hits: stats.hitCount,
-        misses: stats.missCount
+        misses: stats.missCount,
       };
     } catch (error) {
       this.logger.error('Error getting embedding cache stats', { error });

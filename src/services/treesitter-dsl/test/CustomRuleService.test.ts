@@ -12,9 +12,9 @@ describe('CustomRuleService', () => {
     if (!fs.existsSync(testStoragePath)) {
       fs.mkdirSync(testStoragePath, { recursive: true });
     }
-    
+
     ruleService = new CustomRuleService(testStoragePath);
- });
+  });
 
   afterEach(() => {
     // 清理测试数据
@@ -40,7 +40,7 @@ describe('CustomRuleService', () => {
     `;
 
     const rule = ruleService.createRuleFromDSL(dsl);
-    
+
     expect(rule.name).toBe('TestRule');
     expect(rule.description).toBe('A test rule');
     expect(rule.targetType).toBe('function_declaration');
@@ -56,29 +56,29 @@ describe('CustomRuleService', () => {
         {
           type: 'contentPattern',
           value: 'async',
-          operator: 'contains'
-        }
+          operator: 'contains',
+        },
       ],
       actions: [
         {
           type: 'extract',
-          parameters: {}
-        }
-      ]
+          parameters: {},
+        },
+      ],
     };
 
     const rule = ruleService.createRule(ruleDefinition);
     ruleService.saveRule(rule);
-    
+
     // 验证规则已保存到内存
     const loadedRule = ruleService.loadRule(rule.id);
     expect(loadedRule).toBeDefined();
     expect(loadedRule?.name).toBe('TestRule');
-    
+
     // 验证规则已保存到文件系统
     const filePath = path.join(testStoragePath, `${rule.id}.json`);
     expect(fs.existsSync(filePath)).toBe(true);
-    
+
     // 重新创建服务以测试从存储加载
     const newRuleService = new CustomRuleService(testStoragePath);
     const reloadedRule = newRuleService.loadRule(rule.id);
@@ -96,27 +96,27 @@ describe('CustomRuleService', () => {
       actions: [
         {
           type: 'extract',
-          parameters: {}
-        }
-      ]
+          parameters: {},
+        },
+      ],
     };
 
     const rule = ruleService.createRule(ruleDefinition);
     ruleService.saveRule(rule);
-    
+
     // 验证规则存在
     expect(ruleService.loadRule(rule.id)).toBeDefined();
-    
+
     // 删除规则
     ruleService.deleteRule(rule.id);
-    
+
     // 验证规则已从内存删除
     expect(ruleService.loadRule(rule.id)).toBeUndefined();
-    
+
     // 验证规则已从文件系统删除
     const filePath = path.join(testStoragePath, `${rule.id}.json`);
     expect(fs.existsSync(filePath)).toBe(false);
- });
+  });
 
   it('should list all rules', () => {
     const rule1Definition: CustomRuleDefinition = {
@@ -125,7 +125,7 @@ describe('CustomRuleService', () => {
       targetType: 'function_declaration',
       pattern: '',
       conditions: [],
-      actions: [{ type: 'extract', parameters: {} }]
+      actions: [{ type: 'extract', parameters: {} }],
     };
 
     const rule2Definition: CustomRuleDefinition = {
@@ -134,15 +134,15 @@ describe('CustomRuleService', () => {
       targetType: 'class_declaration',
       pattern: '',
       conditions: [],
-      actions: [{ type: 'highlight', parameters: {} }]
+      actions: [{ type: 'highlight', parameters: {} }],
     };
 
     const rule1 = ruleService.createRule(rule1Definition);
     const rule2 = ruleService.createRule(rule2Definition);
-    
+
     ruleService.saveRule(rule1);
     ruleService.saveRule(rule2);
-    
+
     const rules = ruleService.listRules();
     expect(rules.length).toBe(2);
     expect(rules.map(r => r.name)).toContain('TestRule1');

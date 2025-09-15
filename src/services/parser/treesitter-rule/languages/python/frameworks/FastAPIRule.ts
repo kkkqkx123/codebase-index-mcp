@@ -18,7 +18,7 @@ export class FastAPIRule extends AbstractSnippetRule {
     'type_parameter',
     'parameter',
     'return_statement',
-    'expression_statement'
+    'expression_statement',
   ]);
 
   protected snippetType = 'fastapi_route' as const;
@@ -66,7 +66,7 @@ export class FastAPIRule extends AbstractSnippetRule {
     'OAuth2PasswordRequestForm\\(',
     'JWT\\.',
     'websocket\\(',
-    'WebSocketDisconnect\\('
+    'WebSocketDisconnect\\(',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -78,37 +78,43 @@ export class FastAPIRule extends AbstractSnippetRule {
     return this.fastapiPatterns.some(pattern => new RegExp(pattern, 'i').test(text));
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const content = this.getNodeText(node, sourceCode);
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
-    
-    if (!this.validateSnippet({
-      id: '',
-      content,
-      startLine: location.startLine,
-      endLine: location.endLine,
-      startByte: node.startIndex,
-      endByte: node.endIndex,
-      type: 'snippet',
-      imports: [],
-      exports: [],
-      metadata: {},
-      snippetMetadata: {} as SnippetMetadata
-    })) {
+
+    if (
+      !this.validateSnippet({
+        id: '',
+        content,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: node.startIndex,
+        endByte: node.endIndex,
+        type: 'snippet',
+        imports: [],
+        exports: [],
+        metadata: {},
+        snippetMetadata: {} as SnippetMetadata,
+      })
+    ) {
       return null;
     }
 
     const fastapiInfo = this.extractFastAPIInfo(content);
     const complexity = this.calculateFastAPIComplexity(content);
-    
+
     const metadata: SnippetMetadata = {
       snippetType: 'fastapi_route',
       contextInfo,
       languageFeatures: this.analyzeLanguageFeatures(content),
       complexity,
       isStandalone: true,
-      hasSideEffects: this.hasSideEffects(content)
+      hasSideEffects: this.hasSideEffects(content),
     };
 
     return {
@@ -122,7 +128,7 @@ export class FastAPIRule extends AbstractSnippetRule {
       imports: [],
       exports: [],
       metadata: {},
-      snippetMetadata: metadata
+      snippetMetadata: metadata,
     };
   }
 
@@ -134,8 +140,12 @@ export class FastAPIRule extends AbstractSnippetRule {
     const features: string[] = [];
 
     // Route patterns
-    if (text.includes('@app.get(') || text.includes('@app.post(') ||
-      text.includes('@app.put(') || text.includes('@app.delete(')) {
+    if (
+      text.includes('@app.get(') ||
+      text.includes('@app.post(') ||
+      text.includes('@app.put(') ||
+      text.includes('@app.delete(')
+    ) {
       patterns.push('route-decorator');
       features.push('rest-api');
     }
@@ -219,13 +229,12 @@ export class FastAPIRule extends AbstractSnippetRule {
     complexity += text.split('\n').length * 0.5;
 
     // Increase complexity for route decorators
-    const routeCount = (text.match(/@app\.(get|post|put|delete|patch|head|options)\(/g) || []).length;
+    const routeCount = (text.match(/@app\.(get|post|put|delete|patch|head|options)\(/g) || [])
+      .length;
     complexity += routeCount * 2;
 
     // Increase complexity for parameter decorators
-    const paramDecorators = [
-      'Path(', 'Query(', 'Body(', 'Form(', 'File(', 'Header(', 'Cookie('
-    ];
+    const paramDecorators = ['Path(', 'Query(', 'Body(', 'Form(', 'File(', 'Header(', 'Cookie('];
     const paramCount = paramDecorators.reduce((count, decorator) => {
       return count + (text.match(new RegExp(decorator, 'g')) || []).length;
     }, 0);
@@ -295,7 +304,9 @@ export class FastAPIRule extends AbstractSnippetRule {
     const info: any = {};
 
     // Extract HTTP method and path
-    const routeMatch = text.match(/@app\.(get|post|put|delete|patch|head|options)\(["']([^"']+)["']/);
+    const routeMatch = text.match(
+      /@app\.(get|post|put|delete|patch|head|options)\(["']([^"']+)["']/
+    );
     if (routeMatch) {
       info.method = routeMatch[1].toUpperCase();
       info.path = routeMatch[2];
@@ -368,6 +379,4 @@ export class FastAPIRule extends AbstractSnippetRule {
 
     return auth;
   }
-
-
 }

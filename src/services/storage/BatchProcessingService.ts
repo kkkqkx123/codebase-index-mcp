@@ -22,7 +22,7 @@ export class BatchProcessingService {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
-  
+
   // Batch processing configuration
   private maxConcurrentOperations: number = 5;
   private defaultBatchSize: number = 100;
@@ -43,21 +43,23 @@ export class BatchProcessingService {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.batchMetrics = batchMetrics;
-    
+
     this.initializeBatchProcessingConfig();
   }
 
   private initializeBatchProcessingConfig(): void {
     const batchConfig = this.configService.get('batchProcessing');
 
-    this.maxConcurrentOperations = batchConfig?.maxConcurrentOperations ?? this.maxConcurrentOperations;
+    this.maxConcurrentOperations =
+      batchConfig?.maxConcurrentOperations ?? this.maxConcurrentOperations;
     this.defaultBatchSize = batchConfig?.defaultBatchSize ?? this.defaultBatchSize;
     this.maxBatchSize = batchConfig?.maxBatchSize ?? this.maxBatchSize;
     this.memoryThreshold = batchConfig?.memoryThreshold ?? this.memoryThreshold;
     this.processingTimeout = batchConfig?.processingTimeout ?? this.processingTimeout;
     this.retryAttempts = batchConfig?.retryAttempts ?? this.retryAttempts;
     this.retryDelay = batchConfig?.retryDelay ?? this.retryDelay;
-    this.adaptiveBatchingEnabled = batchConfig?.adaptiveBatching?.enabled ?? this.adaptiveBatchingEnabled;
+    this.adaptiveBatchingEnabled =
+      batchConfig?.adaptiveBatching?.enabled ?? this.adaptiveBatchingEnabled;
 
     this.logger.info('Batch processing configuration initialized', {
       maxConcurrentOperations: this.maxConcurrentOperations,
@@ -65,7 +67,7 @@ export class BatchProcessingService {
       maxBatchSize: this.maxBatchSize,
       memoryThreshold: this.memoryThreshold,
       processingTimeout: this.processingTimeout,
-      adaptiveBatchingEnabled: this.adaptiveBatchingEnabled
+      adaptiveBatchingEnabled: this.adaptiveBatchingEnabled,
     });
   }
 
@@ -76,7 +78,7 @@ export class BatchProcessingService {
     if (memoryUsagePercent > this.memoryThreshold) {
       this.logger.warn('Memory usage exceeds threshold', {
         memoryUsagePercent,
-        threshold: this.memoryThreshold
+        threshold: this.memoryThreshold,
       });
       return false;
     }
@@ -84,10 +86,7 @@ export class BatchProcessingService {
     return true;
   }
 
-  async processWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  async processWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Operation timed out after ${timeoutMs}ms`));
@@ -122,7 +121,7 @@ export class BatchProcessingService {
           this.logger.debug('Operation failed, retrying', {
             attempt,
             maxAttempts,
-            error: lastError.message
+            error: lastError.message,
           });
 
           // Wait before retrying

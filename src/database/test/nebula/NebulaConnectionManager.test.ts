@@ -72,11 +72,11 @@ describe('NebulaConnectionManager', () => {
         }
         return mockClient;
       }),
-      removeListener: jest.fn(function(event, callback) {
+      removeListener: jest.fn(function (event, callback) {
         // 简单实现，实际测试中不需要真正移除监听器
         return this;
       }),
-      removeAllListeners: jest.fn(function() {
+      removeAllListeners: jest.fn(function () {
         // 简单实现，实际测试中不需要真正移除所有监听器
         return this;
       }),
@@ -148,7 +148,9 @@ describe('NebulaConnectionManager', () => {
       // Then disconnect
       await nebulaConnectionManager.disconnect();
 
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Disconnected from NebulaGraph successfully');
+      expect(mockLoggerService.info).toHaveBeenCalledWith(
+        'Disconnected from NebulaGraph successfully'
+      );
       expect(nebulaConnectionManager.isConnectedToDatabase()).toBe(false);
     });
   });
@@ -171,8 +173,9 @@ describe('NebulaConnectionManager', () => {
     it('should throw error when not connected', async () => {
       const query = 'MATCH (n) RETURN n LIMIT 1';
 
-      await expect(nebulaConnectionManager.executeQuery(query))
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.executeQuery(query)).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
 
     it('should handle query execution error', async () => {
@@ -183,8 +186,7 @@ describe('NebulaConnectionManager', () => {
       const error = new Error('Syntax error');
       mockClient.execute.mockRejectedValue(error);
 
-      await expect(nebulaConnectionManager.executeQuery(query))
-        .rejects.toThrow(error);
+      await expect(nebulaConnectionManager.executeQuery(query)).rejects.toThrow(error);
 
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
     });
@@ -209,8 +211,9 @@ describe('NebulaConnectionManager', () => {
     });
 
     it('should throw error when not connected', async () => {
-      await expect(nebulaConnectionManager.getReadSession())
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.getReadSession()).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
   });
 
@@ -222,8 +225,9 @@ describe('NebulaConnectionManager', () => {
     });
 
     it('should throw error when not connected', async () => {
-      await expect(nebulaConnectionManager.getWriteSession())
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.getWriteSession()).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
   });
 
@@ -249,8 +253,9 @@ describe('NebulaConnectionManager', () => {
     it('should throw error when not connected', async () => {
       const queries = [{ query: 'INSERT VERTEX person(name) VALUES 1:("Alice")' }];
 
-      await expect(nebulaConnectionManager.executeTransaction(queries))
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.executeTransaction(queries)).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
 
     it('should handle transaction execution error', async () => {
@@ -260,8 +265,7 @@ describe('NebulaConnectionManager', () => {
       const error = new Error('Syntax error');
       mockClient.execute.mockRejectedValue(error);
 
-      await expect(nebulaConnectionManager.executeTransaction(queries))
-        .rejects.toThrow(error);
+      await expect(nebulaConnectionManager.executeTransaction(queries)).rejects.toThrow(error);
 
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
     });
@@ -291,11 +295,10 @@ describe('NebulaConnectionManager', () => {
       const result = await nebulaConnectionManager.createNode(node);
 
       expect(result).toBe('1');
-      expect(mockQueryBuilderInstance.insertVertex).toHaveBeenCalledWith(
-        'person',
-        '1',
-        { name: 'Alice', age: 30 }
-      );
+      expect(mockQueryBuilderInstance.insertVertex).toHaveBeenCalledWith('person', '1', {
+        name: 'Alice',
+        age: 30,
+      });
       expect(mockClient.execute).toHaveBeenCalledWith(
         'INSERT VERTEX person(name, age) VALUES 1:($param0, $param1)',
         false,
@@ -310,8 +313,9 @@ describe('NebulaConnectionManager', () => {
         properties: { name: 'Alice' },
       };
 
-      await expect(nebulaConnectionManager.createNode(node))
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.createNode(node)).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
   });
 
@@ -340,12 +344,9 @@ describe('NebulaConnectionManager', () => {
       const result = await nebulaConnectionManager.createRelationship(relationship);
 
       expect(result).toBe('1->2');
-      expect(mockQueryBuilderInstance.insertEdge).toHaveBeenCalledWith(
-        'knows',
-        '1',
-        '2',
-        { since: 2020 }
-      );
+      expect(mockQueryBuilderInstance.insertEdge).toHaveBeenCalledWith('knows', '1', '2', {
+        since: 2020,
+      });
       expect(mockClient.execute).toHaveBeenCalledWith(
         'INSERT EDGE knows(since) VALUES 1->2:($param0)',
         false,
@@ -361,8 +362,9 @@ describe('NebulaConnectionManager', () => {
         properties: {},
       };
 
-      await expect(nebulaConnectionManager.createRelationship(relationship))
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.createRelationship(relationship)).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
   });
 
@@ -397,7 +399,9 @@ describe('NebulaConnectionManager', () => {
       const NebulaQueryBuilder = require('../../nebula/NebulaQueryBuilder').NebulaQueryBuilder;
       const mockQueryBuilderInstance = (NebulaQueryBuilder as jest.Mock).mock.results[0].value;
 
-      mockQueryBuilderInstance.match.mockReturnValue('MATCH (n:person) WHERE n.name = $name RETURN n');
+      mockQueryBuilderInstance.match.mockReturnValue(
+        'MATCH (n:person) WHERE n.name = $name RETURN n'
+      );
 
       const mockResult = { data: [{ id: 1, name: 'Alice' }] };
       mockClient.execute.mockResolvedValue(mockResult);
@@ -418,8 +422,9 @@ describe('NebulaConnectionManager', () => {
     });
 
     it('should throw error when not connected', async () => {
-      await expect(nebulaConnectionManager.findNodesByLabel('person'))
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.findNodesByLabel('person')).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
   });
 
@@ -474,8 +479,9 @@ describe('NebulaConnectionManager', () => {
     });
 
     it('should throw error when not connected', async () => {
-      await expect(nebulaConnectionManager.findRelationships())
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.findRelationships()).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
   });
 
@@ -507,8 +513,9 @@ describe('NebulaConnectionManager', () => {
     });
 
     it('should throw error when not connected', async () => {
-      await expect(nebulaConnectionManager.getDatabaseStats())
-        .rejects.toThrow('Not connected to NebulaGraph');
+      await expect(nebulaConnectionManager.getDatabaseStats()).rejects.toThrow(
+        'Not connected to NebulaGraph'
+      );
     });
 
     it('should handle stats retrieval error', async () => {
@@ -517,8 +524,7 @@ describe('NebulaConnectionManager', () => {
       const error = new Error('Stats retrieval failed');
       mockClient.execute.mockRejectedValue(error);
 
-      await expect(nebulaConnectionManager.getDatabaseStats())
-        .rejects.toThrow(error);
+      await expect(nebulaConnectionManager.getDatabaseStats()).rejects.toThrow(error);
 
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
     });

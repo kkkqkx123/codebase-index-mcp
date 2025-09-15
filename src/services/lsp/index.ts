@@ -1,8 +1,25 @@
 // LSP服务入口文件
-export { LSPClient, LSPClientConfig, LSPMessage, LSPDiagnostic, LSPSymbol, LSPError } from './LSPClient';
+export {
+  LSPClient,
+  LSPClientConfig,
+  LSPMessage,
+  LSPDiagnostic,
+  LSPSymbol,
+  LSPError,
+} from './LSPClient';
 export { LSPClientPool, PoolConfig, PooledClient } from './LSPClientPool';
-export { LanguageServerRegistry, LanguageServerConfig, ProjectLanguage } from './LanguageServerRegistry';
-export { LSPErrorHandler, ErrorHandlerConfig, ErrorContext, ErrorAction, globalErrorHandler } from './LSPErrorHandler';
+export {
+  LanguageServerRegistry,
+  LanguageServerConfig,
+  ProjectLanguage,
+} from './LanguageServerRegistry';
+export {
+  LSPErrorHandler,
+  ErrorHandlerConfig,
+  ErrorContext,
+  ErrorAction,
+  globalErrorHandler,
+} from './LSPErrorHandler';
 export { LSPManager, LSPManagerConfig, LSPDiagnosticsResult, LSPSymbolsResult } from './LSPManager';
 
 // 工具函数

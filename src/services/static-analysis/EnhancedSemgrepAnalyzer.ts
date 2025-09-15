@@ -97,37 +97,41 @@ export class EnhancedSemgrepAnalyzer {
     @inject(TYPES.LoggerService) logger?: LoggerService,
     @inject(TYPES.ConfigService) config?: ConfigService
   ) {
-    this.logger = logger || {
-      info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ''),
-      debug: (message: string, meta?: any) => console.log(`[DEBUG] ${message}`, meta || ''),
-      warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ''),
-      error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ''),
-    } as LoggerService;
-    
-    this.config = config || {
-      get: (key: string) => {
-        const defaults: Record<string, any> = {
-          'analysis.maxFileSize': 1048576,
-          'analysis.timeout': 30000,
-          'analysis.ignorePatterns': ['node_modules', 'dist', 'coverage'],
-          'analysis.severityThreshold': 'medium',
-          'semgrep.enhancedRulesPath': './enhanced-rules'
-        };
-        return defaults[key];
-      }
-    } as ConfigService;
-    
+    this.logger =
+      logger ||
+      ({
+        info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ''),
+        debug: (message: string, meta?: any) => console.log(`[DEBUG] ${message}`, meta || ''),
+        warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ''),
+        error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ''),
+      } as LoggerService);
+
+    this.config =
+      config ||
+      ({
+        get: (key: string) => {
+          const defaults: Record<string, any> = {
+            'analysis.maxFileSize': 1048576,
+            'analysis.timeout': 30000,
+            'analysis.ignorePatterns': ['node_modules', 'dist', 'coverage'],
+            'analysis.severityThreshold': 'medium',
+            'semgrep.enhancedRulesPath': './enhanced-rules',
+          };
+          return defaults[key];
+        },
+      } as ConfigService);
+
     this.enhancedRulesPath = this.config.get('semgrep').enhancedRulesPath || './enhanced-rules';
   }
 
   async analyzeProject(projectPath: string): Promise<AnalysisResult> {
     this.logger.info(`Starting enhanced analysis for project: ${projectPath}`);
-    
+
     try {
       const [controlFlow, dataFlow, securityIssues] = await Promise.all([
         this.analyzeControlFlow(projectPath),
         this.analyzeDataFlow(projectPath),
-        this.detectSecurityPatterns(projectPath)
+        this.detectSecurityPatterns(projectPath),
       ]);
 
       const metrics = await this.calculateMetrics(projectPath);
@@ -136,7 +140,7 @@ export class EnhancedSemgrepAnalyzer {
         controlFlow,
         dataFlow,
         securityIssues,
-        metrics
+        metrics,
       };
     } catch (error) {
       this.logger.error('Enhanced analysis failed', { error, projectPath });
@@ -145,24 +149,19 @@ export class EnhancedSemgrepAnalyzer {
   }
 
   async analyzeControlFlow(projectPath: string): Promise<CFGResult> {
-    const rules = [
-      'control-flow/basic-cfg.yml',
-      'control-flow/cross-function-analysis.yml'
-    ];
+    const rules = ['control-flow/basic-cfg.yml', 'control-flow/cross-function-analysis.yml'];
 
     this.logger.debug('Running control flow analysis', { rules, projectPath });
-    
+
     const rawResults = await this.runAdvancedScan(projectPath, rules);
     return this.processCFGResults(rawResults);
   }
 
   async analyzeDataFlow(variablePattern?: string): Promise<DataFlowResult> {
-    const rules = [
-      'data-flow/taint-analysis.yml'
-    ];
+    const rules = ['data-flow/taint-analysis.yml'];
 
     this.logger.debug('Running data flow analysis', { rules, variablePattern });
-    
+
     const rawResults = await this.runAdvancedScan('.', rules, variablePattern);
     return this.processDataFlowResults(rawResults);
   }
@@ -176,24 +175,25 @@ export class EnhancedSemgrepAnalyzer {
       'security/authentication-bypass.yml',
       'security/authorization-flaws.yml',
       'security/cryptographic-issues.yml',
-      'security/insecure-deserialization.yml'
+      'security/insecure-deserialization.yml',
     ];
 
     this.logger.debug('Running security pattern detection', { rules, projectPath });
-    
+
     const rawResults = await this.runAdvancedScan(projectPath || '.', rules);
     return this.processSecurityResults(rawResults);
   }
 
   private async runAdvancedScan(
-    projectPath: string, 
-    rules: string[], 
+    projectPath: string,
+    rules: string[],
     variablePattern?: string
   ): Promise<any[]> {
-    const semgrepPath = (this.config.get('staticAnalysis' as any) as any)?.semgrep?.cliPath || 'semgrep';
-    
+    const semgrepPath =
+      (this.config.get('staticAnalysis' as any) as any)?.semgrep?.cliPath || 'semgrep';
+
     const rulePaths = rules.map(rule => `${this.enhancedRulesPath}/${rule}`);
-    
+
     const { execSync } = require('child_process');
     const command = [
       semgrepPath,
@@ -202,15 +202,17 @@ export class EnhancedSemgrepAnalyzer {
       '--time',
       '--timeout=300',
       variablePattern ? `--pattern=${variablePattern}` : '',
-      projectPath
-    ].filter(Boolean).join(' ');
+      projectPath,
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     try {
-      const output = execSync(command, { 
+      const output = execSync(command, {
         encoding: 'utf-8',
-        maxBuffer: 50 * 1024 * 1024 // 50MB buffer
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer
       });
-      
+
       const result = JSON.parse(output);
       return result.results || [];
     } catch (error) {
@@ -234,9 +236,9 @@ export class EnhancedSemgrepAnalyzer {
           location: {
             file: result.path,
             line: result.start.line,
-            column: result.start.col
+            column: result.start.col,
           },
-          content: result.extra.lines || ''
+          content: result.extra.lines || '',
         };
         nodes.push(node);
 
@@ -251,7 +253,7 @@ export class EnhancedSemgrepAnalyzer {
       edges,
       entryPoint: entryPoints[0] || 'main',
       exitPoints,
-      functions
+      functions,
     };
   }
 
@@ -268,34 +270,35 @@ export class EnhancedSemgrepAnalyzer {
 
     rawResults.forEach(result => {
       if (result.extra && result.extra.metavars) {
-        const varName = result.extra.metavars.$VARIABLE?.abstract_content ||
-                       result.extra.metavars.$SOURCE?.abstract_content ||
-                       'unknown';
-        
+        const varName =
+          result.extra.metavars.$VARIABLE?.abstract_content ||
+          result.extra.metavars.$SOURCE?.abstract_content ||
+          'unknown';
+
         if (!variables.has(varName)) {
           variables.set(varName, {
             name: varName,
             type: 'unknown',
             scope: result.path,
             definitions: [],
-            uses: []
+            uses: [],
           });
         }
 
         const variable = variables.get(varName);
-        
+
         if (result.check_id.includes('source')) {
           variable.definitions.push({
             file: result.path,
             line: result.start.line,
-            column: result.start.col
+            column: result.start.col,
           });
           taintSources.push(varName);
         } else if (result.check_id.includes('sink')) {
           variable.uses.push({
             file: result.path,
             line: result.start.line,
-            column: result.start.col
+            column: result.start.col,
           });
           taintSinks.push(varName);
         }
@@ -306,7 +309,7 @@ export class EnhancedSemgrepAnalyzer {
       variables: Array.from(variables.values()),
       flows,
       taintSources: Array.from(taintSources),
-      taintSinks: Array.from(taintSinks)
+      taintSinks: Array.from(taintSinks),
     };
   }
 
@@ -321,10 +324,10 @@ export class EnhancedSemgrepAnalyzer {
         location: {
           file: result.path,
           line: result.start.line,
-          column: result.start.col
+          column: result.start.col,
         },
         code: result.extra?.lines || '',
-        remediation: result.extra?.remediation
+        remediation: result.extra?.remediation,
       };
       issues.push(issue);
     });
@@ -333,7 +336,7 @@ export class EnhancedSemgrepAnalyzer {
       total: issues.length,
       high: issues.filter(i => i.severity === 'HIGH').length,
       medium: issues.filter(i => i.severity === 'MEDIUM').length,
-      low: issues.filter(i => i.severity === 'LOW').length
+      low: issues.filter(i => i.severity === 'LOW').length,
     };
 
     return { issues, summary };
@@ -341,9 +344,9 @@ export class EnhancedSemgrepAnalyzer {
 
   private mapSeverity(severity: string): 'HIGH' | 'MEDIUM' | 'LOW' {
     const mapping: Record<string, 'HIGH' | 'MEDIUM' | 'LOW'> = {
-      'ERROR': 'HIGH',
-      'WARNING': 'MEDIUM',
-      'INFO': 'LOW'
+      ERROR: 'HIGH',
+      WARNING: 'MEDIUM',
+      INFO: 'LOW',
     };
     return mapping[severity.toUpperCase()] || 'MEDIUM';
   }
@@ -357,7 +360,7 @@ export class EnhancedSemgrepAnalyzer {
     return {
       linesOfCode: 0,
       cyclomaticComplexity: 0,
-      maintainabilityIndex: 0
+      maintainabilityIndex: 0,
     };
   }
 }

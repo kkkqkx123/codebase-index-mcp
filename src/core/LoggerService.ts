@@ -14,37 +14,36 @@ export class LoggerService {
       this.logger = LoggerService.loggerInstance;
     } else {
       const isTestEnvironment = process.env.NODE_ENV === 'test';
-      const transports: winston.transport[] = [
-        new winston.transports.Console()
-      ];
-      
+      const transports: winston.transport[] = [new winston.transports.Console()];
+
       // 在测试环境中不创建文件传输，避免文件句柄泄漏
       if (!isTestEnvironment) {
         transports.push(
           new winston.transports.File({
             filename: path.join(process.cwd(), 'logs', 'error.log'),
-            level: 'error'
+            level: 'error',
           } as any),
           new winston.transports.File({
-            filename: path.join(process.cwd(), 'logs', 'combined.log')
+            filename: path.join(process.cwd(), 'logs', 'combined.log'),
           } as any)
         );
       }
 
       this.logger = winston.createLogger({
         level: process.env.LOG_LEVEL || 'info',
-        format: process.env.LOG_FORMAT === 'json' 
-          ? winston.format.json()
-          : winston.format.combine(
-              winston.format.colorize(),
-              winston.format.timestamp(),
-              winston.format.printf(({ timestamp, level, message, ...meta }) => {
-                return `${timestamp} [${level}]: ${message} ${
-                  Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-                }`;
-              })
-            ),
-        transports
+        format:
+          process.env.LOG_FORMAT === 'json'
+            ? winston.format.json()
+            : winston.format.combine(
+                winston.format.colorize(),
+                winston.format.timestamp(),
+                winston.format.printf(({ timestamp, level, message, ...meta }) => {
+                  return `${timestamp} [${level}]: ${message} ${
+                    Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
+                  }`;
+                })
+              ),
+        transports,
       });
       LoggerService.loggerInstance = this.logger;
     }

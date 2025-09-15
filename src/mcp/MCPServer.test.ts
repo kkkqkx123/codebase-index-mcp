@@ -51,11 +51,11 @@ describe('MCPServer', () => {
     container.bind(TYPES.GraphService).toConstantValue(mockGraphService);
     container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
     container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
-    
+
     // Create MCPServer instance directly since it's not bound to the container in the actual implementation
     const MCPServerConstructor = jest.requireActual('./MCPServer').MCPServer;
     mcpServer = new MCPServerConstructor();
-    
+
     // Manually inject mocks into the server instance
     (mcpServer as any).indexService = mockIndexService;
     (mcpServer as any).graphService = mockGraphService;
@@ -80,7 +80,8 @@ describe('MCPServer', () => {
           score: 0.95,
           finalScore: 0.95,
           filePath: '/src/auth.ts',
-          content: 'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
+          content:
+            'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }',
           startLine: 10,
           endLine: 15,
           language: 'typescript',
@@ -104,10 +105,11 @@ describe('MCPServer', () => {
 
       expect(response.results).toEqual(searchResults);
       expect(response.total).toBe(1);
-      expect(mockIndexService.search).toHaveBeenCalledWith(
-        'authentication function',
-        { limit: 10, threshold: 0.7, includeGraph: true }
-      );
+      expect(mockIndexService.search).toHaveBeenCalledWith('authentication function', {
+        limit: 10,
+        threshold: 0.7,
+        includeGraph: true,
+      });
     });
   });
 
@@ -205,7 +207,7 @@ describe('MCPServer', () => {
 
       mockGraphService.analyzeCodebase.mockResolvedValue({
         result: analysisResult,
-        formattedResult: {}
+        formattedResult: {},
       });
 
       const args = {
@@ -265,7 +267,9 @@ describe('MCPServer', () => {
         options: {},
       };
 
-      await expect((mcpServer as any).handleSearch(args)).rejects.toThrow('Search service unavailable');
+      await expect((mcpServer as any).handleSearch(args)).rejects.toThrow(
+        'Search service unavailable'
+      );
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
 
@@ -277,7 +281,9 @@ describe('MCPServer', () => {
         options: {},
       };
 
-      await expect((mcpServer as any).handleCreateIndex(args)).rejects.toThrow('Index service unavailable');
+      await expect((mcpServer as any).handleCreateIndex(args)).rejects.toThrow(
+        'Index service unavailable'
+      );
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
 
@@ -289,7 +295,9 @@ describe('MCPServer', () => {
         options: {},
       };
 
-      await expect((mcpServer as any).handleGraphAnalyze(args)).rejects.toThrow('Graph service unavailable');
+      await expect((mcpServer as any).handleGraphAnalyze(args)).rejects.toThrow(
+        'Graph service unavailable'
+      );
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });

@@ -11,16 +11,16 @@ describe('MemoryManager', () => {
   beforeEach(() => {
     container = createTestContainer();
     loggerService = container.get(LoggerService);
-    
+
     mockOptions = {
       checkInterval: 1000,
       thresholds: {
         warning: 70,
         critical: 85,
-        emergency: 95
+        emergency: 95,
       },
       gcThreshold: 80,
-      maxMemoryMB: 512
+      maxMemoryMB: 512,
     };
 
     memoryManager = new MemoryManager(loggerService, mockOptions);
@@ -33,7 +33,7 @@ describe('MemoryManager', () => {
   describe('constructor', () => {
     it('should initialize with default options when none provided', () => {
       const defaultManager = new MemoryManager(loggerService);
-      
+
       expect(defaultManager).toBeDefined();
     });
 
@@ -45,17 +45,20 @@ describe('MemoryManager', () => {
   describe('startMonitoring', () => {
     it('should start memory monitoring', () => {
       memoryManager.startMonitoring();
-      
-      expect(loggerService.info).toHaveBeenCalledWith('Starting memory monitoring', expect.any(Object));
+
+      expect(loggerService.info).toHaveBeenCalledWith(
+        'Starting memory monitoring',
+        expect.any(Object)
+      );
     });
   });
 
   describe('stopMonitoring', () => {
     it('should stop memory monitoring', () => {
       memoryManager.startMonitoring();
-      
+
       memoryManager.stopMonitoring();
-      
+
       expect(loggerService.info).toHaveBeenCalledWith('Memory monitoring stopped');
     });
   });
@@ -68,11 +71,11 @@ describe('MemoryManager', () => {
         heapUsed: 100 * 1024 * 1024, // 100MB
         heapTotal: 200 * 1024 * 1024, // 200MB
         external: 10 * 1024 * 1024, // 10MB
-        rss: 150 * 1024 * 1024 // 150MB
+        rss: 150 * 1024 * 1024, // 150MB
       });
 
       const result = memoryManager.checkMemory(75); // 75% threshold
-      
+
       expect(result).toBe(true);
 
       // Restore original function
@@ -86,11 +89,11 @@ describe('MemoryManager', () => {
         heapUsed: 180 * 1024 * 1024, // 180MB
         heapTotal: 200 * 1024 * 1024, // 200MB
         external: 20 * 1024 * 1024, // 20MB
-        rss: 250 * 1024 * 1024 // 250MB
+        rss: 250 * 1024 * 1024, // 250MB
       });
 
       const result = memoryManager.checkMemory(75); // 75% threshold
-      
+
       expect(result).toBe(false);
 
       // Restore original function
@@ -103,11 +106,11 @@ describe('MemoryManager', () => {
         heapUsed: 100 * 1024 * 1024,
         heapTotal: 200 * 1024 * 1024,
         external: 10 * 1024 * 1024,
-        rss: 150 * 1024 * 1024
+        rss: 150 * 1024 * 1024,
       });
 
       const result = memoryManager.checkMemory(); // Should use default threshold
-      
+
       expect(typeof result).toBe('boolean');
 
       // Restore original function
@@ -122,11 +125,11 @@ describe('MemoryManager', () => {
         heapUsed: 100 * 1024 * 1024, // 100MB (50% of 200MB)
         heapTotal: 200 * 1024 * 1024, // 200MB
         external: 10 * 1024 * 1024,
-        rss: 150 * 1024 * 1024
+        rss: 150 * 1024 * 1024,
       });
 
       const status = memoryManager.getMemoryStatus();
-      
+
       expect(status.status).toBe('healthy');
       expect(status.usage).toHaveProperty('heapUsed');
       expect(status.usage).toHaveProperty('heapTotal');
@@ -144,11 +147,11 @@ describe('MemoryManager', () => {
         heapUsed: 154 * 1024 * 1024, // 154MB (77% of 200MB)
         heapTotal: 200 * 1024 * 1024, // 200MB
         external: 20 * 1024 * 1024,
-        rss: 200 * 1024 * 1024
+        rss: 200 * 1024 * 1024,
       });
 
       const status = memoryManager.getMemoryStatus();
-      
+
       expect(status.status).toBe('warning');
       expect(status.usage.percentageUsed).toBe(77);
       expect(status.recommendations.length).toBeGreaterThan(0);
@@ -163,11 +166,11 @@ describe('MemoryManager', () => {
         heapUsed: 180 * 1024 * 1024, // 180MB (90% of 200MB)
         heapTotal: 200 * 1024 * 1024, // 200MB
         external: 30 * 1024 * 1024,
-        rss: 250 * 1024 * 1024
+        rss: 250 * 1024 * 1024,
       });
 
       const status = memoryManager.getMemoryStatus();
-      
+
       expect(status.status).toBe('critical');
       expect(status.usage.percentageUsed).toBe(90);
       expect(status.recommendations.length).toBeGreaterThan(0);
@@ -182,11 +185,11 @@ describe('MemoryManager', () => {
         heapUsed: 195 * 1024 * 1024, // 195MB (97.5% of 200MB)
         heapTotal: 200 * 1024 * 1024, // 200MB
         external: 40 * 1024 * 1024,
-        rss: 300 * 1024 * 1024
+        rss: 300 * 1024 * 1024,
       });
 
       const status = memoryManager.getMemoryStatus();
-      
+
       expect(status.status).toBe('emergency');
       expect(status.usage.percentageUsed).toBe(97.5);
       expect(status.recommendations.length).toBeGreaterThan(0);
@@ -202,7 +205,7 @@ describe('MemoryManager', () => {
       (global as any).gc = jest.fn();
 
       const result = memoryManager.forceGarbageCollection();
-      
+
       expect(result).toBe(true);
       expect((global as any).gc).toHaveBeenCalled();
 
@@ -215,7 +218,7 @@ describe('MemoryManager', () => {
       (global as any).gc = undefined;
 
       const result = memoryManager.forceGarbageCollection();
-      
+
       expect(result).toBe(false);
 
       // Restore original
@@ -226,7 +229,7 @@ describe('MemoryManager', () => {
   describe('onMemoryUpdate', () => {
     it('should register memory update callback', () => {
       const callback = jest.fn();
-      
+
       memoryManager.onMemoryUpdate(callback);
       memoryManager.startMonitoring();
 
@@ -243,7 +246,7 @@ describe('MemoryManager', () => {
     it('should handle multiple callbacks', () => {
       const callback1 = jest.fn();
       const callback2 = jest.fn();
-      
+
       memoryManager.onMemoryUpdate(callback1);
       memoryManager.onMemoryUpdate(callback2);
       memoryManager.startMonitoring();
@@ -255,8 +258,6 @@ describe('MemoryManager', () => {
     });
   });
 
-  
-  
   describe('memory monitoring behavior', () => {
     it('should perform periodic memory checks', () => {
       const callback = jest.fn();
@@ -276,9 +277,9 @@ describe('MemoryManager', () => {
 
       return new Promise(resolve => setTimeout(resolve, 1500)).then(() => {
         const callCountBeforeStop = callback.mock.calls.length;
-        
+
         memoryManager.stopMonitoring();
-        
+
         return new Promise(resolve2 => setTimeout(resolve2, 1500)).then(() => {
           const callCountAfterStop = callback.mock.calls.length;
           expect(callCountAfterStop).toBe(callCountBeforeStop); // No new calls after stop
@@ -290,7 +291,7 @@ describe('MemoryManager', () => {
   describe('error handling', () => {
     it('should handle errors in getCurrentUsage gracefully', () => {
       const originalMemoryUsage = process.memoryUsage;
-      
+
       // Mock process.memoryUsage to throw error
       (process as any).memoryUsage = jest.fn().mockImplementation(() => {
         throw new Error('Memory access error');
@@ -298,19 +299,19 @@ describe('MemoryManager', () => {
 
       // Mock the logger to capture error calls
       loggerService.error.mockImplementation(() => {});
-      
+
       // Should throw error when getCurrentUsage is called directly
       expect(() => {
         memoryManager.getCurrentUsage();
       }).toThrow('Memory access error');
-      
+
       // Restore original function
       (process as any).memoryUsage = originalMemoryUsage;
     });
 
     it('should handle errors in checkMemory gracefully', () => {
       const originalMemoryUsage = process.memoryUsage;
-      
+
       // Mock process.memoryUsage to throw error
       (process as any).memoryUsage = jest.fn().mockImplementation(() => {
         throw new Error('Memory access error');
@@ -318,12 +319,12 @@ describe('MemoryManager', () => {
 
       // Mock the logger to capture error calls
       loggerService.error.mockImplementation(() => {});
-      
+
       // Test that checkMemory propagates the error from getCurrentUsage
       expect(() => {
         memoryManager.checkMemory(50);
       }).toThrow('Memory access error');
-      
+
       // Restore original function
       (process as any).memoryUsage = originalMemoryUsage;
     });
@@ -336,16 +337,16 @@ describe('MemoryManager', () => {
         thresholds: {
           warning: 90, // Higher than critical
           critical: 80,
-          emergency: 95
+          emergency: 95,
         },
         gcThreshold: 85,
-        maxMemoryMB: 512
+        maxMemoryMB: 512,
       };
 
       // Should not throw error, but handle gracefully
       const invalidManager = new MemoryManager(loggerService, invalidOptions);
       expect(invalidManager).toBeDefined();
-      
+
       // Test basic methods without calling getMemoryStatus to avoid process.memoryUsage issues
       expect(invalidManager.forceGarbageCollection()).toBeDefined();
       expect(typeof invalidManager.forceGarbageCollection()).toBe('boolean');
@@ -357,10 +358,10 @@ describe('MemoryManager', () => {
         thresholds: {
           warning: 70,
           critical: 85,
-          emergency: 95
+          emergency: 95,
         },
         gcThreshold: 80,
-        maxMemoryMB: 512
+        maxMemoryMB: 512,
       };
 
       // Should handle gracefully

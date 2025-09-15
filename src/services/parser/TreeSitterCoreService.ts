@@ -35,7 +35,7 @@ export class TreeSitterCoreService {
   private cacheStats = {
     hits: 0,
     misses: 0,
-    evictions: 0
+    evictions: 0,
   };
 
   constructor() {
@@ -50,10 +50,10 @@ export class TreeSitterCoreService {
             const mockAST = this.createMockAST(code);
             // Return a proper tree structure
             return {
-              rootNode: mockAST
+              rootNode: mockAST,
             };
           },
-          setLanguage: () => {}
+          setLanguage: () => {},
         };
       };
 
@@ -61,56 +61,56 @@ export class TreeSitterCoreService {
         name: 'TypeScript',
         parser: createBasicParser(),
         fileExtensions: ['.ts', '.tsx'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('javascript', {
         name: 'JavaScript',
         parser: createBasicParser(),
         fileExtensions: ['.js', '.jsx'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('python', {
         name: 'Python',
         parser: createBasicParser(),
         fileExtensions: ['.py'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('java', {
         name: 'Java',
         parser: createBasicParser(),
         fileExtensions: ['.java'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('go', {
         name: 'Go',
         parser: createBasicParser(),
         fileExtensions: ['.go'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('rust', {
         name: 'Rust',
         parser: createBasicParser(),
         fileExtensions: ['.rs'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('cpp', {
         name: 'C++',
         parser: createBasicParser(),
         fileExtensions: ['.cpp', '.cc', '.cxx', '.c++', '.h', '.hpp'],
-        supported: true
+        supported: true,
       });
 
       this.parsers.set('c', {
         name: 'C',
         parser: createBasicParser(),
         fileExtensions: ['.c', '.h'],
-        supported: true
+        supported: true,
       });
 
       this.initialized = true;
@@ -126,19 +126,19 @@ export class TreeSitterCoreService {
 
   detectLanguage(filePath: string): ParserLanguage | null {
     const ext = filePath.toLowerCase().substring(filePath.lastIndexOf('.'));
-    
+
     for (const lang of this.parsers.values()) {
       if (lang.fileExtensions.includes(ext) && lang.supported) {
         return lang;
       }
     }
-    
+
     return null;
   }
 
   async parseCode(code: string, language: string): Promise<ParseResult> {
     const startTime = Date.now();
-    
+
     try {
       const parserLang = this.parsers.get(language.toLowerCase());
       if (!parserLang || !parserLang.supported) {
@@ -147,11 +147,11 @@ export class TreeSitterCoreService {
 
       // Generate cache key
       const cacheKey = `${language.toLowerCase()}:${this.hashCode(code)}`;
-      
+
       // Check AST cache
       let tree = this.astCache.get(cacheKey);
       let fromCache = false;
-      
+
       if (tree) {
         this.cacheStats.hits++;
         fromCache = true;
@@ -170,7 +170,7 @@ export class TreeSitterCoreService {
         language: parserLang,
         parseTime: Date.now() - startTime,
         success: true,
-        fromCache
+        fromCache,
       };
     } catch (error) {
       return {
@@ -179,12 +179,12 @@ export class TreeSitterCoreService {
           name: language,
           parser: new Parser(),
           fileExtensions: [],
-          supported: false
+          supported: false,
         },
         parseTime: Date.now() - startTime,
         success: false,
         error: error instanceof Error ? error.message : String(error),
-        fromCache: false
+        fromCache: false,
       };
     }
   }
@@ -206,11 +206,11 @@ export class TreeSitterCoreService {
     return TreeSitterUtils.getNodeText(node, sourceCode);
   }
 
-  getNodeLocation(node: Parser.SyntaxNode): { 
-    startLine: number; 
-    endLine: number; 
-    startColumn: number; 
-    endColumn: number 
+  getNodeLocation(node: Parser.SyntaxNode): {
+    startLine: number;
+    endLine: number;
+    startColumn: number;
+    endColumn: number;
   } {
     return TreeSitterUtils.getNodeLocation(node);
   }
@@ -218,7 +218,7 @@ export class TreeSitterCoreService {
   findNodeByType(ast: Parser.SyntaxNode, type: string): Parser.SyntaxNode[] {
     // Generate cache key for this query
     const cacheKey = `${this.getNodeHash(ast)}:${type}`;
-    
+
     // Check node cache
     let cachedNodes = this.nodeCache.get(cacheKey);
     if (cachedNodes) {
@@ -226,7 +226,7 @@ export class TreeSitterCoreService {
       console.log(`Cache hit for ${type}: ${cachedNodes.length} nodes`);
       return cachedNodes;
     }
-    
+
     this.cacheStats.misses++;
     const nodes = TreeSitterUtils.findNodeByType(ast, type);
     console.log(`Found ${nodes.length} nodes of type ${type}`);
@@ -240,25 +240,28 @@ export class TreeSitterCoreService {
    * @param pattern The query pattern in S-expression format
    * @returns Array of query matches
    */
-  queryTree(ast: Parser.SyntaxNode, pattern: string): Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> {
+  queryTree(
+    ast: Parser.SyntaxNode,
+    pattern: string
+  ): Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> {
     try {
       // Get the language from the AST
       const language = (ast as any).tree?.language || (ast as any).language;
-      
+
       // Create a query from the pattern
       // Note: In a real implementation, we would use the actual tree-sitter Query class
       // For now, we'll implement a simple mock that mimics the expected behavior
       const matches: Array<{ captures: Array<{ name: string; node: Parser.SyntaxNode }> }> = [];
-      
+
       // Parse the pattern to extract capture names
       const captureRegex = /\((\w+(?:\.[\w-]+)*)\s+@\s*(\w+)\)/g;
       const captures: Array<{ type: string; name: string }> = [];
       let match;
-      
+
       while ((match = captureRegex.exec(pattern)) !== null) {
         captures.push({ type: match[1], name: match[2] });
       }
-      
+
       // For each capture type, find nodes of that type
       for (const capture of captures) {
         const nodes = this.findNodeByType(ast, capture.type);
@@ -271,7 +274,7 @@ export class TreeSitterCoreService {
           matches[0].captures.push({ name: capture.name, node });
         }
       }
-      
+
       return matches;
     } catch (error) {
       console.error('Failed to query tree:', error);
@@ -282,31 +285,31 @@ export class TreeSitterCoreService {
   // 批量节点查询优化
   findNodesByTypes(ast: Parser.SyntaxNode, types: string[]): Parser.SyntaxNode[] {
     const cacheKey = `${this.getNodeHash(ast)}:${types.join(',')}`;
-    
+
     // Check node cache
     let cachedNodes = this.nodeCache.get(cacheKey);
     if (cachedNodes) {
       this.cacheStats.hits++;
       return cachedNodes;
     }
-    
+
     this.cacheStats.misses++;
     const results: Parser.SyntaxNode[] = [];
-    
+
     const traverse = (node: any, depth: number = 0) => {
       if (depth > 100) return;
-      
+
       if (types.includes(node.type)) {
         results.push(node);
       }
-      
+
       if (node.children && Array.isArray(node.children)) {
         for (const child of node.children) {
           traverse(child, depth + 1);
         }
       }
     };
-    
+
     traverse(ast);
     this.nodeCache.set(cacheKey, results);
     return results;
@@ -315,14 +318,14 @@ export class TreeSitterCoreService {
   // 获取缓存统计信息
   getCacheStats() {
     const total = this.cacheStats.hits + this.cacheStats.misses;
-    const hitRate = total > 0 ? (this.cacheStats.hits / total * 100).toFixed(2) : 0;
-    
+    const hitRate = total > 0 ? ((this.cacheStats.hits / total) * 100).toFixed(2) : 0;
+
     return {
       ...this.cacheStats,
       totalRequests: total,
       hitRate: `${hitRate}%`,
       astCacheSize: this.astCache.size(),
-      nodeCacheSize: this.nodeCache.size()
+      nodeCacheSize: this.nodeCache.size(),
     };
   }
 
@@ -338,7 +341,7 @@ export class TreeSitterCoreService {
     let hash = 0;
     for (let i = 0; i < code.length; i++) {
       const char = code.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash).toString(36);
@@ -351,11 +354,16 @@ export class TreeSitterCoreService {
 
   extractFunctions(ast: Parser.SyntaxNode): Parser.SyntaxNode[] {
     const functions: Parser.SyntaxNode[] = [];
-    
+
     const functionTypes = new Set([
-      'function_declaration', 'function_definition', 'method_definition',
-      'arrow_function', 'function_expression', 'generator_function',
-      'generator_function_declaration', 'method_signature'
+      'function_declaration',
+      'function_definition',
+      'method_definition',
+      'arrow_function',
+      'function_expression',
+      'generator_function',
+      'generator_function_declaration',
+      'method_signature',
     ]);
 
     const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
@@ -378,11 +386,16 @@ export class TreeSitterCoreService {
 
   extractClasses(ast: Parser.SyntaxNode): Parser.SyntaxNode[] {
     const classes: Parser.SyntaxNode[] = [];
-    
+
     const classTypes = new Set([
-      'class_declaration', 'class_definition', 'class_expression',
-      'interface_declaration', 'interface_definition', 'struct_definition',
-      'enum_declaration', 'type_alias_declaration'
+      'class_declaration',
+      'class_definition',
+      'class_expression',
+      'interface_declaration',
+      'interface_definition',
+      'struct_definition',
+      'enum_declaration',
+      'type_alias_declaration',
     ]);
 
     const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
@@ -405,14 +418,18 @@ export class TreeSitterCoreService {
 
   extractImports(ast: Parser.SyntaxNode, sourceCode?: string): string[] {
     const imports: string[] = [];
-    
+
     if (!sourceCode) {
       return imports;
     }
-    
+
     const importTypes = new Set([
-      'import_statement', 'import_clause', 'import_specifier',
-      'require', 'import_from_statement', 'import_alias'
+      'import_statement',
+      'import_clause',
+      'import_specifier',
+      'require',
+      'import_from_statement',
+      'import_alias',
     ]);
 
     const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
@@ -438,15 +455,19 @@ export class TreeSitterCoreService {
 
   extractExports(ast: Parser.SyntaxNode, sourceCode?: string): string[] {
     const exports: string[] = [];
-    
+
     if (!sourceCode) {
       return exports;
     }
-    
+
     const exportTypes = new Set([
-      'export_statement', 'export_clause', 'export_specifier',
-      'export_default_declaration', 'export_named_declaration',
-      'export_all_declaration', 'export_as_clause'
+      'export_statement',
+      'export_clause',
+      'export_specifier',
+      'export_default_declaration',
+      'export_named_declaration',
+      'export_all_declaration',
+      'export_as_clause',
     ]);
 
     const traverse = (node: Parser.SyntaxNode, depth: number = 0) => {
@@ -472,12 +493,18 @@ export class TreeSitterCoreService {
 
   private createMockAST(code: string): any {
     const lines = code.split('\n');
-    
-    const createNode = (type: string, text: string, startLine: number, endLine: number, children: any[] = []): any => {
+
+    const createNode = (
+      type: string,
+      text: string,
+      startLine: number,
+      endLine: number,
+      children: any[] = []
+    ): any => {
       // Find the actual start index in the code
       const startIndex = code.indexOf(text);
       const endIndex = startIndex + text.length;
-      
+
       const node = {
         type,
         startPosition: { row: startLine, column: 0 },
@@ -488,7 +515,10 @@ export class TreeSitterCoreService {
         parent: null,
         text: text,
         childForFieldName: (fieldName: string) => {
-          if (fieldName === 'name' && (type === 'function_declaration' || type === 'class_declaration')) {
+          if (
+            fieldName === 'name' &&
+            (type === 'function_declaration' || type === 'class_declaration')
+          ) {
             const nameMatch = text.match(/(?:function|class)\s+(\w+)/);
             if (nameMatch && nameMatch[1]) {
               return createNode('identifier', nameMatch[1], startLine, endLine);
@@ -502,21 +532,21 @@ export class TreeSitterCoreService {
             currentNode: () => node,
             gotoFirstChild: () => false,
             gotoNextSibling: () => false,
-            gotoParent: () => false
+            gotoParent: () => false,
           };
-        }
+        },
       };
-      
+
       // Set parent for children
       children.forEach(child => {
         child.parent = node;
       });
-      
+
       return node;
     };
 
     const children: any[] = [];
-    
+
     // Find control structures (if, for, while, etc.)
     // Look for if statements (more comprehensive pattern)
     const ifRegex = /\bif\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;?)/g;
@@ -528,7 +558,7 @@ export class TreeSitterCoreService {
       // console.log(`Found if_statement: ${matchedText}`);
       children.push(createNode('if_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for else clauses (more comprehensive pattern)
     const elseRegex = /\belse\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let elseMatch;
@@ -539,7 +569,7 @@ export class TreeSitterCoreService {
       // console.log(`Found else_clause: ${matchedText}`);
       children.push(createNode('else_clause', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for for statements (including for...of, for...in)
     const forRegex = /\bfor\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let forMatch;
@@ -550,7 +580,7 @@ export class TreeSitterCoreService {
       // console.log(`Found for_statement: ${matchedText}`);
       children.push(createNode('for_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for while statements
     const whileRegex = /\bwhile\s*\([^)]*\)\s*(\{[^}]*\}|[^\n;]*;?)/g;
     let whileMatch;
@@ -561,7 +591,7 @@ export class TreeSitterCoreService {
       // console.log(`Found while_statement: ${matchedText}`);
       children.push(createNode('while_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for do-while statements
     const doWhileRegex = /\bdo\s*(\{[^}]*\}|[^\n;]*;?)\s*while\s*\([^)]*\);?/g;
     let doWhileMatch;
@@ -572,7 +602,7 @@ export class TreeSitterCoreService {
       // console.log(`Found do_statement: ${matchedText}`);
       children.push(createNode('do_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for switch statements
     const switchRegex = /\bswitch\s*\([^)]*\)\s*\{[^}]*\}/g;
     let switchMatch;
@@ -583,10 +613,11 @@ export class TreeSitterCoreService {
       // console.log(`Found switch_statement: ${matchedText}`);
       children.push(createNode('switch_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Find error handling structures (try, catch, throw)
     // Look for try-catch-finally blocks (more comprehensive pattern)
-    const tryCatchFinallyRegex = /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}\s*(?:finally\s*\{[^}]*\})?/g;
+    const tryCatchFinallyRegex =
+      /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{[^}]*\}\s*(?:finally\s*\{[^}]*\})?/g;
     let tryCatchFinallyMatch;
     while ((tryCatchFinallyMatch = tryCatchFinallyRegex.exec(code)) !== null) {
       const matchedText = tryCatchFinallyMatch[0];
@@ -595,7 +626,7 @@ export class TreeSitterCoreService {
       // console.log(`Found try_statement (try-catch-finally): ${matchedText}`);
       children.push(createNode('try_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for try-catch blocks (more comprehensive pattern)
     const tryCatchRegex = /\btry\s*\{[^}]*\}[\s\S]*?catch\s*\([^)]*\)\s*\{[^}]*\}/g;
     let tryCatchMatch;
@@ -606,7 +637,7 @@ export class TreeSitterCoreService {
       // console.log(`Found try_statement (try-catch): ${matchedText}`);
       children.push(createNode('try_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for try statements (without catch/finally)
     const tryRegex = /\btry\s*\{[^}]*\}/g;
     let tryMatch;
@@ -617,7 +648,7 @@ export class TreeSitterCoreService {
       // console.log(`Found try_statement (try only): ${matchedText}`);
       children.push(createNode('try_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for throw statements (more comprehensive pattern)
     const throwRegex = /\bthrow\s+[^;\n]*;?/g;
     let throwMatch;
@@ -628,7 +659,7 @@ export class TreeSitterCoreService {
       // console.log(`Found throw_statement: ${matchedText}`);
       children.push(createNode('throw_statement', matchedText, startLine, endLine, []));
     }
-    
+
     // Find function call chains
     // Look for method chains (more comprehensive pattern)
     const methodChainRegex = /(\w+(?:\.\w+)*\([^)]*\)(?:\s*\.\s*\w+\([^)]*\))+)/g;
@@ -640,7 +671,7 @@ export class TreeSitterCoreService {
       // console.log(`Found call_expression (method chain): ${matchedText}`);
       children.push(createNode('call_expression', matchedText, startLine, endLine, []));
     }
-    
+
     // Look for individual function calls (more comprehensive pattern)
     const functionCallRegex = /\w+(?:\.\w+)*\([^)]*\)/g;
     let functionCallMatch;
@@ -651,16 +682,17 @@ export class TreeSitterCoreService {
       // console.log(`Found call_expression (function call): ${matchedText}`);
       children.push(createNode('call_expression', matchedText, startLine, endLine, []));
     }
-    const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+))/g;
+    const functionRegex =
+      /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\s*\(|class\s+(\w+)|import\s+.*?from\s+['"`]([^'"`]+)['"`]|export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+))/g;
     let match;
-    
+
     while ((match = functionRegex.exec(code)) !== null) {
       const matchedText = match[0];
       const startLine = code.substring(0, match.index).split('\n').length - 1;
       const endLine = startLine + matchedText.split('\n').length - 1;
-      
+
       let nodeType = 'function_declaration';
-      
+
       if (match[1]) {
         nodeType = 'function_declaration';
       } else if (match[2]) {
@@ -672,34 +704,35 @@ export class TreeSitterCoreService {
       } else if (match[5]) {
         nodeType = 'export_statement';
       }
-      
+
       children.push(createNode(nodeType, matchedText, startLine, endLine, []));
     }
-    
+
     // Find code snippets in comments
     const commentRegex = /\/\/.*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)/gi;
     let commentMatch;
-    
+
     while ((commentMatch = commentRegex.exec(code)) !== null) {
       const matchedText = commentMatch[0];
       const startLine = code.substring(0, commentMatch.index).split('\n').length;
       const endLine = startLine;
-      
+
       children.push(createNode('comment', matchedText, startLine, endLine, []));
     }
-    
+
     // Also look for code blocks in multi-line comments
-    const multiLineCommentRegex = /\/\*[\s\S]*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)[\s\S]*?\*\//gi;
+    const multiLineCommentRegex =
+      /\/\*[\s\S]*?(?:@snippet|@code|@example|SNIPPET:|EXAMPLE:)[\s\S]*?\*\//gi;
     let multiLineCommentMatch;
-    
+
     while ((multiLineCommentMatch = multiLineCommentRegex.exec(code)) !== null) {
       const matchedText = multiLineCommentMatch[0];
       const startLine = code.substring(0, multiLineCommentMatch.index).split('\n').length;
       const endLine = startLine + matchedText.split('\n').length - 1;
-      
+
       children.push(createNode('comment', matchedText, startLine, endLine, []));
     }
-    
+
     return createNode('program', code, 0, lines.length - 1, children);
   }
 }

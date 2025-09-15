@@ -64,12 +64,21 @@ export interface SearchResult {
 
 export interface IQdrantClient {
   connect(): Promise<boolean>;
-  createCollection(collectionName: string, vectorSize: number, distance?: 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan', recreateIfExists?: boolean): Promise<boolean>;
+  createCollection(
+    collectionName: string,
+    vectorSize: number,
+    distance?: 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan',
+    recreateIfExists?: boolean
+  ): Promise<boolean>;
   collectionExists(collectionName: string): Promise<boolean>;
   deleteCollection(collectionName: string): Promise<boolean>;
   getCollectionInfo(collectionName: string): Promise<CollectionInfo | null>;
   upsertPoints(collectionName: string, points: VectorPoint[]): Promise<boolean>;
-  searchVectors(collectionName: string, queryVector: number[], options?: SearchOptions): Promise<SearchResult[]>;
+  searchVectors(
+    collectionName: string,
+    queryVector: number[],
+    options?: SearchOptions
+  ): Promise<SearchResult[]>;
   deletePoints(collectionName: string, pointIds: string[]): Promise<boolean>;
   clearCollection(collectionName: string): Promise<boolean>;
   getPointCount(collectionName: string): Promise<number>;
@@ -104,13 +113,13 @@ export class QdrantClientWrapper {
       port: qdrantConfig.port,
       apiKey: process.env.QDRANT_API_KEY,
       useHttps: false,
-      timeout: 30000
+      timeout: 30000,
     };
 
     this.client = new QdrantClient({
       url: `${this.config.useHttps ? 'https' : 'http'}://${this.config.host}:${this.config.port}`,
       ...(this.config.apiKey ? { apiKey: this.config.apiKey } : {}),
-      timeout: this.config.timeout
+      timeout: this.config.timeout,
     });
   }
 
@@ -124,7 +133,9 @@ export class QdrantClientWrapper {
     } catch (error) {
       this.isConnected = false;
       const report = this.errorHandler.handleError(
-        new Error(`Failed to connect to Qdrant: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to connect to Qdrant: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'connect' }
       );
       this.logger.error('Failed to connect to Qdrant', { errorId: report.id });
@@ -151,12 +162,12 @@ export class QdrantClientWrapper {
       await this.client.createCollection(collectionName, {
         vectors: {
           size: vectorSize,
-          distance: distance
+          distance: distance,
         },
         optimizers_config: {
-          default_segment_number: 2
+          default_segment_number: 2,
         },
-        replication_factor: 1
+        replication_factor: 1,
       });
 
       await this.createPayloadIndex(collectionName, 'language');
@@ -167,13 +178,15 @@ export class QdrantClientWrapper {
 
       this.logger.info(`Created collection ${collectionName}`, {
         vectorSize,
-        distance
+        distance,
       });
 
       return true;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to create collection ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to create collection ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'createCollection' }
       );
       this.logger.error('Failed to create collection', { errorId: report.id, collectionName });
@@ -188,7 +201,7 @@ export class QdrantClientWrapper {
     } catch (error) {
       this.logger.warn('Failed to check collection existence', {
         collectionName,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return false;
     }
@@ -201,7 +214,9 @@ export class QdrantClientWrapper {
       return true;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to delete collection ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to delete collection ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'deleteCollection' }
       );
       this.logger.error('Failed to delete collection', { errorId: report.id, collectionName });
@@ -215,26 +230,31 @@ export class QdrantClientWrapper {
 
       // Handle the new structure of vectors configuration
       const vectorsConfig = info.config.params.vectors;
-      const vectorSize = typeof vectorsConfig === 'object' && vectorsConfig !== null && 'size' in vectorsConfig
-        ? vectorsConfig.size
-        : 0;
-      const vectorDistance = typeof vectorsConfig === 'object' && vectorsConfig !== null && 'distance' in vectorsConfig
-        ? vectorsConfig.distance
-        : 'Cosine';
+      const vectorSize =
+        typeof vectorsConfig === 'object' && vectorsConfig !== null && 'size' in vectorsConfig
+          ? vectorsConfig.size
+          : 0;
+      const vectorDistance =
+        typeof vectorsConfig === 'object' && vectorsConfig !== null && 'distance' in vectorsConfig
+          ? vectorsConfig.distance
+          : 'Cosine';
 
       return {
         name: collectionName,
         vectors: {
           size: typeof vectorSize === 'number' ? vectorSize : 0,
-          distance: typeof vectorDistance === 'string' ? vectorDistance as 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan' : 'Cosine'
+          distance:
+            typeof vectorDistance === 'string'
+              ? (vectorDistance as 'Cosine' | 'Euclid' | 'Dot' | 'Manhattan')
+              : 'Cosine',
         },
         pointsCount: info.points_count || 0,
-        status: info.status
+        status: info.status,
       };
     } catch (error) {
       this.logger.warn('Failed to get collection info', {
         collectionName,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return null;
     }
@@ -256,9 +276,9 @@ export class QdrantClientWrapper {
             vector: point.vector,
             payload: {
               ...point.payload,
-              timestamp: point.payload.timestamp.toISOString()
-            }
-          }))
+              timestamp: point.payload.timestamp.toISOString(),
+            },
+          })),
         });
       }
 
@@ -266,10 +286,17 @@ export class QdrantClientWrapper {
       return true;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to upsert points to ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to upsert points to ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'upsertPoints' }
       );
-      this.logger.error('Failed to upsert points', { errorId: report.id, collectionName, pointCount: points.length, error: error });
+      this.logger.error('Failed to upsert points', {
+        errorId: report.id,
+        collectionName,
+        pointCount: points.length,
+        error: error,
+      });
       return false;
     }
   }
@@ -283,7 +310,7 @@ export class QdrantClientWrapper {
       const searchParams: any = {
         limit: options.limit || 10,
         with_payload: options.withPayload !== false,
-        with_vector: options.withVector || false
+        with_vector: options.withVector || false,
       };
 
       if (options.scoreThreshold !== undefined) {
@@ -296,20 +323,25 @@ export class QdrantClientWrapper {
 
       const results = await this.client.search(collectionName, {
         vector: queryVector,
-        ...searchParams
+        ...searchParams,
       });
 
       return results.map(result => ({
         id: result.id as string,
         score: result.score,
         payload: {
-          ...result.payload as any,
-          timestamp: result.payload?.timestamp && typeof result.payload.timestamp === 'string' ? new Date(result.payload.timestamp) : new Date()
-        }
+          ...(result.payload as any),
+          timestamp:
+            result.payload?.timestamp && typeof result.payload.timestamp === 'string'
+              ? new Date(result.payload.timestamp)
+              : new Date(),
+        },
       }));
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to search vectors in ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to search vectors in ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'searchVectors' }
       );
       this.logger.error('Failed to search vectors', { errorId: report.id, collectionName });
@@ -325,18 +357,20 @@ export class QdrantClientWrapper {
             {
               key: 'id',
               match: {
-                any: pointIds
-              }
-            }
-          ]
-        }
+                any: pointIds,
+              },
+            },
+          ],
+        },
       });
 
       this.logger.info(`Deleted ${pointIds.length} points from collection ${collectionName}`);
       return true;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to delete points from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to delete points from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'deletePoints' }
       );
       this.logger.error('Failed to delete points', { errorId: report.id, collectionName });
@@ -352,10 +386,10 @@ export class QdrantClientWrapper {
           {
             key: 'filePath',
             match: {
-              any: filePaths
-            }
-          }
-        ]
+              any: filePaths,
+            },
+          },
+        ],
       };
 
       // Search for points matching the filter, only retrieving IDs
@@ -363,21 +397,23 @@ export class QdrantClientWrapper {
         filter,
         with_payload: false,
         with_vector: false,
-        limit: 1000 // Adjust this limit as needed
+        limit: 1000, // Adjust this limit as needed
       });
 
       // Extract IDs from the results
       const chunkIds = results.points.map(point => point.id as string);
-      
+
       this.logger.debug(`Found ${chunkIds.length} chunk IDs for ${filePaths.length} files`, {
         fileCount: filePaths.length,
-        chunkCount: chunkIds.length
+        chunkCount: chunkIds.length,
       });
 
       return chunkIds;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to get chunk IDs by files from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get chunk IDs by files from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'getChunkIdsByFiles' }
       );
       this.logger.error('Failed to get chunk IDs by files', { errorId: report.id, collectionName });
@@ -393,10 +429,10 @@ export class QdrantClientWrapper {
           {
             key: 'id',
             match: {
-              any: chunkIds
-            }
-          }
-        ]
+              any: chunkIds,
+            },
+          },
+        ],
       };
 
       // Search for points matching the filter, only retrieving IDs
@@ -404,21 +440,26 @@ export class QdrantClientWrapper {
         filter,
         with_payload: false,
         with_vector: false,
-        limit: 1000 // Adjust this limit as needed
+        limit: 1000, // Adjust this limit as needed
       });
 
       // Extract IDs from the results
       const existingChunkIds = results.points.map(point => point.id as string);
-      
-      this.logger.debug(`Found ${existingChunkIds.length} existing chunk IDs out of ${chunkIds.length} requested`, {
-        requestedCount: chunkIds.length,
-        existingCount: existingChunkIds.length
-      });
+
+      this.logger.debug(
+        `Found ${existingChunkIds.length} existing chunk IDs out of ${chunkIds.length} requested`,
+        {
+          requestedCount: chunkIds.length,
+          existingCount: existingChunkIds.length,
+        }
+      );
 
       return existingChunkIds;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to get existing chunk IDs from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to get existing chunk IDs from ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'getExistingChunkIds' }
       );
       this.logger.error('Failed to get existing chunk IDs', { errorId: report.id, collectionName });
@@ -434,18 +475,20 @@ export class QdrantClientWrapper {
             {
               key: 'id',
               match: {
-                any: true
-              }
-            }
-          ]
-        }
+                any: true,
+              },
+            },
+          ],
+        },
       });
 
       this.logger.info(`Cleared collection ${collectionName}`);
       return true;
     } catch (error) {
       const report = this.errorHandler.handleError(
-        new Error(`Failed to clear collection ${collectionName}: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to clear collection ${collectionName}: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantClient', operation: 'clearCollection' }
       );
       this.logger.error('Failed to clear collection', { errorId: report.id, collectionName });
@@ -460,7 +503,7 @@ export class QdrantClientWrapper {
     } catch (error) {
       this.logger.warn('Failed to get point count', {
         collectionName,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return 0;
     }
@@ -470,7 +513,7 @@ export class QdrantClientWrapper {
     try {
       await this.client.createPayloadIndex(collectionName, {
         field_name: field,
-        field_schema: 'keyword'
+        field_schema: 'keyword',
       });
 
       this.logger.info(`Created payload index for field ${field} in collection ${collectionName}`);
@@ -479,7 +522,7 @@ export class QdrantClientWrapper {
       this.logger.warn('Failed to create payload index', {
         collectionName,
         field,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return false;
     }
@@ -494,8 +537,8 @@ export class QdrantClientWrapper {
       must.push({
         key: 'language',
         match: {
-          any: filter.language
-        }
+          any: filter.language,
+        },
       });
     }
 
@@ -503,8 +546,8 @@ export class QdrantClientWrapper {
       must.push({
         key: 'chunkType',
         match: {
-          any: filter.chunkType
-        }
+          any: filter.chunkType,
+        },
       });
     }
 
@@ -512,8 +555,8 @@ export class QdrantClientWrapper {
       must.push({
         key: 'filePath',
         match: {
-          any: filter.filePath
-        }
+          any: filter.filePath,
+        },
       });
     }
 
@@ -521,8 +564,8 @@ export class QdrantClientWrapper {
       must.push({
         key: 'projectId',
         match: {
-          value: filter.projectId
-        }
+          value: filter.projectId,
+        },
       });
     }
 
@@ -530,8 +573,8 @@ export class QdrantClientWrapper {
       must.push({
         key: 'snippetMetadata.snippetType',
         match: {
-          any: filter.snippetType
-        }
+          any: filter.snippetType,
+        },
       });
     }
 
@@ -548,7 +591,7 @@ export class QdrantClientWrapper {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
-    
+
     // Close the Qdrant client connection if it has a close method
     if (this.client && typeof (this.client as any).close === 'function') {
       try {
@@ -557,7 +600,7 @@ export class QdrantClientWrapper {
         this.logger.warn('Error closing Qdrant client', { error });
       }
     }
-    
+
     this.isConnected = false;
     this.logger.info('Qdrant client connection closed');
   }

@@ -17,7 +17,7 @@ describe('LSPClientPool', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockClient = {
       initialize: jest.fn().mockResolvedValue(undefined),
       shutdown: jest.fn().mockResolvedValue(undefined),
@@ -26,7 +26,7 @@ describe('LSPClientPool', () => {
     } as any;
 
     MockLSPClient.mockImplementation(() => mockClient);
-    
+
     MockLanguageServerRegistry.getServerConfig.mockReturnValue({
       command: 'test-server',
       args: [],
@@ -46,7 +46,7 @@ describe('LSPClientPool', () => {
   describe('acquire and release', () => {
     it('should create new client when pool is empty', async () => {
       const client = await pool.acquire('/test/workspace');
-      
+
       expect(client).toBeDefined();
       expect(MockLSPClient).toHaveBeenCalled();
       expect(mockClient.initialize).toHaveBeenCalled();
@@ -55,22 +55,22 @@ describe('LSPClientPool', () => {
     it('should reuse existing client when available', async () => {
       const client1 = await pool.acquire('/test/workspace');
       await pool.release(client1);
-      
+
       const client2 = await pool.acquire('/test/workspace');
-      
+
       expect(client1).toBe(client2);
       expect(MockLSPClient).toHaveBeenCalledTimes(1);
     });
 
     it('should respect max connections limit', async () => {
       const clients: any[] = [];
-      
+
       // Acquire max connections
       for (let i = 0; i < 3; i++) {
         const client = await pool.acquire(`/test/workspace${i}`);
         clients.push(client);
       }
-      
+
       // Next acquire should fail or trigger cleanup
       await expect(pool.acquire('/test/workspace4')).rejects.toThrow();
     });
@@ -80,11 +80,11 @@ describe('LSPClientPool', () => {
     it('should provide accurate stats', async () => {
       const client1 = await pool.acquire('/test/workspace1');
       const client2 = await pool.acquire('/test/workspace2');
-      
+
       await pool.release(client1);
-      
+
       const stats = pool.getStats();
-      
+
       expect(stats.totalConnections).toBe(2);
       expect(stats.activeConnections).toBe(2); // Both clients are active until released
       expect(stats.idleConnections).toBe(0); // No idle connections initially
@@ -95,7 +95,7 @@ describe('LSPClientPool', () => {
   describe('preload functionality', () => {
     it('should preload initial connections', async () => {
       await pool.preload('/test/workspace');
-      
+
       const stats = pool.getStats();
       expect(stats.totalConnections).toBe(1);
       expect(stats.pools['/test/workspace']).toBeDefined();
@@ -103,7 +103,7 @@ describe('LSPClientPool', () => {
 
     it('should handle preload errors gracefully', async () => {
       MockLanguageServerRegistry.getServerConfig.mockReturnValue(null);
-      
+
       // Preload should not throw, just emit error events
       await expect(pool.preload('/test/workspace')).resolves.not.toThrow();
     });
@@ -113,13 +113,13 @@ describe('LSPClientPool', () => {
     it('should cleanup idle connections', async () => {
       const client = await pool.acquire('/test/workspace');
       await pool.release(client);
-      
+
       // Fast-forward time
       jest.advanceTimersByTime(2000);
-      
+
       // Manually trigger cleanup
       await (pool as any).cleanupIdleConnections();
-      
+
       const stats = pool.getStats();
       expect(stats.totalConnections).toBe(0);
     }, 10000);
@@ -130,13 +130,13 @@ describe('LSPClientPool', () => {
       MockLSPClient.mockImplementation(() => {
         throw new Error('Failed to create client');
       });
-      
+
       await expect(pool.acquire('/test/workspace')).rejects.toThrow();
     });
 
     it('should handle initialization failures', async () => {
       mockClient.initialize.mockRejectedValue(new Error('Init failed'));
-      
+
       await expect(pool.acquire('/test/workspace')).rejects.toThrow();
     });
   });
@@ -145,12 +145,12 @@ describe('LSPClientPool', () => {
     it('should shutdown all clients', async () => {
       const client1 = await pool.acquire('/test/workspace1');
       const client2 = await pool.acquire('/test/workspace2');
-      
+
       await pool.release(client1);
       await pool.release(client2);
-      
+
       await pool.shutdown();
-      
+
       expect(mockClient.shutdown).toHaveBeenCalledTimes(2);
       expect(pool.getStats().totalConnections).toBe(0);
     });

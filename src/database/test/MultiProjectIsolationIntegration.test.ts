@@ -40,7 +40,7 @@ class MockErrorHandlerService {
       stack: error.stack,
       context: context || {},
       severity: 'medium',
-      handled: false
+      handled: false,
     };
   }
 }
@@ -86,7 +86,7 @@ describe('Multi-Project Isolation Integration', () => {
       getCollectionInfo: jest.fn().mockResolvedValue(null),
       collectionExists: jest.fn().mockResolvedValue(false),
       clearCollection: jest.fn().mockResolvedValue(true),
-      close: jest.fn().mockResolvedValue(undefined)
+      close: jest.fn().mockResolvedValue(undefined),
     } as any;
 
     mockNebulaService = {
@@ -94,7 +94,7 @@ describe('Multi-Project Isolation Integration', () => {
       executeReadQuery: jest.fn().mockResolvedValue({ data: [] }),
       isConnectedToDatabase: jest.fn().mockReturnValue(true),
       connect: jest.fn().mockResolvedValue(true),
-      disconnect: jest.fn().mockResolvedValue(undefined)
+      disconnect: jest.fn().mockResolvedValue(undefined),
     } as any;
 
     // Create managers with mocked dependencies
@@ -200,7 +200,9 @@ describe('Multi-Project Isolation Integration', () => {
       const projectId = await projectIdManager.generateProjectId(TEST_PROJECT_1_PATH);
 
       // Mock the listSpaces function to return a list that includes our space
-      (nebulaSpaceManager as any).listSpaces = jest.fn().mockResolvedValue([`project_${projectId}`]);
+      (nebulaSpaceManager as any).listSpaces = jest
+        .fn()
+        .mockResolvedValue([`project_${projectId}`]);
 
       const result = await nebulaSpaceManager.checkSpaceExists(projectId);
 
@@ -226,14 +228,14 @@ describe('Multi-Project Isolation Integration', () => {
         initialize: jest.fn().mockResolvedValue(undefined),
         storeChunks: jest.fn().mockResolvedValue({ success: true, chunksStored: 0, errors: [] }),
         search: jest.fn().mockResolvedValue([]),
-        getCollectionStats: jest.fn().mockResolvedValue({ totalPoints: 0 })
+        getCollectionStats: jest.fn().mockResolvedValue({ totalPoints: 0 }),
       };
 
       const mockGraphStorage = {
         initializeProjectSpace: jest.fn().mockResolvedValue(undefined),
         storeChunks: jest.fn().mockResolvedValue({ success: true, chunksStored: 0, errors: [] }),
         search: jest.fn().mockResolvedValue([]),
-        getGraphStats: jest.fn().mockResolvedValue({ nodes: 0, edges: 0 })
+        getGraphStats: jest.fn().mockResolvedValue({ nodes: 0, edges: 0 }),
       };
 
       // Create mocks for TransactionCoordinator
@@ -242,7 +244,7 @@ describe('Multi-Project Isolation Integration', () => {
         addVectorOperation: jest.fn().mockResolvedValue(undefined),
         addGraphOperation: jest.fn().mockResolvedValue(undefined),
         commitTransaction: jest.fn().mockResolvedValue(true),
-        rollbackTransaction: jest.fn().mockResolvedValue(undefined)
+        rollbackTransaction: jest.fn().mockResolvedValue(undefined),
       };
 
       // Create StorageCoordinator with mocked dependencies
@@ -261,7 +263,9 @@ describe('Multi-Project Isolation Integration', () => {
       const projectId = await projectIdManager.generateProjectId(TEST_PROJECT_1_PATH);
 
       // Mock the initializeProject method to avoid actual initialization
-      const mockInitializeProject = jest.spyOn(storageCoordinator as any, 'initializeProject').mockResolvedValue(undefined);
+      const mockInitializeProject = jest
+        .spyOn(storageCoordinator as any, 'initializeProject')
+        .mockResolvedValue(undefined);
 
       await storageCoordinator.getProjectResources(projectId);
 
@@ -274,26 +278,26 @@ describe('Multi-Project Isolation Integration', () => {
       // Create mocks for all dependencies of IndexCoordinator
       const mockChangeDetectionService = {};
       const mockParserService = {
-        parseFiles: jest.fn().mockResolvedValue([])
+        parseFiles: jest.fn().mockResolvedValue([]),
       };
       const mockFileSystemTraversal = {
-        traverseDirectory: jest.fn().mockResolvedValue({ files: [] })
+        traverseDirectory: jest.fn().mockResolvedValue({ files: [] }),
       };
       const mockAsyncPipeline = {
         execute: jest.fn().mockResolvedValue({ success: true, data: {}, totalTime: 0, steps: [] }),
         clearSteps: jest.fn(),
         addStep: jest.fn().mockReturnThis(),
-        getMetrics: jest.fn().mockReturnValue({})
+        getMetrics: jest.fn().mockReturnValue({}),
       };
       const mockBatchProcessor = {
-        processInBatches: jest.fn().mockResolvedValue({ results: [] })
+        processInBatches: jest.fn().mockResolvedValue({ results: [] }),
       };
       const mockMemoryManager = {
         startMonitoring: jest.fn(),
-        checkMemory: jest.fn().mockReturnValue(true)
+        checkMemory: jest.fn().mockReturnValue(true),
       };
       const mockSearchCoordinator = {
-        search: jest.fn().mockResolvedValue({ results: [] })
+        search: jest.fn().mockResolvedValue({ results: [] }),
       };
 
       // Create IndexCoordinator with mocked dependencies

@@ -1,4 +1,10 @@
-import { GraphPersistenceService, GraphPersistenceOptions, GraphPersistenceResult, CodeGraphNode, CodeGraphRelationship } from './GraphPersistenceService';
+import {
+  GraphPersistenceService,
+  GraphPersistenceOptions,
+  GraphPersistenceResult,
+  CodeGraphNode,
+  CodeGraphRelationship,
+} from './GraphPersistenceService';
 import { NebulaService } from '../../../database/NebulaService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ConfigService } from '../../../config/ConfigService';
@@ -114,7 +120,7 @@ describe('GraphPersistenceService', () => {
       getSpaceInfo: jest.fn().mockResolvedValue({
         partition_num: 10,
         replica_factor: 1,
-        vid_type: 'FIXED_STRING(32)'
+        vid_type: 'FIXED_STRING(32)',
       }),
       deleteSpace: jest.fn().mockResolvedValue(true),
     };
@@ -201,12 +207,17 @@ describe('GraphPersistenceService', () => {
             linesOfCode: 1,
             snippets: 0,
           },
-        }
+        },
       ];
 
       // Mock the executeBatch method to return success
-      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true, data: { rows: [], rowCount: 1 } });
-      mockNebulaService.executeTransaction.mockResolvedValue([{ success: true, data: { rows: [], rowCount: 1 } }]);
+      mockNebulaService.executeWriteQuery.mockResolvedValue({
+        success: true,
+        data: { rows: [], rowCount: 1 },
+      });
+      mockNebulaService.executeTransaction.mockResolvedValue([
+        { success: true, data: { rows: [], rowCount: 1 } },
+      ]);
 
       const result = await graphPersistenceService.storeParsedFiles(mockFiles);
 
@@ -245,12 +256,17 @@ describe('GraphPersistenceService', () => {
             parameters: ['a', 'b'],
             returnType: 'number',
           },
-        }
+        },
       ];
 
       // Mock the executeBatch method to return success
-      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true, data: { rows: [], rowCount: 1 } });
-      mockNebulaService.executeTransaction.mockResolvedValue([{ success: true, data: { rows: [], rowCount: 1 } }]);
+      mockNebulaService.executeWriteQuery.mockResolvedValue({
+        success: true,
+        data: { rows: [], rowCount: 1 },
+      });
+      mockNebulaService.executeTransaction.mockResolvedValue([
+        { success: true, data: { rows: [], rowCount: 1 } },
+      ]);
 
       const result = await graphPersistenceService.storeChunks(mockChunks);
 
@@ -292,7 +308,11 @@ describe('GraphPersistenceService', () => {
         data: { rows: mockRelatedNodes, rowCount: mockRelatedNodes.length },
       });
 
-      const result = await graphPersistenceService.findRelatedNodes(nodeId, relationshipTypes, maxDepth);
+      const result = await graphPersistenceService.findRelatedNodes(
+        nodeId,
+        relationshipTypes,
+        maxDepth
+      );
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -371,8 +391,8 @@ describe('GraphPersistenceService', () => {
               { Name: 'Function' },
               { Name: 'Class' },
               { Name: 'File' },
-              { Name: 'Interface' }
-            ]
+              { Name: 'Interface' },
+            ],
           };
         }
         if (query.includes('SHOW EDGES')) {
@@ -382,14 +402,14 @@ describe('GraphPersistenceService', () => {
               { Name: 'CALLS' },
               { Name: 'EXTENDS' },
               { Name: 'IMPLEMENTS' },
-              { Name: 'IMPORTS' }
-            ]
+              { Name: 'IMPORTS' },
+            ],
           };
         }
         if (query.includes('COUNT')) {
           return {
             success: true,
-            data: [{ total: 250 }]
+            data: [{ total: 250 }],
           };
         }
         return { success: true, data: [] };
@@ -430,8 +450,13 @@ describe('GraphPersistenceService', () => {
       const nodeIds = ['func_123', 'func_456'];
 
       // Mock executeBatch to return success
-      mockNebulaService.executeWriteQuery.mockResolvedValue({ success: true, data: { rows: [], rowCount: 2 } });
-      mockNebulaService.executeTransaction.mockResolvedValue([{ success: true, data: { rows: [], rowCount: 2 } }]);
+      mockNebulaService.executeWriteQuery.mockResolvedValue({
+        success: true,
+        data: { rows: [], rowCount: 2 },
+      });
+      mockNebulaService.executeTransaction.mockResolvedValue([
+        { success: true, data: { rows: [], rowCount: 2 } },
+      ]);
 
       const result = await graphPersistenceService.deleteNodes(nodeIds);
 
@@ -458,15 +483,17 @@ describe('GraphPersistenceService', () => {
       mockNebulaSpaceManager.getSpaceInfo.mockResolvedValue({
         partition_num: 10,
         replica_factor: 1,
-        vid_type: 'FIXED_STRING(32)'
+        vid_type: 'FIXED_STRING(32)',
       });
       mockNebulaSpaceManager.deleteSpace.mockResolvedValue(true);
       mockNebulaSpaceManager.createSpace.mockResolvedValue(true);
       mockGraphCacheService.clearAllCache.mockReturnValue(undefined);
-      
+
       // Mock the space name extraction and project ID extraction
       graphPersistenceService['currentSpace'] = 'test_space';
-      graphPersistenceService['extractProjectIdFromCurrentSpace'] = jest.fn().mockReturnValue('test-project');
+      graphPersistenceService['extractProjectIdFromCurrentSpace'] = jest
+        .fn()
+        .mockReturnValue('test-project');
       graphPersistenceService['generateSpaceName'] = jest.fn().mockReturnValue('test_space');
       graphPersistenceService['waitForSpaceDeletion'] = jest.fn().mockResolvedValue(undefined);
 

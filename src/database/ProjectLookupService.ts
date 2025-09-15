@@ -9,7 +9,7 @@ export class ProjectLookupService {
   constructor(@inject(TYPES.ProjectIdManager) projectIdManager: ProjectIdManager) {
     this.projectIdManager = projectIdManager;
   }
-  
+
   async getProjectIdByCollection(collectionName: string): Promise<string | null> {
     // Parse project ID from collection name
     if (collectionName.startsWith('project-')) {
@@ -17,7 +17,7 @@ export class ProjectLookupService {
     }
     return null;
   }
-  
+
   async getProjectIdBySpace(spaceName: string): Promise<string | null> {
     // Parse project ID from space name
     if (spaceName.startsWith('project_')) {
@@ -25,13 +25,13 @@ export class ProjectLookupService {
     }
     return null;
   }
-  
+
   async getProjectPathByProjectId(projectId: string): Promise<string | null> {
     // Get project path from project ID using the project ID manager
     const projectPath = this.projectIdManager.getProjectPath(projectId);
     return projectPath || null;
   }
-  
+
   async getProjectPathByCollection(collectionName: string): Promise<string | null> {
     const projectId = await this.getProjectIdByCollection(collectionName);
     if (!projectId) {
@@ -39,7 +39,7 @@ export class ProjectLookupService {
     }
     return this.getProjectPathByProjectId(projectId);
   }
-  
+
   async getProjectPathBySpace(spaceName: string): Promise<string | null> {
     const projectId = await this.getProjectIdBySpace(spaceName);
     if (!projectId) {

@@ -11,7 +11,7 @@ export class PythonComprehensionRule extends AbstractSnippetRule {
     'list_comprehension',
     'dictionary_comprehension',
     'set_comprehension',
-    'generator_expression'
+    'generator_expression',
   ]);
   protected readonly snippetType = 'python_comprehension' as const;
 
@@ -19,7 +19,7 @@ export class PythonComprehensionRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Ensure meaningful comprehension (not too simple)
     return this.hasMeaningfulComprehension(content);
   }
@@ -50,13 +50,13 @@ export class PythonComprehensionRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...comprehensionFeatures
+          ...comprehensionFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        comprehensionInfo: this.extractComprehensionInfo(content)
-      }
+        comprehensionInfo: this.extractComprehensionInfo(content),
+      },
     };
   }
 
@@ -65,7 +65,7 @@ export class PythonComprehensionRule extends AbstractSnippetRule {
     const hasCondition = content.includes(' if ');
     const hasTransform = /[a-zA-Z_]\w+\s*for/.test(content);
     const hasMultipleTargets = content.includes(',') && content.includes(' for ');
-    
+
     return hasCondition || hasTransform || hasMultipleTargets;
   }
 
@@ -76,12 +76,12 @@ export class PythonComprehensionRule extends AbstractSnippetRule {
     isGenerator?: boolean;
   } {
     const comprehensionType = this.getComprehensionType(content);
-    
+
     return {
       comprehensionType,
       hasConditions: content.includes(' if '),
       hasNestedComprehensions: /\[.*\[.*for.*in.*\].*for.*in.*\]/.test(content),
-      isGenerator: content.includes('(') && !content.includes('[') && !content.includes('{')
+      isGenerator: content.includes('(') && !content.includes('[') && !content.includes('{'),
     };
   }
 
@@ -112,41 +112,41 @@ export class PythonComprehensionRule extends AbstractSnippetRule {
       conditions,
       loops,
       isNested,
-      complexity
+      complexity,
     };
   }
 
   private calculateComprehensionComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Base complexity
     complexity += 1;
-    
+
     // Add for conditions
     complexity += (content.match(/ if /g) || []).length * 2;
-    
+
     // Add for multiple loops
     complexity += (content.match(/ for /g) || []).length - 1;
-    
+
     // Add for nested comprehensions
     complexity += (content.match(/\[.*\[.*for.*in.*\].*for.*in.*\]/g) || []).length * 3;
-    
+
     // Add for complex expressions
     const complexExpressions = [
       (content.match(/[a-zA-Z_]\w+\.[a-zA-Z_]\w+/g) || []).length,
       (content.match(/\([^)]*\)\s+for/g) || []).length,
-      (content.match(/[+\-*/%&|^~<>]=?/g) || []).length
+      (content.match(/[+\-*/%&|^~<>]=?/g) || []).length,
     ].reduce((sum, val) => sum + val, 0);
-    
+
     complexity += complexExpressions;
-    
+
     return complexity;
   }
 
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const comprehensionComplexity = this.calculateComprehensionComplexity(content);
-    
+
     return baseComplexity + comprehensionComplexity;
   }
 }

@@ -46,14 +46,14 @@ export class EntityIdManager {
 
   createEntityId(type: EntityId['type'], projectId: string, source: EntityId['source']): EntityId {
     const id = this.generateEntityId(type, projectId);
-    
+
     return {
       id,
       type,
       projectId,
       source,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -71,12 +71,16 @@ export class EntityIdManager {
       entityType,
       projectId,
       lastSynced: new Date(),
-      syncStatus: this.determineSyncStatus(vectorId, graphId)
+      syncStatus: this.determineSyncStatus(vectorId, graphId),
     };
 
     this.entityMappings.set(entityId, mapping);
-    this.logger.debug('Created entity mapping', { entityId, entityType, syncStatus: mapping.syncStatus });
-    
+    this.logger.debug('Created entity mapping', {
+      entityId,
+      entityType,
+      syncStatus: mapping.syncStatus,
+    });
+
     return mapping;
   }
 
@@ -97,7 +101,7 @@ export class EntityIdManager {
     const updatedMapping = {
       ...mapping,
       ...updates,
-      lastSynced: new Date()
+      lastSynced: new Date(),
     };
 
     if (updates.vectorId !== undefined || updates.graphId !== undefined) {
@@ -108,8 +112,11 @@ export class EntityIdManager {
     }
 
     this.entityMappings.set(entityId, updatedMapping);
-    this.logger.debug('Updated entity mapping', { entityId, syncStatus: updatedMapping.syncStatus });
-    
+    this.logger.debug('Updated entity mapping', {
+      entityId,
+      syncStatus: updatedMapping.syncStatus,
+    });
+
     return updatedMapping;
   }
 
@@ -136,21 +143,22 @@ export class EntityIdManager {
   }
 
   getMappingsByProject(projectId: string): EntityMapping[] {
-    return Array.from(this.entityMappings.values())
-      .filter(mapping => mapping.projectId === projectId);
+    return Array.from(this.entityMappings.values()).filter(
+      mapping => mapping.projectId === projectId
+    );
   }
 
   getMappingsByType(projectId: string, entityType: string): EntityMapping[] {
-    return Array.from(this.entityMappings.values())
-      .filter(mapping => mapping.projectId === projectId && mapping.entityType === entityType);
+    return Array.from(this.entityMappings.values()).filter(
+      mapping => mapping.projectId === projectId && mapping.entityType === entityType
+    );
   }
 
   getUnsyncedMappings(projectId?: string): EntityMapping[] {
-    return Array.from(this.entityMappings.values())
-      .filter(mapping => 
-        mapping.syncStatus !== 'synced' &&
-        (projectId ? mapping.projectId === projectId : true)
-      );
+    return Array.from(this.entityMappings.values()).filter(
+      mapping =>
+        mapping.syncStatus !== 'synced' && (projectId ? mapping.projectId === projectId : true)
+    );
   }
 
   deleteMapping(entityId: string): boolean {
@@ -176,7 +184,7 @@ export class EntityIdManager {
     graphOnly: number;
     conflicts: number;
   } {
-    const mappings = projectId 
+    const mappings = projectId
       ? Array.from(this.entityMappings.values()).filter(m => m.projectId === projectId)
       : Array.from(this.entityMappings.values());
 
@@ -185,7 +193,7 @@ export class EntityIdManager {
       synced: mappings.filter(m => m.syncStatus === 'synced').length,
       vectorOnly: mappings.filter(m => m.syncStatus === 'vector_only').length,
       graphOnly: mappings.filter(m => m.syncStatus === 'graph_only').length,
-      conflicts: mappings.filter(m => m.syncStatus === 'conflict').length
+      conflicts: mappings.filter(m => m.syncStatus === 'conflict').length,
     };
   }
 
@@ -198,16 +206,19 @@ export class EntityIdManager {
     try {
       const data = JSON.parse(jsonData);
       this.entityMappings.clear();
-      
+
       for (const [entityId, mapping] of data) {
         this.entityMappings.set(entityId, mapping as EntityMapping);
       }
-      
+
       this.logger.info('Imported entity mappings', { count: this.entityMappings.size });
       return true;
     } catch (error) {
       this.errorHandler.handleError(
-        new CodebaseIndexError('Failed to import entity mappings', { component: 'EntityIdManager', operation: 'import' }),
+        new CodebaseIndexError('Failed to import entity mappings', {
+          component: 'EntityIdManager',
+          operation: 'import',
+        }),
         { component: 'EntityIdManager', operation: 'import' }
       );
       return false;

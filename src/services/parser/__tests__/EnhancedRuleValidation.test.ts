@@ -12,7 +12,7 @@ const createMockNode = (type: string, text: string, startLine = 1, endLine = 1) 
   endIndex: text.length,
   children: [],
   parent: null,
-  childForFieldName: jest.fn()
+  childForFieldName: jest.fn(),
 });
 
 describe('Enhanced Rule Validation', () => {
@@ -26,14 +26,17 @@ describe('Enhanced Rule Validation', () => {
     it('should filter overly simple if statements', () => {
       const simpleIf = createMockNode('if_statement', `if (true) console.log('hello');`);
       const sourceCode = `if (true) console.log('hello');`;
-      
+
       // Temporarily set environment to production to test strict validation
       const originalNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
-      
+
       try {
         // Check if the simple if statement would be rejected
-        const isValid = SnippetValidationService.enhancedIsValidSnippet(sourceCode, 'control_structure');
+        const isValid = SnippetValidationService.enhancedIsValidSnippet(
+          sourceCode,
+          'control_structure'
+        );
         expect(isValid).toBe(false);
       } finally {
         // Restore original environment
@@ -46,8 +49,11 @@ describe('Enhanced Rule Validation', () => {
         const data = await fetchUserData(user.id);
         return processData(data);
       }`;
-      
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(meaningfulIf, 'control_structure');
+
+      const isValid = SnippetValidationService.enhancedIsValidSnippet(
+        meaningfulIf,
+        'control_structure'
+      );
       expect(isValid).toBe(true);
     });
 
@@ -56,8 +62,11 @@ describe('Enhanced Rule Validation', () => {
         /* comment */
         // another comment
       }`;
-      
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(commentedIf, 'control_structure');
+
+      const isValid = SnippetValidationService.enhancedIsValidSnippet(
+        commentedIf,
+        'control_structure'
+      );
       expect(isValid).toBe(false);
     });
 
@@ -69,8 +78,11 @@ describe('Enhanced Rule Validation', () => {
           }
         }
       }`;
-      
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(nestedControl, 'control_structure');
+
+      const isValid = SnippetValidationService.enhancedIsValidSnippet(
+        nestedControl,
+        'control_structure'
+      );
       expect(isValid).toBe(true);
     });
   });
@@ -84,13 +96,16 @@ describe('Enhanced Rule Validation', () => {
 
     it('should filter overly simple try-catch blocks', () => {
       const simpleTryCatch = `try {} catch (e) {}`;
-      
+
       // Temporarily set environment to production to test strict validation
       const originalNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
-      
+
       try {
-        const isValid = SnippetValidationService.enhancedIsValidSnippet(simpleTryCatch, 'error_handling');
+        const isValid = SnippetValidationService.enhancedIsValidSnippet(
+          simpleTryCatch,
+          'error_handling'
+        );
         expect(isValid).toBe(false);
       } finally {
         // Restore original environment
@@ -109,8 +124,11 @@ describe('Enhanced Rule Validation', () => {
         logger.error('Failed to fetch data:', error);
         throw new CustomError('Data fetch failed', error);
       }`;
-      
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(meaningfulErrorHandling, 'error_handling');
+
+      const isValid = SnippetValidationService.enhancedIsValidSnippet(
+        meaningfulErrorHandling,
+        'error_handling'
+      );
       expect(isValid).toBe(true);
     });
 
@@ -121,8 +139,11 @@ describe('Enhanced Rule Validation', () => {
           timestamp: new Date()
         });
       }`;
-      
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(throwWithDetails, 'error_handling');
+
+      const isValid = SnippetValidationService.enhancedIsValidSnippet(
+        throwWithDetails,
+        'error_handling'
+      );
       expect(isValid).toBe(true);
     });
   });
@@ -137,8 +158,12 @@ describe('Enhanced Rule Validation', () => {
       function getUserById(id: string): Promise<User> {
         return database.query<User>('SELECT * FROM users WHERE id = ?', [id]);
       }`;
-      
-      const isValid = SnippetValidationService.enhancedIsValidSnippet(tsCode, 'logic_block', 'typescript');
+
+      const isValid = SnippetValidationService.enhancedIsValidSnippet(
+        tsCode,
+        'logic_block',
+        'typescript'
+      );
       expect(isValid).toBe(true);
     });
 
@@ -150,7 +175,7 @@ describe('Enhanced Rule Validation', () => {
             if key and isinstance(key, str):
                 result[key] = item.get('value')
         return result`;
-      
+
       const isValid = SnippetValidationService.hasMeaningfulLogic(pythonCode, 'python');
       expect(isValid).toBe(true);
     });
@@ -165,7 +190,7 @@ describe('Enhanced Rule Validation', () => {
                        .peek(data -> logger.info("Processed data: {}", data));
         }
       }`;
-      
+
       const isValid = SnippetValidationService.hasMeaningfulLogic(javaCode, 'java');
       expect(isValid).toBe(true);
     });
@@ -174,7 +199,7 @@ describe('Enhanced Rule Validation', () => {
   describe('Complexity Threshold Validation', () => {
     it('should reject code that is too simple', () => {
       const tooSimple = `x = 5;`;
-      
+
       const meetsThreshold = SnippetValidationService.meetsComplexityThreshold(tooSimple, 3, 30);
       expect(meetsThreshold).toBe(false);
     });
@@ -187,8 +212,9 @@ describe('Enhanced Rule Validation', () => {
         }
         return sum;
       }`;
-      
-      const meetsThreshold = SnippetValidationService.meetsComplexityThreshold(sufficientComplexity);
+
+      const meetsThreshold =
+        SnippetValidationService.meetsComplexityThreshold(sufficientComplexity);
       expect(meetsThreshold).toBe(true);
     });
 
@@ -202,7 +228,7 @@ describe('Enhanced Rule Validation', () => {
           }
         }
       }`;
-      
+
       const complexity = SnippetValidationService.calculateComplexity(nestedCode);
       expect(complexity).toBeGreaterThan(5);
     });
@@ -211,7 +237,7 @@ describe('Enhanced Rule Validation', () => {
   describe('Code Diversity Validation', () => {
     it('should reject repetitive code patterns', () => {
       const repetitiveCode = `test test test test test test`;
-      
+
       const hasDiversity = SnippetValidationService.hasCodeDiversity(repetitiveCode);
       expect(hasDiversity).toBe(false);
     });
@@ -222,7 +248,7 @@ describe('Enhanced Rule Validation', () => {
         value: item.value * 2,
         processed: true
       })).filter(item => item.value > 0);`;
-      
+
       const hasDiversity = SnippetValidationService.hasCodeDiversity(diverseCode);
       expect(hasDiversity).toBe(true);
     });
@@ -234,7 +260,7 @@ describe('Enhanced Rule Validation', () => {
         const response = await fetch('/api/data');
         return response.json();
       }`;
-      
+
       const features = SnippetValidationService.analyzeLanguageFeatures(asyncCode);
       expect(features.usesAsync).toBe(true);
     });
@@ -242,14 +268,14 @@ describe('Enhanced Rule Validation', () => {
     it('should detect destructuring patterns', () => {
       const destructuringCode = `const { data, error } = await fetchData();
       const [first, second, ...rest] = items;`;
-      
+
       const features = SnippetValidationService.analyzeLanguageFeatures(destructuringCode);
       expect(features.usesDestructuring).toBe(true);
     });
 
     it('should detect template literals', () => {
       const templateCode = `const message = \`Hello \${name}, you have \${count} messages\`;`;
-      
+
       const features = SnippetValidationService.analyzeLanguageFeatures(templateCode);
       expect(features.usesTemplateLiterals).toBe(true);
     });
@@ -257,7 +283,7 @@ describe('Enhanced Rule Validation', () => {
     it('should detect spread operator usage', () => {
       const spreadCode = `const combined = [...firstArray, ...secondArray];
       const cloned = { ...originalObject };`;
-      
+
       const features = SnippetValidationService.analyzeLanguageFeatures(spreadCode);
       expect(features.usesSpread).toBe(true);
     });
@@ -270,15 +296,21 @@ describe('Enhanced Rule Validation', () => {
       } else {
         return userView();
       }`;
-      
-      const isStandalone = SnippetValidationService.isStandaloneSnippet(standaloneControl, 'control_structure');
+
+      const isStandalone = SnippetValidationService.isStandaloneSnippet(
+        standaloneControl,
+        'control_structure'
+      );
       expect(isStandalone).toBe(true);
     });
 
     it('should identify incomplete control structures', () => {
       const incompleteControl = `if (condition)`;
-      
-      const isStandalone = SnippetValidationService.isStandaloneSnippet(incompleteControl, 'control_structure');
+
+      const isStandalone = SnippetValidationService.isStandaloneSnippet(
+        incompleteControl,
+        'control_structure'
+      );
       expect(isStandalone).toBe(false);
     });
   });
@@ -287,7 +319,7 @@ describe('Enhanced Rule Validation', () => {
     it('should detect assignment operations', () => {
       const assignmentCode = `x = 5;
       obj.property = 'value';`;
-      
+
       const hasSideEffects = SnippetValidationService.hasSideEffects(assignmentCode);
       expect(hasSideEffects).toBe(true);
     });
@@ -295,7 +327,7 @@ describe('Enhanced Rule Validation', () => {
     it('should detect increment/decrement operations', () => {
       const incrementCode = `counter++;
       --count;`;
-      
+
       const hasSideEffects = SnippetValidationService.hasSideEffects(incrementCode);
       expect(hasSideEffects).toBe(true);
     });
@@ -303,7 +335,7 @@ describe('Enhanced Rule Validation', () => {
     it('should detect method calls with side effects', () => {
       const sideEffectCode = `console.log('test');
       process.exit(0);`;
-      
+
       const hasSideEffects = SnippetValidationService.hasSideEffects(sideEffectCode);
       expect(hasSideEffects).toBe(true);
     });
@@ -311,7 +343,7 @@ describe('Enhanced Rule Validation', () => {
     it('should not detect pure expressions as side effects', () => {
       const pureCode = `Math.max(1, 2);
       const result = array.map(x => x * 2);`;
-      
+
       const hasSideEffects = SnippetValidationService.hasSideEffects(pureCode);
       expect(hasSideEffects).toBe(false);
     });

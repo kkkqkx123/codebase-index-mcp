@@ -60,22 +60,21 @@ export class SemanticAnalysisBaseService {
       // 步骤4: 生成分析报告
       const reportResult = await this.generateAnalysisReport(config, {
         semgrep: semgrepResult.data,
-        callGraph: callGraphResult.data
+        callGraph: callGraphResult.data,
       });
 
       this.logger.info('Semantic analysis completed successfully');
       return {
         success: true,
         message: 'Semantic analysis completed',
-        data: reportResult.data
+        data: reportResult.data,
       };
-
     } catch (error) {
       this.logger.error(`Phase 1 analysis failed: ${error}`);
       return {
         success: false,
         message: 'Phase 1 analysis failed',
-        errors: [error instanceof Error ? error.message : String(error)]
+        errors: [error instanceof Error ? error.message : String(error)],
       };
     }
   }
@@ -84,21 +83,21 @@ export class SemanticAnalysisBaseService {
     try {
       // 这里应该使用实际的文件系统检查
       this.logger.info(`Validating project at ${projectPath}`);
-      
+
       return {
         success: true,
         message: 'Project validation successful',
         data: {
           path: projectPath,
           exists: true,
-          files: ['src/main.ts', 'src/utils.ts', 'package.json']
-        }
+          files: ['src/main.ts', 'src/utils.ts', 'package.json'],
+        },
       };
     } catch (error) {
       return {
         success: false,
         message: 'Project validation failed',
-        errors: [error instanceof Error ? error.message : String(error)]
+        errors: [error instanceof Error ? error.message : String(error)],
       };
     }
   }
@@ -111,7 +110,7 @@ export class SemanticAnalysisBaseService {
         `${this.enhancedRulesPath}/control-flow/enhanced-cfg-analysis.yml`,
         `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
         `${this.enhancedRulesPath}/security/sql-injection-detailed.yml`,
-        `${this.enhancedRulesPath}/security/xss-detection.yml`
+        `${this.enhancedRulesPath}/security/xss-detection.yml`,
       ];
       const results = [];
 
@@ -126,15 +125,14 @@ export class SemanticAnalysisBaseService {
         data: {
           rules: results,
           totalRules: rules.length,
-          successfulRules: results.filter(r => r.success).length
-        }
+          successfulRules: results.filter(r => r.success).length,
+        },
       };
-
     } catch (error) {
       return {
         success: false,
         message: 'Semgrep rules integration failed',
-        errors: [error instanceof Error ? error.message : String(error)]
+        errors: [error instanceof Error ? error.message : String(error)],
       };
     }
   }
@@ -147,34 +145,38 @@ export class SemanticAnalysisBaseService {
       const callGraph = {
         nodes: [
           { id: 'main', name: 'main', file: 'src/main.ts', calls: ['processData'] },
-          { id: 'processData', name: 'processData', file: 'src/utils.ts', calls: ['validateInput', 'transformData'] },
+          {
+            id: 'processData',
+            name: 'processData',
+            file: 'src/utils.ts',
+            calls: ['validateInput', 'transformData'],
+          },
           { id: 'validateInput', name: 'validateInput', file: 'src/utils.ts', calls: [] },
-          { id: 'transformData', name: 'transformData', file: 'src/utils.ts', calls: [] }
+          { id: 'transformData', name: 'transformData', file: 'src/utils.ts', calls: [] },
         ],
         edges: [
           { from: 'main', to: 'processData', type: 'direct' },
           { from: 'processData', to: 'validateInput', type: 'direct' },
-          { from: 'processData', to: 'transformData', type: 'direct' }
+          { from: 'processData', to: 'transformData', type: 'direct' },
         ],
         metrics: {
           totalFunctions: 4,
           totalCalls: 3,
           entryPoints: ['main'],
-          deadCode: 0
-        }
+          deadCode: 0,
+        },
       };
 
       return {
         success: true,
         message: 'Call graph built successfully',
-        data: callGraph
+        data: callGraph,
       };
-
     } catch (error) {
       return {
         success: false,
         message: 'Call graph building failed',
-        errors: [error instanceof Error ? error.message : String(error)]
+        errors: [error instanceof Error ? error.message : String(error)],
       };
     }
   }
@@ -187,8 +189,8 @@ export class SemanticAnalysisBaseService {
       summary: {
         totalFiles: 10,
         issuesFound: 0,
-        executionTime: 100
-      }
+        executionTime: 100,
+      },
     };
   }
 
@@ -197,7 +199,7 @@ export class SemanticAnalysisBaseService {
       totalFiles: 10,
       totalFunctions: 4,
       totalIssues: 0,
-      analysisTime: 500
+      analysisTime: 500,
     };
   }
 
@@ -206,7 +208,7 @@ export class SemanticAnalysisBaseService {
       security: [],
       performance: [],
       maintainability: [],
-      complexity: []
+      complexity: [],
     };
   }
 
@@ -214,7 +216,7 @@ export class SemanticAnalysisBaseService {
     return [
       'Consider implementing more comprehensive input validation',
       'Review and optimize the call graph structure',
-      'Add more detailed semantic analysis rules'
+      'Add more detailed semantic analysis rules',
     ];
   }
 
@@ -236,21 +238,20 @@ export class SemanticAnalysisBaseService {
           'Implement advanced control flow analysis',
           'Enhance data flow tracking',
           'Add cross-function semantic rules',
-          'Implement incremental analysis'
-        ]
+          'Implement incremental analysis',
+        ],
       };
 
       return {
         success: true,
         message: 'Phase 1 report generated',
-        data: report
+        data: report,
       };
-
     } catch (error) {
       return {
         success: false,
         message: 'Report generation failed',
-        errors: [error instanceof Error ? error.message : String(error)]
+        errors: [error instanceof Error ? error.message : String(error)],
       };
     }
   }
@@ -262,7 +263,7 @@ export class SemanticAnalysisBaseService {
       `${this.enhancedRulesPath}/control-flow/loop-invariant-code.yml`,
       `${this.enhancedRulesPath}/data-flow/advanced-taint-analysis.yml`,
       `${this.enhancedRulesPath}/data-flow/cross-function-taint.yml`,
-      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`
+      `${this.enhancedRulesPath}/data-flow/resource-leak-detection.yml`,
     ];
   }
 
@@ -276,24 +277,26 @@ export class SemanticAnalysisBaseService {
           file: 'src/main.ts',
           line: 15,
           message: 'Complex conditional detected',
-          severity: 'medium'
-        }
-      ]
+          severity: 'medium',
+        },
+      ],
     };
   }
-
-
 
   async exportResults(format: 'json' | 'markdown' | 'html'): Promise<string> {
     switch (format) {
       case 'json':
-        return JSON.stringify({
-          phase: 'Phase 1',
-          description: 'Foundation framework for semantic analysis',
-          components: ['semgrep-integration', 'call-graph', 'basic-metrics'],
-          status: 'completed'
-        }, null, 2);
-      
+        return JSON.stringify(
+          {
+            phase: 'Phase 1',
+            description: 'Foundation framework for semantic analysis',
+            components: ['semgrep-integration', 'call-graph', 'basic-metrics'],
+            status: 'completed',
+          },
+          null,
+          2
+        );
+
       case 'markdown':
         return `# Phase 1 Semantic Analysis Report
 

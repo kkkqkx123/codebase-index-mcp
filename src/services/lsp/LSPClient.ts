@@ -66,11 +66,14 @@ export class LSPError extends Error {
 export class LSPClient extends EventEmitter {
   private process?: ChildProcess;
   private messageId = 0;
-  private pendingRequests = new Map<number | string, {
-    resolve: (value: any) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }>();
+  private pendingRequests = new Map<
+    number | string,
+    {
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+      timeout: NodeJS.Timeout;
+    }
+  >();
   private isInitialized = false;
   private buffer = '';
 
@@ -101,7 +104,7 @@ export class LSPClient extends EventEmitter {
         return;
       }
 
-      this.process.on('error', (error) => {
+      this.process.on('error', error => {
         this.emit('error', new LSPError(`Process error: ${error.message}`));
       });
 
@@ -110,11 +113,11 @@ export class LSPClient extends EventEmitter {
         this.cleanup();
       });
 
-      this.process.stdout?.on('data', (data) => {
+      this.process.stdout?.on('data', data => {
         this.handleData(data);
       });
 
-      this.process.stderr?.on('data', (data) => {
+      this.process.stderr?.on('data', data => {
         this.emit('stderr', data.toString());
       });
 
@@ -160,11 +163,11 @@ export class LSPClient extends EventEmitter {
 
   private handleData(data: Buffer): void {
     this.buffer += data.toString();
-    
+
     while (true) {
       const message = this.parseMessage();
       if (!message) break;
-      
+
       this.handleMessage(message);
     }
   }
@@ -175,7 +178,7 @@ export class LSPClient extends EventEmitter {
 
     const headerStr = this.buffer.substring(0, headerEnd);
     const headers = this.parseHeaders(headerStr);
-    
+
     const contentLength = headers['content-length'];
     if (!contentLength) return null;
 
@@ -198,7 +201,7 @@ export class LSPClient extends EventEmitter {
   private parseHeaders(headerStr: string): Record<string, string> {
     const headers: Record<string, string> = {};
     const lines = headerStr.split('\r\n');
-    
+
     for (const line of lines) {
       const colonIndex = line.indexOf(':');
       if (colonIndex > 0) {
@@ -207,7 +210,7 @@ export class LSPClient extends EventEmitter {
         headers[key] = value;
       }
     }
-    
+
     return headers;
   }
 
@@ -217,13 +220,11 @@ export class LSPClient extends EventEmitter {
       if (pending) {
         clearTimeout(pending.timeout);
         this.pendingRequests.delete(message.id);
-        
+
         if (message.error) {
-          pending.reject(new LSPError(
-            message.error.message,
-            message.error.code,
-            message.error.data
-          ));
+          pending.reject(
+            new LSPError(message.error.message, message.error.code, message.error.data)
+          );
         } else {
           pending.resolve(message.result);
         }
@@ -260,7 +261,7 @@ export class LSPClient extends EventEmitter {
   private sendRawMessage(message: LSPMessage): void {
     const content = JSON.stringify(message);
     const headers = `Content-Length: ${Buffer.byteLength(content, 'utf8')}\r\n\r\n`;
-    
+
     if (this.process && !this.process.killed) {
       this.process.stdin?.write(headers + content);
     }
@@ -268,7 +269,7 @@ export class LSPClient extends EventEmitter {
 
   async getDiagnostics(filePath: string, content?: string): Promise<LSPDiagnostic[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     await this.sendNotification('textDocument/didOpen', {
       textDocument: {
         uri,
@@ -287,7 +288,7 @@ export class LSPClient extends EventEmitter {
 
   async getDocumentSymbols(filePath: string, content?: string): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     if (content) {
       await this.sendNotification('textDocument/didOpen', {
         textDocument: {
@@ -306,9 +307,12 @@ export class LSPClient extends EventEmitter {
     return response || [];
   }
 
-  async getTypeDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+  async getTypeDefinition(
+    filePath: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     const response = await this.sendRequest('textDocument/typeDefinition', {
       textDocument: { uri },
       position,
@@ -318,9 +322,12 @@ export class LSPClient extends EventEmitter {
     return Array.isArray(response) ? response : [response];
   }
 
-  async getReferences(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+  async getReferences(
+    filePath: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     const response = await this.sendRequest('textDocument/references', {
       textDocument: { uri },
       position,
@@ -336,7 +343,7 @@ export class LSPClient extends EventEmitter {
       method,
       params,
     };
-    
+
     this.sendRawMessage(message);
   }
 
@@ -349,22 +356,22 @@ export class LSPClient extends EventEmitter {
         // 忽略关闭时的错误
       }
     }
-    
+
     this.cleanup();
   }
 
   private cleanup(): void {
-    this.pendingRequests.forEach((pending) => {
+    this.pendingRequests.forEach(pending => {
       clearTimeout(pending.timeout);
       pending.reject(new LSPError('Connection closed'));
     });
-    
+
     this.pendingRequests.clear();
-    
+
     if (this.process && !this.process.killed) {
       this.process.kill();
     }
-    
+
     this.process = undefined;
     this.isInitialized = false;
   }
@@ -377,9 +384,12 @@ export class LSPClient extends EventEmitter {
     return response || [];
   }
 
-  async getDefinition(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+  async getDefinition(
+    filePath: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     const response = await this.sendRequest('textDocument/definition', {
       textDocument: { uri },
       position,
@@ -389,9 +399,12 @@ export class LSPClient extends EventEmitter {
     return Array.isArray(response) ? response : [response];
   }
 
-  async getImplementation(filePath: string, position: { line: number; character: number }): Promise<LSPSymbol[]> {
+  async getImplementation(
+    filePath: string,
+    position: { line: number; character: number }
+  ): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     const response = await this.sendRequest('textDocument/implementation', {
       textDocument: { uri },
       position,
@@ -403,7 +416,7 @@ export class LSPClient extends EventEmitter {
 
   async getHover(filePath: string, position: { line: number; character: number }): Promise<any> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     const response = await this.sendRequest('textDocument/hover', {
       textDocument: { uri },
       position,
@@ -418,7 +431,7 @@ export class LSPClient extends EventEmitter {
     triggerKind = 1
   ): Promise<LSPSymbol[]> {
     const uri = `file://${path.resolve(filePath)}`;
-    
+
     const response = await this.sendRequest('textDocument/completion', {
       textDocument: { uri },
       position,

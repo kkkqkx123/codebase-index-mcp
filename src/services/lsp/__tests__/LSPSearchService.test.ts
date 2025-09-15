@@ -17,8 +17,6 @@ const mockErrorHandler = {
   handleError: jest.fn(),
 };
 
-
-
 const mockLSPManager = {
   getSymbols: jest.fn(),
   getDefinition: jest.fn(),
@@ -35,12 +33,14 @@ describe('LSPSearchService', () => {
 
   beforeEach(() => {
     container = new Container();
-    
+
     // Bind mocks
     container.bind<LoggerService>(TYPES.LoggerService).toConstantValue(mockLogger as any);
-    container.bind<ErrorHandlerService>(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandler as any);
+    container
+      .bind<ErrorHandlerService>(TYPES.ErrorHandlerService)
+      .toConstantValue(mockErrorHandler as any);
     container.bind<LSPManager>(TYPES.LSPManager).toConstantValue(mockLSPManager as any);
-    
+
     service = new LSPSearchService(
       mockLogger as any,
       mockErrorHandler as any,
@@ -58,11 +58,11 @@ describe('LSPSearchService', () => {
           kind: 12, // SymbolKind.Function
           range: {
             start: { line: 10, character: 0 },
-            end: { line: 20, character: 10 }
+            end: { line: 20, character: 10 },
           },
           detail: 'function calculateTotal(items: Item[]): number',
-          filePath: '/test/src/calculator.ts'
-        }
+          filePath: '/test/src/calculator.ts',
+        },
       ];
 
       mockLSPManager.initialize.mockResolvedValue(true);
@@ -71,23 +71,20 @@ describe('LSPSearchService', () => {
       const result = await service.search({
         query: 'calculateTotal',
         projectPath: '/test',
-        searchTypes: ['symbol']
+        searchTypes: ['symbol'],
       });
 
       expect(result.results).toHaveLength(1);
       expect(result.results[0].name).toBe('calculateTotal');
       expect(result.results[0].type).toBe('symbol');
-      expect(mockLSPManager.getWorkspaceSymbols).toHaveBeenCalledWith(
-        'calculateTotal',
-        '/test'
-      );
+      expect(mockLSPManager.getWorkspaceSymbols).toHaveBeenCalledWith('calculateTotal', '/test');
     });
 
     it('should skip definitions search when not implemented', async () => {
       const result = await service.search({
         query: 'Item',
         projectPath: '/test',
-        searchTypes: ['definition']
+        searchTypes: ['definition'],
       });
 
       expect(result.results).toHaveLength(0);
@@ -98,7 +95,7 @@ describe('LSPSearchService', () => {
       const result = await service.search({
         query: 'Item',
         projectPath: '/test',
-        searchTypes: ['reference']
+        searchTypes: ['reference'],
       });
 
       expect(result.results).toHaveLength(0);
@@ -114,7 +111,7 @@ describe('LSPSearchService', () => {
       const result = await service.search({
         query: 'nonexistent',
         projectPath: '/test',
-        searchTypes: ['symbol', 'definition', 'reference']
+        searchTypes: ['symbol', 'definition', 'reference'],
       });
 
       expect(result.results).toHaveLength(0);
@@ -128,7 +125,7 @@ describe('LSPSearchService', () => {
       const result = await service.search({
         query: 'test',
         projectPath: '/test',
-        searchTypes: ['symbol']
+        searchTypes: ['symbol'],
       });
 
       expect(result.results).toHaveLength(0);
@@ -136,6 +133,4 @@ describe('LSPSearchService', () => {
       expect(mockErrorHandler.handleError).not.toHaveBeenCalled();
     });
   });
-
-
 });

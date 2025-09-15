@@ -4,7 +4,12 @@ import { SnippetChunk } from '../types';
 
 export class ArithmeticLogicalRule extends AbstractSnippetRule {
   readonly name = 'ArithmeticLogicalRule';
-  readonly supportedNodeTypes = new Set(['binary_expression', 'unary_expression', 'logical_expression', 'comparison_expression']);
+  readonly supportedNodeTypes = new Set([
+    'binary_expression',
+    'unary_expression',
+    'logical_expression',
+    'comparison_expression',
+  ]);
   protected readonly snippetType = 'arithmetic_logical_expression' as const;
 
   protected createSnippet(
@@ -33,8 +38,8 @@ export class ArithmeticLogicalRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }

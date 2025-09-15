@@ -18,13 +18,13 @@ export class CacheFactory {
   }
 
   static createMultiLevelCache(
-    name: string, 
-    redis: Redis, 
+    name: string,
+    redis: Redis,
     defaultTTL: number = 3600
   ): CacheInterface {
     const l1Cache = new MemoryCacheAdapter(`${name}:l1`, 300); // L1缓存5分钟
     const l2Cache = new RedisCacheAdapter(`${name}:l2`, redis, defaultTTL);
-    
+
     return new MultiLevelCache(name, l1Cache, l2Cache);
   }
 
@@ -41,7 +41,7 @@ export class CacheFactory {
     // 确保Redis连接已创建
     if (!this.redisInstance) {
       this.redisInstance = new Redis(redisConfig.url);
-      
+
       // 配置Redis内存限制
       RedisConfigManager.configureRedis(this.redisInstance, redisConfig).catch(error => {
         console.error('配置Redis内存限制失败:', error);

@@ -32,7 +32,9 @@ export class QdrantService {
       return false;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to initialize Qdrant service: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to initialize Qdrant service: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QdrantService', operation: 'initialize' }
       );
       return false;

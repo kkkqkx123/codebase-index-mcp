@@ -17,7 +17,7 @@ export class AngularRule extends AbstractSnippetRule {
     'assignment',
     'interface_declaration',
     'type_annotation',
-    'generic_type'
+    'generic_type',
   ]);
 
   protected snippetType = 'angular_component' as const;
@@ -64,7 +64,7 @@ export class AngularRule extends AbstractSnippetRule {
     'EffectsModule\\.',
     'Actions\\.',
     'createEffect\\(',
-    'createSelector\\('
+    'createSelector\\(',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -76,24 +76,30 @@ export class AngularRule extends AbstractSnippetRule {
     return this.angularPatterns.some(pattern => new RegExp(pattern, 'i').test(text));
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const content = this.getNodeText(node, sourceCode);
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
-    
-    if (!this.validateSnippet({
-      id: '',
-      content,
-      startLine: location.startLine,
-      endLine: location.endLine,
-      startByte: node.startIndex,
-      endByte: node.endIndex,
-      type: 'snippet',
-      imports: [],
-      exports: [],
-      metadata: {},
-      snippetMetadata: {} as SnippetMetadata
-    })) {
+
+    if (
+      !this.validateSnippet({
+        id: '',
+        content,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        startByte: node.startIndex,
+        endByte: node.endIndex,
+        type: 'snippet',
+        imports: [],
+        exports: [],
+        metadata: {},
+        snippetMetadata: {} as SnippetMetadata,
+      })
+    ) {
       return null;
     }
 
@@ -107,7 +113,7 @@ export class AngularRule extends AbstractSnippetRule {
       languageFeatures: this.analyzeLanguageFeatures(content),
       complexity,
       isStandalone: true,
-      hasSideEffects: this.hasSideEffects(content)
+      hasSideEffects: this.hasSideEffects(content),
     };
 
     return {
@@ -121,7 +127,7 @@ export class AngularRule extends AbstractSnippetRule {
       imports: [],
       exports: [],
       metadata: {},
-      snippetMetadata: metadata
+      snippetMetadata: metadata,
     };
   }
 
@@ -211,8 +217,14 @@ export class AngularRule extends AbstractSnippetRule {
 
     // Increase complexity for lifecycle hooks
     const lifecycleHooks = [
-      'ngOnInit', 'ngOnChanges', 'ngDoCheck', 'ngAfterContentInit',
-      'ngAfterContentChecked', 'ngAfterViewInit', 'ngAfterViewChecked', 'ngOnDestroy'
+      'ngOnInit',
+      'ngOnChanges',
+      'ngDoCheck',
+      'ngAfterContentInit',
+      'ngAfterContentChecked',
+      'ngAfterViewInit',
+      'ngAfterViewChecked',
+      'ngOnDestroy',
     ];
     const lifecycleCount = lifecycleHooks.filter(hook => text.includes(hook)).length;
     complexity += lifecycleCount * 1.5;
@@ -230,7 +242,11 @@ export class AngularRule extends AbstractSnippetRule {
     }
 
     // Increase complexity for form handling
-    if (text.includes('FormGroup') || text.includes('FormControl') || text.includes('FormBuilder')) {
+    if (
+      text.includes('FormGroup') ||
+      text.includes('FormControl') ||
+      text.includes('FormBuilder')
+    ) {
       complexity += 2;
     }
 
@@ -310,10 +326,16 @@ export class AngularRule extends AbstractSnippetRule {
 
   private extractLifecycleHooks(text: string): string[] {
     const lifecycleHooks: string[] = [];
-    
+
     const hookPatterns = [
-      'ngOnInit', 'ngOnChanges', 'ngDoCheck', 'ngAfterContentInit',
-      'ngAfterContentChecked', 'ngAfterViewInit', 'ngAfterViewChecked', 'ngOnDestroy'
+      'ngOnInit',
+      'ngOnChanges',
+      'ngDoCheck',
+      'ngAfterContentInit',
+      'ngAfterContentChecked',
+      'ngAfterViewInit',
+      'ngAfterViewChecked',
+      'ngOnDestroy',
     ];
 
     hookPatterns.forEach(hook => {
@@ -329,10 +351,9 @@ export class AngularRule extends AbstractSnippetRule {
     const lines = sourceCode.split('\n');
     const startLine = node.startPosition.row;
     const endLine = node.endPosition.row;
-    
+
     return lines.slice(startLine, endLine + 1).join('\n');
   }
 
   // Remove duplicate generateSnippetId - use base class implementation
-
 }

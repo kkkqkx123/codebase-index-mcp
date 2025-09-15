@@ -35,7 +35,7 @@ export const defaultSemgrepConfig: SemgrepConfig = {
     'p/python',
     'p/java',
     'p/go',
-    'p/typescript'
+    'p/typescript',
   ],
   customRulesPath: './rules/semgrep',
   outputFormat: 'json',
@@ -49,7 +49,7 @@ export const defaultSemgrepConfig: SemgrepConfig = {
     '*.min.css',
     'vendor',
     'test/fixtures',
-    'tests/fixtures'
+    'tests/fixtures',
   ],
   includePatterns: [
     '*.js',
@@ -61,9 +61,9 @@ export const defaultSemgrepConfig: SemgrepConfig = {
     '*.go',
     '*.php',
     '*.rb',
-    '*.cs'
+    '*.cs',
   ],
-  severityLevels: ['ERROR', 'WARNING', 'INFO']
+  severityLevels: ['ERROR', 'WARNING', 'INFO'],
 };
 
 export function getSemgrepConfig(configService: ConfigService): SemgrepConfig {
@@ -82,6 +82,6 @@ export function getSemgrepConfig(configService: ConfigService): SemgrepConfig {
     outputFormat: semgrepConfig.outputFormat || defaultSemgrepConfig.outputFormat,
     excludePatterns: semgrepConfig.excludePatterns || defaultSemgrepConfig.excludePatterns,
     includePatterns: semgrepConfig.includePatterns || defaultSemgrepConfig.includePatterns,
-    severityLevels: semgrepConfig.severityLevels || defaultSemgrepConfig.severityLevels
+    severityLevels: semgrepConfig.severityLevels || defaultSemgrepConfig.severityLevels,
   };
 }

@@ -5,7 +5,7 @@ describe('ResultFormatterCache', () => {
 
   beforeEach(() => {
     cache = new ResultFormatterCache(10, 1000); // Small cache for testing
- });
+  });
 
   afterEach(() => {
     cache.destroy();
@@ -15,10 +15,10 @@ describe('ResultFormatterCache', () => {
     it('should store and retrieve values', () => {
       const key = 'test-key';
       const value = { data: 'test-data' };
-      
+
       cache.set(key, value);
       const retrieved = cache.get(key);
-      
+
       expect(retrieved).toEqual(value);
     });
 
@@ -31,11 +31,11 @@ describe('ResultFormatterCache', () => {
       const key = 'test-key';
       const value1 = { data: 'test-data-1' };
       const value2 = { data: 'test-data-2' };
-      
+
       cache.set(key, value1);
       cache.set(key, value2);
       const retrieved = cache.get(key);
-      
+
       expect(retrieved).toEqual(value2);
     });
   });
@@ -44,7 +44,7 @@ describe('ResultFormatterCache', () => {
     it('should return true for existing keys', () => {
       const key = 'test-key';
       const value = { data: 'test-data' };
-      
+
       cache.set(key, value);
       expect(cache.has(key)).toBe(true);
     });
@@ -58,10 +58,10 @@ describe('ResultFormatterCache', () => {
     it('should remove entries', () => {
       const key = 'test-key';
       const value = { data: 'test-data' };
-      
+
       cache.set(key, value);
       expect(cache.has(key)).toBe(true);
-      
+
       cache.delete(key);
       expect(cache.has(key)).toBe(false);
     });
@@ -69,10 +69,10 @@ describe('ResultFormatterCache', () => {
     it('should return true when deleting existing keys', () => {
       const key = 'test-key';
       const value = { data: 'test-data' };
-      
+
       cache.set(key, value);
       const result = cache.delete(key);
-      
+
       expect(result).toBe(true);
     });
 
@@ -87,9 +87,9 @@ describe('ResultFormatterCache', () => {
       cache.set('key1', 'value1');
       cache.set('key2', 'value2');
       cache.set('key3', 'value3');
-      
+
       expect(cache.size()).toBe(3);
-      
+
       cache.clear();
       expect(cache.size()).toBe(0);
     });
@@ -98,13 +98,13 @@ describe('ResultFormatterCache', () => {
   describe('size', () => {
     it('should return the correct number of entries', () => {
       expect(cache.size()).toBe(0);
-      
+
       cache.set('key1', 'value1');
       expect(cache.size()).toBe(1);
-      
+
       cache.set('key2', 'value2');
       expect(cache.size()).toBe(2);
-      
+
       cache.delete('key1');
       expect(cache.size()).toBe(1);
     });
@@ -134,7 +134,7 @@ describe('ResultFormatterCache', () => {
   });
 
   describe('ttl', () => {
-    it('should expire entries after ttl', (done) => {
+    it('should expire entries after ttl', done => {
       const testCache = new ResultFormatterCache(10, 1000);
       const key = 'test-key';
       const value = { data: 'test-data' };
@@ -153,7 +153,7 @@ describe('ResultFormatterCache', () => {
       }, 15);
     });
 
-    it('should not expire entries before ttl', (done) => {
+    it('should not expire entries before ttl', done => {
       const testCache = new ResultFormatterCache(10, 1000);
       const key = 'test-key';
       const value = { data: 'test-data' };

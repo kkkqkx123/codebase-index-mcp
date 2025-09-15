@@ -6,7 +6,7 @@ describe('LSPClient', () => {
       command: 'test-command',
       workspaceRoot: '/test/workspace',
     });
-    
+
     expect(client).toBeInstanceOf(LSPClient);
   });
 
@@ -17,9 +17,9 @@ describe('LSPClient', () => {
       workspaceRoot: '/test/workspace',
       timeout: 5000,
     };
-    
+
     const client = new LSPClient(config);
-    
+
     // @ts-ignore - accessing private property for testing
     expect(client.config).toEqual(config);
   });

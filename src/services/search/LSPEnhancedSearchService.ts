@@ -140,7 +140,7 @@ export class LSPEnhancedSearchService {
       // 如果启用LSP，执行LSP搜索
       if (params.enableLSP) {
         const lspStartTime = Date.now();
-        
+
         try {
           const lspSearchResult = await this.lspSearchService.search({
             query: params.query,
@@ -188,10 +188,14 @@ export class LSPEnhancedSearchService {
       if (params.enableLSP) {
         const cacheKey = this.getEnhancedSearchCacheKey(params);
         const cache = await this.getCache();
-        await cache.set(cacheKey, {
-          results: finalResults,
-          metrics,
-        }, { ttl: 1800 }); // 30分钟缓存
+        await cache.set(
+          cacheKey,
+          {
+            results: finalResults,
+            metrics,
+          },
+          { ttl: 1800 }
+        ); // 30分钟缓存
       }
 
       this.logger.info('LSP enhanced search completed', {
@@ -212,14 +216,14 @@ export class LSPEnhancedSearchService {
       });
 
       await this.errorHandler.handleError(error as Error, {
-          component: 'LSPEnhancedSearchService',
-          operation: 'search',
-          metadata: { queryId, params: JSON.stringify(params) }
-        });
+        component: 'LSPEnhancedSearchService',
+        operation: 'search',
+        metadata: { queryId, params: JSON.stringify(params) },
+      });
 
       // 降级到纯混合搜索
       const fallbackResults = await this.hybridSearchService.search(params);
-      
+
       return {
         results: fallbackResults.results as LSPEnhancedSearchResult[],
         metrics: {
@@ -237,12 +241,14 @@ export class LSPEnhancedSearchService {
     params: LSPEnhancedSearchParams
   ): LSPEnhancedSearchResult[] {
     const enhancedResults: LSPEnhancedSearchResult[] = [];
-    
+
     // 首先添加混合搜索结果
-    enhancedResults.push(...hybridResults.map(result => ({
-      ...result,
-      lspResults: [],
-    })));
+    enhancedResults.push(
+      ...hybridResults.map(result => ({
+        ...result,
+        lspResults: [],
+      }))
+    );
 
     // 然后添加LSP结果，避免重复
     const existingLocations = new Set(
@@ -251,7 +257,7 @@ export class LSPEnhancedSearchService {
 
     for (const lspResult of lspResults) {
       const locationKey = `${lspResult.filePath}:${lspResult.range.start.line}:${lspResult.range.end.line}`;
-      
+
       if (!existingLocations.has(locationKey)) {
         // 创建新的增强结果
         const enhancedResult: LSPEnhancedSearchResult = {
@@ -276,11 +282,13 @@ export class LSPEnhancedSearchService {
             structuralScore: 0,
             combinedScore: lspResult.score * 0.8,
           },
-          matchHighlights: [{
-            type: 'semantic',
-            text: lspResult.name,
-            score: lspResult.score,
-          }],
+          matchHighlights: [
+            {
+              type: 'semantic',
+              text: lspResult.name,
+              score: lspResult.score,
+            },
+          ],
           lspResults: [lspResult],
         };
 
@@ -290,13 +298,13 @@ export class LSPEnhancedSearchService {
         const existingResult = enhancedResults.find(
           r => `${r.filePath}:${r.startLine}:${r.endLine}` === locationKey
         );
-        
+
         if (existingResult) {
           if (!existingResult.lspResults) {
             existingResult.lspResults = [];
           }
           existingResult.lspResults.push(lspResult);
-          
+
           // 提升分数
           existingResult.score = Math.min(1.0, existingResult.score + 0.1);
           existingResult.searchScores.combinedScore = existingResult.score;
@@ -344,7 +352,7 @@ export class LSPEnhancedSearchService {
       kt: 'kotlin',
       scala: 'scala',
     };
-    
+
     return languageMap[ext || ''] || 'unknown';
   }
 

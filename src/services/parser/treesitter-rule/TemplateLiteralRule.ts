@@ -9,9 +9,9 @@ export class TemplateLiteralRule extends AbstractSnippetRule {
 
   protected shouldProcessNode(node: Parser.SyntaxNode, sourceCode: string): boolean {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
-    
+
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Only extract template literals with expressions (not simple strings)
     return content.includes('${') && content.includes('}');
   }
@@ -42,8 +42,8 @@ export class TemplateLiteralRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }

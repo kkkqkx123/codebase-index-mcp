@@ -32,23 +32,27 @@ export class EnhancedSemgrepScanService {
     this.configService = configService;
     this.enhancedAnalyzer = enhancedAnalyzer;
     this.semgrepService = semgrepService;
-    this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath || './enhanced-rules';
+    this.enhancedRulesPath =
+      this.configService.get('semgrep').enhancedRulesPath || './enhanced-rules';
   }
 
   /**
    * 增强扫描：结合基础扫描和深度分析
    */
-  async scanProject(projectPath: string, options: SemgrepScanOptions = {}): Promise<EnhancedAnalysisResult> {
+  async scanProject(
+    projectPath: string,
+    options: SemgrepScanOptions = {}
+  ): Promise<EnhancedAnalysisResult> {
     const startTime = Date.now();
     this.logger.info(`Starting enhanced Semgrep scan for project: ${projectPath}`);
 
     try {
       // 1. 执行基础扫描（保持向后兼容）
       const basicResult = await this.semgrepService.scanProject(projectPath, options);
-      
+
       // 2. 执行增强分析
       const enhancedAnalysis = await this.enhancedAnalyzer.analyzeProject(projectPath);
-      
+
       // 3. 融合结果
       const enhancedResult: EnhancedAnalysisResult = {
         ...basicResult,
@@ -57,20 +61,19 @@ export class EnhancedSemgrepScanService {
           dataFlow: enhancedAnalysis.dataFlow,
           securityIssues: enhancedAnalysis.securityIssues,
           metrics: enhancedAnalysis.metrics,
-          enhancedRules: this.getEnhancedRulesSummary()
+          enhancedRules: this.getEnhancedRulesSummary(),
         },
         summary: {
           ...basicResult.summary,
           enhancedFindings: enhancedAnalysis.securityIssues?.issues?.length || 0,
           controlFlowAnalyzed: enhancedAnalysis.controlFlow?.functions?.length || 0,
           dataFlowTracked: enhancedAnalysis.dataFlow?.variables?.length || 0,
-          complexity: enhancedAnalysis.metrics?.cyclomaticComplexity || 0
-        }
+          complexity: enhancedAnalysis.metrics?.cyclomaticComplexity || 0,
+        },
       };
 
       this.logger.info(`Enhanced scan completed in ${Date.now() - startTime}ms`);
       return enhancedResult;
-
     } catch (error) {
       this.logger.error('Enhanced scan failed:', error);
       // 回退到基础扫描
@@ -84,8 +87,16 @@ export class EnhancedSemgrepScanService {
           controlFlowAnalyzed: 0,
           dataFlowTracked: 0,
           complexity: 0,
-          timing: basicResult.summary.timing || { totalTime: 0, configTime: 0, coreTime: 0, parsingTime: 0, matchingTime: 0, ruleParseTime: 0, fileParseTime: 0 }
-        }
+          timing: basicResult.summary.timing || {
+            totalTime: 0,
+            configTime: 0,
+            coreTime: 0,
+            parsingTime: 0,
+            matchingTime: 0,
+            ruleParseTime: 0,
+            fileParseTime: 0,
+          },
+        },
       };
     }
   }
@@ -99,7 +110,7 @@ export class EnhancedSemgrepScanService {
       dataFlowRules: 6,
       securityRules: 26,
       languages: ['javascript', 'typescript', 'python', 'java', 'go', 'csharp'],
-      coverage: '82% of CodeQL core features'
+      coverage: '82% of CodeQL core features',
     };
   }
 
@@ -112,9 +123,9 @@ export class EnhancedSemgrepScanService {
         `${this.enhancedRulesPath}/security/sql-injection.yml`,
         `${this.enhancedRulesPath}/security/xss-detection.yml`,
         `${this.enhancedRulesPath}/security/path-traversal.yml`,
-        `${this.enhancedRulesPath}/security/command-injection.yml`
+        `${this.enhancedRulesPath}/security/command-injection.yml`,
       ],
-      severity: ['ERROR', 'WARNING']
+      severity: ['ERROR', 'WARNING'],
     });
   }
 
@@ -125,8 +136,8 @@ export class EnhancedSemgrepScanService {
     return this.scanProject(projectPath, {
       rules: [
         `${this.enhancedRulesPath}/control-flow/basic-cfg.yml`,
-        `${this.enhancedRulesPath}/control-flow/cross-function-analysis.yml`
-      ]
+        `${this.enhancedRulesPath}/control-flow/cross-function-analysis.yml`,
+      ],
     });
   }
 
@@ -135,7 +146,7 @@ export class EnhancedSemgrepScanService {
    */
   async taintAnalysis(projectPath: string): Promise<EnhancedAnalysisResult> {
     return this.scanProject(projectPath, {
-      rules: [`${this.enhancedRulesPath}/data-flow/taint-analysis.yml`]
+      rules: [`${this.enhancedRulesPath}/data-flow/taint-analysis.yml`],
     });
   }
 }

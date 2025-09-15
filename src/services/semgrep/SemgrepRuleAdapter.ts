@@ -1,10 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
-import {
-  SemgrepRule,
-  ValidationResult
-} from '../../models/StaticAnalysisTypes';
+import { SemgrepRule, ValidationResult } from '../../models/StaticAnalysisTypes';
 
 /**
  * Semgrep规则转换适配器
@@ -12,9 +9,7 @@ import {
  */
 @injectable()
 export class SemgrepRuleAdapter {
-  constructor(
-    @inject(TYPES.LoggerService) private logger: LoggerService
-  ) {}
+  constructor(@inject(TYPES.LoggerService) private logger: LoggerService) {}
 
   /**
    * 将内部规则转换为Semgrep规则格式
@@ -22,7 +17,8 @@ export class SemgrepRuleAdapter {
   adaptInternalRule(internalRule: any): SemgrepRule {
     return {
       id: internalRule.id || this.generateRuleId(internalRule),
-      message: internalRule.description || internalRule.message || internalRule.name || internalRule.title,
+      message:
+        internalRule.description || internalRule.message || internalRule.name || internalRule.title,
       severity: this.mapSeverity(internalRule.severity),
       languages: this.mapLanguages(internalRule.languages || internalRule.language),
       pattern: this.buildPattern(internalRule),
@@ -37,7 +33,7 @@ export class SemgrepRuleAdapter {
         createdAt: new Date().toISOString(),
       },
       fix: '',
-      options: {}
+      options: {},
     };
   }
 
@@ -61,14 +57,16 @@ export class SemgrepRuleAdapter {
    * 批量转换规则
    */
   adaptRulesBatch(rules: any[], source: string = 'internal'): SemgrepRule[] {
-    return rules.map(rule => {
-      try {
-        return this.adaptFromCommonFormat(source as any, rule);
-      } catch (error) {
-        this.logger.warn(`Failed to adapt rule ${rule.id || rule.name}:`, error);
-        return null;
-      }
-    }).filter(Boolean) as SemgrepRule[];
+    return rules
+      .map(rule => {
+        try {
+          return this.adaptFromCommonFormat(source as any, rule);
+        } catch (error) {
+          this.logger.warn(`Failed to adapt rule ${rule.id || rule.name}:`, error);
+          return null;
+        }
+      })
+      .filter(Boolean) as SemgrepRule[];
   }
 
   /**
@@ -145,7 +143,7 @@ export class SemgrepRuleAdapter {
           owasp: ['A03:2021'],
         },
         fix: '',
-        options: {}
+        options: {},
       },
       {
         id: 'xss-reflected',
@@ -163,7 +161,7 @@ export class SemgrepRuleAdapter {
           owasp: ['A03:2021'],
         },
         fix: '',
-        options: {}
+        options: {},
       },
       {
         id: 'hardcoded-secret',
@@ -180,7 +178,7 @@ export class SemgrepRuleAdapter {
           cwe: ['CWE-798'],
         },
         fix: '',
-        options: {}
+        options: {},
       },
       {
         id: 'insecure-deserialization',
@@ -198,7 +196,7 @@ export class SemgrepRuleAdapter {
           owasp: ['A08:2021'],
         },
         fix: '',
-        options: {}
+        options: {},
       },
     ];
   }
@@ -211,13 +209,13 @@ export class SemgrepRuleAdapter {
 
   private mapSeverity(severity: string): 'ERROR' | 'WARNING' | 'INFO' {
     const severityMap: Record<string, 'ERROR' | 'WARNING' | 'INFO'> = {
-      'error': 'ERROR',
-      'high': 'ERROR',
-      'critical': 'ERROR',
-      'warning': 'WARNING',
-      'medium': 'WARNING',
-      'info': 'INFO',
-      'low': 'INFO',
+      error: 'ERROR',
+      high: 'ERROR',
+      critical: 'ERROR',
+      warning: 'WARNING',
+      medium: 'WARNING',
+      info: 'INFO',
+      low: 'INFO',
     };
 
     return severityMap[severity?.toLowerCase()] || 'WARNING';
@@ -229,16 +227,16 @@ export class SemgrepRuleAdapter {
     }
 
     const languageMap: Record<string, string> = {
-      'js': 'javascript',
-      'ts': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rb': 'ruby',
-      'php': 'php',
-      'cs': 'csharp',
-      'cpp': 'cpp',
-      'c': 'c',
+      js: 'javascript',
+      ts: 'typescript',
+      py: 'python',
+      java: 'java',
+      go: 'go',
+      rb: 'ruby',
+      php: 'php',
+      cs: 'csharp',
+      cpp: 'cpp',
+      c: 'c',
     };
 
     return languages.map(lang => languageMap[lang.toLowerCase()] || lang.toLowerCase());
@@ -286,7 +284,7 @@ export class SemgrepRuleAdapter {
         originalRule: eslintRule,
       },
       fix: '',
-      options: {}
+      options: {},
     };
   }
 
@@ -307,7 +305,7 @@ export class SemgrepRuleAdapter {
         type: sonarRule.type,
       },
       fix: '',
-      options: {}
+      options: {},
     };
   }
 
@@ -327,7 +325,7 @@ export class SemgrepRuleAdapter {
         source: 'custom',
       },
       fix: '',
-      options: {}
+      options: {},
     };
   }
 }

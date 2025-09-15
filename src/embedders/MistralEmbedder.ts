@@ -51,8 +51,10 @@ export class MistralEmbedder extends HttpEmbedder implements Embedder {
     return 'MistralEmbedder';
   }
 
-  async embed(input: EmbeddingInput | EmbeddingInput[]): Promise<EmbeddingResult | EmbeddingResult[]> {
-    return await this.embedWithCache(input, async (inputs) => {
+  async embed(
+    input: EmbeddingInput | EmbeddingInput[]
+  ): Promise<EmbeddingResult | EmbeddingResult[]> {
+    return await this.embedWithCache(input, async inputs => {
       return await this.makeEmbeddingRequest(inputs);
     });
   }

@@ -1,4 +1,9 @@
-import { CustomRuleDefinition, ValidationResult, RuleCondition, RuleAction } from '../../models/CustomRuleTypes';
+import {
+  CustomRuleDefinition,
+  ValidationResult,
+  RuleCondition,
+  RuleAction,
+} from '../../models/CustomRuleTypes';
 import { DSLParser } from './DSLParser';
 
 /**
@@ -50,7 +55,7 @@ export class RuleValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -97,7 +102,7 @@ export class RuleValidationService {
     return errors;
   }
 
- private isValidConditionType(type: string): boolean {
+  private isValidConditionType(type: string): boolean {
     const validTypes = ['nodeType', 'contentPattern', 'complexity', 'languageFeature'];
     return validTypes.includes(type);
   }
@@ -120,7 +125,7 @@ export class RuleValidationService {
       const parser = new DSLParser();
       const ruleDefinition = parser.parse(dslText);
       const validationResult = this.validateRule(ruleDefinition);
-      
+
       errors.push(...validationResult.errors);
       warnings.push(...validationResult.warnings);
     } catch (error: any) {
@@ -130,7 +135,7 @@ export class RuleValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -148,7 +153,7 @@ export class RuleValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 }

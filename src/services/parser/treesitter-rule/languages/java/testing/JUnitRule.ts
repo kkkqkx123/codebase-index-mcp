@@ -9,17 +9,24 @@ export class JUnitRule extends AbstractSnippetRule {
   readonly name = 'JUnitRule';
   readonly supportedNodeTypes = new Set([
     // Test methods and classes
-    'class_declaration', 'method_declaration', 'field_declaration',
-    
+    'class_declaration',
+    'method_declaration',
+    'field_declaration',
+
     // Annotations
-    'annotation', 'marker_annotation', 'single_member_annotation',
-    
+    'annotation',
+    'marker_annotation',
+    'single_member_annotation',
+
     // Import statements
     'import_declaration',
-    
+
     // Method and test patterns
-    'block', 'expression_statement', 'assert_statement',
-    'try_statement', 'catch_clause'
+    'block',
+    'expression_statement',
+    'assert_statement',
+    'try_statement',
+    'catch_clause',
   ]);
 
   protected readonly snippetType = 'junit_test' as const;
@@ -28,7 +35,7 @@ export class JUnitRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check if this is JUnit 5-related code
     return this.isJUnitCode(content);
   }
@@ -61,8 +68,8 @@ export class JUnitRule extends AbstractSnippetRule {
         complexity: this.calculateJUnitComplexity(content),
         isStandalone: this.isStandaloneJUnitTest(node, content),
         hasSideEffects: this.hasSideEffects(content),
-        junitInfo: junitMetadata
-      }
+        junitInfo: junitMetadata,
+      },
     };
   }
 
@@ -73,7 +80,7 @@ export class JUnitRule extends AbstractSnippetRule {
       /import\s+org\.junit\.jupiter\.api\./,
       /import\s+org\.junit\.jupiter\.params\./,
       /import\s+org\.junit\.jupiter\.extensions\./,
-      
+
       // JUnit 5 annotations
       /@Test/,
       /@BeforeEach/,
@@ -89,13 +96,13 @@ export class JUnitRule extends AbstractSnippetRule {
       /@Disabled/,
       /@Tag/,
       /@ExtendWith/,
-      
+
       // JUnit 5 assertions
       /Assertions\./,
       /assertThrows\(/,
       /assertAll\(/,
       /assertThat\s*\(/,
-      
+
       // JUnit 5 parameterized tests
       /@ValueSource/,
       /@EnumSource/,
@@ -103,61 +110,57 @@ export class JUnitRule extends AbstractSnippetRule {
       /@CsvSource/,
       /@CsvFileSource/,
       /@ArgumentsSource/,
-      
+
       // JUnit 5 extensions
       /@ExtendWith/,
       /ParameterResolver/,
       /TestInstancePostProcessor/,
       /TestExecutionExceptionHandler/,
-      
+
       // Test lifecycle patterns
       /@BeforeEach\s+\w+\s*\(\)/,
       /@AfterEach\s+\w+\s*\(\)/,
       /@BeforeAll\s+static\s+\w+\s*\(\)/,
       /@AfterAll\s+static\s+\w+\s*\(\)/,
-      
+
       // Dynamic tests
       /@TestFactory/,
       /DynamicTest/,
       /dynamicTest\s*\(/,
-      
+
       // Conditional test execution
       /@EnabledIf/,
       /@DisabledIf/,
       /@EnabledOnOs/,
       /@EnabledOnJre/,
       /@EnabledForJreRange/,
-      
+
       // Test instance lifecycle
       /@TestInstance/,
-      
+
       // Parameter injection
       /TestInfo/,
       /TestReporter/,
       /TestInfo\s+\w+/,
       /TestReporter\s+\w+/,
-      
+
       // Mocking integration (Mockito with JUnit 5)
       /@Mock/,
       /@InjectMocks/,
       /@ExtendWith\s*\(\s*MockitoExtension\.class\s*\)/,
       /Mockito\./,
-      
+
       // AssertJ integration
       /Assertions\.assertThat/,
       /assertThat\s*\(/,
       /\.isNotNull\(\)/,
-      /\.isEqualTo\(\)/
+      /\.isEqualTo\(\)/,
     ];
 
     return junitPatterns.some(pattern => pattern.test(content));
   }
 
-  private extractJUnitMetadata(
-    node: Parser.SyntaxNode,
-    content: string,
-    sourceCode: string
-  ) {
+  private extractJUnitMetadata(node: Parser.SyntaxNode, content: string, sourceCode: string) {
     return {
       testStructure: this.extractTestStructure(content),
       annotations: this.extractAnnotationsInfo(content),
@@ -165,13 +168,14 @@ export class JUnitRule extends AbstractSnippetRule {
       lifecycle: this.extractLifecycleInfo(content),
       parameterization: this.extractParameterizationInfo(content),
       extensions: this.extractExtensionsInfo(content),
-      performance: this.extractPerformanceInfo(content)
+      performance: this.extractPerformanceInfo(content),
     };
   }
 
   private extractTestStructure(content: string) {
     const testClasses = (content.match(/class\s+[A-Z][a-zA-Z0-9_]*\s*Test/g) || []).length;
-    const testMethods = (content.match(/@Test\s*\n\s+public\s+void\s+test[a-zA-Z0-9_]+/g) || []).length;
+    const testMethods = (content.match(/@Test\s*\n\s+public\s+void\s+test[a-zA-Z0-9_]+/g) || [])
+      .length;
     const parameterizedTests = (content.match(/@ParameterizedTest/g) || []).length;
     const nestedTests = (content.match(/@Nested\s+class/g) || []).length;
 
@@ -179,7 +183,7 @@ export class JUnitRule extends AbstractSnippetRule {
       testClasses,
       testMethods,
       parameterizedTests,
-      nestedTests
+      nestedTests,
     };
   }
 
@@ -203,7 +207,7 @@ export class JUnitRule extends AbstractSnippetRule {
       usesParameterizedTest,
       usesRepeatedTest,
       usesTimeout,
-      usesDisabled
+      usesDisabled,
     };
   }
 
@@ -219,7 +223,7 @@ export class JUnitRule extends AbstractSnippetRule {
       customAssertions,
       assertEqualsCount,
       assertTrueCount,
-      assertNullCount
+      assertNullCount,
     };
   }
 
@@ -233,7 +237,7 @@ export class JUnitRule extends AbstractSnippetRule {
       beforeEachCount,
       afterEachCount,
       beforeAllCount,
-      afterAllCount
+      afterAllCount,
     };
   }
 
@@ -242,32 +246,32 @@ export class JUnitRule extends AbstractSnippetRule {
       /@ValueSource\s*\(\s*strings\s*=\s*{([^}]+)}/g,
       /@ValueSource\s*\(\s*ints\s*=\s*{([^}]+)}/g,
       /@ValueSource\s*\(\s*longs\s*=\s*{([^}]+)}/g,
-      /@ValueSource\s*\(\s*doubles\s*=\s*{([^}]+)}/g
+      /@ValueSource\s*\(\s*doubles\s*=\s*{([^}]+)}/g,
     ]);
 
     const methodSources = this.extractPatternMatches(content, [
-      /@MethodSource\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g
+      /@MethodSource\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
     ]);
 
     const csvSources = this.extractPatternMatches(content, [
-      /@CsvSource\s*\(\s*value\s*=\s*{([^}]+)}/g
+      /@CsvSource\s*\(\s*value\s*=\s*{([^}]+)}/g,
     ]);
 
     const enumSources = this.extractPatternMatches(content, [
-      /@EnumSource\s*\(\s*value\s*=\s*([^)]+)\)/g
+      /@EnumSource\s*\(\s*value\s*=\s*([^)]+)\)/g,
     ]);
 
     return {
       valueSources,
       methodSources,
       csvSources,
-      enumSources
+      enumSources,
     };
   }
 
   private extractExtensionsInfo(content: string) {
     const customExtensions = this.extractPatternMatches(content, [
-      /@ExtendWith\s*\(\s*([a-zA-Z0-9_]+)\.class\s*\)/g
+      /@ExtendWith\s*\(\s*([a-zA-Z0-9_]+)\.class\s*\)/g,
     ]);
 
     const usesMockito = /@Mock|@InjectMocks|MockitoExtension/.test(content);
@@ -278,7 +282,7 @@ export class JUnitRule extends AbstractSnippetRule {
       customExtensions,
       usesMockito,
       usesAssertJ,
-      usesHamcrest
+      usesHamcrest,
     };
   }
 
@@ -290,13 +294,13 @@ export class JUnitRule extends AbstractSnippetRule {
     return {
       timeoutUsage,
       parallelExecution,
-      repeatedTests
+      repeatedTests,
     };
   }
 
   private extractPatternMatches(content: string, patterns: RegExp[]): string[] {
     const matches: string[] = [];
-    
+
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(content)) !== null) {
@@ -315,20 +319,22 @@ export class JUnitRule extends AbstractSnippetRule {
     const traverse = (n: Parser.SyntaxNode) => {
       if (n.type === 'import_declaration') {
         const importText = this.getNodeText(n, sourceCode);
-        if (importText.includes('org.junit.jupiter') || 
-            importText.includes('org.junit.jupiter.api') ||
-            importText.includes('org.junit.jupiter.params') ||
-            importText.includes('org.junit.jupiter.extensions') ||
-            importText.includes('org.junit.jupiter.api.extension') ||
-            importText.includes('org.junit.jupiter.api.condition') ||
-            importText.includes('org.junit.jupiter.api.parallel') ||
-            importText.includes('org.junit.jupiter.api.function') ||
-            importText.includes('org.junit.jupiter.params.provider') ||
-            importText.includes('org.junit.jupiter.params.converter') ||
-            importText.includes('org.junit.jupiter.params.aggregator') ||
-            importText.includes('org.mockito') ||
-            importText.includes('org.assertj') ||
-            importText.includes('org.hamcrest')) {
+        if (
+          importText.includes('org.junit.jupiter') ||
+          importText.includes('org.junit.jupiter.api') ||
+          importText.includes('org.junit.jupiter.params') ||
+          importText.includes('org.junit.jupiter.extensions') ||
+          importText.includes('org.junit.jupiter.api.extension') ||
+          importText.includes('org.junit.jupiter.api.condition') ||
+          importText.includes('org.junit.jupiter.api.parallel') ||
+          importText.includes('org.junit.jupiter.api.function') ||
+          importText.includes('org.junit.jupiter.params.provider') ||
+          importText.includes('org.junit.jupiter.params.converter') ||
+          importText.includes('org.junit.jupiter.params.aggregator') ||
+          importText.includes('org.mockito') ||
+          importText.includes('org.assertj') ||
+          importText.includes('org.hamcrest')
+        ) {
           imports.push(importText);
         }
       }
@@ -360,11 +366,15 @@ export class JUnitRule extends AbstractSnippetRule {
       /@ParameterizedTest/,
       /@RepeatedTest/,
       /@TestFactory/,
-      /class\s+[A-Z][a-zA-Z0-9_]*\s*Test/
+      /class\s+[A-Z][a-zA-Z0-9_]*\s*Test/,
     ];
 
-    return (node.type === 'class_declaration' || node.type === 'method_declaration' || node.type === 'annotation') &&
-           testPatterns.some(pattern => pattern.test(content));
+    return (
+      (node.type === 'class_declaration' ||
+        node.type === 'method_declaration' ||
+        node.type === 'annotation') &&
+      testPatterns.some(pattern => pattern.test(content))
+    );
   }
 
   private calculateJUnitComplexity(content: string): number {
@@ -410,7 +420,8 @@ export class JUnitRule extends AbstractSnippetRule {
     complexity += (content.match(/@RepeatedTest/g) || []).length * 3;
 
     // Conditional execution complexity
-    complexity += (content.match(/@EnabledIf|@DisabledIf|@EnabledOnOs|@EnabledOnJre/g) || []).length * 3;
+    complexity +=
+      (content.match(/@EnabledIf|@DisabledIf|@EnabledOnOs|@EnabledOnJre/g) || []).length * 3;
 
     // Extension complexity
     complexity += (content.match(/@ExtendWith/g) || []).length * 3;

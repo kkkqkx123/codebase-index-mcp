@@ -11,36 +11,36 @@ jest.mock('tree-sitter', () => {
         parse: jest.fn().mockImplementation((code: string) => {
           // Create a mock AST structure for testing
           return {
-            rootNode: createMockAST(code)
+            rootNode: createMockAST(code),
           };
         }),
-        setLanguage: jest.fn()
+        setLanguage: jest.fn(),
       };
-    })
+    }),
   };
 });
 
 // Mock tree-sitter language parsers
 jest.mock('tree-sitter-typescript', () => ({
-  name: 'typescript'
+  name: 'typescript',
 }));
 jest.mock('tree-sitter-javascript', () => ({
-  name: 'javascript'
+  name: 'javascript',
 }));
 jest.mock('tree-sitter-python', () => ({
-  name: 'python'
+  name: 'python',
 }));
 jest.mock('tree-sitter-java', () => ({
-  name: 'java'
+  name: 'java',
 }));
 jest.mock('tree-sitter-go', () => ({
-  name: 'go'
+  name: 'go',
 }));
 jest.mock('tree-sitter-rust', () => ({
-  name: 'rust'
+  name: 'rust',
 }));
 jest.mock('tree-sitter-cpp', () => ({
-  name: 'cpp'
+  name: 'cpp',
 }));
 
 // Helper function to create mock AST nodes
@@ -62,14 +62,14 @@ function createMockSyntaxNode(
     endIndex,
     children,
     parent,
-    childForFieldName: jest.fn().mockReturnValue(null)
+    childForFieldName: jest.fn().mockReturnValue(null),
   };
-  
+
   // Set parent relationship for children
   children.forEach(child => {
     child.parent = node;
   });
-  
+
   return node;
 }
 
@@ -77,43 +77,51 @@ function createMockSyntaxNode(
 function createMockAST(code: string): any {
   const lines = code.split('\n');
   const nodes: any[] = [];
-  
+
   // Create nodes based on code patterns
   lines.forEach((line, index) => {
     if (line.includes('if') || line.includes('for') || line.includes('while')) {
-      nodes.push(createMockSyntaxNode(
-        line.includes('if') ? 'if_statement' : line.includes('for') ? 'for_statement' : 'while_statement',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length,
-        []
-      ));
+      nodes.push(
+        createMockSyntaxNode(
+          line.includes('if')
+            ? 'if_statement'
+            : line.includes('for')
+              ? 'for_statement'
+              : 'while_statement',
+          line,
+          { row: index, column: 0 },
+          { row: index, column: line.length },
+          code.indexOf(line),
+          code.indexOf(line) + line.length,
+          []
+        )
+      );
     }
-    
+
     if (line.includes('try') || line.includes('catch')) {
-      nodes.push(createMockSyntaxNode(
-        line.includes('try') ? 'try_statement' : 'catch_clause',
-        line,
-        { row: index, column: 0 },
-        { row: index, column: line.length },
-        code.indexOf(line),
-        code.indexOf(line) + line.length,
-        []
-      ));
+      nodes.push(
+        createMockSyntaxNode(
+          line.includes('try') ? 'try_statement' : 'catch_clause',
+          line,
+          { row: index, column: 0 },
+          { row: index, column: line.length },
+          code.indexOf(line),
+          code.indexOf(line) + line.length,
+          []
+        )
+      );
     }
-    
+
     if (line.includes('function') || line.includes('=>')) {
       // Find the complete function block (multiple lines)
       const functionStartIndex = code.indexOf(line);
       let functionEndIndex = functionStartIndex + line.length;
       let functionEndLine = index;
-      
+
       // Look for the closing brace of the function
       let braceCount = 0;
       let currentIndex = functionStartIndex;
-      
+
       while (currentIndex < code.length && braceCount >= 0) {
         if (code[currentIndex] === '{') {
           braceCount++;
@@ -122,37 +130,42 @@ function createMockAST(code: string): any {
         }
         currentIndex++;
       }
-      
+
       if (braceCount < 0) {
         // Found matching closing brace
         functionEndIndex = currentIndex;
-        functionEndLine = index + code.substring(functionStartIndex, functionEndIndex).split('\n').length - 1;
-        
+        functionEndLine =
+          index + code.substring(functionStartIndex, functionEndIndex).split('\n').length - 1;
+
         const functionContent = code.substring(functionStartIndex, functionEndIndex);
-        
-        nodes.push(createMockSyntaxNode(
-          'function_definition',
-          functionContent,
-          { row: index, column: 0 },
-          { row: functionEndLine, column: code.split('\n')[functionEndLine].length },
-          functionStartIndex,
-          functionEndIndex,
-          []
-        ));
+
+        nodes.push(
+          createMockSyntaxNode(
+            'function_definition',
+            functionContent,
+            { row: index, column: 0 },
+            { row: functionEndLine, column: code.split('\n')[functionEndLine].length },
+            functionStartIndex,
+            functionEndIndex,
+            []
+          )
+        );
       } else {
         // Fallback: single line function
-        nodes.push(createMockSyntaxNode(
-          'function_definition',
-          line,
-          { row: index, column: 0 },
-          { row: index, column: line.length },
-          code.indexOf(line),
-          code.indexOf(line) + line.length,
-          []
-        ));
+        nodes.push(
+          createMockSyntaxNode(
+            'function_definition',
+            line,
+            { row: index, column: 0 },
+            { row: index, column: line.length },
+            code.indexOf(line),
+            code.indexOf(line) + line.length,
+            []
+          )
+        );
       }
     }
-    
+
     // Create comment nodes for comment markers
     if (line.includes('@snippet') || line.includes('@code') || line.includes('@example')) {
       const commentNode = createMockSyntaxNode(
@@ -164,13 +177,13 @@ function createMockAST(code: string): any {
         code.indexOf(line) + line.length,
         []
       );
-      
+
       // Mock the childForFieldName method for comment nodes
       commentNode.childForFieldName = jest.fn().mockReturnValue(null);
       nodes.push(commentNode);
     }
   });
-  
+
   // Create root node with all the created nodes as children
   const rootNode = createMockSyntaxNode(
     'program',
@@ -182,19 +195,19 @@ function createMockAST(code: string): any {
     nodes,
     null
   );
-  
+
   return rootNode;
 }
 
 // Helper function to generate test code with specified complexity
 function generateTestCode(lines: number, complexity: number): string {
   let code = '';
-  
+
   for (let i = 0; i < lines; i++) {
     if (i % 10 === 0) {
       // Add a function definition
       code += `function testFunction${i}() {\n`;
-      
+
       // Add complexity based on the parameter
       for (let j = 0; j < complexity; j++) {
         if (j % 3 === 0) {
@@ -213,7 +226,7 @@ function generateTestCode(lines: number, complexity: number): string {
           code += `  }\n`;
         }
       }
-      
+
       code += `}\n\n`;
     } else if (i % 10 === 5) {
       // Add a comment marker for snippet extraction
@@ -227,7 +240,7 @@ function generateTestCode(lines: number, complexity: number): string {
       code += `const variable${i} = "value${i}";\n`;
     }
   }
-  
+
   return code;
 }
 
@@ -244,15 +257,17 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
     test('should handle small codebases efficiently', () => {
       const code = generateTestCode(100, 2); // 100 lines, low complexity
       const mockAST = createMockAST(code);
-      
+
       const startTime = performance.now();
       const snippets = treeSitterService.extractSnippets(mockAST, code);
       const endTime = performance.now();
-      
+
       const processingTime = endTime - startTime;
-      
-      console.log(`Small codebase (100 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`);
-      
+
+      console.log(
+        `Small codebase (100 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`
+      );
+
       // Should process small codebases in under 100ms (adjusted for enhanced validation)
       expect(processingTime).toBeLessThan(100);
       expect(snippets.length).toBeGreaterThan(0);
@@ -261,15 +276,17 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
     test('should handle medium codebases efficiently', () => {
       const code = generateTestCode(1000, 3); // 1000 lines, medium complexity
       const mockAST = createMockAST(code);
-      
+
       const startTime = performance.now();
       const snippets = treeSitterService.extractSnippets(mockAST, code);
       const endTime = performance.now();
-      
+
       const processingTime = endTime - startTime;
-      
-      console.log(`Medium codebase (1000 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`);
-      
+
+      console.log(
+        `Medium codebase (1000 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`
+      );
+
       // Should process medium codebases in under 500ms (adjusted for enhanced validation)
       expect(processingTime).toBeLessThan(500);
       expect(snippets.length).toBeGreaterThan(0);
@@ -278,15 +295,17 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
     test('should handle large codebases efficiently', () => {
       const code = generateTestCode(5000, 4); // 5000 lines, high complexity
       const mockAST = createMockAST(code);
-      
+
       const startTime = performance.now();
       const snippets = treeSitterService.extractSnippets(mockAST, code);
       const endTime = performance.now();
-      
+
       const processingTime = endTime - startTime;
-      
-      console.log(`Large codebase (5000 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`);
-      
+
+      console.log(
+        `Large codebase (5000 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`
+      );
+
       // Should process large codebases in under 2000ms (adjusted for enhanced validation)
       expect(processingTime).toBeLessThan(2000);
       expect(snippets.length).toBeGreaterThan(0);
@@ -295,15 +314,17 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
     test('should handle very large codebases efficiently', () => {
       const code = generateTestCode(10000, 5); // 10000 lines, very high complexity
       const mockAST = createMockAST(code);
-      
+
       const startTime = performance.now();
       const snippets = treeSitterService.extractSnippets(mockAST, code);
       const endTime = performance.now();
-      
+
       const processingTime = endTime - startTime;
-      
-      console.log(`Very large codebase (10000 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`);
-      
+
+      console.log(
+        `Very large codebase (10000 lines): ${processingTime.toFixed(2)}ms, ${snippets.length} snippets extracted`
+      );
+
       // Should process very large codebases in under 3000ms (adjusted for enhanced validation)
       expect(processingTime).toBeLessThan(3000);
       expect(snippets.length).toBeGreaterThan(0);
@@ -312,18 +333,18 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
     test('should maintain linear time complexity', () => {
       const sizes = [100, 500, 1000, 2000, 5000];
       const times: number[] = [];
-      
+
       sizes.forEach(size => {
         const code = generateTestCode(size, 3);
         const mockAST = createMockAST(code);
-        
+
         const startTime = performance.now();
         treeSitterService.extractSnippets(mockAST, code);
         const endTime = performance.now();
-        
+
         times.push(endTime - startTime);
       });
-      
+
       // Calculate the ratio between consecutive measurements
       const ratios = [];
       for (let i = 1; i < times.length; i++) {
@@ -331,13 +352,13 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
         const timeRatio = times[i] / times[i - 1];
         ratios.push(timeRatio / sizeRatio);
       }
-      
+
       // The average ratio should be close to 1 for linear time complexity
       const averageRatio = ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length;
-      
+
       console.log('Time complexity ratios:', ratios);
       console.log('Average ratio:', averageRatio);
-      
+
       // Allow some deviation, but should be reasonably close to linear
       expect(averageRatio).toBeLessThan(1.7);
       expect(averageRatio).toBeGreaterThan(0.5);
@@ -346,20 +367,20 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
     test('should not excessively increase memory usage', () => {
       // This is a simplified memory usage test
       // In a real environment, you would use more sophisticated memory profiling tools
-      
+
       const initialMemory = process.memoryUsage().heapUsed;
-      
+
       // Process a large codebase
       const code = generateTestCode(10000, 5);
       const mockAST = createMockAST(code);
-      
+
       treeSitterService.extractSnippets(mockAST, code);
-      
+
       const finalMemory = process.memoryUsage().heapUsed;
       const memoryIncrease = finalMemory - initialMemory;
-      
+
       console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
-      
+
       // Memory increase should be reasonable (less than 120MB for this test with enhanced validation)
       expect(memoryIncrease).toBeLessThan(120 * 1024 * 1024);
     });
@@ -374,20 +395,22 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
         code += `  }\n`;
         code += `}\n\n`;
       }
-      
+
       const mockAST = createMockAST(code);
-      
+
       const startTime = performance.now();
       const snippets = treeSitterService.extractSnippets(mockAST, code);
       const endTime = performance.now();
-      
+
       const processingTime = endTime - startTime;
-      
-      console.log(`Deduplication test: ${processingTime.toFixed(2)}ms, ${snippets.length} unique snippets from 100 duplicates`);
-      
+
+      console.log(
+        `Deduplication test: ${processingTime.toFixed(2)}ms, ${snippets.length} unique snippets from 100 duplicates`
+      );
+
       // Should have only one unique snippet despite 100 duplicates
       expect(snippets.length).toBe(1);
-      
+
       // Should process quickly despite many duplicates
       expect(processingTime).toBeLessThan(100);
     });
@@ -401,22 +424,24 @@ describe('TreeSitterService Snippet Extraction Performance', () => {
         code += `  return ${i};\n`;
         code += `}\n\n`;
       }
-      
+
       const mockAST = createMockAST(code);
-      
+
       const startTime = performance.now();
-      const snippets = treeSitterService.extractSnippets(mockAST, code).filter(
-        snippet => snippet.snippetMetadata.snippetType === 'comment_marked'
-      );
+      const snippets = treeSitterService
+        .extractSnippets(mockAST, code)
+        .filter(snippet => snippet.snippetMetadata.snippetType === 'comment_marked');
       const endTime = performance.now();
-      
+
       const processingTime = endTime - startTime;
-      
-      console.log(`Comment markers test: ${processingTime.toFixed(2)}ms, ${snippets.length} snippets from 100 comment markers`);
-      
+
+      console.log(
+        `Comment markers test: ${processingTime.toFixed(2)}ms, ${snippets.length} snippets from 100 comment markers`
+      );
+
       // Should extract all 100 snippets
       expect(snippets.length).toBe(100);
-      
+
       // Should process quickly
       expect(processingTime).toBeLessThan(200);
     });

@@ -8,11 +8,13 @@ export class DestructuringAssignmentRule extends AbstractSnippetRule {
   protected readonly snippetType = 'destructuring_assignment' as const;
 
   protected shouldProcessNode(node: Parser.SyntaxNode, sourceCode: string): boolean {
-    return super.shouldProcessNode(node, sourceCode) && 
-           (this.supportedNodeTypes.has(node.type) || 
-            (node.type === 'assignment_expression' && 
-             (node.childForFieldName('left')?.type === 'object_pattern' || 
-              node.childForFieldName('left')?.type === 'array_pattern')));
+    return (
+      super.shouldProcessNode(node, sourceCode) &&
+      (this.supportedNodeTypes.has(node.type) ||
+        (node.type === 'assignment_expression' &&
+          (node.childForFieldName('left')?.type === 'object_pattern' ||
+            node.childForFieldName('left')?.type === 'array_pattern')))
+    );
   }
 
   protected createSnippet(
@@ -41,8 +43,8 @@ export class DestructuringAssignmentRule extends AbstractSnippetRule {
         languageFeatures: this.analyzeLanguageFeatures(content),
         complexity: this.calculateComplexity(content),
         isStandalone: true,
-        hasSideEffects: this.hasSideEffects(content)
-      }
+        hasSideEffects: this.hasSideEffects(content),
+      },
     };
   }
 }

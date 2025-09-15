@@ -37,13 +37,13 @@ export class SecurityAnalyzer {
         /UPDATE.*SET.*WHERE.*\+/i,
         /DELETE.*FROM.*WHERE.*\+/i,
         /query\s*\([^)]*\+/i,
-        /execute\s*\([^)]*\+/i
+        /execute\s*\([^)]*\+/i,
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['query', 'execute', 'exec', 'prepare', 'Statement'],
       sanitizers: ['sanitize', 'escape', 'parameterize', 'bind'],
       description: 'Potential SQL injection vulnerability',
-      remediation: 'Use parameterized queries or prepared statements'
+      remediation: 'Use parameterized queries or prepared statements',
     },
     {
       type: SecurityIssueType.XSS,
@@ -54,13 +54,13 @@ export class SecurityAnalyzer {
         /document\.write\s*\([^)]*\+/i,
         /eval\s*\([^)]*\+/i,
         /setTimeout\s*\([^)]*\+/i,
-        /setInterval\s*\([^)]*\+/i
+        /setInterval\s*\([^)]*\+/i,
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['innerHTML', 'outerHTML', 'document.write', 'eval', 'setTimeout', 'setInterval'],
       sanitizers: ['escapeHTML', 'sanitize', 'encode', 'DOMPurify'],
       description: 'Potential XSS vulnerability',
-      remediation: 'Encode output and validate input using proper HTML encoding'
+      remediation: 'Encode output and validate input using proper HTML encoding',
     },
     {
       type: SecurityIssueType.COMMAND_INJECTION,
@@ -70,13 +70,13 @@ export class SecurityAnalyzer {
         /spawn\s*\([^)]*\+/i,
         /system\s*\([^)]*\+/i,
         /shell\s*\([^)]*\+/i,
-        /cmd\s*\([^)]*\+/i
+        /cmd\s*\([^)]*\+/i,
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['exec', 'spawn', 'system', 'shell', 'cmd'],
       sanitizers: ['escapeShell', 'validate', 'sanitize'],
       description: 'Potential command injection vulnerability',
-      remediation: 'Avoid system commands with user input, use safe alternatives'
+      remediation: 'Avoid system commands with user input, use safe alternatives',
     },
     {
       type: SecurityIssueType.PATH_TRAVERSAL,
@@ -87,29 +87,23 @@ export class SecurityAnalyzer {
         /open\s*\([^)]*\+/i,
         /fs\.readFile\s*\([^)]*\+/i,
         /fs\.writeFile\s*\([^)]*\+/i,
-        /\.\.\//i
+        /\.\.\//i,
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['readFile', 'writeFile', 'open', 'fs.readFile', 'fs.writeFile'],
       sanitizers: ['resolve', 'normalize', 'validatePath', 'sanitize'],
       description: 'Potential path traversal vulnerability',
-      remediation: 'Validate and sanitize file paths, use path resolution'
+      remediation: 'Validate and sanitize file paths, use path resolution',
     },
     {
       type: SecurityIssueType.XXE,
       severity: SecuritySeverity.HIGH,
-      patterns: [
-        /<!ENTITY/i,
-        /SYSTEM\s*["\']/i,
-        /PUBLIC\s*["\']/i,
-        /DOCTYPE/i,
-        /xml\s+version/i
-      ],
+      patterns: [/<!ENTITY/i, /SYSTEM\s*["\']/i, /PUBLIC\s*["\']/i, /DOCTYPE/i, /xml\s+version/i],
       taintSources: ['xmlInput', 'xmlFile', 'xmlString'],
       taintSinks: ['parse', 'parseXML', 'load', 'loadXML'],
       sanitizers: ['disableExternalEntities', 'secureParser', 'validate'],
       description: 'Potential XXE vulnerability',
-      remediation: 'Disable external entity processing in XML parsers'
+      remediation: 'Disable external entity processing in XML parsers',
     },
     {
       type: SecurityIssueType.SSRF,
@@ -119,14 +113,14 @@ export class SecurityAnalyzer {
         /http:\/\/.*127\.0\.0\.1/i,
         /http:\/\/.*0\.0\.0\.0/i,
         /file:\/\//i,
-        /ftp:\/\//i
+        /ftp:\/\//i,
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'url'],
       taintSinks: ['fetch', 'request', 'axios', 'http', 'https'],
       sanitizers: ['validate', 'whitelist', 'sanitize', 'restrict'],
       description: 'Potential SSRF vulnerability',
-      remediation: 'Validate and restrict URLs, use allowlists for allowed domains'
-    }
+      remediation: 'Validate and restrict URLs, use allowlists for allowed domains',
+    },
   ];
 
   analyze(
@@ -157,7 +151,7 @@ export class SecurityAnalyzer {
     return {
       issues,
       summary: this.generateSummary(issues),
-      recommendations: this.generateRecommendations(issues)
+      recommendations: this.generateRecommendations(issues),
     };
   }
 
@@ -180,12 +174,12 @@ export class SecurityAnalyzer {
                 startLine: lineIndex + 1,
                 endLine: lineIndex + 1,
                 startColumn: match.index + 1,
-                endColumn: match.index + match[0].length + 1
+                endColumn: match.index + match[0].length + 1,
               },
               variables: [],
               taintPath: [],
               code: line.trim(),
-              remediation: pattern.remediation
+              remediation: pattern.remediation,
             });
           }
         });
@@ -205,13 +199,26 @@ export class SecurityAnalyzer {
 
     // 检测数据流中的敏感信息传播
     const sensitiveSources = [
-      'req.body', 'req.params', 'req.query', 'request.body',
-      'input', 'user_input', 'form_data', 'post_data'
+      'req.body',
+      'req.params',
+      'req.query',
+      'request.body',
+      'input',
+      'user_input',
+      'form_data',
+      'post_data',
     ];
 
     const sensitiveSinks = [
-      'query', 'execute', 'exec', 'innerHTML', 'document.write',
-      'eval', 'Function', 'setTimeout', 'setInterval'
+      'query',
+      'execute',
+      'exec',
+      'innerHTML',
+      'document.write',
+      'eval',
+      'Function',
+      'setTimeout',
+      'setInterval',
     ];
 
     // 分析从source到sink的数据流
@@ -230,12 +237,12 @@ export class SecurityAnalyzer {
               startLine: 1,
               endLine: 1,
               startColumn: 1,
-              endColumn: 1
+              endColumn: 1,
             },
             variables: [source, sink],
             taintPath: [],
             code: `${source} -> ${sink}`,
-            remediation: `Validate and sanitize ${source} before using in ${sink}`
+            remediation: `Validate and sanitize ${source} before using in ${sink}`,
           });
         });
       }
@@ -267,12 +274,12 @@ export class SecurityAnalyzer {
                 startLine: node.startLine || 1,
                 endLine: node.startLine || 1,
                 startColumn: 1,
-                endColumn: 1
+                endColumn: 1,
               },
               variables: [],
               taintPath: [],
               code: condition,
-              remediation: 'Add proper input validation and sanitization'
+              remediation: 'Add proper input validation and sanitization',
             });
           }
         });
@@ -290,9 +297,7 @@ export class SecurityAnalyzer {
     const issues: SecurityIssue[] = [];
 
     // 检测符号表中的敏感变量使用
-    const sensitivePatterns = [
-      /password/i, /secret/i, /key/i, /token/i, /credential/i
-    ];
+    const sensitivePatterns = [/password/i, /secret/i, /key/i, /token/i, /credential/i];
 
     sensitivePatterns.forEach(pattern => {
       if (pattern.test(sourceCode)) {
@@ -309,12 +314,12 @@ export class SecurityAnalyzer {
                 startLine: lineIndex + 1,
                 endLine: lineIndex + 1,
                 startColumn: 1,
-                endColumn: line.length
+                endColumn: line.length,
               },
               variables: [],
               taintPath: [],
               code: line.trim(),
-              remediation: 'Avoid hardcoding sensitive information, use secure configuration'
+              remediation: 'Avoid hardcoding sensitive information, use secure configuration',
             });
           }
         });
@@ -325,21 +330,19 @@ export class SecurityAnalyzer {
   }
 
   private isMissingSecurityCheck(condition: string): boolean {
-    const securityPatterns = [
-      /validate/i, /sanitize/i, /escape/i, /encode/i, /filter/i
-    ];
+    const securityPatterns = [/validate/i, /sanitize/i, /escape/i, /encode/i, /filter/i];
     return !securityPatterns.some(pattern => pattern.test(condition));
   }
 
   private getIssueTypeForSink(sink: string): SecurityIssueType {
     const sinkMap: Record<string, SecurityIssueType> = {
-      'query': SecurityIssueType.SQL_INJECTION,
-      'execute': SecurityIssueType.SQL_INJECTION,
-      'innerHTML': SecurityIssueType.XSS,
+      query: SecurityIssueType.SQL_INJECTION,
+      execute: SecurityIssueType.SQL_INJECTION,
+      innerHTML: SecurityIssueType.XSS,
       'document.write': SecurityIssueType.XSS,
-      'eval': SecurityIssueType.COMMAND_INJECTION,
-      'exec': SecurityIssueType.COMMAND_INJECTION,
-      'Function': SecurityIssueType.COMMAND_INJECTION
+      eval: SecurityIssueType.COMMAND_INJECTION,
+      exec: SecurityIssueType.COMMAND_INJECTION,
+      Function: SecurityIssueType.COMMAND_INJECTION,
     };
     return sinkMap[sink] || SecurityIssueType.XSS;
   }
@@ -351,7 +354,7 @@ export class SecurityAnalyzer {
         [SecuritySeverity.CRITICAL]: 0,
         [SecuritySeverity.HIGH]: 0,
         [SecuritySeverity.MEDIUM]: 0,
-        [SecuritySeverity.LOW]: 0
+        [SecuritySeverity.LOW]: 0,
       },
       byType: {
         [SecurityIssueType.SQL_INJECTION]: 0,
@@ -368,8 +371,8 @@ export class SecurityAnalyzer {
         [SecurityIssueType.CRYPTOGRAPHY]: 0,
         [SecurityIssueType.DESERIALIZATION]: 0,
         [SecurityIssueType.LOGGING]: 0,
-        [SecurityIssueType.CONFIGURATION]: 0
-      }
+        [SecurityIssueType.CONFIGURATION]: 0,
+      },
     };
 
     issues.forEach(issue => {

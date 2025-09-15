@@ -49,10 +49,10 @@ export class PathUtils {
 
     const processDirectory = async (currentPath: string) => {
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await processDirectory(fullPath);
         } else if (entry.isFile()) {
@@ -71,39 +71,39 @@ export class PathUtils {
       totalFiles: 0,
       totalSize: 0,
       fileTypes: {},
-      largestFiles: []
+      largestFiles: [],
     };
 
     const processDirectory = async (currentPath: string) => {
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await processDirectory(fullPath);
         } else if (entry.isFile()) {
           const fileStats = await fs.stat(fullPath);
           const extension = path.extname(fullPath).toLowerCase();
-          
+
           stats.totalFiles++;
           stats.totalSize += fileStats.size;
           stats.fileTypes[extension] = (stats.fileTypes[extension] || 0) + 1;
-          
+
           stats.largestFiles.push({
             path: path.relative(dirPath, fullPath),
-            size: fileStats.size
+            size: fileStats.size,
           });
         }
       }
     };
 
     await processDirectory(dirPath);
-    
+
     // Keep only top 10 largest files
     stats.largestFiles.sort((a, b) => b.size - a.size);
     stats.largestFiles = stats.largestFiles.slice(0, 10);
-    
+
     return stats;
   }
 

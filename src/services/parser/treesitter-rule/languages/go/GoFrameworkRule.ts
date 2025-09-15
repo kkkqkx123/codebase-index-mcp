@@ -21,7 +21,7 @@ export class GoFrameworkRule extends AbstractSnippetRule {
     'struct_type',
     'interface_type',
     'field_declaration',
-    'short_var_declaration'
+    'short_var_declaration',
   ]);
 
   protected snippetType = 'go_web_framework' as const;
@@ -65,7 +65,7 @@ export class GoFrameworkRule extends AbstractSnippetRule {
     'gin\\.SetMode\\(',
     'gin\\.IsDebugging\\(',
     'gin\\.DefaultWriter',
-    'gin\\.DefaultErrorWriter'
+    'gin\\.DefaultErrorWriter',
   ];
 
   private readonly echoPatterns = [
@@ -114,7 +114,7 @@ export class GoFrameworkRule extends AbstractSnippetRule {
     'echo\\.HandlerFunc',
     'echo\\.MiddlewareFunc',
     'echo\\.Map',
-    'echo\\.HTTPError'
+    'echo\\.HTTPError',
   ];
 
   private readonly commonPatterns = [
@@ -131,7 +131,7 @@ export class GoFrameworkRule extends AbstractSnippetRule {
     'pgx\\.',
     'redis\\.',
     'json\\.',
-    'yaml\\.'
+    'yaml\\.',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -144,7 +144,11 @@ export class GoFrameworkRule extends AbstractSnippetRule {
     return allPatterns.some(pattern => new RegExp(pattern, 'i').test(text));
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const nodeText = this.getNodeText(node, sourceCode);
 
     // Extract framework-specific information
@@ -161,11 +165,11 @@ export class GoFrameworkRule extends AbstractSnippetRule {
         name: frameworkInfo.framework,
         version: 'latest',
         patterns: frameworkInfo.patterns,
-        features: frameworkInfo.features
+        features: frameworkInfo.features,
       },
       httpMethods: this.extractHttpMethods(nodeText),
       middleware: this.extractMiddleware(nodeText),
-      database: this.extractDatabaseConnections(nodeText)
+      database: this.extractDatabaseConnections(nodeText),
     };
 
     return {
@@ -182,14 +186,14 @@ export class GoFrameworkRule extends AbstractSnippetRule {
       snippetMetadata: {
         snippetType: this.snippetType,
         contextInfo: {
-          nestingLevel: nestingLevel
+          nestingLevel: nestingLevel,
         },
         languageFeatures: this.analyzeLanguageFeatures(nodeText),
         complexity: complexity,
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(nodeText),
-        goFrameworkInfo: goFrameworkInfo
-      }
+        goFrameworkInfo: goFrameworkInfo,
+      },
     };
   }
 
@@ -232,7 +236,12 @@ export class GoFrameworkRule extends AbstractSnippetRule {
     }
 
     // Route patterns
-    if (text.includes('GET(') || text.includes('POST(') || text.includes('PUT(') || text.includes('DELETE(')) {
+    if (
+      text.includes('GET(') ||
+      text.includes('POST(') ||
+      text.includes('PUT(') ||
+      text.includes('DELETE(')
+    ) {
       patterns.push('route-handlers');
       features.push('rest-api');
     }
@@ -398,7 +407,7 @@ export class GoFrameworkRule extends AbstractSnippetRule {
       'Secure',
       'RequestID',
       'Timeout',
-      'RateLimit'
+      'RateLimit',
     ];
 
     middlewarePatterns.forEach(pattern => {

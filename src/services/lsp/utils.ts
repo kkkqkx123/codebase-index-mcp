@@ -11,9 +11,21 @@ export interface LanguageDetectionResult {
 export function detectLanguageSync(workspaceRoot: string): LanguageDetectionResult | null {
   try {
     const stats = {
-      typescript: { confidence: 0, configFiles: [] as string[], extensions: {} as Record<string, number> },
-      javascript: { confidence: 0, configFiles: [] as string[], extensions: {} as Record<string, number> },
-      python: { confidence: 0, configFiles: [] as string[], extensions: {} as Record<string, number> },
+      typescript: {
+        confidence: 0,
+        configFiles: [] as string[],
+        extensions: {} as Record<string, number>,
+      },
+      javascript: {
+        confidence: 0,
+        configFiles: [] as string[],
+        extensions: {} as Record<string, number>,
+      },
+      python: {
+        confidence: 0,
+        configFiles: [] as string[],
+        extensions: {} as Record<string, number>,
+      },
     };
 
     // 检查配置文件
@@ -35,7 +47,7 @@ export function detectLanguageSync(workspaceRoot: string): LanguageDetectionResu
 
     // 扫描文件扩展名
     const extensions = scanFileExtensionsSync(workspaceRoot);
-    
+
     // 根据扩展名增加置信度
     const extensionMapping: Record<string, string> = {
       '.ts': 'typescript',
@@ -91,8 +103,8 @@ export function detectLanguageSync(workspaceRoot: string): LanguageDetectionResu
 }
 
 export function scanFileExtensionsSync(
-  dir: string, 
-  maxDepth: number = 2, 
+  dir: string,
+  maxDepth: number = 2,
   maxFiles: number = 100
 ): Record<string, number> {
   const extensions: Record<string, number> = {};
@@ -105,12 +117,14 @@ export function scanFileExtensionsSync(
 
     try {
       const items = fs.readdirSync(currentDir, { withFileTypes: true });
-      
+
       for (const item of items) {
         if (item.isDirectory()) {
-          if (!item.name.startsWith('.') && 
-              item.name !== 'node_modules' && 
-              item.name !== '__pycache__') {
+          if (
+            !item.name.startsWith('.') &&
+            item.name !== 'node_modules' &&
+            item.name !== '__pycache__'
+          ) {
             scanDirectory(path.join(currentDir, item.name), depth + 1);
           }
         } else if (item.isFile()) {
@@ -133,7 +147,7 @@ export function scanFileExtensionsSync(
 export function findWorkspaceRoot(filePath: string): string | null {
   const resolvedPath = path.resolve(filePath);
   let currentDir = path.dirname(resolvedPath);
-  
+
   // 向上查找包含配置文件的最接近目录
   while (currentDir !== path.dirname(currentDir)) {
     const configFiles = [
@@ -144,17 +158,17 @@ export function findWorkspaceRoot(filePath: string): string | null {
       'pyproject.toml',
       '.git',
     ];
-    
+
     for (const configFile of configFiles) {
       const configPath = path.join(currentDir, configFile);
       if (fs.existsSync(configPath)) {
         return currentDir;
       }
     }
-    
+
     currentDir = path.dirname(currentDir);
   }
-  
+
   return process.cwd();
 }
 
@@ -162,16 +176,16 @@ export function isLanguageServerAvailable(command: string): Promise<boolean> {
   try {
     const { spawn } = require('child_process');
     const process = spawn(command, ['--version'], { stdio: 'pipe' });
-    
-    return new Promise((resolve) => {
+
+    return new Promise(resolve => {
       process.on('exit', (code: number) => {
         resolve(code === 0);
       });
-      
+
       process.on('error', () => {
         resolve(false);
       });
-      
+
       setTimeout(() => {
         process.kill();
         resolve(false);
@@ -208,8 +222,8 @@ export function validateLSPConfig(config: any): { valid: boolean; errors: string
 }
 
 export function createLSPTimeoutPromise<T>(
-  promise: Promise<T>, 
-  timeoutMs: number, 
+  promise: Promise<T>,
+  timeoutMs: number,
   timeoutMessage: string = 'LSP operation timed out'
 ): Promise<T> {
   return Promise.race([
@@ -226,7 +240,7 @@ export function sanitizeFilePath(filePath: string): string {
 
 export function getFileLanguage(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  
+
   const languageMap: Record<string, string> = {
     '.ts': 'typescript',
     '.tsx': 'typescript',
@@ -238,7 +252,7 @@ export function getFileLanguage(filePath: string): string {
     '.go': 'go',
     '.rs': 'rust',
   };
-  
+
   return languageMap[ext] || 'unknown';
 }
 
@@ -247,7 +261,7 @@ export function formatLSPRange(range: {
   end: { line: number; character: number };
 }): string {
   const { start, end } = range;
-  
+
   if (start.line === end.line) {
     return `line ${start.line + 1}, character ${start.character + 1}-${end.character + 1}`;
   } else {
@@ -264,7 +278,7 @@ export function createLSPRetryPolicy(
     if (attempt >= maxRetries) {
       throw new Error(`Max retries (${maxRetries}) exceeded`);
     }
-    
+
     // 指数退避
     const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
     return delay;

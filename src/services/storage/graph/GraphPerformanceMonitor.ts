@@ -27,7 +27,7 @@ export class GraphPerformanceMonitor {
     averageBatchSize: 0,
     connectionPoolStatus: 'unknown',
     totalQueriesExecuted: 0,
-    averageQueryTime: 0
+    averageQueryTime: 0,
   };
 
   private batchMetrics: BatchMetrics = {
@@ -35,7 +35,7 @@ export class GraphPerformanceMonitor {
     successfulBatches: 0,
     failedBatches: 0,
     averageBatchSize: 0,
-    totalProcessingTime: 0
+    totalProcessingTime: 0,
   };
 
   private logger: LoggerService;
@@ -48,12 +48,12 @@ export class GraphPerformanceMonitor {
   recordQueryExecution(queryTime: number): void {
     this.metrics.queryExecutionTimes.push(queryTime);
     this.metrics.totalQueriesExecuted++;
-    
+
     // Keep only last 1000 query times to prevent memory issues
     if (this.metrics.queryExecutionTimes.length > 1000) {
       this.metrics.queryExecutionTimes = this.metrics.queryExecutionTimes.slice(-1000);
     }
-    
+
     this.updateAverageQueryTime();
   }
 
@@ -75,18 +75,18 @@ export class GraphPerformanceMonitor {
 
   recordBatchOperation(success: boolean, batchSize: number, processingTime: number): void {
     this.batchMetrics.totalBatches++;
-    
+
     if (success) {
       this.batchMetrics.successfulBatches++;
     } else {
       this.batchMetrics.failedBatches++;
     }
-    
+
     this.batchMetrics.totalProcessingTime += processingTime;
-    
+
     // Update average batch size
     const alpha = 0.1;
-    this.batchMetrics.averageBatchSize = 
+    this.batchMetrics.averageBatchSize =
       this.batchMetrics.averageBatchSize * (1 - alpha) + batchSize * alpha;
   }
 
@@ -95,9 +95,10 @@ export class GraphPerformanceMonitor {
       this.metrics.averageQueryTime = 0;
       return;
     }
-    
-    this.metrics.averageQueryTime = 
-      this.metrics.queryExecutionTimes.reduce((a, b) => a + b, 0) / this.metrics.queryExecutionTimes.length;
+
+    this.metrics.averageQueryTime =
+      this.metrics.queryExecutionTimes.reduce((a, b) => a + b, 0) /
+      this.metrics.queryExecutionTimes.length;
   }
 
   getMetrics(): PerformanceMetrics {
@@ -109,9 +110,10 @@ export class GraphPerformanceMonitor {
   }
 
   getSummaryReport(): string {
-    const successRate = this.batchMetrics.totalBatches > 0 
-      ? (this.batchMetrics.successfulBatches / this.batchMetrics.totalBatches * 100).toFixed(2)
-      : '0.00';
+    const successRate =
+      this.batchMetrics.totalBatches > 0
+        ? ((this.batchMetrics.successfulBatches / this.batchMetrics.totalBatches) * 100).toFixed(2)
+        : '0.00';
 
     return `
 Graph Performance Summary:
@@ -151,7 +153,7 @@ Graph Performance Summary:
       averageBatchSize: 0,
       connectionPoolStatus: 'unknown',
       totalQueriesExecuted: 0,
-      averageQueryTime: 0
+      averageQueryTime: 0,
     };
 
     this.batchMetrics = {
@@ -159,16 +161,16 @@ Graph Performance Summary:
       successfulBatches: 0,
       failedBatches: 0,
       averageBatchSize: 0,
-      totalProcessingTime: 0
+      totalProcessingTime: 0,
     };
   }
 
   getQueryTimePercentile(percentile: number): number {
     if (this.metrics.queryExecutionTimes.length === 0) return 0;
-    
+
     const sortedTimes = [...this.metrics.queryExecutionTimes].sort((a, b) => a - b);
     const index = Math.ceil((percentile / 100) * sortedTimes.length) - 1;
-    
+
     return sortedTimes[Math.max(0, index)];
   }
 
@@ -183,8 +185,10 @@ Graph Performance Summary:
       warnings.push('Cache hit rate below 50%');
     }
 
-    if (this.batchMetrics.failedBatches > 0 && 
-        this.batchMetrics.failedBatches / this.batchMetrics.totalBatches > 0.1) {
+    if (
+      this.batchMetrics.failedBatches > 0 &&
+      this.batchMetrics.failedBatches / this.batchMetrics.totalBatches > 0.1
+    ) {
       warnings.push('Batch failure rate exceeds 10%');
     }
 

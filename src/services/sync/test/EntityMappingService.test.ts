@@ -56,26 +56,42 @@ describe('EntityMappingService', () => {
     // Setup mock return values
     mockEntityIdManager.generateEntityId.mockReturnValue('generated_entity_id');
     mockEntityIdManager.getMapping.mockReturnValue(mockMapping);
-    mockEntityIdManager.createMapping.mockImplementation((entityId, entityType, projectId, vectorId, graphId) => ({
-      entityId,
-      entityType,
-      projectId,
-      vectorId,
-      graphId,
-      lastSynced: new Date(),
-      syncStatus: vectorId && graphId ? 'synced' : vectorId ? 'vector_only' : graphId ? 'graph_only' : 'conflict'
-    }));
+    mockEntityIdManager.createMapping.mockImplementation(
+      (entityId, entityType, projectId, vectorId, graphId) => ({
+        entityId,
+        entityType,
+        projectId,
+        vectorId,
+        graphId,
+        lastSynced: new Date(),
+        syncStatus:
+          vectorId && graphId
+            ? 'synced'
+            : vectorId
+              ? 'vector_only'
+              : graphId
+                ? 'graph_only'
+                : 'conflict',
+      })
+    );
     mockEntityIdManager.updateMapping.mockImplementation((entityId, updates) => {
       const existingMapping = mockEntityIdManager.getMapping(entityId);
       if (!existingMapping) return null;
-      
+
       return {
         ...existingMapping,
         ...updates,
         lastSynced: new Date(),
-        syncStatus: updates.vectorId !== undefined || updates.graphId !== undefined
-          ? (updates.vectorId && updates.graphId ? 'synced' : updates.vectorId ? 'vector_only' : updates.graphId ? 'graph_only' : 'conflict')
-          : existingMapping.syncStatus
+        syncStatus:
+          updates.vectorId !== undefined || updates.graphId !== undefined
+            ? updates.vectorId && updates.graphId
+              ? 'synced'
+              : updates.vectorId
+                ? 'vector_only'
+                : updates.graphId
+                  ? 'graph_only'
+                  : 'conflict'
+            : existingMapping.syncStatus,
       };
     });
 
@@ -130,11 +146,7 @@ describe('EntityMappingService', () => {
       const projectId = 'test_project';
       const vectorData = { content: 'test content' };
 
-      const result = await entityMappingService.createEntity(
-        entityType,
-        projectId,
-        vectorData
-      );
+      const result = await entityMappingService.createEntity(entityType, projectId, vectorData);
 
       expect(result).toEqual({
         operationId: expect.any(String),
@@ -192,8 +204,7 @@ describe('EntityMappingService', () => {
         throw error;
       });
 
-      await expect(entityMappingService.createEntity(entityType, projectId))
-        .rejects.toThrow(error);
+      await expect(entityMappingService.createEntity(entityType, projectId)).rejects.toThrow(error);
 
       expect(mockLoggerService.info).toHaveBeenCalledWith('Queued entity creation', {
         operationId: expect.any(String),
@@ -300,8 +311,7 @@ describe('EntityMappingService', () => {
         throw error;
       });
 
-      await expect(entityMappingService.updateEntity(entityId, updates))
-        .rejects.toThrow(error);
+      await expect(entityMappingService.updateEntity(entityId, updates)).rejects.toThrow(error);
     });
   });
 
@@ -336,7 +346,9 @@ describe('EntityMappingService', () => {
         fail('Expected deleteEntity to throw an error');
       } catch (error) {
         expect(error).toBeInstanceOf(CodebaseIndexError);
-        expect((error as CodebaseIndexError).message).toMatch(/Entity not found: nonexistent_entity/);
+        expect((error as CodebaseIndexError).message).toMatch(
+          /Entity not found: nonexistent_entity/
+        );
       }
     });
 
@@ -348,8 +360,7 @@ describe('EntityMappingService', () => {
         throw error;
       });
 
-      await expect(entityMappingService.deleteEntity(entityId))
-        .rejects.toThrow(error);
+      await expect(entityMappingService.deleteEntity(entityId)).rejects.toThrow(error);
     });
   });
 
@@ -442,7 +453,9 @@ describe('EntityMappingService', () => {
         fail('Expected syncEntity to throw an error');
       } catch (error) {
         expect(error).toBeInstanceOf(CodebaseIndexError);
-        expect((error as CodebaseIndexError).message).toMatch(/Entity not found: nonexistent_entity/);
+        expect((error as CodebaseIndexError).message).toMatch(
+          /Entity not found: nonexistent_entity/
+        );
       }
     });
 
@@ -454,14 +467,13 @@ describe('EntityMappingService', () => {
       };
 
       mockEntityIdManager.getMapping.mockReturnValue(mappingWithVectorOnly);
-      
+
       // Make the operation fail
       jest.spyOn(entityMappingService as any, 'executeOperation').mockImplementationOnce(() => {
         throw new Error('Sync failed');
       });
 
-      await expect(entityMappingService.syncEntity(entityId))
-        .rejects.toThrow('Sync failed');
+      await expect(entityMappingService.syncEntity(entityId)).rejects.toThrow('Sync failed');
     });
   });
 
@@ -694,9 +706,11 @@ describe('EntityMappingService', () => {
       });
 
       // Make one operation fail
-      jest.spyOn(entityMappingService as any, 'executeOperation').mockImplementationOnce(async () => {
-        throw new Error('Operation failed');
-      });
+      jest
+        .spyOn(entityMappingService as any, 'executeOperation')
+        .mockImplementationOnce(async () => {
+          throw new Error('Operation failed');
+        });
 
       const results = await entityMappingService.executeBatch(batchId);
 

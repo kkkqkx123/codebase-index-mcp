@@ -92,18 +92,18 @@ export class BatchPerformanceMonitor {
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
   private batchMetrics: BatchProcessingMetrics;
-  
+
   // Performance metrics storage
   private metrics: PerformanceMetrics[] = [];
   private alerts: PerformanceAlert[] = [];
-  
+
   // Configuration
   private thresholds!: PerformanceThresholds;
   private maxMetricsCount: number = 1000;
   private maxAlertsCount: number = 500;
   private cleanupInterval: number = 3600000; // 1 hour
   private cleanupTimer: NodeJS.Timeout | null = null;
-  
+
   constructor(
     @inject(TYPES.ConfigService) configService: ConfigService,
     @inject(TYPES.LoggerService) logger: LoggerService,
@@ -114,7 +114,7 @@ export class BatchPerformanceMonitor {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.batchMetrics = batchMetrics;
-    
+
     this.initializeThresholds();
     this.startCleanupTask();
   }
@@ -123,7 +123,7 @@ export class BatchPerformanceMonitor {
     const config = this.configService.get('batchProcessing') || {};
     const monitoringConfig = config?.monitoring || {};
     const alertThresholds = monitoringConfig?.alertThresholds || {};
-    
+
     this.thresholds = {
       highLatency: alertThresholds.highLatency || 5000,
       lowThroughput: alertThresholds.lowThroughput || 10,
@@ -131,9 +131,9 @@ export class BatchPerformanceMonitor {
       highMemoryUsage: alertThresholds.highMemoryUsage || 80,
       criticalMemoryUsage: alertThresholds.criticalMemoryUsage || 90,
       highCpuUsage: alertThresholds.highCpuUsage || 70,
-      criticalCpuUsage: alertThresholds.criticalCpuUsage || 85
+      criticalCpuUsage: alertThresholds.criticalCpuUsage || 85,
     };
-    
+
     this.logger.info('Performance thresholds initialized', this.thresholds);
   }
 
@@ -142,9 +142,9 @@ export class BatchPerformanceMonitor {
       this.cleanupOldMetrics();
       this.cleanupOldAlerts();
     }, this.cleanupInterval);
-    
-    this.logger.info('Performance monitor cleanup task started', { 
-      interval: this.cleanupInterval 
+
+    this.logger.info('Performance monitor cleanup task started', {
+      interval: this.cleanupInterval,
     });
   }
 
@@ -169,31 +169,31 @@ export class BatchPerformanceMonitor {
         start: batchMetrics.memoryUsage.start,
         end: batchMetrics.memoryUsage.end,
         peak: batchMetrics.memoryUsage.peak,
-        delta: batchMetrics.memoryUsage.end - batchMetrics.memoryUsage.start
+        delta: batchMetrics.memoryUsage.end - batchMetrics.memoryUsage.start,
       },
       batchSize: batchMetrics.batchSize,
       processedCount: batchMetrics.processedCount,
       successCount: batchMetrics.successCount,
       errorCount: batchMetrics.errorCount,
       retryCount: batchMetrics.retryCount,
-      timeout: batchMetrics.timeout || false
+      timeout: batchMetrics.timeout || false,
     };
-    
+
     this.metrics.push(metrics);
-    
+
     // Maintain metrics history size
     if (this.metrics.length > this.maxMetricsCount) {
       this.metrics = this.metrics.slice(-this.maxMetricsCount);
     }
-    
+
     // Check for alerts
     this.checkForAlerts(metrics);
-    
+
     this.logger.debug('Operation metrics recorded', {
       operationId: metrics.operationId,
       duration: metrics.duration,
       throughput: metrics.throughput,
-      errorRate: metrics.errorRate
+      errorRate: metrics.errorRate,
     });
   }
 
@@ -208,10 +208,10 @@ export class BatchPerformanceMonitor {
         operationId: metrics.operationId,
         metrics,
         threshold: this.thresholds.highLatency,
-        actualValue: metrics.duration
+        actualValue: metrics.duration,
       });
     }
-    
+
     // Low throughput alert
     if (metrics.throughput < this.thresholds.lowThroughput) {
       this.createAlert({
@@ -222,10 +222,10 @@ export class BatchPerformanceMonitor {
         operationId: metrics.operationId,
         metrics,
         threshold: this.thresholds.lowThroughput,
-        actualValue: metrics.throughput
+        actualValue: metrics.throughput,
       });
     }
-    
+
     // High error rate alert
     if (metrics.errorRate > this.thresholds.highErrorRate) {
       this.createAlert({
@@ -236,10 +236,10 @@ export class BatchPerformanceMonitor {
         operationId: metrics.operationId,
         metrics,
         threshold: this.thresholds.highErrorRate,
-        actualValue: metrics.errorRate
+        actualValue: metrics.errorRate,
       });
     }
-    
+
     // High memory usage alert
     const memoryUsagePercent = (metrics.memoryUsage.peak / process.memoryUsage().heapTotal) * 100;
     if (memoryUsagePercent > this.thresholds.highMemoryUsage) {
@@ -251,10 +251,10 @@ export class BatchPerformanceMonitor {
         operationId: metrics.operationId,
         metrics,
         threshold: this.thresholds.highMemoryUsage,
-        actualValue: memoryUsagePercent
+        actualValue: memoryUsagePercent,
       });
     }
-    
+
     // Timeout alert
     if (metrics.timeout) {
       this.createAlert({
@@ -263,7 +263,7 @@ export class BatchPerformanceMonitor {
         message: `Operation timed out`,
         severity: 'high',
         operationId: metrics.operationId,
-        metrics
+        metrics,
       });
     }
   }
@@ -272,18 +272,18 @@ export class BatchPerformanceMonitor {
     const fullAlert: PerformanceAlert = {
       ...alert,
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     this.alerts.push(fullAlert);
     this.logger.warn('Performance alert generated', {
       alertId: fullAlert.id,
       type: fullAlert.type,
       category: fullAlert.category,
       message: fullAlert.message,
-      severity: fullAlert.severity
+      severity: fullAlert.severity,
     });
-    
+
     // Maintain alerts history size
     if (this.alerts.length > this.maxAlertsCount) {
       this.alerts = this.alerts.slice(-this.maxAlertsCount);
@@ -291,44 +291,42 @@ export class BatchPerformanceMonitor {
   }
 
   generatePerformanceReport(timeRange: { start: number; end: number }): PerformanceReport {
-    const filteredMetrics = this.metrics.filter(metric => 
-      metric.timestamp >= timeRange.start && 
-      metric.timestamp <= timeRange.end
+    const filteredMetrics = this.metrics.filter(
+      metric => metric.timestamp >= timeRange.start && metric.timestamp <= timeRange.end
     );
-    
-    const filteredAlerts = this.alerts.filter(alert => 
-      alert.timestamp >= timeRange.start && 
-      alert.timestamp <= timeRange.end
+
+    const filteredAlerts = this.alerts.filter(
+      alert => alert.timestamp >= timeRange.start && alert.timestamp <= timeRange.end
     );
-    
+
     if (filteredMetrics.length === 0) {
       return this.getEmptyReport(timeRange);
     }
-    
+
     const completedMetrics = filteredMetrics.filter(m => m.duration > 0);
     const durations = completedMetrics.map(m => m.duration || 0);
     const throughputs = completedMetrics.map(m => m.throughput || 0).filter(t => t > 0);
     const errorRates = completedMetrics.map(m => m.errorRate || 0);
-    
+
     // Calculate percentiles
     const p95Latency = this.percentile(durations, 95);
     const p99Latency = this.percentile(durations, 99);
-    
+
     // Calculate averages
     const averageLatency = durations.reduce((sum, d) => sum + d, 0) / durations.length;
-    const averageThroughput = throughputs.length > 0 ? 
-      throughputs.reduce((sum, t) => sum + t, 0) / throughputs.length : 0;
+    const averageThroughput =
+      throughputs.length > 0 ? throughputs.reduce((sum, t) => sum + t, 0) / throughputs.length : 0;
     const averageErrorRate = errorRates.reduce((sum, r) => sum + r, 0) / errorRates.length;
-    
+
     // Calculate memory efficiency
     const memoryEfficiency = this.calculateMemoryEfficiency(completedMetrics);
-    
+
     // Calculate adaptive batching stats
     const adaptiveBatchingStats = this.calculateAdaptiveBatchingStats(completedMetrics);
-    
+
     // Calculate system health
     const systemHealth = this.calculateSystemHealth(completedMetrics);
-    
+
     return {
       generatedAt: Date.now(),
       timeRange,
@@ -341,10 +339,10 @@ export class BatchPerformanceMonitor {
         averageErrorRate: averageErrorRate,
         memoryEfficiency,
         adaptiveBatchingStats,
-        systemHealth
+        systemHealth,
       },
       metrics: filteredMetrics,
-      alerts: filteredAlerts
+      alerts: filteredAlerts,
     };
   }
 
@@ -363,27 +361,26 @@ export class BatchPerformanceMonitor {
         adaptiveBatchingStats: {
           averageBatchSize: 0,
           adjustmentCount: 0,
-          improvementRate: 0
+          improvementRate: 0,
         },
         systemHealth: {
           averageMemoryUsage: 0,
           averageCpuUsage: 0,
           peakMemoryUsage: 0,
-          peakCpuUsage: 0
-        }
+          peakCpuUsage: 0,
+        },
       },
       metrics: [],
-      alerts: []
+      alerts: [],
     };
   }
 
   private calculateMemoryEfficiency(metrics: PerformanceMetrics[]): number {
     if (metrics.length === 0) return 0;
-    
-    const totalMemoryDelta = metrics.reduce((sum, m) => 
-      sum + Math.abs(m.memoryUsage.delta), 0);
+
+    const totalMemoryDelta = metrics.reduce((sum, m) => sum + Math.abs(m.memoryUsage.delta), 0);
     const totalProcessed = metrics.reduce((sum, m) => sum + m.processedCount, 0);
-    
+
     return totalProcessed > 0 ? (totalProcessed / totalMemoryDelta) * 1000 : 0;
   }
 
@@ -392,74 +389,79 @@ export class BatchPerformanceMonitor {
       return {
         averageBatchSize: 0,
         adjustmentCount: 0,
-        improvementRate: 0
+        improvementRate: 0,
       };
     }
-    
+
     const averageBatchSize = metrics.reduce((sum, m) => sum + m.batchSize, 0) / metrics.length;
     const totalAdjustments = metrics.reduce((sum, m) => sum + m.retryCount, 0);
-    
+
     // Calculate improvement rate based on performance trends
-    const improvements = metrics.filter(m =>
-      m.throughput !== undefined && m.throughput > this.thresholds.lowThroughput &&
-      m.errorRate !== undefined && m.errorRate < this.thresholds.highErrorRate
+    const improvements = metrics.filter(
+      m =>
+        m.throughput !== undefined &&
+        m.throughput > this.thresholds.lowThroughput &&
+        m.errorRate !== undefined &&
+        m.errorRate < this.thresholds.highErrorRate
     ).length;
     const improvementRate = metrics.length > 0 ? improvements / metrics.length : 0;
-    
+
     return {
       averageBatchSize,
       adjustmentCount: totalAdjustments,
-      improvementRate
+      improvementRate,
     };
   }
 
   private calculateSystemHealth(metrics: PerformanceMetrics[]) {
-    const memoryUsages = metrics.map(m => 
-      (m.memoryUsage.peak / process.memoryUsage().heapTotal) * 100);
-    
+    const memoryUsages = metrics.map(
+      m => (m.memoryUsage.peak / process.memoryUsage().heapTotal) * 100
+    );
+
     return {
       averageMemoryUsage: memoryUsages.reduce((sum, usage) => sum + usage, 0) / memoryUsages.length,
       averageCpuUsage: 0, // CPU usage not currently tracked
       peakMemoryUsage: Math.max(...memoryUsages),
-      peakCpuUsage: 0 // CPU usage not currently tracked
+      peakCpuUsage: 0, // CPU usage not currently tracked
     };
   }
 
   private percentile(sortedArray: number[], p: number): number {
     if (sortedArray.length === 0) return 0;
-    
+
     const index = Math.ceil((p / 100) * sortedArray.length) - 1;
     return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))] || 0;
   }
 
   getRecentAlerts(limit: number = 50): PerformanceAlert[] {
-    return this.alerts
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, limit);
+    return this.alerts.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
   }
 
   getMetrics(timeRange?: { start: number; end: number }): PerformanceMetrics[] {
     if (!timeRange) {
       return this.metrics;
     }
-    
-    return this.metrics.filter(metric => 
-      metric.timestamp >= timeRange.start && 
-      metric.timestamp <= timeRange.end
+
+    return this.metrics.filter(
+      metric => metric.timestamp >= timeRange.start && metric.timestamp <= timeRange.end
     );
   }
 
   exportMetrics(format: 'json' | 'csv' = 'json'): string {
     if (format === 'json') {
-      return JSON.stringify({
-        exportedAt: new Date().toISOString(),
-        metrics: this.metrics,
-        alerts: this.alerts,
-        summary: this.generatePerformanceReport({
-          start: Date.now() - 24 * 60 * 60 * 1000,
-          end: Date.now()
-        }).summary
-      }, null, 2);
+      return JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          metrics: this.metrics,
+          alerts: this.alerts,
+          summary: this.generatePerformanceReport({
+            start: Date.now() - 24 * 60 * 60 * 1000,
+            end: Date.now(),
+          }).summary,
+        },
+        null,
+        2
+      );
     } else {
       return this.exportToCsv();
     }
@@ -482,7 +484,7 @@ export class BatchPerformanceMonitor {
       'successCount',
       'errorCount',
       'retryCount',
-      'timeout'
+      'timeout',
     ];
 
     const rows = this.metrics.map(metric => [
@@ -501,7 +503,7 @@ export class BatchPerformanceMonitor {
       metric.successCount,
       metric.errorCount,
       metric.retryCount,
-      metric.timeout
+      metric.timeout,
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -519,8 +521,8 @@ export class BatchPerformanceMonitor {
 
     const cleanedCount = initialSize - this.metrics.length;
     if (cleanedCount > 0) {
-      this.logger.debug('Cleaned up old performance metrics', { 
-        count: cleanedCount 
+      this.logger.debug('Cleaned up old performance metrics', {
+        count: cleanedCount,
       });
     }
   }
@@ -536,10 +538,10 @@ export class BatchPerformanceMonitor {
     this.alerts = this.alerts.filter(alert => alert.timestamp > cutoffTime);
 
     const cleanedCount = initialSize - this.alerts.length;
-    
+
     if (cleanedCount > 0) {
-      this.logger.debug('Cleaned up old performance alerts', { 
-        count: cleanedCount 
+      this.logger.debug('Cleaned up old performance alerts', {
+        count: cleanedCount,
       });
     }
   }

@@ -35,7 +35,7 @@ export class GraphBatchOptimizer {
       retryAttempts: 3,
       retryDelay: 1000,
       adaptiveBatchingEnabled: true,
-      ...config
+      ...config,
     };
   }
 
@@ -67,19 +67,22 @@ export class GraphBatchOptimizer {
 
     // Adjust based on consecutive failures
     if (this.consecutiveFailures > 0) {
-      const reductionFactor = Math.max(0.3, 1 - (this.consecutiveFailures * 0.2));
+      const reductionFactor = Math.max(0.3, 1 - this.consecutiveFailures * 0.2);
       optimalSize = Math.max(10, Math.floor(optimalSize * reductionFactor));
     }
 
     // Ensure batch size is within bounds
-    optimalSize = Math.max(1, Math.min(optimalSize, Math.min(this.config.maxBatchSize, totalItems)));
+    optimalSize = Math.max(
+      1,
+      Math.min(optimalSize, Math.min(this.config.maxBatchSize, totalItems))
+    );
 
     return optimalSize;
   }
 
   private calculateAverageSuccessSize(): number {
     if (this.lastBatchSizes.length === 0) return 0;
-    
+
     const recentSizes = this.lastBatchSizes.slice(-10);
     return Math.floor(recentSizes.reduce((a, b) => a + b, 0) / recentSizes.length);
   }
@@ -87,7 +90,7 @@ export class GraphBatchOptimizer {
   shouldRetryOperation(failureCount: number, error?: Error): BatchOptimizationResult {
     const shouldRetry = failureCount < this.config.retryAttempts;
     const retryDelay = this.calculateRetryDelay(failureCount);
-    
+
     if (!shouldRetry) {
       this.consecutiveFailures++;
     } else {
@@ -98,7 +101,7 @@ export class GraphBatchOptimizer {
       optimalBatchSize: this.calculateOptimalBatchSize(1000), // Default fallback
       shouldRetry,
       retryDelay,
-      memoryUsage: this.getCurrentMemoryUsage()
+      memoryUsage: this.getCurrentMemoryUsage(),
     };
   }
 
@@ -106,13 +109,13 @@ export class GraphBatchOptimizer {
     const baseDelay = this.config.retryDelay;
     const exponentialBackoff = Math.pow(2, failureCount);
     const jitter = Math.random() * 0.1; // Add 10% jitter
-    
+
     return Math.floor(baseDelay * exponentialBackoff * (1 + jitter));
   }
 
   recordBatchResult(batchSize: number, success: boolean, processingTime?: number): void {
     this.lastBatchSizes.push(batchSize);
-    
+
     // Keep only last 20 batch sizes
     if (this.lastBatchSizes.length > 20) {
       this.lastBatchSizes = this.lastBatchSizes.slice(-20);
@@ -135,12 +138,12 @@ export class GraphBatchOptimizer {
       const memUsage = process.memoryUsage();
       const totalMemory = memUsage.heapTotal + memUsage.external;
       const usedMemory = memUsage.heapUsed + memUsage.external;
-      
+
       if (totalMemory > 0) {
         return (usedMemory / totalMemory) * 100;
       }
     }
-    
+
     // Fallback if memory usage is not available
     return 50; // Assume moderate usage
   }

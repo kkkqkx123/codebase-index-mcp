@@ -51,7 +51,7 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
     maxTotalSnippets: 1000,
     timeout: 30000, // 30秒
     parallelProcessing: true,
-    cacheEnabled: true
+    cacheEnabled: true,
   },
   rules: {
     DestructuringAssignmentRule: {
@@ -65,7 +65,7 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
       languages: ['javascript', 'typescript', 'python', 'java'],
       includeContext: true,
       extractImports: true,
-      extractExports: false
+      extractExports: false,
     },
     ControlStructureRule: {
       enabled: true,
@@ -78,7 +78,7 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
       languages: ['javascript', 'typescript', 'python', 'java', 'go', 'rust'],
       includeContext: true,
       extractImports: false,
-      extractExports: false
+      extractExports: false,
     },
     FunctionCallChainRule: {
       enabled: true,
@@ -91,7 +91,7 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
       languages: ['javascript', 'typescript', 'python', 'java'],
       includeContext: true,
       extractImports: true,
-      extractExports: false
+      extractExports: false,
     },
     ModernLanguageFeaturesRule: {
       enabled: true,
@@ -105,14 +105,7 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
       includeContext: true,
       extractImports: true,
       extractExports: true,
-      customPatterns: [
-        'async.*function',
-        'await\s+\w+',
-        '\?\.|\?\?',
-        '@\w+',
-        '#\w+',
-        '\.\.\.'
-      ]
+      customPatterns: ['async.*function', 'await\s+\w+', '\?\.|\?\?', '@\w+', '#\w+', '\.\.\.'],
     },
     ReactiveProgrammingRule: {
       enabled: true,
@@ -131,8 +124,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         '\.subscribe\s*\(',
         'Observable',
         'Subject',
-        'BehaviorSubject'
-      ]
+        'BehaviorSubject',
+      ],
     },
     TestCodeRule: {
       enabled: true,
@@ -152,8 +145,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'test\s*\(',
         'expect\s*\(',
         'assert\s*\(',
-        'should\s*\('
-      ]
+        'should\s*\(',
+      ],
     },
     ReactRule: {
       enabled: true,
@@ -172,8 +165,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'useState\s*\(',
         'useEffect\s*\(',
         'function\s+[A-Z].*return.*<',
-        'class\s+[A-Z].*extends.*Component'
-      ]
+        'class\s+[A-Z].*extends.*Component',
+      ],
     },
     DjangoRule: {
       enabled: true,
@@ -193,8 +186,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'def.*request.*:',
         '@login_required',
         'objects.filter',
-        'render\\('
-      ]
+        'render\\(',
+      ],
     },
     SpringBootRule: {
       enabled: true,
@@ -215,8 +208,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         '@Entity',
         '@Autowired',
         '@GetMapping',
-        '@Transactional'
-      ]
+        '@Transactional',
+      ],
     },
     PyTorchRule: {
       enabled: true,
@@ -236,8 +229,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'def forward\\(',
         'model.train\\(',
         'optimizer.step\\(',
-        'loss.backward\\('
-      ]
+        'loss.backward\\(',
+      ],
     },
     VueRule: {
       enabled: true,
@@ -260,8 +253,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'reactive\\(',
         'computed\\(',
         'watch\\(',
-        '<script setup>'
-      ]
+        '<script setup>',
+      ],
     },
     ExpressRule: {
       enabled: true,
@@ -282,8 +275,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         'router\\.(get|post|put|delete|patch)',
         'app\\.use\\(',
         'res\\.(send|json|render)',
-        'req\\.(params|query|body)'
-      ]
+        'req\\.(params|query|body)',
+      ],
     },
     PytestRule: {
       enabled: true,
@@ -305,8 +298,8 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         '@pytest\\.mark',
         'assert ',
         'with pytest\\.raises',
-        '@pytest\\.parametrize'
-      ]
+        '@pytest\\.parametrize',
+      ],
     },
     JUnitRule: {
       enabled: true,
@@ -329,90 +322,168 @@ export const DEFAULT_CONFIG: RuleConfiguration = {
         '@AfterAll',
         '@ParameterizedTest',
         'assert',
-        'Assertions\\.'
-      ]
-    }
+        'Assertions\\.',
+      ],
+    },
   },
   languages: {
     javascript: {
       nodeTypes: [
-        'function_declaration', 'arrow_function', 'class_declaration',
-        'method_definition', 'object_pattern', 'array_pattern',
-        'template_string', 'template_literal', 'spread_element'
+        'function_declaration',
+        'arrow_function',
+        'class_declaration',
+        'method_definition',
+        'object_pattern',
+        'array_pattern',
+        'template_string',
+        'template_literal',
+        'spread_element',
       ],
       patterns: [
-        'function\s*\(', '=>\s*\{', 'class\s+\w+',
-        'async\s+function', 'await\s+\w+', '\.\.\.'
+        'function\s*\(',
+        '=>\s*\{',
+        'class\s+\w+',
+        'async\s+function',
+        'await\s+\w+',
+        '\.\.\.',
       ],
       keywords: [
-        'function', 'class', 'async', 'await', 'const', 'let', 'var',
-        'import', 'export', 'extends', 'implements', 'interface'
-      ]
+        'function',
+        'class',
+        'async',
+        'await',
+        'const',
+        'let',
+        'var',
+        'import',
+        'export',
+        'extends',
+        'implements',
+        'interface',
+      ],
     },
     typescript: {
       nodeTypes: [
-        'type_alias_declaration', 'interface_declaration', 'generic_type',
-        'type_parameter_declaration', 'decorator', 'private_identifier'
+        'type_alias_declaration',
+        'interface_declaration',
+        'generic_type',
+        'type_parameter_declaration',
+        'decorator',
+        'private_identifier',
       ],
-      patterns: [
-        'type\s+\w+\s*=', 'interface\s+\w+', '@\w+',
-        '#\w+', '<\w+>', 'extends\s+\w+'
-      ],
+      patterns: ['type\s+\w+\s*=', 'interface\s+\w+', '@\w+', '#\w+', '<\w+>', 'extends\s+\w+'],
       keywords: [
-        'type', 'interface', 'implements', 'extends', 'readonly',
-        'private', 'public', 'protected', 'abstract', 'static'
-      ]
+        'type',
+        'interface',
+        'implements',
+        'extends',
+        'readonly',
+        'private',
+        'public',
+        'protected',
+        'abstract',
+        'static',
+      ],
     },
     python: {
       nodeTypes: [
-        'function_definition', 'class_definition', 'list_comprehension',
-        'dictionary_comprehension', 'generator_expression', 'decorator'
+        'function_definition',
+        'class_definition',
+        'list_comprehension',
+        'dictionary_comprehension',
+        'generator_expression',
+        'decorator',
       ],
       patterns: [
-        'def\s+\w+', 'class\s+\w+', '@\w+', '\*\w+', '\*\*\w+',
-        'async\s+def', 'await\s+\w+'
+        'def\s+\w+',
+        'class\s+\w+',
+        '@\w+',
+        '\*\w+',
+        '\*\*\w+',
+        'async\s+def',
+        'await\s+\w+',
       ],
       keywords: [
-        'def', 'class', 'async', 'await', 'import', 'from', 'as',
-        'lambda', 'yield', 'with', 'try', 'except', 'finally'
-      ]
+        'def',
+        'class',
+        'async',
+        'await',
+        'import',
+        'from',
+        'as',
+        'lambda',
+        'yield',
+        'with',
+        'try',
+        'except',
+        'finally',
+      ],
     },
     java: {
       nodeTypes: [
-        'method_declaration', 'class_declaration', 'interface_declaration',
-        'enum_declaration', 'annotation', 'generic_type'
+        'method_declaration',
+        'class_declaration',
+        'interface_declaration',
+        'enum_declaration',
+        'annotation',
+        'generic_type',
       ],
       patterns: [
-        'public\s+class', 'private\s+class', 'interface\s+\w+',
-        '@\w+', '<\w+>', 'extends\s+\w+'
+        'public\s+class',
+        'private\s+class',
+        'interface\s+\w+',
+        '@\w+',
+        '<\w+>',
+        'extends\s+\w+',
       ],
       keywords: [
-        'public', 'private', 'protected', 'static', 'final', 'abstract',
-        'interface', 'class', 'extends', 'implements', 'enum', '@'
-      ]
+        'public',
+        'private',
+        'protected',
+        'static',
+        'final',
+        'abstract',
+        'interface',
+        'class',
+        'extends',
+        'implements',
+        'enum',
+        '@',
+      ],
     },
     go: {
       nodeTypes: [
-        'function_declaration', 'method_declaration', 'struct_type',
-        'interface_type', 'type_declaration', 'goroutine'
+        'function_declaration',
+        'method_declaration',
+        'struct_type',
+        'interface_type',
+        'type_declaration',
+        'goroutine',
       ],
-      patterns: [
-        'func\s+\w+', 'type\s+\w+\s+struct', 'interface\s+\w+',
-        'go\s+func', 'chan\s+\w+'
-      ],
+      patterns: ['func\s+\w+', 'type\s+\w+\s+struct', 'interface\s+\w+', 'go\s+func', 'chan\s+\w+'],
       keywords: [
-        'func', 'type', 'struct', 'interface', 'go', 'chan', 'select',
-        'defer', 'fallthrough', 'range', 'make', 'new'
-      ]
-    }
+        'func',
+        'type',
+        'struct',
+        'interface',
+        'go',
+        'chan',
+        'select',
+        'defer',
+        'fallthrough',
+        'range',
+        'make',
+        'new',
+      ],
+    },
   },
   featureFlags: {
     enableModernFeatures: true,
     enableReactivePatterns: true,
     enableTestExtraction: true,
     enableContextAnalysis: true,
-    enablePerformanceMetrics: true
-  }
+    enablePerformanceMetrics: true,
+  },
 };
 
 export class ConfigurationManager {
@@ -436,16 +507,16 @@ export class ConfigurationManager {
       ...newConfig,
       rules: {
         ...this.config.rules,
-        ...newConfig.rules
+        ...newConfig.rules,
       },
       languages: {
         ...this.config.languages,
-        ...newConfig.languages
+        ...newConfig.languages,
       },
       featureFlags: {
         ...this.config.featureFlags,
-        ...newConfig.featureFlags
-      }
+        ...newConfig.featureFlags,
+      },
     };
   }
 
@@ -457,7 +528,7 @@ export class ConfigurationManager {
     if (this.config.rules[ruleName]) {
       this.config.rules[ruleName] = {
         ...this.config.rules[ruleName],
-        ...config
+        ...config,
       };
     }
   }
@@ -479,14 +550,12 @@ export class ConfigurationManager {
   }
 
   getEnabledRules(): string[] {
-    return Object.keys(this.config.rules).filter(
-      ruleName => this.config.rules[ruleName].enabled
-    );
+    return Object.keys(this.config.rules).filter(ruleName => this.config.rules[ruleName].enabled);
   }
 
   getRulesForLanguage(language: string): string[] {
-    return Object.keys(this.config.rules).filter(
-      ruleName => this.config.rules[ruleName].languages.includes(language)
+    return Object.keys(this.config.rules).filter(ruleName =>
+      this.config.rules[ruleName].languages.includes(language)
     );
   }
 

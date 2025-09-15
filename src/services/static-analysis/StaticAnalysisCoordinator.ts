@@ -27,7 +27,8 @@ export class StaticAnalysisCoordinator {
     @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(TYPES.EventQueueService) private eventQueue: EventQueueService,
     @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
-    @inject(TYPES.EnhancedSemgrepScanService) private enhancedSemgrepService: EnhancedSemgrepScanService,
+    @inject(TYPES.EnhancedSemgrepScanService)
+    private enhancedSemgrepService: EnhancedSemgrepScanService,
     @inject(TYPES.SemgrepResultProcessor) private resultProcessor: SemgrepResultProcessor,
     @inject(TYPES.NebulaService) private nebulaService: NebulaService,
     @inject(TYPES.QdrantService) private qdrantService: QdrantService
@@ -39,13 +40,13 @@ export class StaticAnalysisCoordinator {
    * 设置事件处理器
    */
   private setupEventHandlers(): void {
-    this.eventQueue.on('file_changed', async (event) => {
+    this.eventQueue.on('file_changed', async event => {
       if (event.type === 'file_changed') {
         await this.handleFileChange(event.projectPath, event.filePath);
       }
     });
 
-    this.eventQueue.on('project_indexed', async (event) => {
+    this.eventQueue.on('project_indexed', async event => {
       if (event.type === 'project_indexed') {
         await this.handleProjectIndexed(event.projectPath);
       }
@@ -58,7 +59,7 @@ export class StaticAnalysisCoordinator {
   private async handleFileChange(projectPath: string, filePath: string): Promise<void> {
     try {
       this.logger.debug(`Handling file change: ${filePath} in project ${projectPath}`);
-      
+
       // 检查是否应该触发扫描
       if (await this.shouldTriggerScan(projectPath)) {
         await this.queueScanTask(projectPath, {
@@ -103,12 +104,9 @@ export class StaticAnalysisCoordinator {
   /**
    * 队列扫描任务
    */
-  async queueScanTask(
-    projectPath: string,
-    options: SemgrepScanOptions = {}
-  ): Promise<string> {
+  async queueScanTask(projectPath: string, options: SemgrepScanOptions = {}): Promise<string> {
     const taskId = this.generateTaskId(projectPath);
-    
+
     const task: AnalysisTask = {
       id: taskId,
       projectPath,
@@ -126,7 +124,7 @@ export class StaticAnalysisCoordinator {
       timestamp: new Date(),
       priority: 1,
       retryCount: 0,
-      metadata: { task }
+      metadata: { task },
     };
     await this.eventQueue.enqueue(queuedEvent);
     this.logger.info(`Queued static analysis task: ${taskId}`);
@@ -139,7 +137,7 @@ export class StaticAnalysisCoordinator {
    */
   async executeTask(task: AnalysisTask): Promise<SemgrepScanResult> {
     const startTime = Date.now();
-    
+
     try {
       this.processingQueue.add(task.projectPath);
       task.status = 'running';
@@ -150,9 +148,12 @@ export class StaticAnalysisCoordinator {
       // 根据配置选择使用增强型或标准扫描
       let result: SemgrepScanResult;
       const useEnhanced = this.configService?.get('staticAnalysis.useEnhancedSemgrep', true);
-      
+
       if (useEnhanced) {
-        const enhancedResult = await this.enhancedSemgrepService.scanProject(task.projectPath, task.options);
+        const enhancedResult = await this.enhancedSemgrepService.scanProject(
+          task.projectPath,
+          task.options
+        );
         result = this.convertEnhancedToStandardResult(enhancedResult);
         await this.processEnhancedResults(enhancedResult);
       } else {
@@ -167,7 +168,6 @@ export class StaticAnalysisCoordinator {
       this.logger.info(`Completed static analysis task: ${task.id} in ${Date.now() - startTime}ms`);
 
       return result;
-
     } catch (error) {
       task.status = 'failed';
       task.completedAt = new Date();
@@ -196,7 +196,6 @@ export class StaticAnalysisCoordinator {
       // 生成摘要报告
       const summary = this.resultProcessor.generateSummaryReport(result);
       this.logger.info(summary.summary);
-
     } catch (error) {
       this.logger.error('Error processing scan result:', error);
       throw error;
@@ -214,12 +213,12 @@ export class StaticAnalysisCoordinator {
 
       // 使用事务批量插入节点和边
       const queries = [];
-      
+
       // 批量插入节点
       for (const node of data.nodes) {
         queries.push({
           nGQL: `INSERT VERTEX ${node.label}(id, name, type, properties) VALUES "${node.id}":("${node.id}", "${node.name}", "${node.type}", $properties)`,
-          parameters: { properties: JSON.stringify(node.properties || {}) }
+          parameters: { properties: JSON.stringify(node.properties || {}) },
         });
       }
 
@@ -227,13 +226,15 @@ export class StaticAnalysisCoordinator {
       for (const edge of data.edges) {
         queries.push({
           nGQL: `INSERT EDGE ${edge.type}(properties) VALUES "${edge.sourceId}" -> "${edge.targetId}":($properties)`,
-          parameters: { properties: JSON.stringify(edge.properties || {}) }
+          parameters: { properties: JSON.stringify(edge.properties || {}) },
         });
       }
 
       if (queries.length > 0) {
         await this.nebulaService.executeTransaction(queries);
-        this.logger.info(`Stored ${data.nodes.length} nodes and ${data.edges.length} edges in graph database`);
+        this.logger.info(
+          `Stored ${data.nodes.length} nodes and ${data.edges.length} edges in graph database`
+        );
       }
     } catch (error) {
       this.logger.error('Error storing in graph database:', error);
@@ -272,7 +273,6 @@ export class StaticAnalysisCoordinator {
       // 生成增强摘要报告
       const summary = this.resultProcessor.generateEnhancedSummaryReport(enhancedResult);
       this.logger.info(summary.summary);
-
     } catch (error) {
       this.logger.error('Error processing enhanced scan result:', error);
       throw error;
@@ -282,7 +282,9 @@ export class StaticAnalysisCoordinator {
   /**
    * 转换增强结果为标准格式
    */
-  private convertEnhancedToStandardResult(enhancedResult: EnhancedAnalysisResult): SemgrepScanResult {
+  private convertEnhancedToStandardResult(
+    enhancedResult: EnhancedAnalysisResult
+  ): SemgrepScanResult {
     const findings = enhancedResult.enhancedAnalysis?.securityIssues?.issues || [];
     return {
       id: enhancedResult.id,
@@ -293,7 +295,8 @@ export class StaticAnalysisCoordinator {
         id: `${issue.type}_${issue.location.file}_${issue.location.line}`,
         ruleId: issue.type,
         message: issue.message,
-        severity: issue.severity === 'HIGH' ? 'ERROR' : issue.severity === 'MEDIUM' ? 'WARNING' : 'INFO',
+        severity:
+          issue.severity === 'HIGH' ? 'ERROR' : issue.severity === 'MEDIUM' ? 'WARNING' : 'INFO',
         confidence: 'HIGH',
         category: issue.type,
         location: {
@@ -301,14 +304,14 @@ export class StaticAnalysisCoordinator {
           start: {
             line: issue.location.line,
             col: issue.location.column,
-            offset: 0
+            offset: 0,
           },
           end: {
             line: issue.location.line,
             col: issue.location.column + 10,
-            offset: 10
+            offset: 10,
           },
-          lines: [issue.code]
+          lines: [issue.code],
         },
         codeContext: {
           id: `${issue.type}_${issue.location.file}_${issue.location.line}`,
@@ -325,17 +328,17 @@ export class StaticAnalysisCoordinator {
           metadata: {
             type: issue.type,
             severity: issue.severity,
-            message: issue.message
-          }
-        }
+            message: issue.message,
+          },
+        },
       })),
       summary: enhancedResult.summary,
       errors: [],
       metadata: {
         semgrepVersion: '1.0.0',
         configHash: '',
-        projectHash: this.hashString(enhancedResult.projectPath)
-      }
+        projectHash: this.hashString(enhancedResult.projectPath),
+      },
     };
   }
 
@@ -361,7 +364,7 @@ export class StaticAnalysisCoordinator {
       `;
 
       const results = await this.nebulaService.executeReadQuery(query, { projectPath });
-      
+
       return results.map((record: any) => ({
         id: record.scan.id || `scan_${Date.now()}`,
         projectPath: record.scan.projectPath,
@@ -373,15 +376,23 @@ export class StaticAnalysisCoordinator {
           errorCount: 0,
           rulesRun: 0,
           targetBytes: 0,
-          timing: { totalTime: 0, configTime: 0, coreTime: 0, parsingTime: 0, matchingTime: 0, ruleParseTime: 0, fileParseTime: 0 }
+          timing: {
+            totalTime: 0,
+            configTime: 0,
+            coreTime: 0,
+            parsingTime: 0,
+            matchingTime: 0,
+            ruleParseTime: 0,
+            fileParseTime: 0,
+          },
         },
         findings: record.scan.findings || [],
         errors: record.scan.errors || [],
         metadata: record.scan.metadata || {
           semgrepVersion: '',
           configHash: '',
-          projectHash: ''
-        }
+          projectHash: '',
+        },
       }));
     } catch (error) {
       this.logger.error('Error getting project scan history:', error);
@@ -422,11 +433,11 @@ export class StaticAnalysisCoordinator {
         withPayload: false,
         withVector: false,
       });
-      
+
       if (oldVectors.length > 0) {
-         const vectorIds = oldVectors.map(v => v.id);
-         this.logger.info(`Would delete ${vectorIds.length} old vectors from Qdrant`);
-       }
+        const vectorIds = oldVectors.map(v => v.id);
+        this.logger.info(`Would delete ${vectorIds.length} old vectors from Qdrant`);
+      }
 
       this.logger.info(`Cleaned up data older than ${retentionDays} days`);
     } catch (error) {
@@ -462,7 +473,7 @@ export class StaticAnalysisCoordinator {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16);

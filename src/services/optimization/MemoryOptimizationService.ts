@@ -3,7 +3,10 @@ import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { BatchProcessingMetrics, BatchOperationMetrics } from '../monitoring/BatchProcessingMetrics';
+import {
+  BatchProcessingMetrics,
+  BatchOperationMetrics,
+} from '../monitoring/BatchProcessingMetrics';
 
 export interface MemoryUsageInfo {
   used: number;
@@ -80,7 +83,7 @@ export class MemoryOptimizationService {
       gcInterval: this.gcInterval,
       adaptiveSizing: this.adaptiveSizing,
       minBatchSize: this.minBatchSize,
-      maxBatchSize: this.maxBatchSize
+      maxBatchSize: this.maxBatchSize,
     });
   }
 
@@ -108,7 +111,7 @@ export class MemoryOptimizationService {
       used: memUsage.heapUsed,
       total: memUsage.heapTotal,
       external: memUsage.external,
-      percentage
+      percentage,
     };
   }
 
@@ -126,7 +129,7 @@ export class MemoryOptimizationService {
     this.logger.debug('Waiting for memory availability', {
       currentUsage: this.getMemoryUsage().percentage,
       threshold: actualThreshold,
-      timeoutMs
+      timeoutMs,
     });
 
     while (Date.now() - startTime < timeoutMs) {
@@ -142,7 +145,7 @@ export class MemoryOptimizationService {
     this.logger.warn('Timeout waiting for memory availability', {
       currentUsage: this.getMemoryUsage().percentage,
       threshold: actualThreshold,
-      timeoutMs
+      timeoutMs,
     });
 
     return false;
@@ -161,7 +164,7 @@ export class MemoryOptimizationService {
       this.logger.debug('Garbage collection performed', {
         beforeUsage: beforeMemory.percentage,
         afterUsage: afterMemory.percentage,
-        freedMemory
+        freedMemory,
       });
     } else {
       this.logger.debug('Garbage collection not available');
@@ -178,7 +181,7 @@ export class MemoryOptimizationService {
       peakMemory: memoryUsage,
       memoryDelta: 0,
       efficiency: 0,
-      itemsProcessed: itemsCount
+      itemsProcessed: itemsCount,
     };
 
     this.batchProfiles.set(batchId, profile);
@@ -186,7 +189,7 @@ export class MemoryOptimizationService {
     this.logger.debug('Started batch memory profile', {
       batchId,
       itemsCount,
-      initialMemoryUsage: memoryUsage.percentage
+      initialMemoryUsage: memoryUsage.percentage,
     });
 
     return profile;
@@ -209,7 +212,7 @@ export class MemoryOptimizationService {
     this.logger.debug('Updated batch memory profile', {
       batchId,
       currentMemoryUsage: memoryUsage.percentage,
-      peakMemoryUsage: profile.peakMemory.percentage
+      peakMemoryUsage: profile.peakMemory.percentage,
     });
   }
 
@@ -237,7 +240,7 @@ export class MemoryOptimizationService {
       batchId,
       duration: profile.endTime - profile.startTime,
       memoryDelta: profile.memoryDelta,
-      efficiency: profile.efficiency
+      efficiency: profile.efficiency,
     });
 
     return profile;
@@ -259,32 +262,25 @@ export class MemoryOptimizationService {
     const efficiencyFactor = Math.min(1, memoryEfficiency / 100);
 
     // Calculate performance factor (0-1, where 1 is best performance)
-    const performanceFactor = performanceMetrics.successRate *
-      (1 - Math.min(1, performanceMetrics.processingTime / 10000));
+    const performanceFactor =
+      performanceMetrics.successRate * (1 - Math.min(1, performanceMetrics.processingTime / 10000));
 
     // Calculate memory pressure factor (0-1, where 1 is least pressure)
     const memoryPressureFactor = 1 - Math.min(1, memoryPressure);
 
     // Combined adjustment factor
-    const adjustmentFactor = (efficiencyFactor * 0.3 +
-      performanceFactor * 0.4 +
-      memoryPressureFactor * 0.3);
+    const adjustmentFactor =
+      efficiencyFactor * 0.3 + performanceFactor * 0.4 + memoryPressureFactor * 0.3;
 
     // Calculate new batch size
     let newBatchSize = currentBatchSize;
 
     if (adjustmentFactor > 0.7) {
       // Good performance, increase batch size
-      newBatchSize = Math.min(
-        Math.floor(currentBatchSize * 1.2),
-        this.maxBatchSize
-      );
+      newBatchSize = Math.min(Math.floor(currentBatchSize * 1.2), this.maxBatchSize);
     } else if (adjustmentFactor < 0.3) {
       // Poor performance, decrease batch size
-      newBatchSize = Math.max(
-        Math.floor(currentBatchSize / 1.2),
-        this.minBatchSize
-      );
+      newBatchSize = Math.max(Math.floor(currentBatchSize / 1.2), this.minBatchSize);
     }
 
     this.logger.debug('Calculated optimal batch size', {
@@ -293,7 +289,7 @@ export class MemoryOptimizationService {
       memoryEfficiency,
       performanceMetrics,
       memoryPressure,
-      adjustmentFactor
+      adjustmentFactor,
     });
 
     return newBatchSize;
@@ -308,7 +304,7 @@ export class MemoryOptimizationService {
       maxRetries: 0,
       adaptiveSizing: false,
       minBatchSize: 0,
-      maxBatchSize: 0
+      maxBatchSize: 0,
     }
   ): Promise<T> {
     const threshold = options.threshold || this.defaultThreshold;
@@ -346,7 +342,7 @@ export class MemoryOptimizationService {
           attempt,
           maxRetries,
           error: lastError.message,
-          memoryUsage: this.getMemoryUsage().percentage
+          memoryUsage: this.getMemoryUsage().percentage,
         });
 
         // Perform garbage collection before retry
@@ -371,8 +367,7 @@ export class MemoryOptimizationService {
   }
 
   getAverageMemoryEfficiency(): number {
-    const profiles = Array.from(this.batchProfiles.values())
-      .filter(p => p.efficiency > 0);
+    const profiles = Array.from(this.batchProfiles.values()).filter(p => p.efficiency > 0);
 
     if (profiles.length === 0) {
       return 0;

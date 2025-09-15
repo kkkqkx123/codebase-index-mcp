@@ -8,10 +8,19 @@ import { AbstractSnippetRule } from '../../../AbstractSnippetRule';
 export class JavaBuildSystemsRule extends AbstractSnippetRule {
   readonly name = 'JavaBuildSystemsRule';
   readonly supportedNodeTypes = new Set([
-    'xml_element', 'xml_attribute', 'xml_text',
-    'dependency', 'plugin', 'configuration',
-    'property', 'profile', 'repository',
-    'build', 'task', 'extension', 'source_set'
+    'xml_element',
+    'xml_attribute',
+    'xml_text',
+    'dependency',
+    'plugin',
+    'configuration',
+    'property',
+    'profile',
+    'repository',
+    'build',
+    'task',
+    'extension',
+    'source_set',
   ]);
 
   protected snippetType = 'build_configuration' as const;
@@ -41,16 +50,16 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
     '<module>',
     '<parent>',
     '<inherited>',
-    '<relativePath>'
+    '<relativePath>',
   ];
 
   // Gradle patterns
   private readonly gradlePatterns = [
     'plugins {',
-    'id \'java\'',
-    'id \'org.springframework.boot\'',
-    'id \'com.github.johnrengelman.shadow\'',
-    'id \'war\'',
+    "id 'java'",
+    "id 'org.springframework.boot'",
+    "id 'com.github.johnrengelman.shadow'",
+    "id 'war'",
     'implementation ',
     'api ',
     'compileOnly ',
@@ -89,7 +98,7 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
     'jacoco {',
     'sonarqube {',
     'publishing {',
-    'docker {'
+    'docker {',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -98,25 +107,32 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
   }
 
   private isMavenPattern(text: string): boolean {
-    return this.mavenPatterns.some(pattern => text.includes(pattern)) ||
-           (text.includes('.xml') && (
-             text.includes('<project>') ||
-             text.includes('<dependency>') ||
-             text.includes('<plugin>')
-           ));
+    return (
+      this.mavenPatterns.some(pattern => text.includes(pattern)) ||
+      (text.includes('.xml') &&
+        (text.includes('<project>') || text.includes('<dependency>') || text.includes('<plugin>')))
+    );
   }
 
   private isGradlePattern(text: string): boolean {
-    return this.gradlePatterns.some(pattern => text.includes(pattern)) ||
-           (text.includes('.gradle') || text.includes('build.gradle') || text.includes('settings.gradle'));
+    return (
+      this.gradlePatterns.some(pattern => text.includes(pattern)) ||
+      text.includes('.gradle') ||
+      text.includes('build.gradle') ||
+      text.includes('settings.gradle')
+    );
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const nodeText = this.getNodeText(node, sourceCode);
-    
+
     // Extract build system information
     const buildInfo = this.extractBuildInfo(nodeText);
-    
+
     // Calculate complexity based on build configuration
     const complexity = this.calculateBuildComplexity(nodeText);
 
@@ -130,7 +146,7 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
       plugins: this.extractPlugins(nodeText),
       repositories: this.extractRepositories(nodeText),
       properties: this.extractProperties(nodeText),
-      profiles: this.extractProfiles(nodeText)
+      profiles: this.extractProfiles(nodeText),
     };
 
     return {
@@ -147,14 +163,14 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
       snippetMetadata: {
         snippetType: this.snippetType,
         contextInfo: {
-          nestingLevel: nestingLevel
+          nestingLevel: nestingLevel,
         },
         languageFeatures: this.analyzeLanguageFeatures(nodeText),
         complexity: complexity,
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(nodeText),
-        buildInfo: metadata
-      }
+        buildInfo: metadata,
+      },
     };
   }
 
@@ -168,13 +184,15 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
     const buildSystem = this.determineBuildSystem(text);
     const isMultiModule = text.includes('<modules>') || text.includes('include ');
     const hasParentPom = text.includes('<parent>') || text.includes('settings.gradle');
-    
+
     // Extract packaging type
     const packagingMatch = text.match(/<packaging>([^<]+)<\/packaging>/);
     const packagingType = packagingMatch ? packagingMatch[1].trim() : undefined;
-    
+
     // Extract Java version
-    const javaVersionMatch = text.match(/(?:sourceCompatibility|targetCompatibility|maven\.compiler\.(source|target))\s*=\s*['"]([^'"\\s]+)['"]/);
+    const javaVersionMatch = text.match(
+      /(?:sourceCompatibility|targetCompatibility|maven\.compiler\.(source|target))\s*=\s*['"]([^'"\\s]+)['"]/
+    );
     const javaVersion = javaVersionMatch ? javaVersionMatch[2] : undefined;
 
     return {
@@ -182,7 +200,7 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
       isMultiModule,
       hasParentPom,
       packagingType,
-      javaVersion
+      javaVersion,
     };
   }
 
@@ -190,7 +208,11 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
     if (text.includes('<project>') && text.includes('modelVersion')) {
       return 'maven';
     }
-    if (text.includes('build.gradle') || text.includes('settings.gradle') || text.includes('plugins {')) {
+    if (
+      text.includes('build.gradle') ||
+      text.includes('settings.gradle') ||
+      text.includes('plugins {')
+    ) {
       return 'gradle';
     }
     return 'unknown';
@@ -300,18 +322,21 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
       const groupIdMatch = dep.match(/<groupId>([^<]+)<\/groupId>/);
       const artifactIdMatch = dep.match(/<artifactId>([^<]+)<\/artifactId>/);
       const versionMatch = dep.match(/<version>([^<]+)<\/version>/);
-      
+
       if (groupIdMatch && artifactIdMatch) {
         const groupId = groupIdMatch[1].trim();
         const artifactId = artifactIdMatch[1].trim();
         const version = versionMatch ? versionMatch[1].trim() : '';
-        
+
         dependencies.push(`${groupId}:${artifactId}${version ? ':' + version : ''}`);
       }
     });
 
     // Gradle dependencies
-    const gradleDeps = text.match(/(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\s+['"]([^'"\\s]+)['"]/g) || [];
+    const gradleDeps =
+      text.match(
+        /(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\s+['"]([^'"\\s]+)['"]/g
+      ) || [];
     gradleDeps.forEach(dep => {
       const dependency = dep.match(/['"]([^'"\\s]+)['"]/)?.[1];
       if (dependency) dependencies.push(dependency);
@@ -328,7 +353,7 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
     mavenPlugins.forEach(plugin => {
       const groupIdMatch = plugin.match(/<groupId>([^<]+)<\/groupId>/);
       const artifactIdMatch = plugin.match(/<artifactId>([^<]+)<\/artifactId>/);
-      
+
       if (groupIdMatch && artifactIdMatch) {
         const groupId = groupIdMatch[1].trim();
         const artifactId = artifactIdMatch[1].trim();
@@ -357,7 +382,8 @@ export class JavaBuildSystemsRule extends AbstractSnippetRule {
     });
 
     // Gradle repositories
-    const gradleRepos = text.match(/(?:mavenCentral|mavenLocal|jcenter|google)\(\)|url\s+['"]([^'"\\s]+)['"]/g) || [];
+    const gradleRepos =
+      text.match(/(?:mavenCentral|mavenLocal|jcenter|google)\(\)|url\s+['"]([^'"\\s]+)['"]/g) || [];
     gradleRepos.forEach(repo => {
       if (repo.includes('url')) {
         const url = repo.match(/url\s+['"]([^'"\\s]+)['"]/)?.[1];

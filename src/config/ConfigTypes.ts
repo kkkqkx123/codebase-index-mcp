@@ -300,7 +300,7 @@ export interface CompleteConfig {
 }
 
 // Configuration Factory Types
-export type ConfigSection = 
+export type ConfigSection =
   | 'environment'
   | 'services'
   | 'features'

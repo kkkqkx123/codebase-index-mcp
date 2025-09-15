@@ -63,7 +63,7 @@ export class PerformanceMonitor {
     this.logger = logger;
     this.configService = configService;
     this.configFactory = configFactory;
-    
+
     const monitoringConfig = configFactory.getConfig<MonitoringConfig>('services.monitoring');
     this.checkInterval = options.checkInterval || monitoringConfig.checkInterval;
     this.memoryThreshold = options.memoryThreshold || monitoringConfig.memoryThreshold;
@@ -84,8 +84,8 @@ export class PerformanceMonitor {
         memory: this.memoryThreshold,
         cpu: this.cpuThreshold,
         eventLoop: this.eventLoopThreshold,
-        maxHandles: this.maxHandles
-      }
+        maxHandles: this.maxHandles,
+      },
     });
 
     this.intervalId = setInterval(() => {
@@ -114,7 +114,7 @@ export class PerformanceMonitor {
       memoryUsage,
       eventLoopDelay,
       activeHandles,
-      activeRequests
+      activeRequests,
     };
   }
 
@@ -128,7 +128,7 @@ export class PerformanceMonitor {
       status,
       checks,
       metrics,
-      recommendations
+      recommendations,
     };
   }
 
@@ -152,17 +152,19 @@ export class PerformanceMonitor {
         heapTotal: this.calculateAverage(relevantMetrics.map(m => m.memoryUsage.heapTotal)),
         external: this.calculateAverage(relevantMetrics.map(m => m.memoryUsage.external)),
         rss: this.calculateAverage(relevantMetrics.map(m => m.memoryUsage.rss)),
-        percentageUsed: this.calculateAverage(relevantMetrics.map(m => m.memoryUsage.percentageUsed))
+        percentageUsed: this.calculateAverage(
+          relevantMetrics.map(m => m.memoryUsage.percentageUsed)
+        ),
       },
       eventLoopDelay: this.calculateAverage(relevantMetrics.map(m => m.eventLoopDelay)),
       activeHandles: this.calculateAverage(relevantMetrics.map(m => m.activeHandles)),
-      activeRequests: this.calculateAverage(relevantMetrics.map(m => m.activeRequests))
+      activeRequests: this.calculateAverage(relevantMetrics.map(m => m.activeRequests)),
     };
   }
 
   onHealthUpdate(listener: (status: HealthStatus) => void): () => void {
     this.healthListeners.push(listener);
-    
+
     return () => {
       const index = this.healthListeners.indexOf(listener);
       if (index !== -1) {
@@ -190,11 +192,13 @@ export class PerformanceMonitor {
         this.logger.warn('Unhealthy system status detected', {
           status: healthStatus.status,
           checks: healthStatus.checks,
-          metrics: healthStatus.metrics
+          metrics: healthStatus.metrics,
         });
       }
     } catch (error) {
-      this.logger.error('Error collecting performance metrics', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Error collecting performance metrics', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -203,10 +207,10 @@ export class PerformanceMonitor {
     const startUsage = process.cpuUsage();
     await new Promise(resolve => setTimeout(resolve, 100));
     const endUsage = process.cpuUsage(startUsage);
-    
+
     // Calculate percentage
     const totalUsage = endUsage.user + endUsage.system;
-    return Math.min((totalUsage / 100000), 100); // Cap at 100%
+    return Math.min(totalUsage / 100000, 100); // Cap at 100%
   }
 
   private getMemoryUsage() {
@@ -216,7 +220,7 @@ export class PerformanceMonitor {
       heapTotal: memUsage.heapTotal,
       external: memUsage.external,
       rss: memUsage.rss,
-      percentageUsed: (memUsage.heapUsed / memUsage.heapTotal) * 100
+      percentageUsed: (memUsage.heapUsed / memUsage.heapTotal) * 100,
     };
   }
 
@@ -243,7 +247,7 @@ export class PerformanceMonitor {
       memory: metrics.memoryUsage.percentageUsed < this.memoryThreshold,
       cpu: metrics.cpuUsage < this.cpuThreshold,
       eventLoop: metrics.eventLoopDelay < this.eventLoopThreshold,
-      handles: metrics.activeHandles < this.maxHandles
+      handles: metrics.activeHandles < this.maxHandles,
     };
   }
 
@@ -264,11 +268,15 @@ export class PerformanceMonitor {
     const recommendations: string[] = [];
 
     if (!checks.memory) {
-      recommendations.push('High memory usage detected. Consider garbage collection or reducing memory allocation.');
+      recommendations.push(
+        'High memory usage detected. Consider garbage collection or reducing memory allocation.'
+      );
     }
 
     if (!checks.cpu) {
-      recommendations.push('High CPU usage detected. Consider optimizing CPU-intensive operations.');
+      recommendations.push(
+        'High CPU usage detected. Consider optimizing CPU-intensive operations.'
+      );
     }
 
     if (!checks.eventLoop) {
@@ -291,7 +299,9 @@ export class PerformanceMonitor {
       try {
         listener(status);
       } catch (error) {
-        this.logger.error('Error in health listener', { error: error instanceof Error ? error.message : String(error) });
+        this.logger.error('Error in health listener', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     });
   }

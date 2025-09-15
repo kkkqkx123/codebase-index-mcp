@@ -30,10 +30,7 @@ describe('SemgrepScanService', () => {
       return undefined;
     }) as any);
 
-    service = new SemgrepScanService(
-      mockLogger as any,
-      mockConfigService as any
-    );
+    service = new SemgrepScanService(mockLogger as any, mockConfigService as any);
   });
 
   afterEach(() => {
@@ -74,7 +71,7 @@ describe('SemgrepScanService', () => {
     it('should build correct arguments for basic scan', () => {
       // Access private method via any
       const args = (service as any).buildScanArgs('/test/project', {});
-      
+
       expect(args).toContain('scan');
       expect(args).toContain('--json');
       expect(args).toContain('/test/project');
@@ -85,9 +82,9 @@ describe('SemgrepScanService', () => {
         rules: ['custom-rule'],
         severity: ['ERROR', 'WARNING'] as const,
       };
-      
+
       const args = (service as any).buildScanArgs('/test/project', options);
-      
+
       expect(args).toContain('--config');
       expect(args).toContain('custom-rule');
       expect(args).toContain('--severity');

@@ -43,11 +43,11 @@ export class MultiLevelCache implements CacheInterface {
   async set<T>(key: string, value: T, options?: CacheOptions): Promise<boolean> {
     try {
       const ttl = options?.ttl || 3600;
-      
+
       // 同时设置到两个缓存层
       const l1Result = await this.level1.set(key, value, { ttl: Math.min(ttl, 300) }); // L1最多5分钟
       const l2Result = await this.level2.set(key, value, { ttl });
-      
+
       return l1Result && l2Result;
     } catch (error) {
       this.logger.error(`多级缓存设置失败: ${key}`, error);
@@ -60,7 +60,7 @@ export class MultiLevelCache implements CacheInterface {
       // 从两个缓存层都删除
       const l1Result = await this.level1.del(key);
       const l2Result = await this.level2.del(key);
-      
+
       return l1Result || l2Result;
     } catch (error) {
       this.logger.error(`多级缓存删除失败: ${key}`, error);
@@ -72,7 +72,7 @@ export class MultiLevelCache implements CacheInterface {
     try {
       const l1Result = await this.level1.clear();
       const l2Result = await this.level2.clear();
-      
+
       return l1Result && l2Result;
     } catch (error) {
       this.logger.error(`多级缓存清空失败: ${this.name}`, error);
@@ -87,7 +87,7 @@ export class MultiLevelCache implements CacheInterface {
       if (l1Exists) {
         return true;
       }
-      
+
       return await this.level2.exists(key);
     } catch (error) {
       this.logger.error(`多级缓存检查存在失败: ${key}`, error);
@@ -99,15 +99,16 @@ export class MultiLevelCache implements CacheInterface {
     try {
       const l1Stats = await this.level1.getStats();
       const l2Stats = await this.level2.getStats();
-      
+
       return {
         name: this.name,
         size: l1Stats.size + l2Stats.size,
         maxSize: l1Stats.maxSize + l2Stats.maxSize,
         hitCount: l1Stats.hitCount + l2Stats.hitCount,
         missCount: l1Stats.missCount + l2Stats.missCount,
-        hitRate: (l1Stats.hitCount + l2Stats.hitCount) / 
-                (l1Stats.hitCount + l2Stats.hitCount + l1Stats.missCount + l2Stats.missCount) || 0
+        hitRate:
+          (l1Stats.hitCount + l2Stats.hitCount) /
+            (l1Stats.hitCount + l2Stats.hitCount + l1Stats.missCount + l2Stats.missCount) || 0,
       };
     } catch (error) {
       this.logger.error(`多级缓存统计失败: ${this.name}`, error);
@@ -117,7 +118,7 @@ export class MultiLevelCache implements CacheInterface {
         maxSize: 0,
         hitCount: 0,
         missCount: 0,
-        hitRate: 0
+        hitRate: 0,
       };
     }
   }
@@ -128,10 +129,7 @@ export class MultiLevelCache implements CacheInterface {
 
   async close(): Promise<void> {
     try {
-      await Promise.all([
-        this.level1.close(),
-        this.level2.close()
-      ]);
+      await Promise.all([this.level1.close(), this.level2.close()]);
     } catch (error) {
       this.logger.error(`多级缓存关闭失败: ${this.name}`, error);
     }

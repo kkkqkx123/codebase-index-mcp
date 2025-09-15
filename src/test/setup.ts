@@ -8,7 +8,7 @@ beforeAll(() => {
 beforeEach(() => {
   // Reset any global state
   jest.clearAllMocks();
-  
+
   // Mock console methods to reduce noise
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});

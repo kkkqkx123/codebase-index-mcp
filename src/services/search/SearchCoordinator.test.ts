@@ -1,8 +1,22 @@
 import { SearchCoordinator, SearchOptions, SearchResult, SearchQuery } from './SearchCoordinator';
-import { HybridSearchService, HybridSearchParams, HybridSearchResult, HybridSearchMetrics } from './HybridSearchService';
-import { SemanticSearchService, SemanticSearchParams, SemanticSearchResult, SemanticSearchMetrics } from './SemanticSearchService';
+import {
+  HybridSearchService,
+  HybridSearchParams,
+  HybridSearchResult,
+  HybridSearchMetrics,
+} from './HybridSearchService';
+import {
+  SemanticSearchService,
+  SemanticSearchParams,
+  SemanticSearchResult,
+  SemanticSearchMetrics,
+} from './SemanticSearchService';
 import { RerankingService } from '../reranking/RerankingService';
-import { IRerankingService, RerankingOptions, RerankedResult } from '../reranking/IRerankingService';
+import {
+  IRerankingService,
+  RerankingOptions,
+  RerankedResult,
+} from '../reranking/IRerankingService';
 import { QueryResult } from '../query/QueryCoordinationService';
 import { StorageCoordinator } from '../storage/StorageCoordinator';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -74,8 +88,8 @@ describe('SearchCoordinator', () => {
         weights: {
           semantic: 0.6,
           keyword: 0.3,
-          graph: 0.1
-        }
+          graph: 0.1,
+        },
       }),
     } as unknown as jest.Mocked<ConfigFactory>;
 
@@ -128,7 +142,7 @@ describe('SearchCoordinator', () => {
             chunkType: 'function',
             metadata: {},
             searchScores: { combinedScore: 0.9 },
-            matchHighlights: []
+            matchHighlights: [],
           },
           {
             id: '2',
@@ -141,7 +155,7 @@ describe('SearchCoordinator', () => {
             chunkType: 'function',
             metadata: {},
             searchScores: { combinedScore: 0.8 },
-            matchHighlights: []
+            matchHighlights: [],
           },
         ],
         metrics: {
@@ -157,9 +171,9 @@ describe('SearchCoordinator', () => {
             semantic: 1,
             keyword: 1,
             fuzzy: 0,
-            structural: 0
-          }
-        }
+            structural: 0,
+          },
+        },
       };
 
       const rerankedResults: RerankedResult[] = [
@@ -179,8 +193,8 @@ describe('SearchCoordinator', () => {
             graphScore: 0,
             contextualScore: 0,
             finalScore: 0.95,
-            confidence: 0.9
-          }
+            confidence: 0.9,
+          },
         },
         {
           id: '1',
@@ -198,8 +212,8 @@ describe('SearchCoordinator', () => {
             graphScore: 0,
             contextualScore: 0,
             finalScore: 0.85,
-            confidence: 0.8
-          }
+            confidence: 0.8,
+          },
         },
       ];
 
@@ -214,8 +228,8 @@ describe('SearchCoordinator', () => {
             contextualScore: 0.8,
             recencyScore: 0.7,
             popularityScore: 0.6,
-            finalScore: result.score
-          }
+            finalScore: result.score,
+          },
         })),
         metrics: {
           queryId: 'test-query-id',
@@ -225,24 +239,28 @@ describe('SearchCoordinator', () => {
           rankingTime: 20,
           totalResults: searchResults.results.length,
           averageSimilarity: 0.85,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       };
-      
+
       mockSemanticSearchService.search.mockResolvedValue(semanticResults);
       mockRerankingService.rerank.mockResolvedValue(rerankedResults);
 
       const searchQuery: SearchQuery = { text: queryText, options };
       const result = await searchCoordinator.search(searchQuery);
 
-      expect(result.results).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: '1' }),
-        expect.objectContaining({ id: '2' })
-      ]));
-      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(expect.objectContaining({
-        query: queryText,
-        limit: options.limit
-      }));
+      expect(result.results).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: '1' }),
+          expect.objectContaining({ id: '2' }),
+        ])
+      );
+      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: queryText,
+          limit: options.limit,
+        })
+      );
       // QueryCache reference removed as SearchCoordinator doesn't use it
     });
 
@@ -268,9 +286,9 @@ describe('SearchCoordinator', () => {
               contextualScore: 0.8,
               recencyScore: 0.7,
               popularityScore: 0.6,
-              finalScore: 0.9
-            }
-          }
+              finalScore: 0.9,
+            },
+          },
         ],
         metrics: {
           queryId: 'semantic-query-id',
@@ -280,8 +298,8 @@ describe('SearchCoordinator', () => {
           rankingTime: 20,
           totalResults: 1,
           averageSimilarity: 0.9,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       };
 
       mockSemanticSearchService.search.mockResolvedValue(semanticResults);
@@ -328,7 +346,7 @@ describe('SearchCoordinator', () => {
             chunkType: 'function',
             metadata: { language: 'typescript', filePath: 'test.ts' },
             searchScores: { combinedScore: 0.9 },
-            matchHighlights: []
+            matchHighlights: [],
           },
           {
             id: '2',
@@ -341,7 +359,7 @@ describe('SearchCoordinator', () => {
             chunkType: 'function',
             metadata: { language: 'javascript', filePath: 'test.js' },
             searchScores: { combinedScore: 0.6 },
-            matchHighlights: []
+            matchHighlights: [],
           },
           {
             id: '3',
@@ -354,7 +372,7 @@ describe('SearchCoordinator', () => {
             chunkType: 'function',
             metadata: { language: 'python', filePath: 'test.py' },
             searchScores: { combinedScore: 0.8 },
-            matchHighlights: []
+            matchHighlights: [],
           },
         ],
         metrics: {
@@ -370,9 +388,9 @@ describe('SearchCoordinator', () => {
             semantic: 3,
             keyword: 3,
             fuzzy: 0,
-            structural: 0
-          }
-        }
+            structural: 0,
+          },
+        },
       };
 
       // QueryCache reference removed as SearchCoordinator doesn't use it
@@ -386,8 +404,8 @@ describe('SearchCoordinator', () => {
             contextualScore: 0.8,
             recencyScore: 0.7,
             popularityScore: 0.6,
-            finalScore: result.score
-          }
+            finalScore: result.score,
+          },
         })),
         metrics: {
           queryId: 'test-query-id',
@@ -397,10 +415,10 @@ describe('SearchCoordinator', () => {
           rankingTime: 20,
           totalResults: searchResults.results.length,
           averageSimilarity: 0.85,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       };
-      
+
       mockSemanticSearchService.search.mockResolvedValue(semanticResults);
 
       const searchQuery: SearchQuery = { text: queryText, options };
@@ -414,7 +432,8 @@ describe('SearchCoordinator', () => {
 
   describe('searchSimilarCode', () => {
     it('should find similar code snippets', async () => {
-      const codeSnippet = 'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }';
+      const codeSnippet =
+        'function authenticate(user, password) { return bcrypt.compare(password, user.hash); }';
       const options: SearchOptions = { limit: 5 };
 
       const similarResults: SemanticSearchResult[] = [
@@ -434,9 +453,9 @@ describe('SearchCoordinator', () => {
             contextualScore: 0.8,
             recencyScore: 0.9,
             popularityScore: 0.7,
-            finalScore: 0.95
+            finalScore: 0.95,
           },
-          snippetMetadata: undefined
+          snippetMetadata: undefined,
         },
       ];
 
@@ -450,8 +469,8 @@ describe('SearchCoordinator', () => {
           rankingTime: 20,
           totalResults: 1,
           averageSimilarity: 0.95,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       });
 
       const result = await searchCoordinator.performSemanticSearch(codeSnippet, options);
@@ -483,7 +502,7 @@ describe('SearchCoordinator', () => {
             chunkType: 'function',
             metadata: { filePath: '/src/models/User.ts' },
             searchScores: { combinedScore: 0.9 },
-            matchHighlights: []
+            matchHighlights: [],
           },
         ],
         metrics: {
@@ -499,9 +518,9 @@ describe('SearchCoordinator', () => {
             semantic: 1,
             keyword: 1,
             fuzzy: 0,
-            structural: 0
-          }
-        }
+            structural: 0,
+          },
+        },
       };
 
       // Set up semantic search mock since useHybrid is false by default
@@ -514,8 +533,8 @@ describe('SearchCoordinator', () => {
             contextualScore: 0.8,
             recencyScore: 0.7,
             popularityScore: 0.6,
-            finalScore: result.score
-          }
+            finalScore: result.score,
+          },
         })),
         metrics: {
           queryId: 'contextual-query-id',
@@ -525,10 +544,10 @@ describe('SearchCoordinator', () => {
           rankingTime: 20,
           totalResults: contextualResults.results.length,
           averageSimilarity: 0.9,
-          searchStrategy: 'semantic'
-        }
+          searchStrategy: 'semantic',
+        },
       };
-      
+
       mockSemanticSearchService.search.mockResolvedValue(semanticResults);
 
       const searchQuery: SearchQuery = { text: queryText, options: {} };
@@ -536,7 +555,9 @@ describe('SearchCoordinator', () => {
 
       expect(result.results).toHaveLength(1);
       expect(result.results[0].id).toBe('1');
-      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(expect.objectContaining({ query: queryText }));
+      expect(mockSemanticSearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({ query: queryText })
+      );
     });
   });
 
@@ -545,10 +566,13 @@ describe('SearchCoordinator', () => {
       const partialQuery = 'auth';
       mockSemanticSearchService.getSearchSuggestions.mockResolvedValue([
         { suggestion: 'authentication', confidence: 0.9, category: 'term' },
-        { suggestion: 'authorization', confidence: 0.8, category: 'term' }
+        { suggestion: 'authorization', confidence: 0.8, category: 'term' },
       ]);
-      
-      const suggestions = await mockSemanticSearchService.getSearchSuggestions(partialQuery, { projectId: 'default', limit: 5 });
+
+      const suggestions = await mockSemanticSearchService.getSearchSuggestions(partialQuery, {
+        projectId: 'default',
+        limit: 5,
+      });
 
       expect(suggestions).toBeInstanceOf(Array);
       expect(suggestions.length).toBeGreaterThan(0);
@@ -559,8 +583,11 @@ describe('SearchCoordinator', () => {
     it('should return empty array for very short queries', async () => {
       const partialQuery = 'a';
       mockSemanticSearchService.getSearchSuggestions.mockResolvedValue([]);
-      
-      const suggestions = await mockSemanticSearchService.getSearchSuggestions(partialQuery, { projectId: 'default', limit: 5 });
+
+      const suggestions = await mockSemanticSearchService.getSearchSuggestions(partialQuery, {
+        projectId: 'default',
+        limit: 5,
+      });
 
       expect(suggestions).toEqual([]);
     });

@@ -44,7 +44,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     'on',
     'permissions',
     'concurrency',
-    'outputs'
+    'outputs',
   ]);
 
   protected snippetType = 'cicd_configuration' as const;
@@ -85,7 +85,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     'actions/setup-python@v',
     'actions/setup-java@v',
     'github/codeql-action@v',
-    'codecov/codecov-action@v'
+    'codecov/codecov-action@v',
   ];
 
   // GitLab CI patterns
@@ -118,7 +118,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     'tags:',
     '.pre:',
     '.post:',
-    'default:'
+    'default:',
   ];
 
   // Jenkins patterns
@@ -153,7 +153,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     'powershell',
     'node',
     'docker',
-    'kubernetes'
+    'kubernetes',
   ];
 
   // CircleCI patterns
@@ -181,7 +181,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     'requires:',
     'context:',
     'when:',
-    'unless:'
+    'unless:',
   ];
 
   // Azure DevOps patterns
@@ -217,7 +217,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     'checkout:',
     'download:',
     'publish:',
-    'template:'
+    'template:',
   ];
 
   protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
@@ -231,21 +231,35 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     const isJenkins = text.includes('pipeline') && text.includes('agent');
     const isCircleCI = text.includes('version:') && text.includes('jobs:');
     const isAzureDevOps = text.includes('trigger:') && text.includes('stages:');
-    
+
     const hasGitHubPatterns = this.githubActionsPatterns.some(pattern => text.includes(pattern));
     const hasGitLabPatterns = this.gitlabCIPatterns.some(pattern => text.includes(pattern));
     const hasJenkinsPatterns = this.jenkinsPatterns.some(pattern => text.includes(pattern));
     const hasCirclePatterns = this.circleCIPatterns.some(pattern => text.includes(pattern));
     const hasAzurePatterns = this.azureDevOpsPatterns.some(pattern => text.includes(pattern));
-    
-    return isGitHubActions || isGitLabCI || isJenkins || isCircleCI || isAzureDevOps ||
-           hasGitHubPatterns || hasGitLabPatterns || hasJenkinsPatterns || hasCirclePatterns || hasAzurePatterns;
+
+    return (
+      isGitHubActions ||
+      isGitLabCI ||
+      isJenkins ||
+      isCircleCI ||
+      isAzureDevOps ||
+      hasGitHubPatterns ||
+      hasGitLabPatterns ||
+      hasJenkinsPatterns ||
+      hasCirclePatterns ||
+      hasAzurePatterns
+    );
   }
 
-  protected createSnippet(node: Parser.SyntaxNode, sourceCode: string, nestingLevel: number): SnippetChunk | null {
+  protected createSnippet(
+    node: Parser.SyntaxNode,
+    sourceCode: string,
+    nestingLevel: number
+  ): SnippetChunk | null {
     const content = this.getNodeText(node, sourceCode);
     const contextInfo = { nestingLevel };
-    
+
     // Extract CI/CD-specific information
     const cicdInfo = this.extractCICDInfo(content);
     const complexity = this.calculateCICDComplexity(content);
@@ -256,7 +270,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
       languageFeatures: this.analyzeLanguageFeatures(content),
       complexity,
       isStandalone: true,
-      hasSideEffects: this.hasSideEffects(content)
+      hasSideEffects: this.hasSideEffects(content),
     };
 
     return {
@@ -270,7 +284,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
       imports: [],
       exports: [],
       metadata: {},
-      snippetMetadata: metadata
+      snippetMetadata: metadata,
     };
   }
 
@@ -292,7 +306,8 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
       stepCount: this.countSteps(text),
       hasMatrix: text.includes('matrix:'),
       hasParallel: text.includes('parallel:') || text.includes('parallelism:'),
-      hasConditionalExecution: text.includes('if:') || text.includes('when:') || text.includes('condition:')
+      hasConditionalExecution:
+        text.includes('if:') || text.includes('when:') || text.includes('condition:'),
     };
 
     return info;
@@ -313,8 +328,10 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     if (text.includes('deploy:') || text.includes('deployment')) return 'deployment';
     if (text.includes('test:')) return 'testing';
     if (text.includes('build:')) return 'build';
-    if (text.includes('security:') || text.includes('sast') || text.includes('dast')) return 'security';
-    if (text.includes('quality:') || text.includes('sonar') || text.includes('code-quality')) return 'quality';
+    if (text.includes('security:') || text.includes('sast') || text.includes('dast'))
+      return 'security';
+    if (text.includes('quality:') || text.includes('sonar') || text.includes('code-quality'))
+      return 'quality';
     if (text.includes('integration:')) return 'integration';
     if (text.includes('release:') || text.includes('publish')) return 'release';
     return 'general';
@@ -356,7 +373,8 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     });
 
     // Look for environment variable patterns
-    const envVarMatches = text.match(/(prod|production|staging|dev|development|test|uat)\s*[:=]/gi) || [];
+    const envVarMatches =
+      text.match(/(prod|production|staging|dev|development|test|uat)\s*[:=]/gi) || [];
     envVarMatches.forEach(match => {
       const env = match.match(/(prod|production|staging|dev|development|test|uat)/i)?.[0];
       if (env) environments.push(env.toLowerCase());
@@ -366,11 +384,8 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
   }
 
   private countJobs(text: string): number {
-    const jobPatterns = [
-      /jobs:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i,
-      /(\w+):\s*\n\s+script:/g
-    ];
-    
+    const jobPatterns = [/jobs:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i, /(\w+):\s*\n\s+script:/g];
+
     let jobCount = 0;
     if (text.includes('jobs:')) {
       const jobsSection = text.match(/jobs:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i);
@@ -378,31 +393,31 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
         jobCount = (jobsSection[1].match(/^\s+\w+:\s*$/gm) || []).length;
       }
     }
-    
+
     return jobCount;
   }
 
   private countStages(text: string): number {
     let stageCount = 0;
-    
+
     if (text.includes('stages:')) {
       const stagesSection = text.match(/stages:\s*\n([\s\S]*?)(?=\n\w+:\s*$|\n*$)/i);
       if (stagesSection) {
         stageCount = (stagesSection[1].match(/^\s+-\s*([^\n]+)/gm) || []).length;
       }
     }
-    
+
     // GitHub Actions jobs can act as stages
     if (text.includes('jobs:') && !text.includes('stages:')) {
       stageCount = this.countJobs(text);
     }
-    
+
     return stageCount;
   }
 
   private countSteps(text: string): number {
     let stepCount = 0;
-    
+
     // GitHub Actions steps
     if (text.includes('steps:')) {
       const stepsSections = text.match(/steps:\s*\n([\s\S]*?)(?=\n\s+\w+:\s*$|\n*$)/gi) || [];
@@ -410,16 +425,18 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
         stepCount += (section.match(/^\s+-\s*(name:|uses:|run:)/gm) || []).length;
       });
     }
-    
+
     // GitLab CI script steps
     const scriptSteps = (text.match(/script:\s*\n([\s\S]*?)(?=\n\s+\w+:\s*$|\n*$)/gi) || []).length;
     stepCount += scriptSteps;
-    
+
     return stepCount;
   }
 
   private hasArtifacts(text: string): boolean {
-    return text.includes('artifacts:') || text.includes('archiveArtifacts') || text.includes('publish:');
+    return (
+      text.includes('artifacts:') || text.includes('archiveArtifacts') || text.includes('publish:')
+    );
   }
 
   private hasCache(text: string): boolean {
@@ -434,7 +451,12 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     const features: string[] = [];
 
     // Static application security testing
-    if (text.includes('sast') || text.includes('security-scan') || text.includes('bandit') || text.includes('semgrep')) {
+    if (
+      text.includes('sast') ||
+      text.includes('security-scan') ||
+      text.includes('bandit') ||
+      text.includes('semgrep')
+    ) {
       features.push('sast');
     }
 
@@ -459,7 +481,11 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     }
 
     // Secret scanning
-    if (text.includes('secret-scan') || text.includes('gitleaks') || text.includes('detect-secrets')) {
+    if (
+      text.includes('secret-scan') ||
+      text.includes('gitleaks') ||
+      text.includes('detect-secrets')
+    ) {
       features.push('secret-scanning');
     }
 
@@ -502,7 +528,8 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     }
 
     // Testing platforms
-    if (text.includes('browserstack') || text.includes('saucelabs')) integrations.push('testing-platform');
+    if (text.includes('browserstack') || text.includes('saucelabs'))
+      integrations.push('testing-platform');
 
     return integrations;
   }
@@ -520,7 +547,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
             jobs[jobName] = {
               runsOn: this.extractJobRunsOn(text, jobName),
               steps: this.countJobSteps(text, jobName),
-              needs: this.extractJobNeeds(text, jobName)
+              needs: this.extractJobNeeds(text, jobName),
             };
           }
         });
@@ -531,7 +558,9 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
   }
 
   private extractJobRunsOn(text: string, jobName: string): string {
-    const jobSection = text.match(new RegExp(`${jobName}:\\s*\\n([\\s\\S]*?)(?=\\n\\s+\\w+:\\s*$|\\n*$)`, 'i'));
+    const jobSection = text.match(
+      new RegExp(`${jobName}:\\s*\\n([\\s\\S]*?)(?=\\n\\s+\\w+:\\s*$|\\n*$)`, 'i')
+    );
     if (jobSection) {
       const runsOnMatch = jobSection[1].match(/runs-on:\s*([^\n]+)/i);
       return runsOnMatch ? runsOnMatch[1].trim() : 'unknown';
@@ -540,7 +569,9 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
   }
 
   private countJobSteps(text: string, jobName: string): number {
-    const jobSection = text.match(new RegExp(`${jobName}:\\s*\\n([\\s\\S]*?)(?=\\n\\s+\\w+:\\s*$|\\n*$)`, 'i'));
+    const jobSection = text.match(
+      new RegExp(`${jobName}:\\s*\\n([\\s\\S]*?)(?=\\n\\s+\\w+:\\s*$|\\n*$)`, 'i')
+    );
     if (jobSection) {
       const stepsSection = jobSection[1].match(/steps:\s*\n([\s\S]*?)(?=\n\s+\w+:\s*$|\n*$)/i);
       if (stepsSection) {
@@ -551,7 +582,9 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
   }
 
   private extractJobNeeds(text: string, jobName: string): string[] {
-    const jobSection = text.match(new RegExp(`${jobName}:\\s*\\n([\\s\\S]*?)(?=\\n\\s+\\w+:\\s*$|\\n*$)`, 'i'));
+    const jobSection = text.match(
+      new RegExp(`${jobName}:\\s*\\n([\\s\\S]*?)(?=\\n\\s+\\w+:\\s*$|\\n*$)`, 'i')
+    );
     if (jobSection) {
       const needsMatch = jobSection[1].match(/needs:\s*\n([\s\S]*?)(?=\n\s+\w+:\s*$|\n*$)/i);
       if (needsMatch) {
@@ -644,7 +677,8 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     if (text.includes('parallel:') || text.includes('parallelism:')) complexity += 2;
 
     // Conditional execution complexity
-    if (text.includes('if:') || text.includes('when:') || text.includes('condition:')) complexity += 2;
+    if (text.includes('if:') || text.includes('when:') || text.includes('condition:'))
+      complexity += 2;
 
     // Artifact complexity
     if (this.hasArtifacts(text)) complexity += 1.5;
@@ -729,13 +763,19 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     return tags;
   }
 
-  protected analyzeLanguageFeatures(content: string): { usesAsync?: boolean; usesGenerators?: boolean; usesDestructuring?: boolean; usesSpread?: boolean; usesTemplateLiterals?: boolean } {
+  protected analyzeLanguageFeatures(content: string): {
+    usesAsync?: boolean;
+    usesGenerators?: boolean;
+    usesDestructuring?: boolean;
+    usesSpread?: boolean;
+    usesTemplateLiterals?: boolean;
+  } {
     return {
       usesAsync: /\basync\s+function\b|\bawait\s+\w+/i.test(content),
       usesGenerators: /\bfunction\s*\*\s*\w+|\byield\s+\*?\w*/i.test(content),
       usesDestructuring: /\{\s*\w+|\[\s*\w+/i.test(content),
       usesSpread: /\.\.\./.test(content),
-      usesTemplateLiterals: /`[^`]*\${[^}]*}/.test(content)
+      usesTemplateLiterals: /`[^`]*\${[^}]*}/.test(content),
     };
   }
 
@@ -761,7 +801,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
       /sessionStorage\./,
       /alert\(/,
       /confirm\(/,
-      /prompt\(/
+      /prompt\(/,
     ];
 
     return sideEffectPatterns.some(pattern => pattern.test(content));
@@ -771,7 +811,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     const lines = sourceCode.split('\n');
     const startLine = node.startPosition.row;
     const endLine = node.endPosition.row;
-    
+
     return lines.slice(startLine, endLine + 1).join('\n');
   }
 
@@ -784,7 +824,7 @@ export class CICDConfigurationRule extends AbstractSnippetRule {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(36);

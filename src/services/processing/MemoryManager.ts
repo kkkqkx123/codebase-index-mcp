@@ -42,12 +42,12 @@ export class MemoryManager {
     const envWarning = parseInt(process.env.MEMORY_WARNING_THRESHOLD || '85');
     const envCritical = parseInt(process.env.MEMORY_CRITICAL_THRESHOLD || '95');
     const envEmergency = parseInt(process.env.MEMORY_EMERGENCY_THRESHOLD || '98');
-    
+
     this.checkInterval = options.checkInterval || 5000;
     this.thresholds = options.thresholds || {
       warning: Math.min(envWarning, 90),
       critical: Math.min(envCritical, 95),
-      emergency: Math.min(envEmergency, 98)
+      emergency: Math.min(envEmergency, 98),
     };
     this.gcThreshold = options.gcThreshold || 90;
     this.maxMemoryBytes = (options.maxMemoryMB || envMaxMemory) * 1024 * 1024;
@@ -63,7 +63,7 @@ export class MemoryManager {
       checkInterval: this.checkInterval,
       thresholds: this.thresholds,
       gcThreshold: this.gcThreshold,
-      maxMemoryMB: this.maxMemoryBytes / (1024 * 1024)
+      maxMemoryMB: this.maxMemoryBytes / (1024 * 1024),
     });
 
     this.intervalId = setInterval(() => {
@@ -92,7 +92,7 @@ export class MemoryManager {
       heapTotal: memUsage.heapTotal,
       external: memUsage.external,
       rss: memUsage.rss,
-      percentageUsed
+      percentageUsed,
     };
   }
 
@@ -105,7 +105,9 @@ export class MemoryManager {
       try {
         listener(usage);
       } catch (error) {
-        this.logger?.error('Error in memory listener', { error: error instanceof Error ? error.message : String(error) });
+        this.logger?.error('Error in memory listener', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     });
 
@@ -135,22 +137,24 @@ export class MemoryManager {
         const before = this.getCurrentUsage();
         global.gc();
         const after = this.getCurrentUsage();
-        
+
         const freedMB = (before.heapUsed - after.heapUsed) / (1024 * 1024);
-        
+
         this.logger?.info('Garbage collection completed', {
           beforeHeapUsedMB: before.heapUsed / (1024 * 1024),
           afterHeapUsedMB: after.heapUsed / (1024 * 1024),
-          freedMB
+          freedMB,
         });
-        
+
         return true;
       } else {
         this.logger?.warn('Garbage collection not available. Run with --expose-gc flag.');
         return false;
       }
     } catch (error) {
-      this.logger?.error('Error during garbage collection', { error: error instanceof Error ? error.message : String(error) });
+      this.logger?.error('Error during garbage collection', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -161,7 +165,7 @@ export class MemoryManager {
     recommendations: string[];
   } {
     const usage = this.getCurrentUsage();
-    
+
     if (usage.percentageUsed >= this.thresholds.emergency) {
       return {
         status: 'emergency',
@@ -170,8 +174,8 @@ export class MemoryManager {
           'Stop all non-essential operations',
           'Force garbage collection',
           'Consider restarting the application',
-          'Reduce memory allocation'
-        ]
+          'Reduce memory allocation',
+        ],
       };
     }
 
@@ -183,8 +187,8 @@ export class MemoryManager {
           'Stop new operations',
           'Force garbage collection',
           'Reduce batch sizes',
-          'Clear caches if possible'
-        ]
+          'Clear caches if possible',
+        ],
       };
     }
 
@@ -195,24 +199,21 @@ export class MemoryManager {
         recommendations: [
           'Monitor memory usage closely',
           'Consider garbage collection',
-          'Reduce batch sizes for new operations'
-        ]
+          'Reduce batch sizes for new operations',
+        ],
       };
     }
 
     return {
       status: 'healthy',
       usage,
-      recommendations: [
-        'Memory usage is normal',
-        'Continue current operations'
-      ]
+      recommendations: ['Memory usage is normal', 'Continue current operations'],
     };
   }
 
   onMemoryUpdate(listener: (usage: MemoryUsage) => void): () => void {
     this.listeners.push(listener);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.listeners.indexOf(listener);
@@ -227,14 +228,14 @@ export class MemoryManager {
       usage: {
         heapUsedMB: usage.heapUsed / (1024 * 1024),
         heapTotalMB: usage.heapTotal / (1024 * 1024),
-        percentageUsed: usage.percentageUsed
+        percentageUsed: usage.percentageUsed,
       },
-      threshold: this.thresholds.emergency
+      threshold: this.thresholds.emergency,
     });
 
     // Force garbage collection
     this.forceGarbageCollection();
-    
+
     // Log emergency status
     this.logger?.error('EMERGENCY: Memory usage critical - immediate action required');
   }
@@ -244,9 +245,9 @@ export class MemoryManager {
       usage: {
         heapUsedMB: usage.heapUsed / (1024 * 1024),
         heapTotalMB: usage.heapTotal / (1024 * 1024),
-        percentageUsed: usage.percentageUsed
+        percentageUsed: usage.percentageUsed,
       },
-      threshold: this.thresholds.critical
+      threshold: this.thresholds.critical,
     });
 
     // Force garbage collection if above threshold
@@ -260,9 +261,9 @@ export class MemoryManager {
       usage: {
         heapUsedMB: usage.heapUsed / (1024 * 1024),
         heapTotalMB: usage.heapTotal / (1024 * 1024),
-        percentageUsed: usage.percentageUsed
+        percentageUsed: usage.percentageUsed,
       },
-      threshold: this.thresholds.warning
+      threshold: this.thresholds.warning,
     });
   }
 }

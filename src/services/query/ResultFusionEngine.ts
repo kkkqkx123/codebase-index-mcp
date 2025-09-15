@@ -99,7 +99,7 @@ export class ResultFusionEngine {
     this.logger.info('Starting result fusion', {
       vectorResults: input.vectorResults.length,
       graphResults: input.graphResults.length,
-      searchType: input.options.searchType
+      searchType: input.options.searchType,
     });
 
     try {
@@ -122,14 +122,15 @@ export class ResultFusionEngine {
       this.logger.info('Result fusion completed', {
         inputVectorCount: input.vectorResults.length,
         inputGraphCount: input.graphResults.length,
-        outputCount: finalResults.length
+        outputCount: finalResults.length,
       });
 
       return finalResults;
-
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Result fusion failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Result fusion failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'ResultFusionEngine', operation: 'fuse' }
       );
       throw error;
@@ -138,16 +139,16 @@ export class ResultFusionEngine {
 
   private async getFusionWeights(query: string, options: any): Promise<FusionWeights> {
     const config = this.configService.get('fusion') || {};
-    
+
     // Analyze query to determine optimal weights
     const queryAnalysis = this.analyzeQuery(query);
-    
+
     const baseWeights: FusionWeights = {
       vector: config.vectorWeight || 0.4,
       graph: config.graphWeight || 0.3,
       contextual: config.contextualWeight || 0.2,
       recency: config.recencyWeight || 0.05,
-      popularity: config.popularityWeight || 0.05
+      popularity: config.popularityWeight || 0.05,
     };
 
     // Adjust weights based on query type
@@ -171,13 +172,13 @@ export class ResultFusionEngine {
     const normalizedWeights = Object.fromEntries(
       Object.entries(baseWeights).map(([key, value]) => [key, value / total])
     );
-    
+
     return {
       vector: normalizedWeights.vector || 0,
       graph: normalizedWeights.graph || 0,
       contextual: normalizedWeights.contextual || 0,
       recency: normalizedWeights.recency || 0,
-      popularity: normalizedWeights.popularity || 0
+      popularity: normalizedWeights.popularity || 0,
     };
   }
 
@@ -187,13 +188,32 @@ export class ResultFusionEngine {
     keywords: string[];
   } {
     const structuralKeywords = [
-      'dependency', 'import', 'class', 'function', 'interface', 'extends',
-      'implements', 'inherits', 'calls', 'uses', 'references'
+      'dependency',
+      'import',
+      'class',
+      'function',
+      'interface',
+      'extends',
+      'implements',
+      'inherits',
+      'calls',
+      'uses',
+      'references',
     ];
-    
+
     const semanticKeywords = [
-      'what', 'how', 'why', 'describe', 'explain', 'purpose', 'meaning',
-      'concept', 'idea', 'approach', 'method', 'technique'
+      'what',
+      'how',
+      'why',
+      'describe',
+      'explain',
+      'purpose',
+      'meaning',
+      'concept',
+      'idea',
+      'approach',
+      'method',
+      'technique',
     ];
 
     const lowerQuery = query.toLowerCase();
@@ -202,7 +222,7 @@ export class ResultFusionEngine {
     return {
       isStructural: structuralKeywords.some(keyword => lowerQuery.includes(keyword)),
       isSemantic: semanticKeywords.some(keyword => lowerQuery.includes(keyword)),
-      keywords
+      keywords,
     };
   }
 
@@ -215,7 +235,7 @@ export class ResultFusionEngine {
 
     return results.map(result => ({
       ...result,
-      normalizedScore: (result.score - minScore) / range
+      normalizedScore: (result.score - minScore) / range,
     }));
   }
 
@@ -227,7 +247,7 @@ export class ResultFusionEngine {
       combinedMap.set(result.id, {
         ...result,
         vectorScore: result.normalizedScore,
-        graphScore: 0
+        graphScore: 0,
       });
     });
 
@@ -241,7 +261,7 @@ export class ResultFusionEngine {
         combinedMap.set(result.id, {
           ...result,
           vectorScore: 0,
-          graphScore: result.normalizedScore
+          graphScore: result.normalizedScore,
         });
       }
     });
@@ -249,13 +269,17 @@ export class ResultFusionEngine {
     return Array.from(combinedMap.values());
   }
 
-  private async applyFusion(results: any[], weights: FusionWeights, query: string): Promise<FusionResult[]> {
+  private async applyFusion(
+    results: any[],
+    weights: FusionWeights,
+    query: string
+  ): Promise<FusionResult[]> {
     return results.map(result => {
       const contextualScore = this.calculateContextualScore(result, query);
       const recencyScore = this.calculateRecencyScore(result);
       const popularityScore = this.calculatePopularityScore(result);
 
-      const finalScore = 
+      const finalScore =
         result.vectorScore * weights.vector +
         result.graphScore * weights.graph +
         contextualScore * weights.contextual +
@@ -280,8 +304,8 @@ export class ResultFusionEngine {
           graphScore: result.graphScore,
           contextualScore,
           finalScore,
-          confidence
-        }
+          confidence,
+        },
       };
     });
   }
@@ -290,7 +314,7 @@ export class ResultFusionEngine {
     // Calculate contextual relevance based on content and query match
     const content = result.content.toLowerCase();
     const queryTerms = query.toLowerCase().split(/\s+/);
-    
+
     let matchCount = 0;
     queryTerms.forEach(term => {
       if (content.includes(term)) {
@@ -306,7 +330,7 @@ export class ResultFusionEngine {
     const lastModified = result.metadata?.lastModified || 0;
     const now = Date.now();
     const ageInDays = (now - lastModified) / (1000 * 60 * 60 * 24);
-    
+
     // Exponential decay for older files
     return Math.exp(-ageInDays / 365);
   }
@@ -315,7 +339,7 @@ export class ResultFusionEngine {
     // Calculate popularity based on usage metrics from metadata
     const usageCount = result.metadata?.usageCount || 0;
     const referenceCount = result.metadata?.referenceCount || 0;
-    
+
     // Normalize to 0-1 range
     return Math.min((usageCount + referenceCount) / 100, 1);
   }
@@ -325,40 +349,40 @@ export class ResultFusionEngine {
     const scoreVariance = Math.abs(result.vectorScore - result.graphScore);
     const hasGraphContext = !!result.graphContext;
     const metadataCompleteness = this.calculateMetadataCompleteness(result.metadata);
-    
+
     let confidence = finalScore;
-    
+
     // Reduce confidence if scores are inconsistent
     confidence -= scoreVariance * 0.2;
-    
+
     // Increase confidence if graph context is available
     if (hasGraphContext) {
       confidence += 0.1;
     }
-    
+
     // Adjust based on metadata completeness
-    confidence *= (0.5 + metadataCompleteness * 0.5);
-    
+    confidence *= 0.5 + metadataCompleteness * 0.5;
+
     return Math.max(0, Math.min(1, confidence));
   }
 
   private calculateMetadataCompleteness(metadata: Record<string, any>): number {
     if (!metadata) return 0;
-    
+
     const importantFields = ['language', 'chunkType', 'functionName', 'className'];
     const presentFields = importantFields.filter(field => metadata[field] !== undefined);
-    
+
     return presentFields.length / importantFields.length;
   }
 
   private sortAndFilter(results: FusionResult[], options: any): FusionResult[] {
     // Sort by final score descending
     const sorted = results.sort((a, b) => b.score - a.score);
-    
+
     // Apply threshold
     const threshold = options.threshold || 0.3;
     const filtered = sorted.filter(result => result.score >= threshold);
-    
+
     // Apply limit
     const limit = options.limit || 10;
     return filtered.slice(0, limit);
@@ -380,8 +404,8 @@ export class ResultFusionEngine {
         graph: 0.3,
         contextual: 0.2,
         recency: 0.05,
-        popularity: 0.05
-      }
+        popularity: 0.05,
+      },
     };
   }
 }

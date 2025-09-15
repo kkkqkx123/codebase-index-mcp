@@ -67,14 +67,14 @@ export enum SecurityIssueType {
   CRYPTOGRAPHY = 'cryptography',
   DESERIALIZATION = 'deserialization',
   LOGGING = 'logging',
-  CONFIGURATION = 'configuration'
+  CONFIGURATION = 'configuration',
 }
 
 export enum SecuritySeverity {
   CRITICAL = 'critical',
   HIGH = 'high',
   MEDIUM = 'medium',
-  LOW = 'low'
+  LOW = 'low',
 }
 
 export interface DataFlowPath {
@@ -104,20 +104,20 @@ export class IncrementalAnalyzer {
   async analyzeChanges(changes: FileChange[]): Promise<DeltaResult> {
     const startTime = Date.now();
     const affectedScope = this.calculateAffectedScope(changes);
-    
+
     // Clear cache for affected files
     this.clearCacheForFiles(affectedScope.files);
-    
+
     // Incremental analysis
     const incrementalResult = await this.analyzeScope(affectedScope);
-    
+
     // Merge with previous results
     const mergedResult = this.mergeWithPrevious(incrementalResult, changes);
-    
+
     const endTime = Date.now();
     mergedResult.performanceImpact = {
       analysisTime: endTime - startTime,
-      memoryUsage: this.estimateMemoryUsage()
+      memoryUsage: this.estimateMemoryUsage(),
     };
 
     return mergedResult;
@@ -131,7 +131,7 @@ export class IncrementalAnalyzer {
 
     for (const change of changes) {
       affectedFiles.add(change.filePath);
-      
+
       // Calculate direct dependencies
       const deps = this.getDirectDependencies(change.filePath);
       for (const dep of deps) {
@@ -152,7 +152,7 @@ export class IncrementalAnalyzer {
       files: Array.from(affectedFiles),
       affectedFunctions: Array.from(affectedFunctions),
       affectedClasses: Array.from(affectedClasses),
-      dependencies
+      dependencies,
     };
   }
 
@@ -162,7 +162,7 @@ export class IncrementalAnalyzer {
     return [];
   }
 
-  private calculateAffectedSymbols(change: FileChange): { functions: string[], classes: string[] } {
+  private calculateAffectedSymbols(change: FileChange): { functions: string[]; classes: string[] } {
     const functions: string[] = [];
     const classes: string[] = [];
 
@@ -181,7 +181,10 @@ export class IncrementalAnalyzer {
     return { functions, classes };
   }
 
-  private analyzeChangeRange(filePath: string, range: { startLine: number; endLine: number }): { functions: string[], classes: string[] } {
+  private analyzeChangeRange(
+    filePath: string,
+    range: { startLine: number; endLine: number }
+  ): { functions: string[]; classes: string[] } {
     // Analyze which functions/classes overlap with the changed range
     const cached = this.cache.get(filePath);
     if (!cached) return { functions: [], classes: [] };
@@ -204,13 +207,19 @@ export class IncrementalAnalyzer {
     return { functions, classes };
   }
 
-  private extractAllSymbols(filePath: string, content: string): { functions: string[], classes: string[] } {
+  private extractAllSymbols(
+    filePath: string,
+    content: string
+  ): { functions: string[]; classes: string[] } {
     // Parse the file and extract all function/class names
     // This is a simplified implementation
     return { functions: [], classes: [] };
   }
 
-  private rangesOverlap(range1: { startLine: number; endLine: number }, range2: { startLine: number; endLine: number }): boolean {
+  private rangesOverlap(
+    range1: { startLine: number; endLine: number },
+    range2: { startLine: number; endLine: number }
+  ): boolean {
     return range1.startLine <= range2.endLine && range1.endLine >= range2.startLine;
   }
 
@@ -243,7 +252,7 @@ export class IncrementalAnalyzer {
       affectedClasses,
       newSecurityIssues,
       resolvedSecurityIssues,
-      performanceImpact: { analysisTime: 0, memoryUsage: 0 }
+      performanceImpact: { analysisTime: 0, memoryUsage: 0 },
     };
   }
 
@@ -259,7 +268,7 @@ export class IncrementalAnalyzer {
       variables: [],
       functions: [],
       classes: [],
-      securityIssues: []
+      securityIssues: [],
     };
   }
 

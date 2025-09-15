@@ -11,16 +11,16 @@ describe('Redis Configuration', () => {
         embedding: 3600,
         search: 1800,
         graph: 7200,
-        progress: 300
+        progress: 300,
       },
       retry: {
         attempts: 3,
-        delay: 100
+        delay: 100,
       },
       pool: {
         min: 5,
-        max: 10
-      }
+        max: 10,
+      },
     };
 
     expect(config.url).toBe('redis://localhost:6379');

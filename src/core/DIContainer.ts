@@ -203,7 +203,7 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.LanguageServerRegistry).toConstantValue(LanguageServerRegistry.getInstance());
   bind(TYPES.LSPSearchService).to(LSPSearchService).inSingletonScope();
   bind(TYPES.LSPEnhancedSearchService).to(LSPEnhancedSearchService).inSingletonScope();
-  
+
   // Additional services from inversify.config.ts
   bind(TYPES.SemanticAnalysisOrchestrator).to(SemanticAnalysisOrchestrator).inSingletonScope();
   bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
@@ -260,7 +260,16 @@ export class DIContainer {
   static getInstance(): Container {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
-      DIContainer.instance.load(coreModule, databaseModule, embedderModule, serviceModule, queueModule, syncModule, monitoringModule, controllerModule);
+      DIContainer.instance.load(
+        coreModule,
+        databaseModule,
+        embedderModule,
+        serviceModule,
+        queueModule,
+        syncModule,
+        monitoringModule,
+        controllerModule
+      );
     }
     return DIContainer.instance;
   }

@@ -59,7 +59,7 @@ export class GraphCacheService {
       const cache = await this.getQueryCache();
       const config = this.configService.get('redis') || { ttl: { graph: 300 } };
       const defaultTTL = ttl || config.ttl?.graph || 300; // 默认5分钟
-      
+
       await cache.set(key, data, { ttl: defaultTTL });
     } catch (error) {
       this.logger.error('Error setting graph query cache', { error, key });
@@ -82,7 +82,7 @@ export class GraphCacheService {
       const cache = await this.getNodeExistenceCache();
       const config = this.configService.get('redis') || { ttl: { graph: 300 } };
       const defaultTTL = ttl || config.ttl?.graph || 300; // 默认5分钟
-      
+
       await cache.set(nodeId, exists, { ttl: defaultTTL });
     } catch (error) {
       this.logger.error('Error caching node existence', { error, nodeId });
@@ -104,14 +104,12 @@ export class GraphCacheService {
       const cache = await this.getGraphStatsCacheInstance();
       const config = this.configService.get('redis') || { ttl: { graph: 300 } };
       const defaultTTL = ttl || config.ttl?.graph || 300; // 默认5分钟
-      
+
       await cache.set('graph-stats', stats, { ttl: defaultTTL });
     } catch (error) {
       this.logger.error('Error setting graph stats cache', { error });
     }
   }
-
-
 
   async getCacheStats(): Promise<{
     queryCacheSize: number;
@@ -127,14 +125,14 @@ export class GraphCacheService {
       const [queryStats, nodeStats, statsStats] = await Promise.all([
         queryCache.getStats(),
         nodeExistenceCache.getStats(),
-        graphStatsCache.getStats()
+        graphStatsCache.getStats(),
       ]);
 
       return {
         queryCacheSize: queryStats.size,
         nodeExistenceCacheSize: nodeStats.size,
         graphStatsCache: (await graphStatsCache.get('graph-stats')) !== null,
-        totalEntries: queryStats.size + nodeStats.size
+        totalEntries: queryStats.size + nodeStats.size,
       };
     } catch (error) {
       this.logger.error('Error getting graph cache stats', { error });
@@ -142,7 +140,7 @@ export class GraphCacheService {
         queryCacheSize: 0,
         nodeExistenceCacheSize: 0,
         graphStatsCache: false,
-        totalEntries: 0
+        totalEntries: 0,
       };
     }
   }
@@ -153,11 +151,7 @@ export class GraphCacheService {
       const nodeExistenceCache = await this.getNodeExistenceCache();
       const graphStatsCache = await this.getGraphStatsCache();
 
-      await Promise.all([
-        queryCache.clear(),
-        nodeExistenceCache.clear(),
-        graphStatsCache.clear()
-      ]);
+      await Promise.all([queryCache.clear(), nodeExistenceCache.clear(), graphStatsCache.clear()]);
 
       this.logger.info('All graph caches cleared');
     } catch (error) {

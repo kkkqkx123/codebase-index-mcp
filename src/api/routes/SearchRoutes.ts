@@ -154,7 +154,7 @@ export class SearchRoutes {
       if (!params.query || !params.projectId) {
         res.status(400).json({
           success: false,
-          error: 'query and projectId are required'
+          error: 'query and projectId are required',
         });
         return;
       }
@@ -163,7 +163,7 @@ export class SearchRoutes {
 
       res.status(200).json({
         success: true,
-        data: results
+        data: results,
       });
     } catch (error) {
       next(error);
@@ -177,7 +177,7 @@ export class SearchRoutes {
       if (!params.query || !params.projectId) {
         res.status(400).json({
           success: false,
-          error: 'query and projectId are required'
+          error: 'query and projectId are required',
         });
         return;
       }
@@ -186,7 +186,7 @@ export class SearchRoutes {
 
       res.status(200).json({
         success: true,
-        data: results
+        data: results,
       });
     } catch (error) {
       next(error);
@@ -200,7 +200,7 @@ export class SearchRoutes {
       if (!params.query || !params.projectId) {
         res.status(400).json({
           success: false,
-          error: 'query and projectId are required'
+          error: 'query and projectId are required',
         });
         return;
       }
@@ -210,19 +210,19 @@ export class SearchRoutes {
         text: params.query,
         filters: {
           projectId: params.projectId,
-          ...params.filters
+          ...params.filters,
         },
         options: {
           limit: params.limit,
           threshold: params.threshold,
-          searchType: 'general' as const
-        }
+          searchType: 'general' as const,
+        },
       };
       const results = await this.searchCoordinator.search(searchParams);
 
       res.status(200).json({
         success: true,
-        data: results
+        data: results,
       });
     } catch (error) {
       next(error);
@@ -236,7 +236,7 @@ export class SearchRoutes {
       if (!query || !projectId) {
         res.status(400).json({
           success: false,
-          error: 'query and projectId are required'
+          error: 'query and projectId are required',
         });
         return;
       }
@@ -248,7 +248,7 @@ export class SearchRoutes {
 
       res.status(200).json({
         success: true,
-        data: suggestions
+        data: suggestions,
       });
     } catch (error) {
       next(error);
@@ -262,7 +262,7 @@ export class SearchRoutes {
       if (!projectId) {
         res.status(400).json({
           success: false,
-          error: 'projectId is required'
+          error: 'projectId is required',
         });
         return;
       }
@@ -272,7 +272,7 @@ export class SearchRoutes {
 
       res.status(200).json({
         success: true,
-        data: history
+        data: history,
       });
     } catch (error) {
       next(error);
@@ -286,7 +286,7 @@ export class SearchRoutes {
       if (!advancedParams.query || !advancedParams.projectId) {
         res.status(400).json({
           success: false,
-          error: 'query and projectId are required'
+          error: 'query and projectId are required',
         });
         return;
       }
@@ -296,19 +296,19 @@ export class SearchRoutes {
         text: advancedParams.query,
         filters: {
           projectId: advancedParams.projectId,
-          ...advancedParams.filters
+          ...advancedParams.filters,
         },
         options: {
           limit: advancedParams.limit,
           threshold: advancedParams.threshold,
-          searchType: 'general' as const
-        }
+          searchType: 'general' as const,
+        },
       };
       const results = await this.searchCoordinator.search(searchParams);
 
       res.status(200).json({
         success: true,
-        data: results
+        data: results,
       });
     } catch (error) {
       next(error);

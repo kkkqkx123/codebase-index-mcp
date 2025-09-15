@@ -131,7 +131,7 @@ describe('HealthCheckService', () => {
         heapUsed: 100 * 1024 * 1024, // 100MB
         heapTotal: 1000 * 1024 * 1024, // 1000MB
         external: 10 * 1024 * 1024, // 10MB
-        rss: 150 * 1024 * 1024 // 150MB
+        rss: 150 * 1024 * 1024, // 150MB
       });
 
       const health = healthCheckService.checkSystemHealth();
@@ -149,7 +149,7 @@ describe('HealthCheckService', () => {
         heapUsed: 850 * 1024 * 1024, // 850MB
         heapTotal: 1000 * 1024 * 1024, // 1000MB
         external: 50 * 1024 * 1024, // 50MB
-        rss: 950 * 1024 * 1024 // 950MB
+        rss: 950 * 1024 * 1024, // 950MB
       });
 
       const health = healthCheckService.checkSystemHealth();
@@ -165,7 +165,7 @@ describe('HealthCheckService', () => {
         heapUsed: 950 * 1024 * 1024, // 950MB
         heapTotal: 1000 * 1024 * 1024, // 1000MB
         external: 100 * 1024 * 1024, // 100MB
-        rss: 1100 * 1024 * 1024 // 1100MB
+        rss: 1100 * 1024 * 1024, // 1100MB
       });
 
       const health = healthCheckService.checkSystemHealth();
@@ -205,7 +205,7 @@ describe('HealthCheckService', () => {
         heapUsed: 100 * 1024 * 1024, // 100MB
         heapTotal: 1000 * 1024 * 1024, // 1000MB
         external: 10 * 1024 * 1024, // 10MB
-        rss: 150 * 1024 * 1024 // 150MB
+        rss: 150 * 1024 * 1024, // 150MB
       });
 
       const health = await healthCheckService.performHealthCheck();
@@ -233,7 +233,7 @@ describe('HealthCheckService', () => {
         heapUsed: 850 * 1024 * 1024, // 850MB
         heapTotal: 1000 * 1024 * 1024, // 1000MB
         external: 50 * 1024 * 1024, // 50MB
-        rss: 950 * 1024 * 1024 // 950MB
+        rss: 950 * 1024 * 1024, // 950MB
       });
 
       const health = await healthCheckService.performHealthCheck();
@@ -256,7 +256,9 @@ describe('HealthCheckService', () => {
     it('should handle errors during health check', async () => {
       // Mock the checkDatabaseHealth method to throw an error
       const originalCheckDatabaseHealth = healthCheckService.checkDatabaseHealth;
-      healthCheckService.checkDatabaseHealth = jest.fn().mockRejectedValue(new Error('Database check failed'));
+      healthCheckService.checkDatabaseHealth = jest
+        .fn()
+        .mockRejectedValue(new Error('Database check failed'));
 
       const health = await healthCheckService.performHealthCheck();
 
@@ -265,7 +267,7 @@ describe('HealthCheckService', () => {
       expect(health.checks.nebula.status).toBe('unhealthy');
       expect(health.checks.system.status).toBe('unhealthy');
       expect(mockErrorHandlerService.handleError).toHaveBeenCalled();
-      
+
       // Restore original method
       healthCheckService.checkDatabaseHealth = originalCheckDatabaseHealth;
     });
@@ -277,7 +279,7 @@ describe('HealthCheckService', () => {
         name: 'TestService',
         status: 'healthy',
         lastCheck: Date.now(),
-        responseTime: 50
+        responseTime: 50,
       };
 
       healthCheckService.registerDependency(dependency);
@@ -285,7 +287,9 @@ describe('HealthCheckService', () => {
       const dependencies = healthCheckService.getDependencies();
       expect(dependencies).toHaveLength(1);
       expect(dependencies[0]).toEqual(dependency);
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Dependency registered', { dependency: 'TestService' });
+      expect(mockLoggerService.info).toHaveBeenCalledWith('Dependency registered', {
+        dependency: 'TestService',
+      });
     });
   });
 
@@ -295,13 +299,13 @@ describe('HealthCheckService', () => {
         name: 'Service1',
         status: 'healthy',
         lastCheck: Date.now(),
-        responseTime: 50
+        responseTime: 50,
       };
       const dependency2: ServiceDependency = {
         name: 'Service2',
         status: 'degraded',
         lastCheck: Date.now(),
-        responseTime: 150
+        responseTime: 150,
       };
 
       healthCheckService.registerDependency(dependency1);
@@ -325,7 +329,7 @@ describe('HealthCheckService', () => {
         name: 'TestService',
         status: 'healthy',
         lastCheck: Date.now() - 10000, // 10 seconds ago
-        responseTime: 50
+        responseTime: 50,
       };
 
       healthCheckService.registerDependency(dependency);
@@ -341,7 +345,9 @@ describe('HealthCheckService', () => {
     it('should log a warning when a service is degraded', async () => {
       await healthCheckService.handleDegradedService('TestService');
 
-      expect(mockLoggerService.warn).toHaveBeenCalledWith('Service degradation detected', { serviceName: 'TestService' });
+      expect(mockLoggerService.warn).toHaveBeenCalledWith('Service degradation detected', {
+        serviceName: 'TestService',
+      });
     });
   });
 
@@ -349,7 +355,9 @@ describe('HealthCheckService', () => {
     it('should log an error and record a critical alert when a service fails', async () => {
       await healthCheckService.handleServiceFailure('TestService');
 
-      expect(mockLoggerService.error).toHaveBeenCalledWith('Service failure detected', { serviceName: 'TestService' });
+      expect(mockLoggerService.error).toHaveBeenCalledWith('Service failure detected', {
+        serviceName: 'TestService',
+      });
       expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('critical');
     });
   });

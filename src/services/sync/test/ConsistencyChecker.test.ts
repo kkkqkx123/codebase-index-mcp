@@ -40,9 +40,11 @@ describe('ConsistencyChecker', () => {
 
     mockEntityIdManager = {
       getMappingsByProject: jest.fn(),
-      getMapping: jest.fn().mockImplementation((entityId) => 
-        mockMappings.find(mapping => mapping.entityId === entityId)
-      ),
+      getMapping: jest
+        .fn()
+        .mockImplementation(entityId =>
+          mockMappings.find(mapping => mapping.entityId === entityId)
+        ),
       updateMapping: jest.fn(),
       deleteMapping: jest.fn(),
     } as any;
@@ -140,7 +142,9 @@ describe('ConsistencyChecker', () => {
         duration: expect.any(Number),
       });
 
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Starting consistency check', { projectId });
+      expect(mockLoggerService.info).toHaveBeenCalledWith('Starting consistency check', {
+        projectId,
+      });
       expect(mockLoggerService.info).toHaveBeenCalledWith('Consistency check completed', {
         projectId,
         issuesFound: 4, // entity_4 has both missing_vector and missing_graph
@@ -305,9 +309,7 @@ describe('ConsistencyChecker', () => {
       // Add issue to the checker's internal state
       (consistencyChecker as any).consistencyIssues.set(issue.id, issue);
 
-      await expect(consistencyChecker.repairIssue(issue.id)).rejects.toThrow(
-        CodebaseIndexError
-      );
+      await expect(consistencyChecker.repairIssue(issue.id)).rejects.toThrow(CodebaseIndexError);
     });
 
     it('should handle repair failures', async () => {

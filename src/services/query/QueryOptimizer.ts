@@ -83,24 +83,24 @@ export class QueryOptimizer {
   }
 
   async optimize(query: QueryRequest): Promise<OptimizedQuery> {
-    this.logger.info('Optimizing query', { 
-      query: query.query, 
-      projectId: query.projectId 
+    this.logger.info('Optimizing query', {
+      query: query.query,
+      projectId: query.projectId,
     });
 
     try {
       // Analyze query intent and structure
       const analysis = await this.analyzeQuery(query);
-      
+
       // Generate query expansions
       const expansions = await this.generateQueryExpansions(query.query, analysis);
-      
+
       // Optimize filters
       const optimizedFilters = await this.optimizeFilters(query.options?.filters || {}, analysis);
-      
+
       // Determine search strategy
       const searchStrategy = await this.determineSearchStrategy(analysis, query.options);
-      
+
       // Estimate performance
       const performance = await this.estimatePerformance(analysis, searchStrategy);
 
@@ -110,7 +110,7 @@ export class QueryOptimizer {
         queryExpansion: expansions,
         filters: optimizedFilters,
         searchStrategy,
-        performance
+        performance,
       };
 
       // Cache analysis for future learning
@@ -120,14 +120,15 @@ export class QueryOptimizer {
         originalQuery: query.query,
         optimizedQuery: optimizedQuery.optimizedQuery,
         expansions: expansions.length,
-        searchType: searchStrategy.type
+        searchType: searchStrategy.type,
       });
 
       return optimizedQuery;
-
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Query optimization failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Query optimization failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QueryOptimizer', operation: 'optimize' }
       );
       throw error;
@@ -136,17 +137,17 @@ export class QueryOptimizer {
 
   private async analyzeQuery(query: QueryRequest): Promise<QueryAnalysis> {
     const queryText = query.query.toLowerCase();
-    
+
     // Determine query type
     const queryType = this.determineQueryType(queryText);
-    
+
     // Determine intent
     const intent = this.determineIntent(queryText);
-    
+
     // Extract keywords and entities
     const keywords = this.extractKeywords(queryText);
     const entities = await this.extractEntities(queryText, query.projectId);
-    
+
     // Analyze context
     const context = this.analyzeContext(queryText, entities);
 
@@ -160,19 +161,31 @@ export class QueryOptimizer {
       keywords,
       queryExpansion: [],
       entities,
-      context
+      context,
     };
   }
 
   private determineQueryType(queryText: string): 'keyword' | 'semantic' | 'structural' | 'mixed' {
     const structuralPatterns = [
-      /class\s+\w+/, /function\s+\w+/, /import\s+.*from/, /extends\s+\w+/,
-      /implements\s+\w+/, /interface\s+\w+/, /type\s+\w+/
+      /class\s+\w+/,
+      /function\s+\w+/,
+      /import\s+.*from/,
+      /extends\s+\w+/,
+      /implements\s+\w+/,
+      /interface\s+\w+/,
+      /type\s+\w+/,
     ];
-    
+
     const semanticPatterns = [
-      /what\s+is/, /how\s+to/, /explain/, /describe/, /purpose/,
-      /meaning/, /concept/, /why/, /when\s+to/
+      /what\s+is/,
+      /how\s+to/,
+      /explain/,
+      /describe/,
+      /purpose/,
+      /meaning/,
+      /concept/,
+      /why/,
+      /when\s+to/,
     ];
 
     const hasStructural = structuralPatterns.some(pattern => pattern.test(queryText));
@@ -183,7 +196,7 @@ export class QueryOptimizer {
     if (hasStructural) return 'structural';
     if (hasSemantic) return 'semantic';
     if (hasKeywords) return 'keyword';
-    
+
     return 'keyword';
   }
 
@@ -204,9 +217,35 @@ export class QueryOptimizer {
   private extractKeywords(queryText: string): string[] {
     // Remove common stop words and extract meaningful keywords
     const stopWords = new Set([
-      'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but',
-      'in', 'with', 'to', 'for', 'of', 'as', 'by', 'be', 'are', 'was',
-      'were', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would'
+      'the',
+      'is',
+      'at',
+      'which',
+      'on',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'with',
+      'to',
+      'for',
+      'of',
+      'as',
+      'by',
+      'be',
+      'are',
+      'was',
+      'were',
+      'have',
+      'has',
+      'had',
+      'do',
+      'does',
+      'did',
+      'will',
+      'would',
     ]);
 
     return queryText
@@ -216,11 +255,16 @@ export class QueryOptimizer {
       .filter((word, index, arr) => arr.indexOf(word) === index);
   }
 
-  private async extractEntities(queryText: string, projectId: string): Promise<Array<{
-    type: 'file' | 'function' | 'class' | 'variable' | 'concept';
-    value: string;
-    confidence: number;
-  }>> {
+  private async extractEntities(
+    queryText: string,
+    projectId: string
+  ): Promise<
+    Array<{
+      type: 'file' | 'function' | 'class' | 'variable' | 'concept';
+      value: string;
+      confidence: number;
+    }>
+  > {
     const entities: Array<{
       type: 'file' | 'function' | 'class' | 'variable' | 'concept';
       value: string;
@@ -234,7 +278,7 @@ export class QueryOptimizer {
       entities.push({
         type: 'file',
         value: fileMatch[1],
-        confidence: 0.9
+        confidence: 0.9,
       });
     }
 
@@ -245,7 +289,7 @@ export class QueryOptimizer {
       entities.push({
         type: 'function',
         value: functionMatch[1] || functionMatch[2],
-        confidence: 0.8
+        confidence: 0.8,
       });
     }
 
@@ -256,14 +300,22 @@ export class QueryOptimizer {
       entities.push({
         type: 'class',
         value: classMatch[1],
-        confidence: 0.8
+        confidence: 0.8,
       });
     }
 
     // Extract programming concepts
     const concepts = [
-      'algorithm', 'data structure', 'pattern', 'architecture', 'design',
-      'framework', 'library', 'api', 'interface', 'implementation'
+      'algorithm',
+      'data structure',
+      'pattern',
+      'architecture',
+      'design',
+      'framework',
+      'library',
+      'api',
+      'interface',
+      'implementation',
     ];
 
     concepts.forEach(concept => {
@@ -271,7 +323,7 @@ export class QueryOptimizer {
         entities.push({
           type: 'concept',
           value: concept,
-          confidence: 0.6
+          confidence: 0.6,
         });
       }
     });
@@ -279,47 +331,55 @@ export class QueryOptimizer {
     return entities;
   }
 
-  private analyzeContext(queryText: string, entities: any[]): {
+  private analyzeContext(
+    queryText: string,
+    entities: any[]
+  ): {
     isCodeSpecific: boolean;
     isProjectSpecific: boolean;
     requiresGraphAnalysis: boolean;
   } {
     const codeKeywords = ['function', 'class', 'method', 'variable', 'parameter', 'return'];
     const structuralKeywords = ['dependency', 'import', 'extends', 'implements', 'interface'];
-    
-    const isCodeSpecific = codeKeywords.some(keyword => queryText.includes(keyword)) || 
-                          entities.some(e => e.type === 'function' || e.type === 'class');
-    
-    const isProjectSpecific = entities.some(e => e.type === 'file') || 
-                             queryText.includes('project') || queryText.includes('codebase');
-    
-    const requiresGraphAnalysis = structuralKeywords.some(keyword => queryText.includes(keyword)) ||
-                                queryText.includes('dependency') || queryText.includes('relationship');
+
+    const isCodeSpecific =
+      codeKeywords.some(keyword => queryText.includes(keyword)) ||
+      entities.some(e => e.type === 'function' || e.type === 'class');
+
+    const isProjectSpecific =
+      entities.some(e => e.type === 'file') ||
+      queryText.includes('project') ||
+      queryText.includes('codebase');
+
+    const requiresGraphAnalysis =
+      structuralKeywords.some(keyword => queryText.includes(keyword)) ||
+      queryText.includes('dependency') ||
+      queryText.includes('relationship');
 
     return {
       isCodeSpecific,
       isProjectSpecific,
-      requiresGraphAnalysis
+      requiresGraphAnalysis,
     };
   }
 
   private calculateComplexity(queryText: string, keywords: string[], entities: any[]): number {
     let complexity = 0;
-    
+
     // Base complexity from query length
     complexity += Math.min(queryText.length / 100, 0.3);
-    
+
     // Keyword complexity
     complexity += Math.min(keywords.length / 10, 0.3);
-    
+
     // Entity complexity
     complexity += Math.min(entities.length / 5, 0.2);
-    
+
     // Structural complexity
     if (queryText.includes('and') || queryText.includes('or')) {
       complexity += 0.1;
     }
-    
+
     // Filter complexity
     if (queryText.includes('where') || queryText.includes('filter')) {
       complexity += 0.1;
@@ -330,32 +390,32 @@ export class QueryOptimizer {
 
   private async generateQueryExpansions(query: string, analysis: QueryAnalysis): Promise<string[]> {
     const expansions: string[] = [];
-    
+
     // Add synonyms for key terms
     const synonyms = this.getSynonyms(analysis.keywords);
     expansions.push(...synonyms);
-    
+
     // Add related concepts
     if (analysis.entities.length > 0) {
       const relatedConcepts = await this.getRelatedConcepts(analysis.entities);
       expansions.push(...relatedConcepts);
     }
-    
+
     // Add context-aware expansions
     if (analysis.context.isCodeSpecific) {
       expansions.push('code', 'implementation', 'function');
     }
-    
+
     return expansions.slice(0, 5); // Limit expansions
   }
 
   private getSynonyms(keywords: string[]): string[] {
     const synonymMap: Record<string, string[]> = {
-      'function': ['method', 'procedure', 'routine'],
-      'class': ['type', 'interface', 'struct'],
-      'error': ['exception', 'bug', 'issue'],
-      'performance': ['speed', 'efficiency', 'optimization'],
-      'data': ['information', 'content', 'structure']
+      function: ['method', 'procedure', 'routine'],
+      class: ['type', 'interface', 'struct'],
+      error: ['exception', 'bug', 'issue'],
+      performance: ['speed', 'efficiency', 'optimization'],
+      data: ['information', 'content', 'structure'],
     };
 
     const synonyms: string[] = [];
@@ -371,7 +431,7 @@ export class QueryOptimizer {
   private async getRelatedConcepts(entities: any[]): Promise<string[]> {
     // Mock implementation - in real system, this would query knowledge graph
     const concepts: string[] = [];
-    
+
     entities.forEach(entity => {
       if (entity.type === 'class') {
         concepts.push('object', 'instance', 'method');
@@ -383,7 +443,10 @@ export class QueryOptimizer {
     return concepts;
   }
 
-  private async optimizeFilters(filters: any, analysis: QueryAnalysis): Promise<{
+  private async optimizeFilters(
+    filters: any,
+    analysis: QueryAnalysis
+  ): Promise<{
     language: string[];
     fileType: string[];
     path: string[];
@@ -401,7 +464,7 @@ export class QueryOptimizer {
         field: string;
         operator: 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'contains';
         value: any;
-      }>
+      }>,
     };
 
     // Add intelligent filters based on analysis
@@ -411,7 +474,7 @@ export class QueryOptimizer {
         optimized.custom.push({
           field: 'fileName',
           operator: 'contains',
-          value: fileEntities[0].value
+          value: fileEntities[0].value,
         });
       }
     }
@@ -429,12 +492,12 @@ export class QueryOptimizer {
 
   private detectLanguageFromQuery(keywords: string[]): string[] {
     const languageMap: Record<string, string[]> = {
-      'typescript': ['ts', 'tsx', 'typescript'],
-      'javascript': ['js', 'jsx', 'javascript'],
-      'python': ['py', 'python'],
-      'java': ['java'],
-      'go': ['go'],
-      'rust': ['rs', 'rust']
+      typescript: ['ts', 'tsx', 'typescript'],
+      javascript: ['js', 'jsx', 'javascript'],
+      python: ['py', 'python'],
+      java: ['java'],
+      go: ['go'],
+      rust: ['rs', 'rust'],
     };
 
     const detected: string[] = [];
@@ -447,7 +510,10 @@ export class QueryOptimizer {
     return [...new Set(detected)];
   }
 
-  private async determineSearchStrategy(analysis: QueryAnalysis, options?: any): Promise<{
+  private async determineSearchStrategy(
+    analysis: QueryAnalysis,
+    options?: any
+  ): Promise<{
     type: 'semantic' | 'hybrid' | 'graph' | 'multi_stage';
     parallel: boolean;
     cacheStrategy: 'aggressive' | 'moderate' | 'conservative';
@@ -483,11 +549,14 @@ export class QueryOptimizer {
     return {
       type,
       parallel,
-      cacheStrategy
+      cacheStrategy,
     };
   }
 
-  private async estimatePerformance(analysis: QueryAnalysis, strategy: any): Promise<{
+  private async estimatePerformance(
+    analysis: QueryAnalysis,
+    strategy: any
+  ): Promise<{
     estimatedLatency: number;
     complexity: 'low' | 'medium' | 'high';
     resourceUsage: 'low' | 'medium' | 'high';
@@ -528,7 +597,7 @@ export class QueryOptimizer {
     return {
       estimatedLatency: Math.round(estimatedLatency),
       complexity,
-      resourceUsage
+      resourceUsage,
     };
   }
 
@@ -537,10 +606,10 @@ export class QueryOptimizer {
 
     // Remove redundant words
     optimized = this.removeRedundantWords(optimized);
-    
+
     // Normalize whitespace
     optimized = optimized.replace(/\s+/g, ' ').trim();
-    
+
     // Add query expansions if beneficial
     if (analysis.queryExpansion.length > 0 && analysis.complexity < 0.5) {
       optimized += ` ${analysis.queryExpansion.slice(0, 2).join(' ')}`;
@@ -552,11 +621,11 @@ export class QueryOptimizer {
   private removeRedundantWords(query: string): string {
     const redundantWords = ['please', 'can you', 'could you', 'help me', 'show me'];
     let result = query.toLowerCase();
-    
+
     redundantWords.forEach(word => {
       result = result.replace(new RegExp(word, 'gi'), '');
     });
-    
+
     return result.trim();
   }
 
@@ -575,8 +644,8 @@ export class QueryOptimizer {
       topOptimizations: [
         { type: 'query_expansion', count: 45, improvement: 0.3 },
         { type: 'filter_optimization', count: 32, improvement: 0.2 },
-        { type: 'strategy_selection', count: 28, improvement: 0.25 }
-      ]
+        { type: 'strategy_selection', count: 28, improvement: 0.25 },
+      ],
     };
   }
 }

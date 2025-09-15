@@ -12,7 +12,7 @@ export class GoInterfaceRule extends AbstractSnippetRule {
     'struct_type',
     'method_declaration',
     'type_declaration',
-    'field_declaration'
+    'field_declaration',
   ]);
   protected readonly snippetType = 'go_interface' as const;
 
@@ -20,7 +20,7 @@ export class GoInterfaceRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for Go interface patterns
     return this.containsGoInterfacePattern(content);
   }
@@ -51,13 +51,13 @@ export class GoInterfaceRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...interfaceFeatures
+          ...interfaceFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        goInterfaceInfo: this.extractGoInterfaceInfo(content)
-      }
+        goInterfaceInfo: this.extractGoInterfaceInfo(content),
+      },
     };
   }
 
@@ -72,7 +72,7 @@ export class GoInterfaceRule extends AbstractSnippetRule {
       // Empty interface
       /interface\s*\{\s*\}/,
       // Method implementations
-      /func\s*\([^)]*\)\s+\w+\s*\([^)]*\)\s*\{/
+      /func\s*\([^)]*\)\s+\w+\s*\([^)]*\)\s*\{/,
     ];
 
     return interfacePatterns.some(pattern => pattern.test(content));
@@ -92,7 +92,7 @@ export class GoInterfaceRule extends AbstractSnippetRule {
       usesInterfaces: interfaceCount > 0,
       usesInterfaceEmbedding: embeddingCount > 0,
       usesMethodSets: methodSetCount > 0,
-      interfaceComplexity: interfaceCount + embeddingCount + methodSetCount
+      interfaceComplexity: interfaceCount + embeddingCount + methodSetCount,
     };
   }
 
@@ -109,14 +109,14 @@ export class GoInterfaceRule extends AbstractSnippetRule {
     const embeddedInterfaces: string[] = [];
     const methodSignatures: string[] = [];
     const implementations: string[] = [];
-    
+
     // Extract interface names
     const interfaceRegex = /type\s+(\w+)\s+interface/g;
     let match;
     while ((match = interfaceRegex.exec(content)) !== null) {
       interfaces.push(match[1]);
     }
-    
+
     // Extract embedded interfaces
     const embeddingRegex = /interface\s*\{\s*([^}]+)\s*\}/g;
     while ((match = embeddingRegex.exec(content)) !== null) {
@@ -125,19 +125,19 @@ export class GoInterfaceRule extends AbstractSnippetRule {
         embeddedInterfaces.push(embedded);
       }
     }
-    
+
     // Extract method signatures
     const methodRegex = /(\w+)\s*\([^)]*\)\s*(\w+)\s*\([^)]*\)/g;
     while ((match = methodRegex.exec(content)) !== null) {
       methodSignatures.push(`${match[2]} ${match[1]}(...)`);
     }
-    
+
     // Extract struct implementations
     const implementationRegex = /func\s*\(\s*(\w+)\s+\*(\w+)\)\s+(\w+)\s*\(/g;
     while ((match = implementationRegex.exec(content)) !== null) {
       implementations.push(`${match[2]}.${match[3]}`);
     }
-    
+
     const usesEmptyInterface = /interface\s*\{\s*\}/.test(content);
     const interfaceSize = this.calculateInterfaceSize(content);
     const purpose = this.inferInterfacePurpose(content, interfaces, methodSignatures);
@@ -149,7 +149,7 @@ export class GoInterfaceRule extends AbstractSnippetRule {
       implementations: [...new Set(implementations)],
       usesEmptyInterface,
       interfaceSize,
-      purpose
+      purpose,
     };
   }
 
@@ -161,7 +161,11 @@ export class GoInterfaceRule extends AbstractSnippetRule {
     }, 0);
   }
 
-  private inferInterfacePurpose(content: string, interfaces: string[], methodSignatures: string[]): string {
+  private inferInterfacePurpose(
+    content: string,
+    interfaces: string[],
+    methodSignatures: string[]
+  ): string {
     if (content.includes('Reader') || content.includes('Writer') || content.includes('io.')) {
       return 'io_operations';
     }
@@ -189,40 +193,40 @@ export class GoInterfaceRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const interfaceComplexity = this.calculateGoInterfaceComplexity(content);
-    
+
     return baseComplexity + interfaceComplexity;
   }
 
   private calculateGoInterfaceComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for interface definitions
     complexity += (content.match(/type\s+\w+\s+interface/g) || []).length * 3;
-    
+
     // Add complexity for method signatures
     complexity += (content.match(/\w+\s*\([^)]*\)\s*\w+\s*\([^)]*\)/g) || []).length * 2;
-    
+
     // Add complexity for interface embedding
     complexity += (content.match(/interface\s*\{\s*\w+\s+\w+\s*\}/g) || []).length * 4;
-    
+
     // Add complexity for method implementations
     complexity += (content.match(/func\s*\([^)]*\)\s+\w+\s*\([^)]*\)\s*\{/g) || []).length * 2;
-    
+
     // Add complexity for receiver methods
     complexity += (content.match(/func\s*\(\s*\w+\s+\*\w+\)/g) || []).length * 3;
-    
+
     // Add complexity for empty interface usage
     complexity += (content.match(/interface\s*\{\s*\}/g) || []).length * 1;
-    
+
     // Add complexity for common interface patterns
     const commonPatterns = [
       (content.match(/Stringer/g) || []).length * 2,
       (content.match(/Reader|Writer/g) || []).length * 2,
-      (content.match(/Handler/g) || []).length * 2
+      (content.match(/Handler/g) || []).length * 2,
     ].reduce((sum, val) => sum + val, 0);
-    
+
     complexity += commonPatterns;
-    
+
     return complexity;
   }
 }

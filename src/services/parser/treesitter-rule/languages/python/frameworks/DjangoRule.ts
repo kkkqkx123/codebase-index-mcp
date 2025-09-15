@@ -9,16 +9,22 @@ export class DjangoRule extends AbstractSnippetRule {
   readonly name = 'DjangoRule';
   readonly supportedNodeTypes = new Set([
     // Model definitions
-    'class_definition', 'expression_statement',
-    
+    'class_definition',
+    'expression_statement',
+
     // View definitions
-    'function_definition', 'decorated_definition',
-    
+    'function_definition',
+    'decorated_definition',
+
     // Django-specific patterns
-    'import_statement', 'call_expression', 'attribute',
-    
+    'import_statement',
+    'call_expression',
+    'attribute',
+
     // ORM patterns
-    'assignment', 'binary_operator', 'comparison_operator'
+    'assignment',
+    'binary_operator',
+    'comparison_operator',
   ]);
 
   protected readonly snippetType = 'django_model' as const;
@@ -27,7 +33,7 @@ export class DjangoRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check if this is Django-related code
     return this.isDjangoCode(content);
   }
@@ -41,9 +47,10 @@ export class DjangoRule extends AbstractSnippetRule {
     const location = this.getNodeLocation(node);
     const contextInfo = this.extractContextInfo(node, sourceCode, nestingLevel);
     const djangoType = this.determineDjangoType(node, content);
-    
+
     // Use the appropriate snippet type based on Django component
-    const snippetType = djangoType === 'view' ? 'django_view' as const : 'django_model' as const;
+    const snippetType =
+      djangoType === 'view' ? ('django_view' as const) : ('django_model' as const);
     const djangoMetadata = this.extractDjangoMetadata(node, content, sourceCode, djangoType);
 
     return {
@@ -64,8 +71,8 @@ export class DjangoRule extends AbstractSnippetRule {
         complexity: this.calculateDjangoComplexity(content, djangoType),
         isStandalone: this.isStandaloneDjangoComponent(node, djangoType),
         hasSideEffects: this.hasSideEffects(content),
-        djangoInfo: djangoMetadata
-      }
+        djangoInfo: djangoMetadata,
+      },
     };
   }
 
@@ -78,7 +85,7 @@ export class DjangoRule extends AbstractSnippetRule {
       /from\s+django\.contrib\s+import/,
       /from\s+django\.forms\s+import/,
       /from\s+django\.shortcuts\s+import/,
-      
+
       // Model patterns
       /class\s+\w+\s*\(\s*models\.Model\s*\)/,
       /models\.CharField\(/,
@@ -89,7 +96,7 @@ export class DjangoRule extends AbstractSnippetRule {
       /models\.ForeignKey\(/,
       /models\.ManyToManyField\(/,
       /models\.OneToOneField\(/,
-      
+
       // View patterns
       /def\s+\w+\s*\(\s*request\b/,
       /@login_required/,
@@ -99,7 +106,7 @@ export class DjangoRule extends AbstractSnippetRule {
       /JsonResponse\(/,
       /HttpResponse\(/,
       /HttpResponseRedirect\(/,
-      
+
       // ORM patterns
       /objects\.filter\(/,
       /objects\.all\(/,
@@ -109,34 +116,41 @@ export class DjangoRule extends AbstractSnippetRule {
       /\.prefetch_related\(/,
       /\.annotate\(/,
       /\.aggregate\(/,
-      
+
       // URL patterns
       /path\(/,
       /re_path\(/,
       /url\(/,
-      
+
       // Form patterns
       /class\s+\w+Form\(/,
       /class\s+\w+ModelForm\(/,
-      
+
       // Admin patterns
       /class\s+\w+Admin\(/,
-      /admin\.site\.register/
+      /admin\.site\.register/,
     ];
 
     return djangoPatterns.some(pattern => pattern.test(content));
   }
 
-  private determineDjangoType(node: Parser.SyntaxNode, content: string): 'model' | 'view' | 'other' {
+  private determineDjangoType(
+    node: Parser.SyntaxNode,
+    content: string
+  ): 'model' | 'view' | 'other' {
     if (content.includes('models.Model') && node.type === 'class_definition') {
       return 'model';
     }
-    
-    if ((node.type === 'function_definition' || node.type === 'decorated_definition') &&
-        (content.includes('request') || content.includes('render') || content.includes('HttpResponse'))) {
+
+    if (
+      (node.type === 'function_definition' || node.type === 'decorated_definition') &&
+      (content.includes('request') ||
+        content.includes('render') ||
+        content.includes('HttpResponse'))
+    ) {
       return 'view';
     }
-    
+
     return 'other';
   }
 
@@ -151,21 +165,21 @@ export class DjangoRule extends AbstractSnippetRule {
         models: this.extractModels(content),
         views: [],
         orm: this.extractORMInfo(content),
-        patterns: this.extractDjangoPatterns(content)
+        patterns: this.extractDjangoPatterns(content),
       };
     } else if (djangoType === 'view') {
       return {
         models: [],
         views: this.extractViews(content),
         orm: this.extractORMInfo(content),
-        patterns: this.extractDjangoPatterns(content)
+        patterns: this.extractDjangoPatterns(content),
       };
     } else {
       return {
         models: [],
         views: [],
         orm: this.extractORMInfo(content),
-        patterns: this.extractDjangoPatterns(content)
+        patterns: this.extractDjangoPatterns(content),
       };
     }
   }
@@ -173,18 +187,20 @@ export class DjangoRule extends AbstractSnippetRule {
   private extractModels(content: string) {
     const modelPattern = /class\s+([A-Z][a-zA-Z0-9_]*)\s*\(\s*models\.Model\s*\)\s*:/;
     const modelMatch = content.match(modelPattern);
-    
+
     if (!modelMatch) return [];
 
     const modelName = modelMatch[1];
     const fields = this.extractModelFields(content);
     const meta = this.extractModelMeta(content);
 
-    return [{
-      modelName,
-      fields,
-      meta
-    }];
+    return [
+      {
+        modelName,
+        fields,
+        meta,
+      },
+    ];
   }
 
   private extractModelFields(content: string) {
@@ -200,9 +216,18 @@ export class DjangoRule extends AbstractSnippetRule {
       { type: 'SlugField', pattern: /(\w+)\s*=\s*models\.SlugField\s*\([^)]*\)/g },
       { type: 'FileField', pattern: /(\w+)\s*=\s*models\.FileField\s*\([^)]*\)/g },
       { type: 'ImageField', pattern: /(\w+)\s*=\s*models\.ImageField\s*\([^)]*\)/g },
-      { type: 'ForeignKey', pattern: /(\w+)\s*=\s*models\.ForeignKey\s*\(\s*['"]([^'"]+)['"][^)]*\)/g },
-      { type: 'ManyToManyField', pattern: /(\w+)\s*=\s*models\.ManyToManyField\s*\(\s*['"]([^'"]+)['"][^)]*\)/g },
-      { type: 'OneToOneField', pattern: /(\w+)\s*=\s*models\.OneToOneField\s*\(\s*['"]([^'"]+)['"][^)]*\)/g }
+      {
+        type: 'ForeignKey',
+        pattern: /(\w+)\s*=\s*models\.ForeignKey\s*\(\s*['"]([^'"]+)['"][^)]*\)/g,
+      },
+      {
+        type: 'ManyToManyField',
+        pattern: /(\w+)\s*=\s*models\.ManyToManyField\s*\(\s*['"]([^'"]+)['"][^)]*\)/g,
+      },
+      {
+        type: 'OneToOneField',
+        pattern: /(\w+)\s*=\s*models\.OneToOneField\s*\(\s*['"]([^'"]+)['"][^)]*\)/g,
+      },
     ];
 
     const fields: any[] = [];
@@ -217,7 +242,7 @@ export class DjangoRule extends AbstractSnippetRule {
         if (type === 'ForeignKey' || type === 'ManyToManyField' || type === 'OneToOneField') {
           relationships.push({
             type,
-            relatedModel: match[2]
+            relatedModel: match[2],
           });
         }
 
@@ -225,7 +250,7 @@ export class DjangoRule extends AbstractSnippetRule {
           name: fieldName,
           type,
           constraints,
-          relationships
+          relationships,
         });
       }
     });
@@ -235,21 +260,21 @@ export class DjangoRule extends AbstractSnippetRule {
 
   private extractFieldConstraints(fieldDefinition: string): string[] {
     const constraints: string[] = [];
-    
+
     if (fieldDefinition.includes('unique=True')) constraints.push('unique');
     if (fieldDefinition.includes('null=True')) constraints.push('nullable');
     if (fieldDefinition.includes('blank=True')) constraints.push('blank');
     if (fieldDefinition.includes('default=')) constraints.push('has_default');
     if (fieldDefinition.includes('max_length=')) constraints.push('max_length');
     if (fieldDefinition.includes('choices=')) constraints.push('choices');
-    
+
     return constraints;
   }
 
   private extractModelMeta(content: string) {
     const metaPattern = /class\s+Meta\s*:\s*([^}]+)}/s;
     const metaMatch = content.match(metaPattern);
-    
+
     if (!metaMatch) return {};
 
     const metaContent = metaMatch[1];
@@ -259,17 +284,19 @@ export class DjangoRule extends AbstractSnippetRule {
 
     return {
       dbTable: dbTableMatch ? dbTableMatch[1] : undefined,
-      ordering: orderingMatch ? orderingMatch[1].split(',').map(item => item.trim().replace(/['"]/g, '')) : undefined,
-      verboseName: verboseNameMatch ? verboseNameMatch[1] : undefined
+      ordering: orderingMatch
+        ? orderingMatch[1].split(',').map(item => item.trim().replace(/['"]/g, ''))
+        : undefined,
+      verboseName: verboseNameMatch ? verboseNameMatch[1] : undefined,
     };
   }
 
   private extractViews(content: string) {
     const viewPattern = /def\s+([a-z][a-zA-Z0-9_]*)\s*\(\s*request[^)]*\)/g;
     const classViewPattern = /class\s+([A-Z][a-zA-Z0-9_]*)\s*\(\s*([A-Z][a-zA-Z0-9_]*)\s*\)/g;
-    
+
     const views: any[] = [];
-    
+
     // Function-based views
     let match;
     while ((match = viewPattern.exec(content)) !== null) {
@@ -286,7 +313,7 @@ export class DjangoRule extends AbstractSnippetRule {
         method,
         authentication,
         permissions,
-        template
+        template,
       });
     }
 
@@ -303,7 +330,7 @@ export class DjangoRule extends AbstractSnippetRule {
         type: 'class',
         method,
         authentication,
-        permissions
+        permissions,
       });
     }
 
@@ -324,21 +351,23 @@ export class DjangoRule extends AbstractSnippetRule {
   }
 
   private extractViewAuthentication(viewContent: string): boolean {
-    return viewContent.includes('@login_required') || 
-           viewContent.includes('@permission_required') ||
-           viewContent.includes('login_required') ||
-           viewContent.includes('permission_required');
+    return (
+      viewContent.includes('@login_required') ||
+      viewContent.includes('@permission_required') ||
+      viewContent.includes('login_required') ||
+      viewContent.includes('permission_required')
+    );
   }
 
   private extractViewPermissions(viewContent: string): string[] {
     const permissions: string[] = [];
     const permPattern = /@permission_required\(\s*['"]([^'"]+)['"]\s*\)/g;
     let match;
-    
+
     while ((match = permPattern.exec(viewContent)) !== null) {
       permissions.push(match[1]);
     }
-    
+
     return permissions;
   }
 
@@ -358,13 +387,13 @@ export class DjangoRule extends AbstractSnippetRule {
       queryComplexity,
       relationships,
       optimizedQueries,
-      nPlusOneIssues
+      nPlusOneIssues,
     };
   }
 
   private calculateQueryComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Count ORM operations
     complexity += (content.match(/\.filter\(/g) || []).length * 2;
     complexity += (content.match(/\.exclude\(/g) || []).length * 2;
@@ -372,50 +401,60 @@ export class DjangoRule extends AbstractSnippetRule {
     complexity += (content.match(/\.aggregate\(/g) || []).length * 3;
     complexity += (content.match(/\.order_by\(/g) || []).length * 1;
     complexity += (content.match(/\.distinct\(/g) || []).length * 2;
-    
+
     // Count joins and relationships
     complexity += (content.match(/\.select_related\(/g) || []).length * 2;
     complexity += (content.match(/\.prefetch_related\(/g) || []).length * 2;
     complexity += (content.match(/ForeignKey\(/g) || []).length * 3;
     complexity += (content.match(/ManyToManyField\(/g) || []).length * 4;
-    
+
     return Math.max(1, complexity);
   }
 
   private extractORMRelationships(content: string): string[] {
     const relationships: string[] = [];
-    
-    const relationshipPattern = /(\w+)\s*=\s*models\.(ForeignKey|ManyToManyField|OneToOneField)\s*\(\s*['"]([^'"]+)['"]/g;
+
+    const relationshipPattern =
+      /(\w+)\s*=\s*models\.(ForeignKey|ManyToManyField|OneToOneField)\s*\(\s*['"]([^'"]+)['"]/g;
     let match;
-    
+
     while ((match = relationshipPattern.exec(content)) !== null) {
       relationships.push(`${match[1]} -> ${match[3]}`);
     }
-    
+
     return relationships;
   }
 
   private hasOptimizedQueries(content: string): boolean {
-    return content.includes('select_related') || 
-           content.includes('prefetch_related') ||
-           content.includes('only') ||
-           content.includes('defer');
+    return (
+      content.includes('select_related') ||
+      content.includes('prefetch_related') ||
+      content.includes('only') ||
+      content.includes('defer')
+    );
   }
 
   private hasNPlusOneIssues(content: string): boolean {
     const hasLoops = content.includes('for ') && content.includes('.all()');
     const hasRelationships = content.includes('ForeignKey') || content.includes('ManyToManyField');
-    const noOptimization = !content.includes('select_related') && !content.includes('prefetch_related');
-    
+    const noOptimization =
+      !content.includes('select_related') && !content.includes('prefetch_related');
+
     return hasLoops && hasRelationships && noOptimization;
   }
 
   private extractDjangoPatterns(content: string) {
     return {
-      usesSignals: content.includes('Signal') || content.includes('post_save') || content.includes('pre_delete'),
+      usesSignals:
+        content.includes('Signal') ||
+        content.includes('post_save') ||
+        content.includes('pre_delete'),
       usesMiddleware: content.includes('MIDDLEWARE') || content.includes('middleware'),
       usesDecorators: /@\w+/.test(content),
-      usesGenericViews: content.includes('ListView') || content.includes('DetailView') || content.includes('CreateView')
+      usesGenericViews:
+        content.includes('ListView') ||
+        content.includes('DetailView') ||
+        content.includes('CreateView'),
     };
   }
 
@@ -447,7 +486,10 @@ export class DjangoRule extends AbstractSnippetRule {
     return imports;
   }
 
-  private isStandaloneDjangoComponent(node: Parser.SyntaxNode, djangoType: 'model' | 'view' | 'other'): boolean {
+  private isStandaloneDjangoComponent(
+    node: Parser.SyntaxNode,
+    djangoType: 'model' | 'view' | 'other'
+  ): boolean {
     if (djangoType === 'model') {
       return node.type === 'class_definition';
     }
@@ -457,44 +499,46 @@ export class DjangoRule extends AbstractSnippetRule {
     return false;
   }
 
-  private calculateDjangoComplexity(content: string, djangoType: 'model' | 'view' | 'other'): number {
+  private calculateDjangoComplexity(
+    content: string,
+    djangoType: 'model' | 'view' | 'other'
+  ): number {
     let complexity = 0;
-    
+
     if (djangoType === 'model') {
       // Base model complexity
       complexity += content.match(/class\s+\w+\s*\(\s*models\.Model\s*\)/g)?.length || 0;
-      
+
       // Field complexity
       complexity += (content.match(/models\.\w+Field\(/g) || []).length;
-      
+
       // Relationship complexity
       complexity += (content.match(/models\.ForeignKey\(/g) || []).length * 3;
       complexity += (content.match(/models\.ManyToManyField\(/g) || []).length * 4;
       complexity += (content.match(/models\.OneToOneField\(/g) || []).length * 2;
-      
+
       // Meta class complexity
       complexity += content.includes('class Meta:') ? 2 : 0;
-      
     } else if (djangoType === 'view') {
       // Base view complexity
       complexity += content.match(/def\s+\w+\s*\(\s*request\b/g)?.length || 0;
-      
+
       // HTTP method handling
       complexity += (content.match(/request\.method/g) || []).length * 2;
-      
+
       // Response types
       complexity += (content.match(/render\(/g) || []).length * 2;
       complexity += (content.match(/JsonResponse\(/g) || []).length * 2;
       complexity += (content.match(/HttpResponse\(/g) || []).length * 2;
-      
+
       // Query complexity
       complexity += this.calculateQueryComplexity(content);
-      
+
       // Authentication and authorization
       complexity += content.includes('@login_required') ? 2 : 0;
       complexity += (content.match(/@permission_required/g) || []).length * 2;
     }
-    
+
     return Math.max(1, complexity);
   }
 }

@@ -58,12 +58,12 @@ export interface CacheInterface {
  * 缓存统计信息
  */
 export interface CacheStats {
-  name: string;        // 缓存名称
-  size: number;        // 缓存大小
-  maxSize: number;     // 最大缓存大小
-  hitCount: number;    // 命中次数
-  missCount: number;   // 未命中次数
-  hitRate: number;     // 命中率（0-1之间）
+  name: string; // 缓存名称
+  size: number; // 缓存大小
+  maxSize: number; // 最大缓存大小
+  hitCount: number; // 命中次数
+  missCount: number; // 未命中次数
+  hitRate: number; // 命中率（0-1之间）
   memoryUsage?: number; // 内存使用（字节）
 }
 
@@ -71,10 +71,10 @@ export interface CacheStats {
  * 缓存配置选项
  */
 export interface CacheOptions {
-  ttl?: number;        // 默认过期时间（秒）
-  prefix?: string;     // 键前缀
+  ttl?: number; // 默认过期时间（秒）
+  prefix?: string; // 键前缀
   compression?: boolean; // 是否启用压缩
-  maxMemory?: number;  // 最大内存使用（字节）
+  maxMemory?: number; // 最大内存使用（字节）
 }
 
 /**
@@ -86,7 +86,7 @@ export enum CacheEventType {
   SET = 'set',
   DELETE = 'delete',
   EXPIRE = 'expire',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 /**

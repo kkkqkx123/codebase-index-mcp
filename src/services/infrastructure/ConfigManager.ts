@@ -89,7 +89,7 @@ export class ConfigManager {
     this.logger = logger;
     this.errorHandler = errorHandler;
     this.configService = ConfigService.getInstance();
-    
+
     this.initializeConfig();
   }
 
@@ -98,7 +98,7 @@ export class ConfigManager {
       nodeEnv: process.env.NODE_ENV || 'development',
       port: parseInt(process.env.PORT || '3000'),
       logLevel: process.env.LOG_LEVEL || 'info',
-      debug: process.env.DEBUG === 'true'
+      debug: process.env.DEBUG === 'true',
     });
   }
 
@@ -110,7 +110,7 @@ export class ConfigManager {
           port: parseInt(process.env.VECTOR_DB_PORT || '6333'),
           apiKey: process.env.VECTOR_DB_API_KEY,
           timeout: 30000,
-          maxConnections: 10
+          maxConnections: 10,
         },
         graph: {
           host: process.env.GRAPH_DB_HOST || 'localhost',
@@ -118,8 +118,8 @@ export class ConfigManager {
           username: process.env.GRAPH_DB_USERNAME || 'neo4j',
           password: process.env.GRAPH_DB_PASSWORD || 'password',
           timeout: 30000,
-          maxConnections: 10
-        }
+          maxConnections: 10,
+        },
       },
       embedding: {
         provider: process.env.EMBEDDING_PROVIDER || 'openai',
@@ -127,14 +127,14 @@ export class ConfigManager {
         apiKey: process.env.EMBEDDING_API_KEY,
         baseUrl: process.env.EMBEDDING_BASE_URL,
         timeout: 30000,
-        maxRetries: 3
+        maxRetries: 3,
       },
       monitoring: {
         enabled: process.env.MONITORING_ENABLED !== 'false',
         checkInterval: parseInt(process.env.MONITORING_INTERVAL || '30000'),
         memoryThreshold: parseInt(process.env.MEMORY_THRESHOLD || '85'),
         cpuThreshold: parseInt(process.env.CPU_THRESHOLD || '80'),
-        eventLoopThreshold: parseInt(process.env.EVENT_LOOP_THRESHOLD || '100')
+        eventLoopThreshold: parseInt(process.env.EVENT_LOOP_THRESHOLD || '100'),
       },
       search: {
         defaultLimit: parseInt(process.env.SEARCH_DEFAULT_LIMIT || '10'),
@@ -145,9 +145,9 @@ export class ConfigManager {
         weights: {
           semantic: parseFloat(process.env.SEARCH_WEIGHT_SEMANTIC || '0.6'),
           keyword: parseFloat(process.env.SEARCH_WEIGHT_KEYWORD || '0.3'),
-          graph: parseFloat(process.env.SEARCH_WEIGHT_GRAPH || '0.1')
-        }
-      }
+          graph: parseFloat(process.env.SEARCH_WEIGHT_GRAPH || '0.1'),
+        },
+      },
     });
   }
 
@@ -160,19 +160,19 @@ export class ConfigManager {
     try {
       // Get from config service - cast to any since section may not be a keyof Config
       const config = this.configService.get(section as keyof Config) || {};
-      
+
       // Merge with defaults
       const mergedConfig = this.mergeConfig(defaults, config as Partial<T>);
-      
+
       // Cache the result - cast to ConfigSection for cache storage
       this.configCache.set(section, mergedConfig as ConfigSection);
-      
+
       return mergedConfig;
     } catch (error) {
       this.logger.warn(`Failed to get config section '${section}', using defaults`, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Return defaults if config service fails
       this.configCache.set(section, defaults as ConfigSection);
       return defaults;
@@ -181,19 +181,21 @@ export class ConfigManager {
 
   updateConfig<T extends ConfigSection>(section: string, updates: Partial<T>): void {
     try {
-      const currentConfig = this.configCache.get(section) || {} as T;
+      const currentConfig = this.configCache.get(section) || ({} as T);
       const updatedConfig = this.mergeConfig(currentConfig, updates);
-      
+
       // Update cache
       this.configCache.set(section, updatedConfig);
-      
+
       // Notify listeners
       this.notifyConfigListeners(section, updatedConfig);
-      
+
       this.logger.info('Configuration updated', { section, updates });
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to update config section '${section}': ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to update config section '${section}': ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'ConfigManager', operation: 'updateConfig' }
       );
     }
@@ -203,9 +205,9 @@ export class ConfigManager {
     if (!this.configListeners.has(section)) {
       this.configListeners.set(section, []);
     }
-    
+
     this.configListeners.get(section)!.push(listener as (config: ConfigSection) => void);
-    
+
     // Return unsubscribe function
     return () => {
       const listeners = this.configListeners.get(section);
@@ -239,11 +241,11 @@ export class ConfigManager {
 
   exportConfig(): Record<string, ConfigSection> {
     const exportObj: Record<string, ConfigSection> = {};
-    
+
     for (const [section, config] of this.configCache.entries()) {
       exportObj[section] = config;
     }
-    
+
     return exportObj;
   }
 
@@ -252,13 +254,15 @@ export class ConfigManager {
       // Initialize all config sections
       this.getEnvironment();
       this.getServices();
-      
+
       this.logger.info('Configuration manager initialized', {
-        sections: this.getConfigSections()
+        sections: this.getConfigSections(),
       });
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to initialize configuration: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to initialize configuration: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'ConfigManager', operation: 'initialize' }
       );
     }
@@ -266,20 +270,27 @@ export class ConfigManager {
 
   private mergeConfig<T>(defaults: T, overrides: Partial<T>): T {
     const result = { ...defaults } as T;
-    
+
     for (const key in overrides) {
       if (overrides.hasOwnProperty(key)) {
         const defaultValue = defaults[key];
         const overrideValue = overrides[key];
-        
-        if (typeof defaultValue === 'object' && defaultValue !== null && !Array.isArray(defaultValue) && overrideValue !== null && typeof overrideValue === 'object' && !Array.isArray(overrideValue)) {
+
+        if (
+          typeof defaultValue === 'object' &&
+          defaultValue !== null &&
+          !Array.isArray(defaultValue) &&
+          overrideValue !== null &&
+          typeof overrideValue === 'object' &&
+          !Array.isArray(overrideValue)
+        ) {
           (result as any)[key] = this.mergeConfig(defaultValue, overrideValue);
         } else {
           (result as any)[key] = overrideValue;
         }
       }
     }
-    
+
     return result;
   }
 
@@ -292,7 +303,7 @@ export class ConfigManager {
         } catch (error) {
           this.logger.error('Error in config listener', {
             section,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       });

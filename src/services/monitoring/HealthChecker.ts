@@ -47,7 +47,7 @@ export class HealthChecker {
     this.performanceMonitor = performanceMonitor;
     this.startTime = new Date();
     this.version = '1.0.0'; // Version config not available in ConfigService
-    
+
     this.registerDefaultServices();
   }
 
@@ -70,16 +70,16 @@ export class HealthChecker {
     this.logger.info('Starting health check', {
       timeout,
       includeServices,
-      excludeServices
+      excludeServices,
     });
 
     try {
       // Get system health
       const system = await this.performanceMonitor.getHealthStatus();
-      
+
       // Check service health
       const services = await this.checkServicesHealth(timeout, includeServices, excludeServices);
-      
+
       // Determine overall health
       const overall = this.determineOverallHealth(system, services);
 
@@ -89,20 +89,20 @@ export class HealthChecker {
         services,
         system,
         uptime: Date.now() - this.startTime.getTime(),
-        version: this.version
+        version: this.version,
       };
 
       this.logger.info('Health check completed', {
         overall,
         servicesCount: services.length,
         healthyServices: services.filter(s => s.status === 'healthy').length,
-        uptime: result.uptime
+        uptime: result.uptime,
       });
 
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Health check failed', { error: errorMessage });
 
       // Return unhealthy status on error
@@ -112,14 +112,14 @@ export class HealthChecker {
         services: [],
         system: await this.performanceMonitor.getHealthStatus(),
         uptime: Date.now() - this.startTime.getTime(),
-        version: this.version
+        version: this.version,
       };
     }
   }
 
   async checkServiceHealth(name: string): Promise<ServiceHealth> {
     const healthCheck = this.services.get(name);
-    
+
     if (!healthCheck) {
       throw new Error(`Health check not found for service: ${name}`);
     }
@@ -132,14 +132,14 @@ export class HealthChecker {
       return {
         ...result,
         responseTime,
-        lastCheck: new Date()
+        lastCheck: new Date(),
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Service health check failed', {
         service: name,
-        error: errorMessage
+        error: errorMessage,
       });
 
       return {
@@ -147,7 +147,7 @@ export class HealthChecker {
         status: 'unhealthy',
         responseTime: 0,
         lastCheck: new Date(),
-        error: errorMessage
+        error: errorMessage,
       };
     }
   }
@@ -173,23 +173,23 @@ export class HealthChecker {
     }
 
     // Check services in parallel with timeout
-    const promises = serviceNames.map(async (name) => {
+    const promises = serviceNames.map(async name => {
       try {
         return await Promise.race([
           this.checkServiceHealth(name),
-          new Promise<ServiceHealth>((_, reject) => 
+          new Promise<ServiceHealth>((_, reject) =>
             setTimeout(() => reject(new Error('Health check timeout')), timeout)
-          )
+          ),
         ]);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        
+
         return {
           name,
           status: 'unhealthy' as const,
           responseTime: timeout,
           lastCheck: new Date(),
-          error: errorMessage
+          error: errorMessage,
         };
       }
     });
@@ -197,7 +197,10 @@ export class HealthChecker {
     return Promise.all(promises);
   }
 
-  private determineOverallHealth(system: HealthStatus, services: ServiceHealth[]): 'healthy' | 'degraded' | 'unhealthy' {
+  private determineOverallHealth(
+    system: HealthStatus,
+    services: ServiceHealth[]
+  ): 'healthy' | 'degraded' | 'unhealthy' {
     // Count unhealthy services
     const unhealthyServices = services.filter(s => s.status === 'unhealthy').length;
     const degradedServices = services.filter(s => s.status === 'degraded').length;
@@ -227,7 +230,7 @@ export class HealthChecker {
     this.registerService('database', async () => {
       // Mock database health check
       await new Promise(resolve => setTimeout(resolve, 10));
-      
+
       return {
         name: 'database',
         status: 'healthy',
@@ -236,15 +239,15 @@ export class HealthChecker {
         details: {
           connections: 5,
           maxConnections: 100,
-          queryTime: 2
-        }
+          queryTime: 2,
+        },
       };
     });
 
     this.registerService('vector-storage', async () => {
       // Mock vector storage health check
       await new Promise(resolve => setTimeout(resolve, 15));
-      
+
       return {
         name: 'vector-storage',
         status: 'healthy',
@@ -253,15 +256,15 @@ export class HealthChecker {
         details: {
           vectorCount: 10000,
           indexSize: '50MB',
-          queryTime: 5
-        }
+          queryTime: 5,
+        },
       };
     });
 
     this.registerService('graph-storage', async () => {
       // Mock graph storage health check
       await new Promise(resolve => setTimeout(resolve, 20));
-      
+
       return {
         name: 'graph-storage',
         status: 'healthy',
@@ -270,15 +273,15 @@ export class HealthChecker {
         details: {
           nodeCount: 5000,
           relationshipCount: 15000,
-          queryTime: 8
-        }
+          queryTime: 8,
+        },
       };
     });
 
     this.registerService('embedding-service', async () => {
       // Mock embedding service health check
       await new Promise(resolve => setTimeout(resolve, 25));
-      
+
       return {
         name: 'embedding-service',
         status: 'healthy',
@@ -287,8 +290,8 @@ export class HealthChecker {
         details: {
           model: 'text-embedding-ada-002',
           queueLength: 0,
-          averageResponseTime: 100
-        }
+          averageResponseTime: 100,
+        },
       };
     });
   }

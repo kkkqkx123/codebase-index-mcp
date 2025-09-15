@@ -33,8 +33,9 @@ describe('SimilarityAlgorithms', () => {
       const vec1 = [1, 2, 3];
       const vec2 = [1, 2];
 
-      expect(() => SimilarityAlgorithms.cosineSimilarity(vec1, vec2))
-        .toThrow('Vectors must have the same length');
+      expect(() => SimilarityAlgorithms.cosineSimilarity(vec1, vec2)).toThrow(
+        'Vectors must have the same length'
+      );
     });
   });
 
@@ -61,8 +62,9 @@ describe('SimilarityAlgorithms', () => {
       const vec1 = [1, 2, 3];
       const vec2 = [1, 2];
 
-      expect(() => SimilarityAlgorithms.euclideanDistance(vec1, vec2))
-        .toThrow('Vectors must have the same length');
+      expect(() => SimilarityAlgorithms.euclideanDistance(vec1, vec2)).toThrow(
+        'Vectors must have the same length'
+      );
     });
   });
 
@@ -89,8 +91,9 @@ describe('SimilarityAlgorithms', () => {
       const vec1 = [1, 2, 3];
       const vec2 = [1, 2];
 
-      expect(() => SimilarityAlgorithms.dotProductSimilarity(vec1, vec2))
-        .toThrow('Vectors must have the same length');
+      expect(() => SimilarityAlgorithms.dotProductSimilarity(vec1, vec2)).toThrow(
+        'Vectors must have the same length'
+      );
     });
   });
 
@@ -167,17 +170,20 @@ describe('SimilarityAlgorithms', () => {
         lineCount: 10,
         hasLoops: true,
         hasFunctions: true,
-        type: 'function'
+        type: 'function',
       };
 
       const features2 = {
         lineCount: 12,
         hasLoops: true,
         hasFunctions: true,
-        type: 'function'
+        type: 'function',
       };
 
-      const similarity = SimilarityAlgorithms.structuralSimilarity(features1 as any, features2 as any);
+      const similarity = SimilarityAlgorithms.structuralSimilarity(
+        features1 as any,
+        features2 as any
+      );
 
       expect(similarity).toBeGreaterThan(0.8);
     });
@@ -186,16 +192,19 @@ describe('SimilarityAlgorithms', () => {
       const features1 = {
         lineCount: 10,
         hasLoops: true,
-        type: 'function'
+        type: 'function',
       };
 
       const features2 = {
         lineCount: 100,
         hasLoops: false,
-        type: 'class'
+        type: 'class',
       };
 
-      const similarity = SimilarityAlgorithms.structuralSimilarity(features1 as any, features2 as any);
+      const similarity = SimilarityAlgorithms.structuralSimilarity(
+        features1 as any,
+        features2 as any
+      );
 
       expect(similarity).toBeLessThan(0.5);
     });
@@ -235,13 +244,13 @@ describe('SimilarityAlgorithms', () => {
       const features1 = {
         featureA: 0.8,
         featureB: 0.6,
-        featureC: 0.4
+        featureC: 0.4,
       };
 
       const features2 = {
         featureA: 0.7,
         featureB: 0.5,
-        featureC: 0.3
+        featureC: 0.3,
       };
 
       const similarity = SimilarityAlgorithms.featureBasedSimilarity(features1, features2);
@@ -252,12 +261,12 @@ describe('SimilarityAlgorithms', () => {
     it('should handle missing features', () => {
       const features1 = {
         featureA: 0.8,
-        featureB: 0.6
+        featureB: 0.6,
       };
 
       const features2 = {
         featureA: 0.7,
-        featureC: 0.4
+        featureC: 0.4,
       };
 
       const similarity = SimilarityAlgorithms.featureBasedSimilarity(features1, features2);
@@ -288,8 +297,9 @@ describe('SimilarityAlgorithms', () => {
       const scores = [0.8, 0.6, 0.4];
       const weights = [0.5, 0.3];
 
-      expect(() => SimilarityAlgorithms.ensembleSimilarity(scores, weights))
-        .toThrow('Weights array must have the same length as scores array');
+      expect(() => SimilarityAlgorithms.ensembleSimilarity(scores, weights)).toThrow(
+        'Weights array must have the same length as scores array'
+      );
     });
 
     it('should return 0 for empty scores', () => {

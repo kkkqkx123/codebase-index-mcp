@@ -30,7 +30,9 @@ export class NebulaService {
       return false;
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Failed to initialize NebulaGraph service: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Failed to initialize NebulaGraph service: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'NebulaService', operation: 'initialize' }
       );
       return false;
@@ -58,17 +60,19 @@ export class NebulaService {
     return '';
   }
 
-  async executeTransaction(queries: Array<{ nGQL: string; parameters?: Record<string, any> }>): Promise<any[]> {
+  async executeTransaction(
+    queries: Array<{ nGQL: string; parameters?: Record<string, any> }>
+  ): Promise<any[]> {
     // 使用NebulaConnectionManager执行事务
     const formattedQueries = queries.map(q => ({
       query: q.nGQL,
-      params: q.parameters
+      params: q.parameters,
     }));
 
     return this.nebulaConnection.executeTransaction(
       formattedQueries.map(q => ({
         query: q.query,
-        params: q.params ?? {}
+        params: q.params ?? {},
       }))
     );
   }
@@ -78,7 +82,12 @@ export class NebulaService {
     return this.nebulaConnection.createNode(node);
   }
 
-  async createRelationship(relationship: { type: string; sourceId: string; targetId: string; properties?: Record<string, any> }): Promise<void> {
+  async createRelationship(relationship: {
+    type: string;
+    sourceId: string;
+    targetId: string;
+    properties?: Record<string, any>;
+  }): Promise<void> {
     // 使用NebulaConnectionManager创建关系
     await this.nebulaConnection.createRelationship(relationship);
   }

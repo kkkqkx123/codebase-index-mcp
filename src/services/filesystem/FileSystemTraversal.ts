@@ -41,32 +41,59 @@ export class FileSystemTraversal {
   constructor(@inject('TraversalOptions') @optional() options?: TraversalOptions) {
     this.defaultOptions = {
       includePatterns: options?.includePatterns ?? [],
-      excludePatterns: options?.excludePatterns ?? ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
+      excludePatterns: options?.excludePatterns ?? [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/build/**',
+      ],
       maxFileSize: options?.maxFileSize ?? 10 * 1024 * 1024, // 10MB
-      supportedExtensions: options?.supportedExtensions ?? ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.h', '.hpp'],
+      supportedExtensions: options?.supportedExtensions ?? [
+        '.ts',
+        '.js',
+        '.tsx',
+        '.jsx',
+        '.py',
+        '.java',
+        '.go',
+        '.rs',
+        '.cpp',
+        '.c',
+        '.h',
+        '.hpp',
+      ],
       followSymlinks: options?.followSymlinks ?? false,
       ignoreHiddenFiles: options?.ignoreHiddenFiles ?? true,
-      ignoreDirectories: options?.ignoreDirectories ?? ['node_modules', '.git', 'dist', 'build', 'coverage', 'logs']
+      ignoreDirectories: options?.ignoreDirectories ?? [
+        'node_modules',
+        '.git',
+        'dist',
+        'build',
+        'coverage',
+        'logs',
+      ],
     };
   }
 
   async traverseDirectory(rootPath: string, options?: TraversalOptions): Promise<TraversalResult> {
     const startTime = Date.now();
     const traversalOptions = { ...this.defaultOptions, ...options };
-    
+
     const result: TraversalResult = {
       files: [],
       directories: [],
       errors: [],
       totalSize: 0,
-      processingTime: 0
+      processingTime: 0,
     };
 
     try {
       await this.traverseRecursive(rootPath, rootPath, result, traversalOptions);
       result.processingTime = Date.now() - startTime;
     } catch (error) {
-      result.errors.push(`Failed to traverse directory: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Failed to traverse directory: ${error instanceof Error ? error.message : String(error)}`
+      );
       result.processingTime = Date.now() - startTime;
     }
 
@@ -93,7 +120,9 @@ export class FileSystemTraversal {
       if (currentPath === rootPath) {
         throw error;
       }
-      result.errors.push(`Error accessing ${currentPath}: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Error accessing ${currentPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -116,10 +145,10 @@ export class FileSystemTraversal {
 
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await this.traverseRecursive(fullPath, rootPath, result, options);
         } else if (entry.isFile() || (entry.isSymbolicLink() && options.followSymlinks)) {
@@ -127,7 +156,9 @@ export class FileSystemTraversal {
         }
       }
     } catch (error) {
-      result.errors.push(`Error reading directory ${dirPath}: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Error reading directory ${dirPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -149,20 +180,20 @@ export class FileSystemTraversal {
 
     const extension = path.extname(filePath).toLowerCase();
     const language = this.detectLanguage(extension, options.supportedExtensions);
-    
+
     if (!language) {
       return;
     }
 
     try {
       const isBinary = await this.isBinaryFile(filePath);
-      
+
       if (isBinary) {
         return;
       }
 
       const hash = await this.calculateFileHash(filePath);
-      
+
       const fileInfo: FileInfo = {
         path: filePath,
         relativePath,
@@ -172,13 +203,15 @@ export class FileSystemTraversal {
         hash,
         lastModified: stats.mtime,
         language,
-        isBinary
+        isBinary,
       };
 
       result.files.push(fileInfo);
       result.totalSize += stats.size;
     } catch (error) {
-      result.errors.push(`Error processing file ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Error processing file ${relativePath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -196,7 +229,7 @@ export class FileSystemTraversal {
     }
 
     const fileName = path.basename(relativePath).toLowerCase();
-    
+
     for (const pattern of options.excludePatterns) {
       if (this.matchesPattern(relativePath, pattern)) {
         return true;
@@ -223,7 +256,7 @@ export class FileSystemTraversal {
         .replace(/\*/g, '[^/]*')
         .replace(/\?/g, '[^/]')
         .replace(/\./g, '\\.');
-      
+
       // Ensure the pattern matches the entire path
       if (!regexPattern.startsWith('^')) {
         regexPattern = '^' + regexPattern;
@@ -231,7 +264,7 @@ export class FileSystemTraversal {
       if (!regexPattern.endsWith('$')) {
         regexPattern = regexPattern + '$';
       }
-      
+
       const regex = new RegExp(regexPattern);
       return regex.test(filePath);
     } catch (error) {
@@ -256,7 +289,7 @@ export class FileSystemTraversal {
       '.c++': 'cpp',
       '.c': 'c',
       '.h': 'c',
-      '.hpp': 'cpp'
+      '.hpp': 'cpp',
     };
 
     const language = languageMap[extension];
@@ -266,13 +299,13 @@ export class FileSystemTraversal {
   private async isBinaryFile(filePath: string): Promise<boolean> {
     try {
       const buffer = await fs.readFile(filePath, { encoding: null });
-      
+
       for (let i = 0; i < Math.min(1024, buffer.length); i++) {
         if (buffer[i] === 0) {
           return true;
         }
       }
-      
+
       return false;
     } catch (error) {
       return true;
@@ -282,21 +315,25 @@ export class FileSystemTraversal {
   private async calculateFileHash(filePath: string): Promise<string> {
     const hash = createHash('sha256');
     const stream = fsSync.createReadStream(filePath);
-    
+
     for await (const chunk of stream) {
       hash.update(chunk);
     }
-    
+
     return hash.digest('hex');
   }
 
-  async findChangedFiles(rootPath: string, previousHashes: Map<string, string>, options?: TraversalOptions): Promise<FileInfo[]> {
+  async findChangedFiles(
+    rootPath: string,
+    previousHashes: Map<string, string>,
+    options?: TraversalOptions
+  ): Promise<FileInfo[]> {
     const result = await this.traverseDirectory(rootPath, options);
     const changedFiles: FileInfo[] = [];
 
     for (const file of result.files) {
       const previousHash = previousHashes.get(file.relativePath);
-      
+
       if (!previousHash || previousHash !== file.hash) {
         changedFiles.push(file);
       }
@@ -309,18 +346,23 @@ export class FileSystemTraversal {
     try {
       return await fs.readFile(filePath, 'utf-8');
     } catch (error) {
-      throw new Error(`Failed to read file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to read file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
-  async getDirectoryStats(rootPath: string, options?: TraversalOptions): Promise<{
+  async getDirectoryStats(
+    rootPath: string,
+    options?: TraversalOptions
+  ): Promise<{
     totalFiles: number;
     totalSize: number;
     filesByLanguage: Record<string, number>;
     largestFiles: FileInfo[];
   }> {
     const result = await this.traverseDirectory(rootPath, options);
-    
+
     const filesByLanguage: Record<string, number> = {};
     const largestFiles = [...result.files].sort((a, b) => b.size - a.size).slice(0, 10);
 
@@ -332,7 +374,7 @@ export class FileSystemTraversal {
       totalFiles: result.files.length,
       totalSize: result.totalSize,
       filesByLanguage,
-      largestFiles
+      largestFiles,
     };
   }
 }

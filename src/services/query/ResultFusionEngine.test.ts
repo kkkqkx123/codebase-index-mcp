@@ -34,7 +34,7 @@ describe('ResultFusionEngine', () => {
           graphWeight: 0.3,
           contextualWeight: 0.2,
           recencyWeight: 0.05,
-          popularityWeight: 0.05
+          popularityWeight: 0.05,
         };
       }
       return undefined;
@@ -65,7 +65,7 @@ describe('ResultFusionEngine', () => {
             endLine: 3,
             language: 'typescript',
             chunkType: 'function',
-            metadata: {}
+            metadata: {},
           },
           {
             id: '2',
@@ -76,8 +76,8 @@ describe('ResultFusionEngine', () => {
             endLine: 3,
             language: 'typescript',
             chunkType: 'function',
-            metadata: {}
-          }
+            metadata: {},
+          },
         ],
         graphResults: [
           {
@@ -92,14 +92,12 @@ describe('ResultFusionEngine', () => {
             metadata: {
               name: 'test',
               type: 'function',
-              calls: ['helper']
+              calls: ['helper'],
             },
             graphContext: {
               dependencies: ['helper'],
-              relationships: [
-                { type: 'calls', target: 'helper', strength: 0.8 }
-              ]
-            }
+              relationships: [{ type: 'calls', target: 'helper', strength: 0.8 }],
+            },
           },
           {
             id: '3',
@@ -113,16 +111,16 @@ describe('ResultFusionEngine', () => {
             metadata: {
               name: 'utils',
               type: 'function',
-              calls: ['test']
-            }
-          }
+              calls: ['test'],
+            },
+          },
         ],
         query: 'test function',
         options: {
           limit: 10,
           threshold: 0.3,
-          searchType: 'hybrid' as const
-        }
+          searchType: 'hybrid' as const,
+        },
       };
 
       const fusedResults = await resultFusionEngine.fuse(input);
@@ -142,8 +140,8 @@ describe('ResultFusionEngine', () => {
         options: {
           limit: 10,
           threshold: 0.3,
-          searchType: 'hybrid' as const
-        }
+          searchType: 'hybrid' as const,
+        },
       };
 
       const fusedResults = await resultFusionEngine.fuse(input);
@@ -163,7 +161,7 @@ describe('ResultFusionEngine', () => {
             endLine: 2,
             language: 'typescript',
             chunkType: 'function',
-            metadata: {}
+            metadata: {},
           },
           {
             id: '2',
@@ -174,16 +172,16 @@ describe('ResultFusionEngine', () => {
             endLine: 2,
             language: 'typescript',
             chunkType: 'function',
-            metadata: {}
-          }
+            metadata: {},
+          },
         ],
         graphResults: [],
         query: 'test',
         options: {
           limit: 10,
           threshold: 0.5,
-          searchType: 'semantic' as const
-        }
+          searchType: 'semantic' as const,
+        },
       };
 
       const fusedResults = await resultFusionEngine.fuse(input);

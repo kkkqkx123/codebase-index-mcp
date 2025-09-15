@@ -60,12 +60,19 @@ describe('BatchProcessor', () => {
       expect(result.processedItems).toBe(50);
       expect(result.results).toHaveLength(50);
       expect(processor).toHaveBeenCalled();
-      expect(mockLoggerService.info).toHaveBeenCalledWith('Starting batch processing', expect.any(Object));
+      expect(mockLoggerService.info).toHaveBeenCalledWith(
+        'Starting batch processing',
+        expect.any(Object)
+      );
     });
 
     it('should handle processing errors with retry logic', async () => {
-      const items = [{ id: 1, data: 'item-1' }, { id: 2, data: 'item-2' }];
-      const processor = jest.fn()
+      const items = [
+        { id: 1, data: 'item-1' },
+        { id: 2, data: 'item-2' },
+      ];
+      const processor = jest
+        .fn()
         .mockRejectedValueOnce(new Error('Processing failed'))
         .mockImplementation(async (batch: any[]) => {
           return batch.map(item => `processed-${item.id}`);
@@ -80,7 +87,10 @@ describe('BatchProcessor', () => {
       expect(result.processedItems).toBe(2);
       expect(result.results).toHaveLength(2);
       expect(processor).toHaveBeenCalledTimes(2); // 1 failure + 1 success
-      expect(mockLoggerService.warn).toHaveBeenCalledWith('Batch processing failed, retrying', expect.any(Object));
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'Batch processing failed, retrying',
+        expect.any(Object)
+      );
     });
 
     it('should handle empty items array', async () => {

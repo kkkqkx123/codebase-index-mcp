@@ -82,32 +82,35 @@ export class IndexCoordinator {
     this.memoryManager = memoryManager;
     this.searchCoordinator = searchCoordinator;
     this.lspEnhancementPhase = lspEnhancementPhase;
-    
+
     // Initialize file pool
-    this.filePool = new ObjectPool<string>({
-      initialSize: 100,
-      maxSize: 1000,
-      creator: () => '',
-      resetter: (path: string) => path,
-      validator: (path: string) => typeof path === 'string',
-      destroy: (path: string) => {},
-      evictionPolicy: 'lru'
-    }, this.logger);
-    
+    this.filePool = new ObjectPool<string>(
+      {
+        initialSize: 100,
+        maxSize: 1000,
+        creator: () => '',
+        resetter: (path: string) => path,
+        validator: (path: string) => typeof path === 'string',
+        destroy: (path: string) => {},
+        evictionPolicy: 'lru',
+      },
+      this.logger
+    );
+
     this.initializePerformanceComponents();
   }
 
   private initializePerformanceComponents(): void {
     // Initialize memory manager with optimized settings
     this.memoryManager.startMonitoring();
-    
+
     // Setup async pipeline for indexing operations
     this.setupIndexingPipeline();
   }
 
   private setupIndexingPipeline(): void {
     this.asyncPipeline.clearSteps();
-    
+
     this.asyncPipeline
       .addStep({
         name: 'memory-check',
@@ -126,7 +129,7 @@ export class IndexCoordinator {
           return data;
         },
         timeout: 5000,
-        retryAttempts: 2
+        retryAttempts: 2,
       })
       .addStep({
         name: 'file-traversal',
@@ -135,7 +138,7 @@ export class IndexCoordinator {
           return { ...data, traversalResult: result };
         },
         timeout: 60000,
-        retryAttempts: 2
+        retryAttempts: 2,
       })
       .addStep({
         name: 'batch-parsing',
@@ -150,7 +153,7 @@ export class IndexCoordinator {
             maxConcurrency: this.configService.get('indexing')?.maxConcurrency ?? 3,
             timeout: 300000,
             retryAttempts: 3,
-            continueOnError: true
+            continueOnError: true,
           };
 
           const parseResults = await this.batchProcessor.processInBatches(
@@ -165,7 +168,7 @@ export class IndexCoordinator {
         },
         timeout: 300000,
         retryAttempts: 2,
-        continueOnError: true
+        continueOnError: true,
       })
       .addStep({
         name: 'lsp-enhancement',
@@ -182,14 +185,14 @@ export class IndexCoordinator {
             includeDiagnostics: data.options.includeDiagnostics,
             cacheLSP: data.options.cacheLSP,
             batchSize: this.configService.get('lsp')?.batchSize ?? 20,
-            maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3
+            maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3,
           });
 
           return { ...data, enhancedResults: lspResult.enhancedResults };
         },
         timeout: 300000,
         retryAttempts: 2,
-        continueOnError: true
+        continueOnError: true,
       })
       .addStep({
         name: 'storage-coordination',
@@ -205,29 +208,29 @@ export class IndexCoordinator {
               lspDiagnostics: result.lspDiagnostics,
               typeDefinitions: result.typeDefinitions,
               references: result.references,
-              lspMetadata: result.lspMetadata
-            }
+              lspMetadata: result.lspMetadata,
+            },
           }));
 
           const storageResult = await this.storageCoordinator.store(parsedFiles, projectId.hash);
           return { ...data, storageResult, projectId: projectId.hash };
         },
         timeout: 120000,
-        retryAttempts: 3
+        retryAttempts: 3,
       });
   }
 
   async createIndex(projectPath: string, options: IndexOptions = {}): Promise<IndexResult> {
     const startTime = Date.now();
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
-    
+
     this.logger.info('Starting index creation', { projectPath, projectId: projectId.hash });
 
     try {
       // Execute indexing through optimized pipeline
       const pipelineResult = await this.asyncPipeline.execute({
         projectPath,
-        options
+        options,
       });
 
       if (!pipelineResult.success) {
@@ -242,7 +245,7 @@ export class IndexCoordinator {
         processingTime: pipelineResult.totalTime,
         errors: pipelineResult.steps
           .filter(step => !step.success)
-          .map(step => step.error || 'Unknown error')
+          .map(step => step.error || 'Unknown error'),
       };
 
       this.logger.info('Index creation completed', {
@@ -250,16 +253,16 @@ export class IndexCoordinator {
         filesProcessed: result.filesProcessed,
         chunksCreated: result.chunksCreated,
         processingTime: result.processingTime,
-        pipelineMetrics: this.asyncPipeline.getMetrics()
+        pipelineMetrics: this.asyncPipeline.getMetrics(),
       });
 
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Index creation failed', {
         projectId: projectId.hash,
-        error: errorMessage
+        error: errorMessage,
       });
 
       return {
@@ -268,19 +271,23 @@ export class IndexCoordinator {
         filesSkipped: 0,
         chunksCreated: 0,
         processingTime: Date.now() - startTime,
-        errors: [errorMessage]
+        errors: [errorMessage],
       };
     }
   }
 
-  async updateIndex(projectPath: string, changedFiles: string[], options: IndexOptions = {}): Promise<IndexResult> {
+  async updateIndex(
+    projectPath: string,
+    changedFiles: string[],
+    options: IndexOptions = {}
+  ): Promise<IndexResult> {
     const startTime = Date.now();
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
 
     this.logger.info('Starting index update', {
       projectPath,
       projectId: projectId.hash,
-      filesToUpdate: changedFiles.length
+      filesToUpdate: changedFiles.length,
     });
 
     try {
@@ -291,13 +298,13 @@ export class IndexCoordinator {
           filesSkipped: 0,
           chunksCreated: 0,
           processingTime: 0,
-          errors: []
+          errors: [],
         };
       }
 
       // Parse files
       const parseResults = await this.parserService.parseFiles(changedFiles);
-      
+
       // Apply LSP enhancement
       let enhancedResults = parseResults;
       if (options.enableLSP && parseResults.length > 0) {
@@ -309,11 +316,11 @@ export class IndexCoordinator {
           includeDiagnostics: options.includeDiagnostics,
           cacheLSP: options.cacheLSP,
           batchSize: this.configService.get('lsp')?.batchSize ?? 20,
-          maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3
+          maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3,
         });
         enhancedResults = lspResult.enhancedResults;
       }
-      
+
       // Convert ParseResult to ParsedFile format for storage
       const parsedFiles = enhancedResults.map(result => ({
         filePath: result.filePath,
@@ -324,12 +331,14 @@ export class IndexCoordinator {
           // Add LSP data if available (enhanced result)
           ...((result as any).lspSymbols && { lspSymbols: (result as any).lspSymbols }),
           ...((result as any).lspDiagnostics && { lspDiagnostics: (result as any).lspDiagnostics }),
-          ...((result as any).typeDefinitions && { typeDefinitions: (result as any).typeDefinitions }),
+          ...((result as any).typeDefinitions && {
+            typeDefinitions: (result as any).typeDefinitions,
+          }),
           ...((result as any).references && { references: (result as any).references }),
-          ...((result as any).lspMetadata && { lspMetadata: (result as any).lspMetadata })
-        }
+          ...((result as any).lspMetadata && { lspMetadata: (result as any).lspMetadata }),
+        },
       }));
-      
+
       // Store parsed files using storage coordinator
       const storageResult = await this.storageCoordinator.store(parsedFiles, projectId.hash);
 
@@ -339,23 +348,23 @@ export class IndexCoordinator {
         filesSkipped: 0,
         chunksCreated: storageResult.chunksStored || 0,
         processingTime: Date.now() - startTime,
-        errors: storageResult.errors || []
+        errors: storageResult.errors || [],
       };
 
       this.logger.info('Index update completed', {
         projectId: projectId.hash,
         filesProcessed: result.filesProcessed,
         chunksCreated: result.chunksCreated,
-        processingTime: result.processingTime
+        processingTime: result.processingTime,
       });
 
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Index update failed', {
         projectId: projectId.hash,
-        error: errorMessage
+        error: errorMessage,
       });
 
       return {
@@ -364,7 +373,7 @@ export class IndexCoordinator {
         filesSkipped: 0,
         chunksCreated: 0,
         processingTime: Date.now() - startTime,
-        errors: [errorMessage]
+        errors: [errorMessage],
       };
     }
   }
@@ -377,40 +386,44 @@ export class IndexCoordinator {
     try {
       // Delete from storage coordinator
       const result = await this.storageCoordinator.deleteProject(projectId.hash);
-      
+
       if (result.success) {
         this.logger.info('Index deleted successfully', { projectId: projectId.hash });
         return true;
       } else {
-        this.logger.error('Failed to delete index', { 
+        this.logger.error('Failed to delete index', {
           projectId: projectId.hash,
-          errors: result.errors
+          errors: result.errors,
         });
         return false;
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      this.logger.error('Failed to delete index', { 
+
+      this.logger.error('Failed to delete index', {
         projectId: projectId.hash,
-        error: errorMessage
+        error: errorMessage,
       });
       return false;
     }
   }
 
-  async processIncrementalChanges(projectPath: string, changes: FileChangeEvent[], options: IndexOptions = {}): Promise<void> {
+  async processIncrementalChanges(
+    projectPath: string,
+    changes: FileChangeEvent[],
+    options: IndexOptions = {}
+  ): Promise<void> {
     if (changes.length === 0) {
       this.logger.debug('No changes to process');
       return;
     }
 
     const projectId = await HashUtils.calculateDirectoryHash(projectPath);
-    
+
     this.logger.info('Processing incremental changes', {
       projectPath,
       projectId: projectId.hash,
-      changeCount: changes.length
+      changeCount: changes.length,
     });
 
     try {
@@ -428,7 +441,7 @@ export class IndexCoordinator {
       const filesToProcess = [...createdFiles, ...modifiedFiles];
       if (filesToProcess.length > 0) {
         const parseResults = await this.parserService.parseFiles(filesToProcess);
-        
+
         // Apply LSP enhancement
         let enhancedResults = parseResults;
         if (options.enableLSP && parseResults.length > 0) {
@@ -440,11 +453,11 @@ export class IndexCoordinator {
             includeDiagnostics: options.includeDiagnostics,
             cacheLSP: options.cacheLSP,
             batchSize: this.configService.get('lsp')?.batchSize ?? 20,
-          maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3
+            maxConcurrency: this.configService.get('lsp')?.maxConcurrency ?? 3,
           });
           enhancedResults = lspResult.enhancedResults;
         }
-        
+
         // Convert ParseResult to ParsedFile format for storage
         const parsedFiles = enhancedResults.map(result => ({
           filePath: result.filePath,
@@ -454,25 +467,29 @@ export class IndexCoordinator {
             ...result.metadata,
             // Add LSP data if available (enhanced result)
             ...((result as any).lspSymbols && { lspSymbols: (result as any).lspSymbols }),
-            ...((result as any).lspDiagnostics && { lspDiagnostics: (result as any).lspDiagnostics }),
-            ...((result as any).typeDefinitions && { typeDefinitions: (result as any).typeDefinitions }),
+            ...((result as any).lspDiagnostics && {
+              lspDiagnostics: (result as any).lspDiagnostics,
+            }),
+            ...((result as any).typeDefinitions && {
+              typeDefinitions: (result as any).typeDefinitions,
+            }),
             ...((result as any).references && { references: (result as any).references }),
-            ...((result as any).lspMetadata && { lspMetadata: (result as any).lspMetadata })
-          }
+            ...((result as any).lspMetadata && { lspMetadata: (result as any).lspMetadata }),
+          },
         }));
         await this.storageCoordinator.store(parsedFiles, projectId.hash);
       }
 
       this.logger.info('Incremental changes processed successfully', {
         projectId: projectId.hash,
-        changeCount: changes.length
+        changeCount: changes.length,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Failed to process incremental changes', {
         projectId: projectId.hash,
-        error: errorMessage
+        error: errorMessage,
       });
       throw error;
     }
@@ -492,7 +509,7 @@ export class IndexCoordinator {
     } catch (error) {
       this.logger.error('Failed to get snippet processing status', {
         projectId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
@@ -503,12 +520,15 @@ export class IndexCoordinator {
     try {
       // Check the storage for duplicate snippets using content hash
       const contentHash = HashUtils.calculateStringHash(snippetContent);
-      const existingSnippet = await this.storageCoordinator.findSnippetByHash(contentHash, projectId);
+      const existingSnippet = await this.storageCoordinator.findSnippetByHash(
+        contentHash,
+        projectId
+      );
       return !!existingSnippet;
     } catch (error) {
       this.logger.error('Failed to check for duplicates', {
         projectId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return false;
     }
@@ -532,23 +552,23 @@ export class IndexCoordinator {
       if (!references) {
         return {
           references: [],
-          totalReferences: 0
+          totalReferences: 0,
         };
       }
 
       return {
         references,
-        totalReferences: references.length
+        totalReferences: references.length,
       };
     } catch (error) {
       this.logger.error('Failed to detect cross-references', {
         projectId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       // Return empty data instead of throwing
       return {
         references: [],
-        totalReferences: 0
+        totalReferences: 0,
       };
     }
   }
@@ -571,29 +591,29 @@ export class IndexCoordinator {
       if (!dependencies) {
         return {
           dependencies: [],
-          dependencyGraph: new Map()
+          dependencyGraph: new Map(),
         };
       }
 
       // Build dependency graph
       const dependencyGraph = new Map<string, string[]>();
-      dependencies.forEach((dep: { file: string; imports: string[]; }) => {
+      dependencies.forEach((dep: { file: string; imports: string[] }) => {
         dependencyGraph.set(dep.file, dep.imports);
       });
 
       return {
         dependencies,
-        dependencyGraph
+        dependencyGraph,
       };
     } catch (error) {
       this.logger.error('Failed to analyze dependencies', {
         projectId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       // Return empty data instead of throwing
       return {
         dependencies: [],
-        dependencyGraph: new Map()
+        dependencyGraph: new Map(),
       };
     }
   }
@@ -616,23 +636,23 @@ export class IndexCoordinator {
       if (!overlaps) {
         return {
           overlaps: [],
-          totalOverlaps: 0
+          totalOverlaps: 0,
         };
       }
 
       return {
         overlaps,
-        totalOverlaps: overlaps.length
+        totalOverlaps: overlaps.length,
       };
     } catch (error) {
       this.logger.error('Failed to detect overlaps', {
         projectId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       // Return empty data instead of throwing
       return {
         overlaps: [],
-        totalOverlaps: 0
+        totalOverlaps: 0,
       };
     }
   }
@@ -658,7 +678,7 @@ export class IndexCoordinator {
           totalFiles: 0,
           totalChunks: 0,
           totalSize: 0,
-          languages: []
+          languages: [],
         };
       }
 
@@ -668,12 +688,12 @@ export class IndexCoordinator {
         totalFiles: status.totalFiles,
         totalChunks: status.totalChunks,
         totalSize: status.totalSize,
-        languages: status.languages
+        languages: status.languages,
       };
     } catch (error) {
       this.logger.error('Failed to get index status', {
         projectPath,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       // Return default status instead of throwing
       return {
@@ -682,7 +702,7 @@ export class IndexCoordinator {
         totalFiles: 0,
         totalChunks: 0,
         totalSize: 0,
-        languages: []
+        languages: [],
       };
     }
   }
@@ -716,38 +736,39 @@ export class IndexCoordinator {
         totalProjects: 0,
         totalFiles: 0,
         totalChunks: 0,
-        storageSize: 0
+        storageSize: 0,
       };
 
       const defaultIndexingStats = {
         totalIndexedFiles: 0,
         totalChunks: 0,
         indexingRate: 0,
-        processingRate: 0
+        processingRate: 0,
       };
 
       return {
         indexing: {
           activeProjects: Array.from(this.currentIndexing.keys()),
-          totalIndexedFiles: indexingStats?.totalIndexedFiles || defaultIndexingStats.totalIndexedFiles,
+          totalIndexedFiles:
+            indexingStats?.totalIndexedFiles || defaultIndexingStats.totalIndexedFiles,
           totalChunks: indexingStats?.totalChunks || defaultIndexingStats.totalChunks,
-          indexingRate: indexingStats?.indexingRate || defaultIndexingStats.indexingRate
+          indexingRate: indexingStats?.indexingRate || defaultIndexingStats.indexingRate,
         },
         storage: {
           totalProjects: storageStats?.totalProjects || defaultStorageStats.totalProjects,
           totalFiles: storageStats?.totalFiles || defaultStorageStats.totalFiles,
           totalChunks: storageStats?.totalChunks || defaultStorageStats.totalChunks,
-          storageSize: storageStats?.storageSize || defaultStorageStats.storageSize
+          storageSize: storageStats?.storageSize || defaultStorageStats.storageSize,
         },
         performance: {
           memoryUsage: this.memoryManager.getCurrentMemoryUsage(),
           cpuUsage: 0, // TODO: Implement CPU usage monitoring
-          processingRate: indexingStats?.processingRate || defaultIndexingStats.processingRate
-        }
+          processingRate: indexingStats?.processingRate || defaultIndexingStats.processingRate,
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get system status', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       // Return default status instead of throwing
       return {
@@ -755,19 +776,19 @@ export class IndexCoordinator {
           activeProjects: [],
           totalIndexedFiles: 0,
           totalChunks: 0,
-          indexingRate: 0
+          indexingRate: 0,
         },
         storage: {
           totalProjects: 0,
           totalFiles: 0,
           totalChunks: 0,
-          storageSize: 0
+          storageSize: 0,
         },
         performance: {
           memoryUsage: 0,
           cpuUsage: 0,
-          processingRate: 0
-        }
+          processingRate: 0,
+        },
       };
     }
   }
@@ -779,7 +800,7 @@ export class IndexCoordinator {
     } catch (error) {
       this.logger.error('Search failed', {
         query,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }

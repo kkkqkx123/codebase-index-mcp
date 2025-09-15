@@ -37,7 +37,7 @@ describe('LSPErrorHandler', () => {
     };
 
     errorHandler.handleError(context);
-    
+
     const metrics = errorHandler.getMetrics();
     expect(metrics).toBeDefined();
     expect(typeof metrics.totalErrors).toBe('number');
@@ -55,7 +55,7 @@ describe('LSPErrorHandler', () => {
 
     errorHandler.handleError(context);
     errorHandler.resetMetrics();
-    
+
     const metrics = errorHandler.getMetrics();
     expect(metrics.totalErrors).toBe(0);
   });

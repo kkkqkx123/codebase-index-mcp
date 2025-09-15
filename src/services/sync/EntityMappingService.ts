@@ -72,7 +72,7 @@ export class EntityMappingService {
       vectorData,
       graphData,
       timestamp: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     this.pendingOperations.set(operationId, operation);
@@ -104,7 +104,10 @@ export class EntityMappingService {
   ): Promise<SyncResult> {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
-      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'update' });
+      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, {
+        component: 'EntityMappingService',
+        operation: 'update',
+      });
       // Temporarily remove error handling to debug test failure
       // this.errorHandler.handleError(error, error.context);
       throw error;
@@ -121,7 +124,7 @@ export class EntityMappingService {
       vectorData: updates.vectorData,
       graphData: updates.graphData,
       timestamp: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     this.pendingOperations.set(operationId, operation);
@@ -147,7 +150,10 @@ export class EntityMappingService {
   async deleteEntity(entityId: string): Promise<SyncResult> {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
-      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'delete' });
+      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, {
+        component: 'EntityMappingService',
+        operation: 'delete',
+      });
       this.errorHandler.handleError(error, error.context);
       throw error;
     }
@@ -160,7 +166,7 @@ export class EntityMappingService {
       entityId,
       projectId: mapping.projectId,
       timestamp: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     this.pendingOperations.set(operationId, operation);
@@ -187,7 +193,10 @@ export class EntityMappingService {
   async syncEntity(entityId: string): Promise<SyncResult> {
     const mapping = this.entityIdManager.getMapping(entityId);
     if (!mapping) {
-      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, { component: 'EntityMappingService', operation: 'sync' });
+      const error = new CodebaseIndexError(`Entity not found: ${entityId}`, {
+        component: 'EntityMappingService',
+        operation: 'sync',
+      });
       this.errorHandler.handleError(error, error.context);
       throw error;
     }
@@ -213,7 +222,7 @@ export class EntityMappingService {
       return {
         operationId: this.generateOperationId(),
         success: true,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     }
 
@@ -226,7 +235,7 @@ export class EntityMappingService {
       entityId,
       projectId: mapping.projectId,
       timestamp: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     try {
@@ -261,7 +270,7 @@ export class EntityMappingService {
           operationId: this.generateOperationId(),
           success: false,
           error: error instanceof Error ? error.message : String(error),
-          timestamp: new Date()
+          timestamp: new Date(),
         });
         this.logger.error('Failed to sync entity', { entityId: mapping.entityId, error });
         // Do not rethrow the error, allow the project sync to continue for other entities.
@@ -271,7 +280,10 @@ export class EntityMappingService {
     return results;
   }
 
-  async createBatch(projectId: string, operations: Omit<SyncOperation, 'id' | 'timestamp' | 'status'>[]): Promise<SyncBatch> {
+  async createBatch(
+    projectId: string,
+    operations: Omit<SyncOperation, 'id' | 'timestamp' | 'status'>[]
+  ): Promise<SyncBatch> {
     const batchId = this.generateBatchId();
     const batch: SyncBatch = {
       id: batchId,
@@ -280,10 +292,10 @@ export class EntityMappingService {
         ...op,
         id: this.generateOperationId(),
         timestamp: new Date(),
-        status: 'pending'
+        status: 'pending',
       })),
       createdAt: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     for (const operation of batch.operations) {
@@ -297,7 +309,10 @@ export class EntityMappingService {
   async executeBatch(batchId: string): Promise<SyncResult[]> {
     const batch = await this.getBatch(batchId);
     if (!batch) {
-      const error = new CodebaseIndexError(`Batch not found: ${batchId}`, { component: 'EntityMappingService', operation: 'executeBatch' });
+      const error = new CodebaseIndexError(`Batch not found: ${batchId}`, {
+        component: 'EntityMappingService',
+        operation: 'executeBatch',
+      });
       this.errorHandler.handleError(error, error.context);
       throw error;
     }
@@ -316,7 +331,7 @@ export class EntityMappingService {
           operationId: operation.id,
           success: false,
           error: error instanceof Error ? error.message : String(error),
-          timestamp: new Date()
+          timestamp: new Date(),
         });
         this.logger.error('Batch operation failed', { operationId: operation.id, error });
       }
@@ -325,21 +340,24 @@ export class EntityMappingService {
     const allSuccess = results.every(r => r.success);
     batch.status = allSuccess ? 'completed' : 'failed';
 
-    this.logger.info('Batch execution completed', { batchId, successCount: results.filter(r => r.success).length });
+    this.logger.info('Batch execution completed', {
+      batchId,
+      successCount: results.filter(r => r.success).length,
+    });
     return results;
   }
 
   private async executeOperation(operation: SyncOperation): Promise<SyncResult> {
     operation.status = 'in_progress';
-    
+
     try {
       // This is a simplified implementation
       // In a real implementation, this would coordinate with the actual database services
       const result = await this.performDatabaseOperation(operation);
-      
+
       operation.status = 'completed';
       this.pendingOperations.delete(operation.id);
-      
+
       return result;
     } catch (error) {
       operation.status = 'failed';
@@ -352,7 +370,7 @@ export class EntityMappingService {
     // This would be implemented to actually interact with the databases
     // For now, we'll simulate the operation
     const mapping = this.entityIdManager.getMapping(operation.entityId);
-    
+
     let vectorId: string | undefined;
     let graphId: string | undefined;
 
@@ -367,13 +385,10 @@ export class EntityMappingService {
       vectorId = newMapping.vectorId;
       graphId = newMapping.graphId;
     } else if (operation.type === 'update' && mapping) {
-      const updatedMapping = this.entityIdManager.updateMapping(
-        operation.entityId,
-        {
-          vectorId: operation.vectorData ? 'vector_' + operation.entityId : mapping.vectorId,
-          graphId: operation.graphData ? 'graph_' + operation.entityId : mapping.graphId
-        }
-      );
+      const updatedMapping = this.entityIdManager.updateMapping(operation.entityId, {
+        vectorId: operation.vectorData ? 'vector_' + operation.entityId : mapping.vectorId,
+        graphId: operation.graphData ? 'graph_' + operation.entityId : mapping.graphId,
+      });
       vectorId = updatedMapping?.vectorId;
       graphId = updatedMapping?.graphId;
     }
@@ -383,16 +398,17 @@ export class EntityMappingService {
       success: true,
       ...(vectorId && { vectorId }),
       ...(graphId && { graphId }),
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
   private async getBatch(batchId: string): Promise<SyncBatch | null> {
     // For testing purposes, create a mock batch if not found
     // In a real implementation, this would retrieve from persistent storage
-    const operations = Array.from(this.pendingOperations.values())
-      .filter(op => op.id.startsWith(batchId + '_') || op.id.includes(batchId));
-    
+    const operations = Array.from(this.pendingOperations.values()).filter(
+      op => op.id.startsWith(batchId + '_') || op.id.includes(batchId)
+    );
+
     if (operations.length === 0) {
       // For testing, return a mock batch
       return {
@@ -400,7 +416,7 @@ export class EntityMappingService {
         projectId: 'test_project',
         operations: [],
         createdAt: new Date(),
-        status: 'pending'
+        status: 'pending',
       };
     }
 
@@ -409,7 +425,7 @@ export class EntityMappingService {
       projectId: operations[0].projectId,
       operations,
       createdAt: operations[0].timestamp,
-      status: 'pending'
+      status: 'pending',
     };
   }
 

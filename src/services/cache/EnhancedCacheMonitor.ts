@@ -50,53 +50,53 @@ export class EnhancedCacheMonitor {
       key,
       success: false,
       duration: 0,
-      timestamp: startTime
+      timestamp: startTime,
     };
 
     try {
       this.initializeMetrics(cacheName);
-      
+
       const result = await fn();
       const duration = Date.now() - startTime;
-      
+
       logEntry.success = true;
       logEntry.duration = duration;
-      
+
       this.updateMetrics(cacheName, operation, true, duration);
       this.recordOperation(logEntry);
-      
+
       // 记录性能指标
       this.logger.debug(`缓存操作性能指标`, {
         operation,
         cache: cacheName,
         key: key || 'unknown',
-        duration
+        duration,
       });
 
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       logEntry.success = false;
       logEntry.duration = duration;
       logEntry.error = errorMessage;
-      
+
       this.updateMetrics(cacheName, operation, false, duration, errorMessage);
       this.recordOperation(logEntry);
-      
+
       // 记录错误详情
       this.logger.error(`缓存操作错误详情`, {
         cache: cacheName,
         operation,
         key,
-        error: errorMessage
+        error: errorMessage,
       });
 
       this.logger.error(`缓存操作失败 [${cacheName}.${operation}]`, {
         key,
         error: errorMessage,
-        duration
+        duration,
       });
 
       throw error;
@@ -138,9 +138,7 @@ export class EnhancedCacheMonitor {
     recentErrors: CacheOperationLog[];
     errorRate: number;
   } {
-    const recentErrors = this.operationLogs
-      .filter(log => !log.success)
-      .slice(-100);
+    const recentErrors = this.operationLogs.filter(log => !log.success).slice(-100);
 
     let totalErrors = 0;
     let totalOperations = 0;
@@ -161,7 +159,7 @@ export class EnhancedCacheMonitor {
     return {
       totalErrors,
       recentErrors,
-      errorRate: totalOperations > 0 ? totalErrors / totalOperations : 0
+      errorRate: totalOperations > 0 ? totalErrors / totalOperations : 0,
     };
   }
 
@@ -186,7 +184,7 @@ export class EnhancedCacheMonitor {
   }> {
     const stats = this.getAllCacheStats();
     const errorStats = this.getErrorStats();
-    
+
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
     const recommendations: string[] = [];
     const criticalCaches: string[] = [];
@@ -197,17 +195,23 @@ export class EnhancedCacheMonitor {
       if (metrics.errorRate > 0.1) {
         status = 'critical';
         criticalCaches.push(cacheName);
-        recommendations.push(`缓存 ${cacheName} 错误率过高 (${(metrics.errorRate * 100).toFixed(1)}%)，建议检查连接配置`);
+        recommendations.push(
+          `缓存 ${cacheName} 错误率过高 (${(metrics.errorRate * 100).toFixed(1)}%)，建议检查连接配置`
+        );
       } else if (metrics.errorRate > 0.05) {
         status = status === 'healthy' ? 'warning' : status;
         warningCaches.push(cacheName);
-        recommendations.push(`缓存 ${cacheName} 错误率偏高 (${(metrics.errorRate * 100).toFixed(1)}%)，建议监控`);
+        recommendations.push(
+          `缓存 ${cacheName} 错误率偏高 (${(metrics.errorRate * 100).toFixed(1)}%)，建议监控`
+        );
       }
 
       // 检查命中率
       if (metrics.hitRate < 0.5 && metrics.totalOperations > 100) {
         status = status === 'healthy' ? 'warning' : status;
-        recommendations.push(`缓存 ${cacheName} 命中率过低 (${(metrics.hitRate * 100).toFixed(1)}%)，建议优化TTL设置`);
+        recommendations.push(
+          `缓存 ${cacheName} 命中率过低 (${(metrics.hitRate * 100).toFixed(1)}%)，建议优化TTL设置`
+        );
       }
     }
 
@@ -217,11 +221,13 @@ export class EnhancedCacheMonitor {
         totalCaches: Object.keys(stats).length,
         totalOperations: Object.values(stats).reduce((sum, m) => sum + m.totalOperations, 0),
         totalErrors: errorStats.totalErrors,
-        averageHitRate: Object.values(stats).reduce((sum, m) => sum + m.hitRate, 0) / Object.keys(stats).length || 0,
+        averageHitRate:
+          Object.values(stats).reduce((sum, m) => sum + m.hitRate, 0) / Object.keys(stats).length ||
+          0,
         criticalCaches,
-        warningCaches
+        warningCaches,
       },
-      recommendations
+      recommendations,
     };
   }
 
@@ -239,9 +245,9 @@ export class EnhancedCacheMonitor {
     error?: string
   ): void {
     const metrics = this.metrics.get(cacheName) || this.createEmptyMetrics();
-    
+
     metrics.totalOperations++;
-    
+
     switch (operation) {
       case 'get':
         if (success) metrics.hits++;
@@ -254,21 +260,23 @@ export class EnhancedCacheMonitor {
         metrics.deletes++;
         break;
     }
-    
+
     if (!success) {
       metrics.errors++;
       metrics.lastError = error;
       metrics.lastErrorTime = Date.now();
     }
-    
+
     // 更新计算字段
-    metrics.hitRate = metrics.totalOperations > 0 ? 
-      (metrics.hits / (metrics.hits + metrics.misses)) : 0;
-    metrics.errorRate = metrics.totalOperations > 0 ? 
-      (metrics.errors / metrics.totalOperations) : 0;
-    metrics.avgResponseTime = metrics.totalOperations > 0 ?
-      ((metrics.avgResponseTime * (metrics.totalOperations - 1)) + duration) / metrics.totalOperations : duration;
-    
+    metrics.hitRate =
+      metrics.totalOperations > 0 ? metrics.hits / (metrics.hits + metrics.misses) : 0;
+    metrics.errorRate = metrics.totalOperations > 0 ? metrics.errors / metrics.totalOperations : 0;
+    metrics.avgResponseTime =
+      metrics.totalOperations > 0
+        ? (metrics.avgResponseTime * (metrics.totalOperations - 1) + duration) /
+          metrics.totalOperations
+        : duration;
+
     this.metrics.set(cacheName, metrics);
   }
 
@@ -290,7 +298,7 @@ export class EnhancedCacheMonitor {
 
   private recordOperation(log: CacheOperationLog): void {
     this.operationLogs.push(log);
-    
+
     // 限制日志数量
     if (this.operationLogs.length > this.maxLogs) {
       this.operationLogs.shift();
@@ -307,7 +315,7 @@ export class EnhancedCacheMonitor {
       totalOperations: 0,
       hitRate: 0,
       errorRate: 0,
-      avgResponseTime: 0
+      avgResponseTime: 0,
     };
   }
 
@@ -317,15 +325,14 @@ export class EnhancedCacheMonitor {
   updateHitMiss(cacheName: string, isHit: boolean): void {
     this.initializeMetrics(cacheName);
     const metrics = this.metrics.get(cacheName)!;
-    
+
     if (isHit) {
       metrics.hits++;
     } else {
       metrics.misses++;
     }
-    
-    metrics.hitRate = (metrics.hits + metrics.misses) > 0 
-      ? metrics.hits / (metrics.hits + metrics.misses) 
-      : 0;
+
+    metrics.hitRate =
+      metrics.hits + metrics.misses > 0 ? metrics.hits / (metrics.hits + metrics.misses) : 0;
   }
 }

@@ -30,23 +30,34 @@ export class LanguageServerRegistry {
   findWorkspaceRoot(arg0: string) {
     throw new Error('Method not implemented.');
   }
-  validateServerConfig(config: { command: string; args: string[]; extensions: string[]; configFiles: string[]; }): boolean {
+  validateServerConfig(config: {
+    command: string;
+    args: string[];
+    extensions: string[];
+    configFiles: string[];
+  }): boolean {
     if (!config.command || typeof config.command !== 'string') {
       return false;
     }
-    
+
     if (!Array.isArray(config.args) || !config.args.every(arg => typeof arg === 'string')) {
       return false;
     }
-    
-    if (!Array.isArray(config.extensions) || !config.extensions.every(ext => typeof ext === 'string')) {
+
+    if (
+      !Array.isArray(config.extensions) ||
+      !config.extensions.every(ext => typeof ext === 'string')
+    ) {
       return false;
     }
-    
-    if (!Array.isArray(config.configFiles) || !config.configFiles.every(file => typeof file === 'string')) {
+
+    if (
+      !Array.isArray(config.configFiles) ||
+      !config.configFiles.every(file => typeof file === 'string')
+    ) {
       return false;
     }
-    
+
     return true;
   }
   private static instance: LanguageServerRegistry;
@@ -67,11 +78,11 @@ export class LanguageServerRegistry {
   private loadConfig(): void {
     try {
       const configPath = path.join(process.cwd(), 'config', 'lsp-config.yml');
-      
+
       if (fs.existsSync(configPath)) {
         const configContent = fs.readFileSync(configPath, 'utf8');
         const parsed = yaml.load(configContent) as any;
-        
+
         if (parsed?.lsp?.languages) {
           Object.entries(parsed.lsp.languages).forEach(([lang, config]: [string, any]) => {
             const serverConfig: LanguageServerConfig = {
@@ -84,7 +95,7 @@ export class LanguageServerRegistry {
               config_files: config.config_files || [],
               file_extensions: this.getDefaultExtensions(lang),
             };
-            
+
             this.config.set(lang, serverConfig);
           });
         }
@@ -142,19 +153,19 @@ export class LanguageServerRegistry {
       go: ['.go'],
       rust: ['.rs'],
     };
-    
+
     return extensions[language] || [];
   }
 
   getServerConfig(workspaceRoot: string): LanguageServerConfig | null {
     const language = this.detectProjectLanguage(workspaceRoot);
-    
+
     if (!language) {
       return null;
     }
 
     const config = this.config.get(language.language);
-    
+
     if (!config || !config.enabled) {
       return null;
     }
@@ -188,7 +199,7 @@ export class LanguageServerRegistry {
     // 检查配置文件
     this.config.forEach((config, lang) => {
       if (config.config_files) {
-        config.config_files.forEach((configFile) => {
+        config.config_files.forEach(configFile => {
           const filePath = path.join(workspaceRoot, configFile);
           if (fs.existsSync(filePath)) {
             stats[lang as keyof typeof stats].confidence += 50;
@@ -200,10 +211,10 @@ export class LanguageServerRegistry {
 
     // 检查文件扩展名
     const fileExtensions = this.scanFileExtensions(workspaceRoot);
-    
+
     this.config.forEach((config, lang) => {
       if (config.file_extensions) {
-        config.file_extensions.forEach((ext) => {
+        config.file_extensions.forEach(ext => {
           if (fileExtensions[ext] > 0) {
             stats[lang as keyof typeof stats].confidence += 10 * fileExtensions[ext];
           }
@@ -241,27 +252,27 @@ export class LanguageServerRegistry {
 
   private scanFileExtensions(workspaceRoot: string): Record<string, number> {
     const extensions: Record<string, number> = {};
-    
+
     try {
       this.scanDirectory(workspaceRoot, extensions, 0, 3);
     } catch (error) {
       console.warn('Failed to scan directory:', error);
     }
-    
+
     return extensions;
   }
 
   private scanDirectory(
-    dir: string, 
-    extensions: Record<string, number>, 
-    depth: number, 
+    dir: string,
+    extensions: Record<string, number>,
+    depth: number,
     maxDepth: number
   ): void {
     if (depth > maxDepth) return;
 
     try {
       const items = fs.readdirSync(dir, { withFileTypes: true });
-      
+
       for (const item of items) {
         if (item.isDirectory()) {
           if (!item.name.startsWith('.') && item.name !== 'node_modules') {
@@ -302,13 +313,16 @@ export class LanguageServerRegistry {
     this.loadConfig();
   }
 
-  getLanguageStats(): Record<string, {
-    enabled: boolean;
-    config_files: string[];
-    file_extensions: string[];
-  }> {
+  getLanguageStats(): Record<
+    string,
+    {
+      enabled: boolean;
+      config_files: string[];
+      file_extensions: string[];
+    }
+  > {
     const stats: Record<string, any> = {};
-    
+
     this.config.forEach((config, lang) => {
       stats[lang] = {
         enabled: config.enabled,
@@ -316,7 +330,7 @@ export class LanguageServerRegistry {
         file_extensions: config.file_extensions || [],
       };
     });
-    
+
     return stats;
   }
 

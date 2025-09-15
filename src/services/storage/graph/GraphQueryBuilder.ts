@@ -40,7 +40,13 @@ export class GraphQueryBuilder {
   }
 
   buildSearchQuery(searchQuery: SearchQuery): { nGQL: string; parameters: Record<string, any> } {
-    const { query, queryType, filters = {}, pagination = { limit: 10, offset: 0 }, sortBy = 'relevance' } = searchQuery;
+    const {
+      query,
+      queryType,
+      filters = {},
+      pagination = { limit: 10, offset: 0 },
+      sortBy = 'relevance',
+    } = searchQuery;
 
     switch (queryType) {
       case 'semantic':
@@ -65,7 +71,7 @@ export class GraphQueryBuilder {
     const parameters: Record<string, any> = {
       query: `%${query}%`,
       limit: pagination.limit,
-      offset: pagination.offset
+      offset: pagination.offset,
     };
 
     let whereClauses: string[] = [];
@@ -113,7 +119,7 @@ export class GraphQueryBuilder {
     const parameters: Record<string, any> = {
       query: query,
       limit: pagination.limit,
-      offset: pagination.offset
+      offset: pagination.offset,
     };
 
     let whereClauses: string[] = [];
@@ -150,7 +156,7 @@ export class GraphQueryBuilder {
     const parameters: Record<string, any> = {
       query: query,
       limit: pagination.limit,
-      offset: pagination.offset
+      offset: pagination.offset,
     };
 
     let whereClauses: string[] = [];
@@ -182,7 +188,7 @@ export class GraphQueryBuilder {
     const parameters: Record<string, any> = {
       query: query,
       limit: pagination.limit,
-      offset: pagination.offset
+      offset: pagination.offset,
     };
 
     let whereClauses: string[] = [];
@@ -214,7 +220,7 @@ export class GraphQueryBuilder {
   buildNodeExistenceQuery(nodeId: string): { nGQL: string; parameters: Record<string, any> } {
     return {
       nGQL: `FETCH PROP ON * $nodeId YIELD vertex AS node`,
-      parameters: { nodeId }
+      parameters: { nodeId },
     };
   }
 
@@ -246,28 +252,31 @@ export class GraphQueryBuilder {
   ): { nGQL: string; parameters: Record<string, any> } {
     return {
       nGQL: `FIND SHORTEST PATH FROM $sourceId TO $targetId OVER * UPTO ${maxDepth} STEPS YIELD path as p`,
-      parameters: { sourceId, targetId }
+      parameters: { sourceId, targetId },
     };
   }
 
   buildGraphStatsQuery(): { nGQL: string; parameters: Record<string, any> } {
     return {
       nGQL: 'SHOW STATS',
-      parameters: {}
+      parameters: {},
     };
   }
 
   buildNodeCountQuery(nodeType: string): { nGQL: string; parameters: Record<string, any> } {
     return {
       nGQL: `MATCH (v:${nodeType}) RETURN count(v) AS total`,
-      parameters: {}
+      parameters: {},
     };
   }
 
-  buildRelationshipCountQuery(relationshipType: string): { nGQL: string; parameters: Record<string, any> } {
+  buildRelationshipCountQuery(relationshipType: string): {
+    nGQL: string;
+    parameters: Record<string, any>;
+  } {
     return {
       nGQL: `MATCH ()-[e:${relationshipType}]->() RETURN count(e) AS total`,
-      parameters: {}
+      parameters: {},
     };
   }
 }

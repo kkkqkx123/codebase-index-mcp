@@ -21,9 +21,9 @@ export class RedisConfigManager {
       this.logger.info('已设置Redis内存淘汰策略: allkeys-lru');
 
       // 验证配置
-      const maxmemory = await redis.config('GET', 'maxmemory') as [string, string];
-      const policy = await redis.config('GET', 'maxmemory-policy') as [string, string];
-      
+      const maxmemory = (await redis.config('GET', 'maxmemory')) as [string, string];
+      const policy = (await redis.config('GET', 'maxmemory-policy')) as [string, string];
+
       this.logger.info(`Redis内存配置确认 - maxmemory: ${maxmemory[1]}, policy: ${policy[1]}`);
     } catch (error) {
       this.logger.error('配置Redis内存设置失败', error);
@@ -42,10 +42,10 @@ export class RedisConfigManager {
     try {
       const info = await redis.info('memory');
       const lines = info.split('\r\n');
-      
+
       let usedMemory = 0;
       let maxMemory = 0;
-      
+
       for (const line of lines) {
         if (line.startsWith('used_memory:')) {
           usedMemory = parseInt(line.split(':')[1]) || 0;
@@ -54,13 +54,13 @@ export class RedisConfigManager {
           maxMemory = parseInt(line.split(':')[1]) || 0;
         }
       }
-      
+
       const memoryUsage = maxMemory > 0 ? (usedMemory / maxMemory) * 100 : 0;
-      
+
       return {
         usedMemory,
         maxMemory,
-        memoryUsage
+        memoryUsage,
       };
     } catch (error) {
       this.logger.error('获取Redis内存信息失败', error);
@@ -109,7 +109,7 @@ export class RedisConfigManager {
     try {
       const info = await redis.info();
       const lines = info.split('\r\n');
-      
+
       const stats = {
         version: '',
         uptime: 0,
@@ -117,7 +117,7 @@ export class RedisConfigManager {
         usedMemory: 0,
         maxMemory: 0,
         memoryUsage: 0,
-        keyspace: {} as Record<string, string>
+        keyspace: {} as Record<string, string>,
       };
 
       for (const line of lines) {
@@ -141,7 +141,7 @@ export class RedisConfigManager {
       try {
         const keyspaceInfo = await redis.info('keyspace');
         const keyspaceLines = keyspaceInfo.split('\r\n');
-        
+
         for (const line of keyspaceLines) {
           if (line.includes('keys=')) {
             const [db, info] = line.split(':');

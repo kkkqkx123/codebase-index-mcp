@@ -17,7 +17,7 @@ export interface SearchOptions {
   offset?: number;
   sortBy?: 'relevance' | 'name' | 'type' | 'created';
   targetNode?: string; // 用于路径搜索
-  maxDepth?: number;   // 用于路径搜索
+  maxDepth?: number; // 用于路径搜索
 }
 
 export interface SearchResult {
@@ -72,82 +72,85 @@ export class GraphSearchService {
       this.logger.info('Graph search service initialized');
       return true;
     } catch (error) {
-      this.logger.error('Failed to initialize graph search service', { 
-        error: error instanceof Error ? error.message : String(error)
+      this.logger.error('Failed to initialize graph search service', {
+        error: error instanceof Error ? error.message : String(error),
       });
       return false;
     }
   }
 
-  async search(query: string, options: SearchOptions = {}): Promise<{
+  async search(
+    query: string,
+    options: SearchOptions = {}
+  ): Promise<{
     results: SearchResult[];
     metrics: SearchMetrics;
   }> {
     const startTime = Date.now();
-    
+
     try {
       if (!this.isInitialized) {
         await this.initialize();
       }
 
       const searchParams = this.buildSearchParams(query, options);
-      
+
       // 检查缓存
       const cacheKey = this.generateCacheKey(searchParams);
       const cachedResults = await this.cacheService.getFromCache<SearchResult[]>(cacheKey);
-      
+
       if (cachedResults && Array.isArray(cachedResults)) {
         this.performanceMonitor.updateCacheHitRate(true);
         const metrics: SearchMetrics = {
           queryTime: Date.now() - startTime,
           resultCount: cachedResults.length,
           cacheHit: true,
-          queryType: searchParams.queryType
+          queryType: searchParams.queryType,
         };
-        
+
         this.logger.info('Search results retrieved from cache', {
           query,
-          ...metrics
+          ...metrics,
         });
-        
+
         return { results: cachedResults, metrics };
       }
 
       // 执行搜索
       const results = await this.executeSearch(searchParams);
-      
+
       // 缓存结果
       await this.cacheService.setCache(cacheKey, results, 300000); // 5分钟缓存
       this.performanceMonitor.updateCacheHitRate(false);
-      
+
       const queryTime = Date.now() - startTime;
       this.performanceMonitor.recordQueryExecution(queryTime);
-      
+
       const metrics: SearchMetrics = {
         queryTime,
         resultCount: results.length,
         cacheHit: false,
-        queryType: searchParams.queryType
+        queryType: searchParams.queryType,
       };
 
       this.logger.info('Search executed successfully', {
         query,
         ...metrics,
-        projectId: options.projectId
+        projectId: options.projectId,
       });
 
       return { results, metrics };
     } catch (error) {
       const queryTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       this.logger.error('Search failed', {
         query,
         options,
         queryTime,
-        error: errorMessage
+        error: errorMessage,
       });
-      
+
       throw new Error(`Search failed: ${errorMessage}`);
     }
   }
@@ -162,11 +165,15 @@ export class GraphSearchService {
     return results;
   }
 
-  async pathSearch(sourceId: string, targetId: string, options: SearchOptions = {}): Promise<SearchResult[]> {
-    const { results } = await this.search(sourceId, { 
-      ...options, 
-      type: 'path', 
-      targetNode: targetId 
+  async pathSearch(
+    sourceId: string,
+    targetId: string,
+    options: SearchOptions = {}
+  ): Promise<SearchResult[]> {
+    const { results } = await this.search(sourceId, {
+      ...options,
+      type: 'path',
+      targetNode: targetId,
     });
     return results;
   }
@@ -187,13 +194,13 @@ export class GraphSearchService {
         filePath: options.filePath,
         minScore: options.minScore || 0.1,
         targetNode: options.targetNode,
-        maxDepth: options.maxDepth || 5
+        maxDepth: options.maxDepth || 5,
       },
       pagination: {
         limit: options.limit || 10,
-        offset: options.offset || 0
+        offset: options.offset || 0,
       },
-      sortBy: options.sortBy || 'relevance'
+      sortBy: options.sortBy || 'relevance',
     };
   }
 
@@ -221,7 +228,7 @@ export class GraphSearchService {
       query: params.query,
       queryType: 'semantic',
       filters: params.filters,
-      pagination: params.pagination
+      pagination: params.pagination,
     });
 
     try {
@@ -236,7 +243,9 @@ export class GraphSearchService {
 
       return result.map(record => this.transformSearchResult(record, 'semantic'));
     } catch (error) {
-      this.logger.error('Semantic search failed', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Semantic search failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -246,7 +255,7 @@ export class GraphSearchService {
       query: params.query,
       queryType: 'relationship',
       filters: params.filters,
-      pagination: params.pagination
+      pagination: params.pagination,
     });
 
     try {
@@ -261,7 +270,9 @@ export class GraphSearchService {
 
       return result.map(record => this.transformSearchResult(record, 'relationship'));
     } catch (error) {
-      this.logger.error('Relationship search failed', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Relationship search failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -271,7 +282,7 @@ export class GraphSearchService {
       query: params.query,
       queryType: 'path',
       filters: params.filters,
-      pagination: params.pagination
+      pagination: params.pagination,
     });
 
     try {
@@ -286,7 +297,9 @@ export class GraphSearchService {
 
       return result.map(record => this.transformSearchResult(record, 'path'));
     } catch (error) {
-      this.logger.error('Path search failed', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Path search failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -296,7 +309,7 @@ export class GraphSearchService {
       query: params.query,
       queryType: 'fuzzy',
       filters: params.filters,
-      pagination: params.pagination
+      pagination: params.pagination,
     });
 
     try {
@@ -311,7 +324,9 @@ export class GraphSearchService {
 
       return result.map(record => this.transformSearchResult(record, 'fuzzy'));
     } catch (error) {
-      this.logger.error('Fuzzy search failed', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Fuzzy search failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -323,7 +338,7 @@ export class GraphSearchService {
       name: '',
       properties: {},
       score: 0,
-      queryType
+      queryType,
     };
 
     if (record && typeof record === 'object') {

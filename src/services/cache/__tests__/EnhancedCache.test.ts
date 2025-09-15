@@ -27,7 +27,7 @@ describe('Enhanced Cache System', () => {
       useMultiLevel: true,
       ttl: 3600,
       retry: { attempts: 3, delay: 100 },
-      pool: { min: 5, max: 10 }
+      pool: { min: 5, max: 10 },
     };
   });
 
@@ -38,7 +38,7 @@ describe('Enhanced Cache System', () => {
       await cache.close();
       await cacheFactory.removeCache(name);
     }
-    
+
     // 确保所有Redis连接已关闭
     if (mockRedis.quit) {
       mockRedis.quit.mockClear();
@@ -48,7 +48,7 @@ describe('Enhanced Cache System', () => {
   afterAll(async () => {
     // 清理所有缓存并关闭工厂
     await cacheFactory.closeAllCaches();
-    
+
     // 清理所有模拟
     jest.clearAllMocks();
     jest.restoreAllMocks();
@@ -156,7 +156,12 @@ describe('Enhanced Cache System', () => {
     let redisCache: EnhancedRedisCacheAdapter;
 
     beforeEach(() => {
-      redisCache = new EnhancedRedisCacheAdapter('test-redis', mockRedis as any, 3600, cacheFactory.getMonitor());
+      redisCache = new EnhancedRedisCacheAdapter(
+        'test-redis',
+        mockRedis as any,
+        3600,
+        cacheFactory.getMonitor()
+      );
     });
 
     test('应该设置和获取值', async () => {
@@ -223,8 +228,18 @@ describe('Enhanced Cache System', () => {
 
     beforeEach(() => {
       mockL1 = new MemoryCacheAdapter('test-l1', 300);
-      mockL2 = new EnhancedRedisCacheAdapter('test-l2', mockRedis as any, 3600, cacheFactory.getMonitor());
-      multiLevelCache = new EnhancedMultiLevelCache('test-multi', mockL1, mockL2, cacheFactory.getMonitor());
+      mockL2 = new EnhancedRedisCacheAdapter(
+        'test-l2',
+        mockRedis as any,
+        3600,
+        cacheFactory.getMonitor()
+      );
+      multiLevelCache = new EnhancedMultiLevelCache(
+        'test-multi',
+        mockL1,
+        mockL2,
+        cacheFactory.getMonitor()
+      );
     });
 
     test('应该在L1未命中时从L2获取', async () => {
@@ -341,7 +356,7 @@ describe('Enhanced Cache System', () => {
 
     test('应该执行健康检查', async () => {
       const cache = cacheFactory.createMultiLevelCache('health-test', mockRedisConfig);
-      
+
       mockRedis.set.mockResolvedValue('OK');
       mockRedis.get.mockResolvedValue('test-value');
 

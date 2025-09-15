@@ -102,7 +102,7 @@ export class IndexingRoutes {
       if (!projectPath) {
         res.status(400).json({
           success: false,
-          error: 'projectPath is required'
+          error: 'projectPath is required',
         });
         return;
       }
@@ -111,7 +111,7 @@ export class IndexingRoutes {
 
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       next(error);
@@ -126,7 +126,7 @@ export class IndexingRoutes {
       if (!projectId) {
         res.status(400).json({
           success: false,
-          error: 'projectId is required'
+          error: 'projectId is required',
         });
         return;
       }
@@ -135,7 +135,7 @@ export class IndexingRoutes {
 
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       next(error);
@@ -149,7 +149,7 @@ export class IndexingRoutes {
       if (!projectId) {
         res.status(400).json({
           success: false,
-          error: 'projectId is required'
+          error: 'projectId is required',
         });
         return;
       }
@@ -158,7 +158,7 @@ export class IndexingRoutes {
 
       res.status(200).json({
         success: true,
-        data: status
+        data: status,
       });
     } catch (error) {
       next(error);
@@ -172,7 +172,7 @@ export class IndexingRoutes {
 
       res.status(200).json({
         success: true,
-        data: projects
+        data: projects,
       });
     } catch (error) {
       next(error);
@@ -186,7 +186,7 @@ export class IndexingRoutes {
       if (!projectId) {
         res.status(400).json({
           success: false,
-          error: 'projectId is required'
+          error: 'projectId is required',
         });
         return;
       }
@@ -195,7 +195,7 @@ export class IndexingRoutes {
 
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       next(error);
@@ -209,16 +209,20 @@ export class IndexingRoutes {
       if (!searchQuery.query || !searchQuery.projectId) {
         res.status(400).json({
           success: false,
-          error: 'query and projectId are required'
+          error: 'query and projectId are required',
         });
         return;
       }
 
-      const results = await this.indexService.search(searchQuery.query, searchQuery.projectId, searchQuery);
+      const results = await this.indexService.search(
+        searchQuery.query,
+        searchQuery.projectId,
+        searchQuery
+      );
 
       res.status(200).json({
         success: true,
-        data: results
+        data: results,
       });
     } catch (error) {
       next(error);

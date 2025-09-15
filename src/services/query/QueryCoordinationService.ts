@@ -111,10 +111,10 @@ export class QueryCoordinationService {
     const queryId = this.generateQueryId(request);
     const startTime = Date.now();
 
-    this.logger.info('Executing query', { 
-      queryId, 
-      query: request.query, 
-      projectId: request.projectId 
+    this.logger.info('Executing query', {
+      queryId,
+      query: request.query,
+      projectId: request.projectId,
     });
 
     try {
@@ -135,9 +135,9 @@ export class QueryCoordinationService {
             performance: {
               throughput: cachedResult.length / ((Date.now() - startTime) / 1000),
               latency: Date.now() - startTime,
-              successRate: 1
-            }
-          }
+              successRate: 1,
+            },
+          },
         };
       }
 
@@ -151,13 +151,13 @@ export class QueryCoordinationService {
         projectId: '', // Will be set by the caller
         options: {
           limit: 10,
-          searchType: optimizedQuery.searchStrategy.type as 'graph' | 'semantic' | 'hybrid'
-        }
+          searchType: optimizedQuery.searchStrategy.type as 'graph' | 'semantic' | 'hybrid',
+        },
       };
-      
+
       const [vectorResults, graphResults] = await Promise.all([
         this.executeVectorSearch(queryRequest),
-        this.executeGraphSearch(queryRequest)
+        this.executeGraphSearch(queryRequest),
       ]);
 
       // Fuse results
@@ -168,8 +168,8 @@ export class QueryCoordinationService {
         query: optimizedQuery.originalQuery,
         options: {
           limit: 10,
-          searchType: optimizedQuery.searchStrategy.type as 'graph' | 'semantic' | 'hybrid'
-        }
+          searchType: optimizedQuery.searchStrategy.type as 'graph' | 'semantic' | 'hybrid',
+        },
       });
       const fusionTime = Date.now() - fusionStartTime;
 
@@ -188,28 +188,29 @@ export class QueryCoordinationService {
         performance: {
           throughput: fusedResults.length / (totalExecutionTime / 1000),
           latency: totalExecutionTime,
-          successRate: 1
-        }
+          successRate: 1,
+        },
       };
 
       // Record performance metrics
       await this.performanceMonitor.recordQuery(metrics);
 
-      this.logger.info('Query execution completed', { 
+      this.logger.info('Query execution completed', {
         queryId,
         resultCount: fusedResults.length,
-        executionTime: totalExecutionTime 
+        executionTime: totalExecutionTime,
       });
 
       return {
         results: fusedResults,
         metrics,
-        formattedResults: await this.resultFormatter.formatForLLM(fusedResults)
+        formattedResults: await this.resultFormatter.formatForLLM(fusedResults),
       };
-
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Query execution failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Query execution failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QueryCoordinationService', operation: 'executeQuery', metadata: { queryId } }
       );
       throw error;
@@ -233,43 +234,45 @@ export class QueryCoordinationService {
   }> {
     const startTime = Date.now();
 
-    this.logger.info('Executing batch queries', { 
-      queryCount: requests.length 
+    this.logger.info('Executing batch queries', {
+      queryCount: requests.length,
     });
 
     try {
-      const results = await Promise.all(
-        requests.map(request => this.executeQuery(request))
-      );
+      const results = await Promise.all(requests.map(request => this.executeQuery(request)));
 
       const totalExecutionTime = Date.now() - startTime;
       const totalMetrics = {
         totalQueries: requests.length,
         totalExecutionTime,
         averageExecutionTime: totalExecutionTime / requests.length,
-        throughput: results.reduce((sum, r) => sum + r.results.length, 0) / (totalExecutionTime / 1000),
-        successRate: results.filter(r => r.results.length > 0).length / requests.length
+        throughput:
+          results.reduce((sum, r) => sum + r.results.length, 0) / (totalExecutionTime / 1000),
+        successRate: results.filter(r => r.results.length > 0).length / requests.length,
       };
 
-      this.logger.info('Batch query execution completed', { 
+      this.logger.info('Batch query execution completed', {
         queryCount: requests.length,
         totalExecutionTime,
-        throughput: totalMetrics.throughput 
+        throughput: totalMetrics.throughput,
       });
 
       return {
-        results: await Promise.all(results.map(async (result, index) => ({
-          query: requests[index].query,
-          results: result.results,
-          metrics: result.metrics,
-          formattedResults: await this.resultFormatter.formatForLLM(result.results)
-        }))),
-        totalMetrics
+        results: await Promise.all(
+          results.map(async (result, index) => ({
+            query: requests[index].query,
+            results: result.results,
+            metrics: result.metrics,
+            formattedResults: await this.resultFormatter.formatForLLM(result.results),
+          }))
+        ),
+        totalMetrics,
       };
-
     } catch (error) {
       this.errorHandler.handleError(
-        new Error(`Batch query execution failed: ${error instanceof Error ? error.message : String(error)}`),
+        new Error(
+          `Batch query execution failed: ${error instanceof Error ? error.message : String(error)}`
+        ),
         { component: 'QueryCoordinationService', operation: 'executeBatchQueries' }
       );
       throw error;
@@ -300,23 +303,24 @@ export class QueryCoordinationService {
     try {
       const embedder = await this.embedderFactory.getEmbedder();
       const queryEmbedding = await embedder.embed({ text: request.query });
-      const embeddingVector = Array.isArray(queryEmbedding) ? queryEmbedding[0].vector : queryEmbedding.vector;
+      const embeddingVector = Array.isArray(queryEmbedding)
+        ? queryEmbedding[0].vector
+        : queryEmbedding.vector;
 
       const results = await this.vectorStorage.searchVectors(embeddingVector, {
         limit: request.options?.limit || 10,
-        filter: request.options?.filters
+        filter: request.options?.filters,
       });
 
       return {
         results,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
-
     } catch (error) {
       this.logger.error('Vector search failed', { error });
       return {
         results: [],
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -331,7 +335,7 @@ export class QueryCoordinationService {
       if (!request.options?.includeGraph) {
         return {
           results: [],
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
@@ -340,14 +344,13 @@ export class QueryCoordinationService {
 
       return {
         results,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
-
     } catch (error) {
       this.logger.error('Graph search failed', { error });
       return {
         results: [],
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -362,7 +365,7 @@ export class QueryCoordinationService {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return Math.abs(hash).toString(16);

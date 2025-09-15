@@ -26,10 +26,10 @@ export class MCPServer {
       version: '1.0.0',
       description: 'Intelligent codebase indexing and analysis service',
     });
-    
+
     // Initialize the stdio transport
     this.transport = new StdioServerTransport();
-    
+
     // Register all available tools
     this.setupToolHandlers();
   }
@@ -39,16 +39,18 @@ export class MCPServer {
       'codebase.index.create',
       {
         projectPath: z.string().describe('Path to the project directory'),
-        options: z.object({
-          recursive: z.boolean().optional().default(true),
-          includePatterns: z.array(z.string()).optional(),
-          excludePatterns: z.array(z.string()).optional()
-        }).optional()
+        options: z
+          .object({
+            recursive: z.boolean().optional().default(true),
+            includePatterns: z.array(z.string()).optional(),
+            excludePatterns: z.array(z.string()).optional(),
+          })
+          .optional(),
       },
-      async (args) => {
+      async args => {
         const result = await this.handleCreateIndex(args);
         return {
-          content: [{ type: 'text', text: JSON.stringify(result) }]
+          content: [{ type: 'text', text: JSON.stringify(result) }],
         };
       }
     );
@@ -57,16 +59,18 @@ export class MCPServer {
       'codebase.index.search',
       {
         query: z.string().describe('Search query'),
-        options: z.object({
-          limit: z.number().optional().default(10),
-          threshold: z.number().optional().default(0.7),
-          includeGraph: z.boolean().optional().default(false)
-        }).optional()
+        options: z
+          .object({
+            limit: z.number().optional().default(10),
+            threshold: z.number().optional().default(0.7),
+            includeGraph: z.boolean().optional().default(false),
+          })
+          .optional(),
       },
-      async (args) => {
+      async args => {
         const result = await this.handleSearch(args);
         return {
-          content: [{ type: 'text', text: JSON.stringify(result) }]
+          content: [{ type: 'text', text: JSON.stringify(result) }],
         };
       }
     );
@@ -75,15 +79,17 @@ export class MCPServer {
       'codebase.graph.analyze',
       {
         projectPath: z.string().describe('Path to the project directory'),
-        options: z.object({
-          depth: z.number().optional().default(3),
-          focus: z.enum(['dependencies', 'imports', 'classes', 'functions']).optional()
-        }).optional()
+        options: z
+          .object({
+            depth: z.number().optional().default(3),
+            focus: z.enum(['dependencies', 'imports', 'classes', 'functions']).optional(),
+          })
+          .optional(),
       },
-      async (args) => {
+      async args => {
         const result = await this.handleGraphAnalyze(args);
         return {
-          content: [{ type: 'text', text: JSON.stringify(result) }]
+          content: [{ type: 'text', text: JSON.stringify(result) }],
         };
       }
     );
@@ -91,12 +97,12 @@ export class MCPServer {
     this.server.tool(
       'codebase.status.get',
       {
-        projectPath: z.string().describe('Path to the project directory')
+        projectPath: z.string().describe('Path to the project directory'),
       },
-      async (args) => {
+      async args => {
         const result = await this.handleGetStatus(args);
         return {
-          content: [{ type: 'text', text: JSON.stringify(result) }]
+          content: [{ type: 'text', text: JSON.stringify(result) }],
         };
       }
     );
@@ -104,41 +110,41 @@ export class MCPServer {
 
   private async handleCreateIndex(args: any): Promise<any> {
     const { projectPath, options = {} } = args;
-    
+
     this.logger.info(`Creating index for project: ${projectPath}`);
-    
+
     await this.indexService.createIndex(projectPath, options);
-    
+
     return {
       success: true,
       message: `Index created successfully for ${projectPath}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
   private async handleSearch(args: any): Promise<any> {
     const { query, options = {} } = args;
-    
+
     this.logger.info(`Searching for: ${query}`);
-    
+
     // For now, we'll use a default projectId
     // In a real implementation, this should be derived from context or passed as a parameter
     const projectId = 'default';
     const results = await this.indexService.search(query, projectId, options);
-    
+
     return {
       results,
       total: results.length,
       query,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
   private async handleGraphAnalyze(args: any): Promise<any> {
     const { projectPath, options = {} } = args;
-    
+
     this.logger.info(`Analyzing graph for project: ${projectPath}`);
-    
+
     const analysis = await this.graphService.analyzeCodebase(projectPath, options);
 
     return {
@@ -147,18 +153,18 @@ export class MCPServer {
       relationships: analysis.result.edges,
       metrics: analysis.result.metrics,
       formattedResult: analysis.formattedResult,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
   private async handleGetStatus(args: any): Promise<any> {
     const { projectPath } = args;
-    
+
     const status = await this.indexService.getStatus(projectPath);
-    
+
     return {
       status,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 

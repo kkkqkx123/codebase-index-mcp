@@ -26,7 +26,10 @@ export class HashBasedDeduplicator {
 
   constructor() {}
 
-  async deduplicateChunks(chunks: CodeChunk[], options?: Partial<DeduplicationOptions>): Promise<DeduplicationResult> {
+  async deduplicateChunks(
+    chunks: CodeChunk[],
+    options?: Partial<DeduplicationOptions>
+  ): Promise<DeduplicationResult> {
     const startTime = Date.now();
     const dedupOptions: Required<DeduplicationOptions> = {
       algorithm: options?.algorithm ?? 'exact',
@@ -34,7 +37,7 @@ export class HashBasedDeduplicator {
       ignoreWhitespace: options?.ignoreWhitespace ?? true,
       ignoreComments: options?.ignoreComments ?? true,
       normalizeIdentifiers: options?.normalizeIdentifiers ?? false,
-      minChunkSize: options?.minChunkSize ?? 50
+      minChunkSize: options?.minChunkSize ?? 50,
     };
 
     const result: DeduplicationResult = {
@@ -42,7 +45,7 @@ export class HashBasedDeduplicator {
       duplicateChunks: [],
       duplicateCount: 0,
       savedSpace: 0,
-      processingTime: 0
+      processingTime: 0,
     };
 
     switch (dedupOptions.algorithm) {
@@ -100,25 +103,25 @@ export class HashBasedDeduplicator {
     const processedChunks = chunks.map(chunk => ({
       original: chunk,
       processed: this.preprocessContent(chunk.content, options),
-      fuzzyHash: this.generateFuzzyHash(this.preprocessContent(chunk.content, options))
+      fuzzyHash: this.generateFuzzyHash(this.preprocessContent(chunk.content, options)),
     }));
 
     for (let i = 0; i < processedChunks.length; i++) {
       const current = processedChunks[i];
-      
+
       if (current.original.content.length < options.minChunkSize) {
         uniqueChunks.push(current.original);
         continue;
       }
 
       let isDuplicate = false;
-      
+
       for (let j = 0; j < uniqueChunks.length; j++) {
         const existing = uniqueChunks[j];
         const existingProcessed = this.preprocessContent(existing.content, options);
-        
+
         const similarity = this.calculateSimilarity(current.processed, existingProcessed);
-        
+
         if (similarity >= options.similarityThreshold) {
           result.duplicateChunks.push(current.original);
           result.duplicateCount++;
@@ -151,14 +154,14 @@ export class HashBasedDeduplicator {
       }
 
       const semanticHash = this.generateSemanticHash(chunk, options);
-      
+
       if (semanticHashes.has(semanticHash)) {
         const similarChunks = semanticHashes.get(semanticHash)!;
         let isDuplicate = false;
 
         for (const existingChunk of similarChunks) {
           const similarity = this.calculateSemanticSimilarity(chunk, existingChunk);
-          
+
           if (similarity >= options.similarityThreshold) {
             result.duplicateChunks.push(chunk);
             result.duplicateCount++;
@@ -206,7 +209,7 @@ export class HashBasedDeduplicator {
     content = content.replace(/\/\*[\s\S]*?\*\//g, '');
     // Remove Python-style comments
     content = content.replace(/#.*$/gm, '');
-    
+
     return content.trim();
   }
 
@@ -225,9 +228,12 @@ export class HashBasedDeduplicator {
 
   private generateFuzzyHash(content: string): string {
     // SimHash-like approach for fuzzy matching
-    const words = content.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+    const words = content
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 2);
     const wordFreq = new Map<string, number>();
-    
+
     for (const word of words) {
       wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
     }
@@ -243,13 +249,16 @@ export class HashBasedDeduplicator {
   private generateSemanticHash(chunk: CodeChunk, options: Required<DeduplicationOptions>): string {
     const features = this.extractSemanticFeatures(chunk, options);
     const featureString = JSON.stringify(features, Object.keys(features).sort());
-    
+
     return createHash('sha256').update(featureString).digest('hex');
   }
 
-  private extractSemanticFeatures(chunk: CodeChunk, options: Required<DeduplicationOptions>): Record<string, any> {
+  private extractSemanticFeatures(
+    chunk: CodeChunk,
+    options: Required<DeduplicationOptions>
+  ): Record<string, any> {
     const content = this.preprocessContent(chunk.content, options);
-    
+
     return {
       type: chunk.type,
       lineCount: chunk.endLine - chunk.startLine + 1,
@@ -263,37 +272,37 @@ export class HashBasedDeduplicator {
       bracketCount: (content.match(/[{}]/g) || []).length,
       parenthesisCount: (content.match(/[()]/g) || []).length,
       semicolonCount: (content.match(/;/g) || []).length,
-      complexity: this.calculateComplexity(content)
+      complexity: this.calculateComplexity(content),
     };
   }
 
   private calculateComplexity(content: string): number {
     let complexity = 1;
-    
+
     // Count control flow statements
     const controlFlow = /\b(if|else|elif|for|while|do|switch|case|try|catch|except|finally)\b/gi;
     const matches = content.match(controlFlow);
     if (matches) {
       complexity += matches.length;
     }
-    
+
     // Count logical operators
     const logicalOps = /(&&|\|\||and|or|\?|\?\.)/g;
     const logicalMatches = content.match(logicalOps);
     if (logicalMatches) {
       complexity += logicalMatches.length * 0.5;
     }
-    
+
     return Math.round(complexity);
   }
 
   private calculateSimilarity(content1: string, content2: string): number {
     const words1 = new Set(content1.toLowerCase().split(/\s+/));
     const words2 = new Set(content2.toLowerCase().split(/\s+/));
-    
+
     const intersection = new Set([...words1].filter(word => words2.has(word)));
     const union = new Set([...words1, ...words2]);
-    
+
     return intersection.size / union.size;
   }
 
@@ -304,22 +313,29 @@ export class HashBasedDeduplicator {
       ignoreWhitespace: true,
       ignoreComments: true,
       normalizeIdentifiers: false,
-      minChunkSize: 50
+      minChunkSize: 50,
     });
-    
+
     const features2 = this.extractSemanticFeatures(chunk2, {
       algorithm: 'semantic',
       similarityThreshold: 0.95,
       ignoreWhitespace: true,
       ignoreComments: true,
       normalizeIdentifiers: false,
-      minChunkSize: 50
+      minChunkSize: 50,
     });
 
     const similarities: number[] = [];
-    
+
     // Compare numeric features
-    const numericFeatures = ['lineCount', 'avgLineLength', 'bracketCount', 'parenthesisCount', 'semicolonCount', 'complexity'];
+    const numericFeatures = [
+      'lineCount',
+      'avgLineLength',
+      'bracketCount',
+      'parenthesisCount',
+      'semicolonCount',
+      'complexity',
+    ];
     for (const feature of numericFeatures) {
       const val1 = features1[feature] as number;
       const val2 = features2[feature] as number;
@@ -327,20 +343,27 @@ export class HashBasedDeduplicator {
       const similarity = maxVal > 0 ? 1 - Math.abs(val1 - val2) / maxVal : 1;
       similarities.push(similarity);
     }
-    
+
     // Compare boolean features
-    const booleanFeatures = ['hasLoops', 'hasConditionals', 'hasFunctions', 'hasClasses', 'hasReturns', 'hasExceptions'];
+    const booleanFeatures = [
+      'hasLoops',
+      'hasConditionals',
+      'hasFunctions',
+      'hasClasses',
+      'hasReturns',
+      'hasExceptions',
+    ];
     for (const feature of booleanFeatures) {
       const val1 = features1[feature] as boolean;
       const val2 = features2[feature] as boolean;
       const similarity = val1 === val2 ? 1 : 0;
       similarities.push(similarity);
     }
-    
+
     // Compare type
     const typeSimilarity = features1.type === features2.type ? 1 : 0;
     similarities.push(typeSimilarity);
-    
+
     return similarities.reduce((sum, sim) => sum + sim, 0) / similarities.length;
   }
 
@@ -355,7 +378,7 @@ export class HashBasedDeduplicator {
   } {
     return {
       exactCacheSize: this.exactHashCache.size,
-      fuzzyCacheSize: this.fuzzyHashCache.size
+      fuzzyCacheSize: this.fuzzyHashCache.size,
     };
   }
 }

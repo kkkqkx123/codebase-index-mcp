@@ -13,7 +13,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
     'send_statement',
     'receive_statement',
     'select_statement',
-    'range_clause'
+    'range_clause',
   ]);
   protected readonly snippetType = 'go_goroutine' as const;
 
@@ -21,7 +21,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
     if (!super.shouldProcessNode(node, sourceCode)) return false;
 
     const content = this.getNodeText(node, sourceCode);
-    
+
     // Check for Go concurrency patterns
     return this.containsGoConcurrencyPattern(content);
   }
@@ -52,13 +52,13 @@ export class GoGoroutineRule extends AbstractSnippetRule {
         contextInfo,
         languageFeatures: {
           ...this.analyzeLanguageFeatures(content),
-          ...concurrencyFeatures
+          ...concurrencyFeatures,
         },
         complexity: this.calculateComplexity(content),
         isStandalone: true,
         hasSideEffects: this.hasSideEffects(content),
-        goConcurrencyInfo: this.extractGoConcurrencyInfo(content)
-      }
+        goConcurrencyInfo: this.extractGoConcurrencyInfo(content),
+      },
     };
   }
 
@@ -78,7 +78,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
       // Sync primitives
       /sync\./,
       /mutex\./,
-      /WaitGroup/
+      /WaitGroup/,
     ];
 
     return concurrencyPatterns.some(pattern => pattern.test(content));
@@ -101,7 +101,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
       usesChannels: channelCount > 0 || /<-\w+/.test(content),
       usesSelect: selectCount > 0,
       usesSyncPrimitives: syncCount > 0 || /mutex\./.test(content),
-      concurrencyComplexity: goroutineCount + channelCount + selectCount + syncCount
+      concurrencyComplexity: goroutineCount + channelCount + selectCount + syncCount,
     };
   }
 
@@ -117,14 +117,14 @@ export class GoGoroutineRule extends AbstractSnippetRule {
     const goroutines = (content.match(/go\s+/g) || []).length;
     const channels: string[] = [];
     const communicationPatterns: string[] = [];
-    
+
     // Extract channel names
     const channelRegex = /make\s*\(\s*chan\s+([a-zA-Z_]\w*)/g;
     let match;
     while ((match = channelRegex.exec(content)) !== null) {
       channels.push(match[1]);
     }
-    
+
     // Extract communication patterns
     if (content.includes('<-') && content.includes('select')) {
       communicationPatterns.push('select_based_communication');
@@ -135,7 +135,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
     if (content.includes('go') && channels.length > 0) {
       communicationPatterns.push('goroutine_communication');
     }
-    
+
     const usesSelect = /select\s*\{/.test(content);
     const usesWaitGroup = /WaitGroup/.test(content);
     const usesMutex = /mutex\./i.test(content) || /sync\.Mutex/.test(content);
@@ -148,7 +148,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
       usesWaitGroup,
       usesMutex,
       communicationPatterns: [...new Set(communicationPatterns)],
-      purpose
+      purpose,
     };
   }
 
@@ -174,29 +174,29 @@ export class GoGoroutineRule extends AbstractSnippetRule {
   protected calculateComplexity(content: string): number {
     const baseComplexity = super.calculateComplexity(content);
     const concurrencyComplexity = this.calculateGoConcurrencyComplexity(content);
-    
+
     return baseComplexity + concurrencyComplexity;
   }
 
   private calculateGoConcurrencyComplexity(content: string): number {
     let complexity = 0;
-    
+
     // Add complexity for goroutines
     complexity += (content.match(/go\s+/g) || []).length * 3;
-    
+
     // Add complexity for channels
     complexity += (content.match(/make\s*\(\s*chan/g) || []).length * 2;
     complexity += (content.match(/<-\w+/g) || []).length;
     complexity += (content.match(/\w+\s*<-\w+/g) || []).length;
-    
+
     // Add complexity for select statements
     complexity += (content.match(/select\s*\{/g) || []).length * 4;
-    
+
     // Add complexity for sync primitives
     complexity += (content.match(/sync\./g) || []).length * 2;
     complexity += (content.match(/WaitGroup/g) || []).length * 3;
     complexity += (content.match(/mutex\./i) || []).length * 2;
-    
+
     // Add complexity for communication patterns
     if (content.includes('select') && content.includes('<-')) {
       complexity += 5;
@@ -204,7 +204,7 @@ export class GoGoroutineRule extends AbstractSnippetRule {
     if (content.includes('range') && content.includes('chan')) {
       complexity += 3;
     }
-    
+
     return complexity;
   }
 }

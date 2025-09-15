@@ -45,15 +45,12 @@ export class LSPEnhancementPhase {
     this.configService = configService;
   }
 
-  async execute(
-    parseResults: any[],
-    options: LSPPhaseOptions = {}
-  ): Promise<LSPPhaseResult> {
+  async execute(parseResults: any[], options: LSPPhaseOptions = {}): Promise<LSPPhaseResult> {
     const startTime = Date.now();
-    
+
     // 检查是否启用LSP
-    const enableLSP = options.enableLSP ?? (this.configService.get('lsp')?.enabled ?? false);
-    
+    const enableLSP = options.enableLSP ?? this.configService.get('lsp')?.enabled ?? false;
+
     if (!enableLSP) {
       this.logger.debug('LSP enhancement disabled, skipping phase');
       return {
@@ -62,19 +59,19 @@ export class LSPEnhancementPhase {
         filesWithLSP: 0,
         totalSymbols: 0,
         totalDiagnostics: 0,
-        errors: []
+        errors: [],
       };
     }
 
     this.logger.info('Starting LSP enhancement phase', {
       fileCount: parseResults.length,
-      options
+      options,
     });
 
     try {
       // 提取文件路径
       const filePaths = parseResults.map(result => result.filePath).filter(Boolean);
-      
+
       if (filePaths.length === 0) {
         this.logger.warn('No valid file paths for LSP enhancement');
         return {
@@ -83,7 +80,7 @@ export class LSPEnhancementPhase {
           filesWithLSP: 0,
           totalSymbols: 0,
           totalDiagnostics: 0,
-          errors: ['No valid file paths provided']
+          errors: ['No valid file paths provided'],
         };
       }
 
@@ -94,22 +91,24 @@ export class LSPEnhancementPhase {
         includeTypes: options.includeTypes ?? true,
         includeReferences: options.includeReferences ?? true,
         includeDiagnostics: options.includeDiagnostics ?? true,
-        cacheLSP: options.cacheLSP ?? (this.configService.get('lsp')?.cacheEnabled ?? true)
+        cacheLSP: options.cacheLSP ?? this.configService.get('lsp')?.cacheEnabled ?? true,
       };
 
-      const enhancedResults = await this.enhancedParserService.parseFiles(filePaths, enhancedOptions);
+      const enhancedResults = await this.enhancedParserService.parseFiles(
+        filePaths,
+        enhancedOptions
+      );
 
       // 统计结果
-      const filesWithLSP = enhancedResults.filter(r => 
-        r.lspSymbols && r.lspSymbols.length > 0
+      const filesWithLSP = enhancedResults.filter(
+        r => r.lspSymbols && r.lspSymbols.length > 0
       ).length;
-      
-      const totalSymbols = enhancedResults.reduce((sum, r) => 
-        sum + (r.lspSymbols?.length || 0), 0
-      );
-      
-      const totalDiagnostics = enhancedResults.reduce((sum, r) => 
-        sum + (r.lspDiagnostics?.length || 0), 0
+
+      const totalSymbols = enhancedResults.reduce((sum, r) => sum + (r.lspSymbols?.length || 0), 0);
+
+      const totalDiagnostics = enhancedResults.reduce(
+        (sum, r) => sum + (r.lspDiagnostics?.length || 0),
+        0
       );
 
       const processingTime = Date.now() - startTime;
@@ -120,7 +119,7 @@ export class LSPEnhancementPhase {
         totalSymbols,
         totalDiagnostics,
         processingTime,
-        averageTimePerFile: processingTime / enhancedResults.length
+        averageTimePerFile: processingTime / enhancedResults.length,
       });
 
       return {
@@ -129,19 +128,18 @@ export class LSPEnhancementPhase {
         filesWithLSP,
         totalSymbols,
         totalDiagnostics,
-        errors: []
+        errors: [],
       };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.errorHandler.handleError(
-        new Error(`LSP enhancement phase failed: ${errorMessage}`),
-        { component: 'LSPEnhancementPhase', operation: 'execute' }
-      );
+      this.errorHandler.handleError(new Error(`LSP enhancement phase failed: ${errorMessage}`), {
+        component: 'LSPEnhancementPhase',
+        operation: 'execute',
+      });
 
       // 降级处理：返回原始结果
       this.logger.warn('LSP enhancement failed, returning basic results', {
-        error: errorMessage
+        error: errorMessage,
       });
 
       return {
@@ -150,7 +148,7 @@ export class LSPEnhancementPhase {
         filesWithLSP: 0,
         totalSymbols: 0,
         totalDiagnostics: 0,
-        errors: [errorMessage]
+        errors: [errorMessage],
       };
     }
   }
@@ -163,7 +161,7 @@ export class LSPEnhancementPhase {
     const result = {
       canExecute: false,
       warnings: [] as string[],
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     try {
@@ -176,7 +174,9 @@ export class LSPEnhancementPhase {
       // 检查增强解析服务健康状态
       const healthCheck = await this.enhancedParserService.healthCheck();
       if (!healthCheck.healthy) {
-        result.errors.push(`Enhanced parser service unhealthy: ${JSON.stringify(healthCheck.details)}`);
+        result.errors.push(
+          `Enhanced parser service unhealthy: ${JSON.stringify(healthCheck.details)}`
+        );
         return result;
       }
 
@@ -189,9 +189,10 @@ export class LSPEnhancementPhase {
 
       result.canExecute = true;
       return result;
-
     } catch (error) {
-      result.errors.push(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Validation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return result;
     }
   }
@@ -202,7 +203,7 @@ export class LSPEnhancementPhase {
       enabled: this.configService.get('lsp')?.enabled ?? false,
       supportedLanguages: this.enhancedParserService.getSupportedLanguages(),
       timeout: this.configService.get('lsp')?.timeout ?? 30000,
-      batchSize: this.configService.get('lsp')?.batchSize ?? 20
+      batchSize: this.configService.get('lsp')?.batchSize ?? 20,
     };
   }
 }
