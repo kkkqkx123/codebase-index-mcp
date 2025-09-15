@@ -1,4 +1,10 @@
 // Dashboard Data Structures
+import { 
+  HealthStatus as ApiHealthStatus, 
+  HealthIssue as ApiHealthIssue,
+  ProjectSummary as ApiProjectSummary,
+  GrafanaDashboard as ApiGrafanaDashboard
+} from './api.types';
 
 export interface DashboardProps {
   refreshInterval?: number;
@@ -13,6 +19,7 @@ export interface DashboardData {
   grafanaDashboards: GrafanaDashboard[];
 }
 
+// Re-export types from API with Date type adjustments for frontend use
 export interface HealthStatus {
   overall: 'healthy' | 'degraded' | 'error';
   components: {
@@ -76,9 +83,5 @@ export interface PerformanceMetrics {
   };
 }
 
-export interface GrafanaDashboard {
-  id: string;
-  title: string;
-  url: string;
-  description?: string;
-}
+// Re-export GrafanaDashboard from API types
+export type GrafanaDashboard = ApiGrafanaDashboard;

@@ -5,13 +5,8 @@ import ErrorBoundary from './components/common/ErrorBoundary/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import './styles/globals.css';
 
-// Placeholder components for routes
-const Dashboard = () => (
-  <div>
-    <h2>Dashboard</h2>
-    <p>Welcome to the Codebase Index MCP Dashboard</p>
-  </div>
-);
+// Import Dashboard component
+import Dashboard from './components/dashboard/Dashboard';
 
 const Projects = () => (
   <div>
@@ -46,16 +41,16 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <ThemeProvider>
         <BrowserRouter>
-          <Layout>
-            <Routes>
+          <Routes>
+            <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/search" element={<CodeSearch />} />
               <Route path="/graph" element={<GraphVisualization />} />
               <Route path="/debug" element={<DebugTools />} />
-              <Route path="*" element={<div>Page not found</div>} />
-            </Routes>
-          </Layout>
+            </Route>
+            <Route path="*" element={<div>Page not found</div>} />
+          </Routes>
         </BrowserRouter>
       </ThemeProvider>
     </ErrorBoundary>
