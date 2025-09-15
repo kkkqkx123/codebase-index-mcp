@@ -47,9 +47,9 @@ export class LSPSearchService {
   private lspManager: LSPManager;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(LSPManager) lspManager: LSPManager
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.LSPManager) lspManager: LSPManager
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;

@@ -1,4 +1,5 @@
 import { inject, injectable } from 'inversify';
+import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ConfigService } from '../../config/ConfigService';
 
@@ -28,8 +29,8 @@ export class SemanticAnalysisBaseService {
   private enhancedRulesPath: string;
 
   constructor(
-    @inject(LoggerService) private logger: LoggerService,
-    @inject(ConfigService) private configService: ConfigService
+    @inject(TYPES.LoggerService) private logger: LoggerService,
+    @inject(TYPES.ConfigService) private configService: ConfigService
   ) {
     this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath;
   }

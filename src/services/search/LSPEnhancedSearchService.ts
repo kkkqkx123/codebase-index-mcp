@@ -49,10 +49,10 @@ export class LSPEnhancedSearchService {
   private searchCache!: CacheInterface;
 
   constructor(
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(LSPSearchService) lspSearchService: LSPSearchService,
-    @inject(HybridSearchService) hybridSearchService: HybridSearchService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.LSPSearchService) lspSearchService: LSPSearchService,
+    @inject(TYPES.HybridSearchService) hybridSearchService: HybridSearchService,
     @inject(TYPES.CacheManager) cacheManager: CacheManager
   ) {
     this.logger = logger;

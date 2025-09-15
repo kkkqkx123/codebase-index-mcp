@@ -11,6 +11,7 @@ export const TYPES = {
   NebulaService: Symbol.for('NebulaService'),
   NebulaConnectionManager: Symbol.for('NebulaConnectionManager'),
   NebulaSpaceManager: Symbol.for('NebulaSpaceManager'),
+  ProjectIdManager: Symbol.for('ProjectIdManager'),
   EmbedderFactory: Symbol.for('EmbedderFactory'),
   EmbeddingCacheService: Symbol.for('EmbeddingCacheService'),
   OpenAIEmbedder: Symbol.for('OpenAIEmbedder'),

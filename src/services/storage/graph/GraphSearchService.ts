@@ -49,9 +49,9 @@ export class GraphSearchService {
   constructor(
     @inject(TYPES.NebulaService) nebulaService: NebulaService,
     @inject(TYPES.LoggerService) logger: LoggerService,
-    @inject(GraphCacheService) cacheService: GraphCacheService,
-    @inject(GraphPerformanceMonitor) performanceMonitor: GraphPerformanceMonitor,
-    @inject(GraphQueryBuilder) queryBuilder: GraphQueryBuilder
+    @inject(TYPES.GraphCacheService) cacheService: GraphCacheService,
+    @inject(TYPES.GraphPerformanceMonitor) performanceMonitor: GraphPerformanceMonitor,
+    @inject(TYPES.GraphQueryBuilder) queryBuilder: GraphQueryBuilder
   ) {
     this.nebulaService = nebulaService;
     this.logger = logger;

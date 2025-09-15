@@ -1,9 +1,12 @@
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../types';
 import { ProjectIdManager } from './ProjectIdManager';
 
+@injectable()
 export class ProjectLookupService {
   private projectIdManager: ProjectIdManager;
-  
-  constructor(projectIdManager: ProjectIdManager) {
+
+  constructor(@inject(TYPES.ProjectIdManager) projectIdManager: ProjectIdManager) {
     this.projectIdManager = projectIdManager;
   }
   

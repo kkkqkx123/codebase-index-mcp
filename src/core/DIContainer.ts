@@ -80,6 +80,11 @@ import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMe
 import { BatchPerformanceMonitor } from '../services/monitoring/BatchPerformanceMonitor';
 import { SemgrepMetricsService } from '../services/monitoring/SemgrepMetricsService';
 
+// Infrastructure services
+import { AsyncPipeline } from '../services/infrastructure/AsyncPipeline';
+import { MemoryManager } from '../services/processing/MemoryManager';
+import { ObjectPool } from '../services/infrastructure/ObjectPool';
+
 // LSP services
 import { LSPService } from '../services/lsp/LSPService';
 import { LSPEnhancementPhase } from '../services/indexing/LSPEnhancementPhase';
@@ -154,19 +159,23 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.ChangeDetectionService).to(ChangeDetectionService).inSingletonScope();
   bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
   bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
-  // Temporarily disable graph services to resolve dependency issues
-  // bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
-  // bind(TYPES.GraphPersistenceUtils).to(GraphPersistenceUtils).inSingletonScope();
-  // bind(TYPES.GraphCacheService).to(GraphCacheService).inSingletonScope();
-  // bind(TYPES.GraphPerformanceMonitor).to(GraphPerformanceMonitor).inSingletonScope();
+  bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
+  bind(TYPES.GraphPersistenceUtils).to(GraphPersistenceUtils).inSingletonScope();
+  bind(TYPES.GraphCacheService).to(GraphCacheService).inSingletonScope();
+  bind(TYPES.GraphPerformanceMonitor).to(GraphPerformanceMonitor).inSingletonScope();
   bind(TYPES.GraphBatchOptimizer).to(GraphBatchOptimizer).inSingletonScope();
   bind(TYPES.GraphQueryBuilder).to(GraphQueryBuilder).inSingletonScope();
-  // bind(TYPES.GraphSearchService).to(GraphSearchService).inSingletonScope();
+  bind(TYPES.GraphSearchService).to(GraphSearchService).inSingletonScope();
   bind(TYPES.BatchProcessingService).to(BatchProcessingService).inSingletonScope();
   bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
+
+  // Infrastructure services
+  bind(TYPES.AsyncPipeline).to(AsyncPipeline).inSingletonScope();
+  bind(TYPES.MemoryManager).to(MemoryManager).inSingletonScope();
+  bind(TYPES.ObjectPool).to(ObjectPool).inSingletonScope();
+  bind(TYPES.BatchProcessor).to(BatchProcessor).inSingletonScope();
   bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
-  // Temporarily disable StorageCoordinator due to graph service dependencies
-  // bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
+  bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
   bind(TYPES.SemanticSearchService).to(SemanticSearchService).inSingletonScope();
   bind(TYPES.SearchCoordinator).to(SearchCoordinator).inSingletonScope();
   bind(TYPES.HybridSearchService).to(HybridSearchService).inSingletonScope();
@@ -231,8 +240,7 @@ const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind })
   // bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
   bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
 
-  // Processing services
-  bind(TYPES.BatchProcessor).to(BatchProcessor).inSingletonScope();
+  // Processing services already bound above
 });
 
 export { TYPES };

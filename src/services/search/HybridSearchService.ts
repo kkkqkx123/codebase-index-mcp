@@ -82,9 +82,9 @@ export class HybridSearchService {
   private searchCache!: CacheInterface;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.SemanticSearchService) semanticSearch: SemanticSearchService,
     @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService,
     @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory,

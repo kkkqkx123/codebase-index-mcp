@@ -95,8 +95,8 @@ export class BatchErrorRecoveryService {
   private defaultTimeout: number = 30000;
   
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics
   ) {

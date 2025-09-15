@@ -21,8 +21,8 @@ export class QdrantCollectionManager {
   constructor(
     @inject(TYPES.QdrantClientWrapper) client: QdrantClientWrapper,
     @inject(TYPES.LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService
   ) {
     this.client = client;
     this.logger = logger;

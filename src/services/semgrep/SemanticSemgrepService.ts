@@ -93,7 +93,7 @@ export class SemanticSemgrepService {
   constructor(
     @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
     @inject(TYPES.LoggerService) private logger: LoggerService,
-    @inject(ConfigService) private configService: ConfigService
+    @inject(TYPES.ConfigService) private configService: ConfigService
   ) {
     this.enhancedRulesPath = this.configService.get('semgrep').enhancedRulesPath;
   }

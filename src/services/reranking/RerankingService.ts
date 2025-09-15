@@ -26,8 +26,8 @@ export class RerankingService implements IRerankingService {
   };
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
-    @inject(LoggerService) logger: LoggerService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.GraphPersistenceService) graphStorage: GraphPersistenceService,
     @inject(TYPES.SemanticSearchService) semanticSearch: SemanticSearchService
