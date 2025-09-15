@@ -50,7 +50,7 @@ This document outlines the requirements for a simple frontend interface for the 
 #### 2.1 Architecture and Integration
 **As a system architect, I want the frontend to integrate seamlessly with the existing MCP service architecture and Prometheus+Grafana monitoring, so that it maintains consistency and extensibility.**
 
-2.1.1 The frontend SHALL be placed in `src/frontend/` directory to separate from backend code
+2.1.1 The frontend SHALL be placed in `frontend/` directory to separate from backend code
 2.1.2 The frontend SHALL communicate with the existing HTTP API endpoints through a backend adapter layer for MCP services
 2.1.3 The frontend SHALL use the same error handling patterns as the backend
 2.1.4 The frontend SHALL support the same CORS configuration as the existing API
@@ -162,7 +162,7 @@ The frontend interface will be considered successful when:
 ## Constraints and Assumptions
 
 ### Constraints
-- The frontend must be placed in `src/frontend/` directory
+- The frontend must be placed in `frontend/` directory
 - Must use the existing HTTP API endpoints for all functionality with backend adapter for MCP services
 - Cannot modify the core MCP service architecture
 - Must follow the existing TypeScript and linting configuration
