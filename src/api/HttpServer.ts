@@ -7,6 +7,8 @@ import { ConfigService } from '../config/ConfigService';
 import { SnippetRoutes } from './routes/SnippetRoutes';
 import { MonitoringRoutes } from './routes/MonitoringRoutes';
 import { StaticAnalysisRoutes } from './routes/StaticAnalysisRoutes';
+import { IndexingRoutes } from './routes/IndexingRoutes';
+import { SearchRoutes } from './routes/SearchRoutes';
 
 export class HttpServer {
   private app: Application;
@@ -147,39 +149,11 @@ export class HttpServer {
     
     // API routes
     this.app.use('/api/v1/snippets', new SnippetRoutes().getRouter());
-    // Temporarily disable monitoring routes due to Prometheus dependencies
-    // this.app.use('/api/v1/monitoring', new MonitoringRoutes().getRouter());
+    this.app.use('/api/v1/monitoring', new MonitoringRoutes().getRouter());
     this.app.use('/api/v1/analysis', new StaticAnalysisRoutes().getRouter());
-    
-    // Temporarily disable health check endpoint due to Prometheus dependencies
-    /*
-    this.app.get('/health', async (req: Request, res: Response) => {
-      try {
-        const result = await this.monitoringController.getHealthStatus();
-        res.status(result.status === 'healthy' ? 200 : 503).json(result);
-      } catch (error) {
-        res.status(500).json({
-          status: 'unhealthy',
-          timestamp: new Date().toISOString(),
-          error: 'Health check failed'
-        });
-      }
-    });
-
-    // Metrics endpoint
-    this.app.get('/metrics', async (req: Request, res: Response) => {
-      try {
-        const result = await this.monitoringController.getMetrics();
-        res.set('Content-Type', 'text/plain');
-        res.status(200).send(result);
-      } catch (error) {
-        res.status(500).json({
-          error: 'Failed to retrieve metrics'
-        });
-      }
-    });
-    */
-    
+    this.app.use('/api/v1/indexing', new IndexingRoutes().getRouter());
+    this.app.use('/api/v1/search', new SearchRoutes().getRouter());
+  
     // Root endpoint
     this.app.get('/', (req: Request, res: Response) => {
       res.status(200).json({

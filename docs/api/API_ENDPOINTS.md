@@ -132,8 +132,6 @@ Defined in: `src/api/routes/StaticAnalysisRoutes.ts`
 
 Defined in: `src/api/routes/MonitoringRoutes.ts`
 
-*Note: These routes are currently disabled in the main HTTP server due to Prometheus dependencies.*
-
 ### Endpoints:
 
 1. **GET /health**
@@ -160,7 +158,104 @@ Defined in: `src/api/routes/MonitoringRoutes.ts`
 7. **GET /benchmark**
    - Description: Get benchmark results
 
-## 4. Root Endpoint
+## 4. Codebase Indexing API (`/api/v1/indexing`)
+
+Defined in: `src/api/routes/IndexingRoutes.ts`
+
+### Endpoints:
+
+1. **POST /create**
+   - Description: Create new codebase index
+   - Body:
+     - `projectPath` (required): Path to the project to index
+     - `options` (optional): Indexing options including recursive, includePatterns, excludePatterns, maxFileSize, chunkSize, overlapSize
+
+2. **POST /:projectId**
+   - Description: Index specific project
+   - Parameters:
+     - `projectId` (path, required): Project ID
+   - Body:
+     - Indexing options
+
+3. **GET /status/:projectId**
+   - Description: Get indexing status
+   - Parameters:
+     - `projectId` (path, required): Project ID
+
+4. **GET /projects**
+   - Description: List all indexed projects
+
+5. **DELETE /:projectId**
+   - Description: Remove project index
+   - Parameters:
+     - `projectId` (path, required): Project ID
+
+6. **POST /search**
+   - Description: Search indexed codebase
+   - Body:
+     - `query` (required): Search query
+     - `projectId` (required): Project ID
+     - `limit` (optional): Result limit
+     - `threshold` (optional): Similarity threshold
+     - `filters` (optional): Search filters
+     - `searchType` (optional): 'semantic' | 'keyword' | 'hybrid' | 'snippet'
+
+## 5. Search API (`/api/v1/search`)
+
+Defined in: `src/api/routes/SearchRoutes.ts`
+
+### Endpoints:
+
+1. **POST /hybrid**
+   - Description: Hybrid semantic + keyword search
+   - Body:
+     - `query` (required): Search query
+     - `projectId` (required): Project ID
+     - `limit` (optional): Result limit
+     - `threshold` (optional): Similarity threshold
+     - `filters` (optional): Search filters
+     - `weights` (optional): Search strategy weights
+     - `searchStrategies` (optional): Search strategies to use
+
+2. **POST /semantic**
+   - Description: Pure semantic search
+   - Body:
+     - `query` (required): Search query
+     - `projectId` (required): Project ID
+     - `limit` (optional): Result limit
+     - `threshold` (optional): Similarity threshold
+     - `filters` (optional): Search filters
+
+3. **POST /keyword**
+   - Description: Keyword-based search
+   - Body:
+     - `query` (required): Search query
+     - `projectId` (required): Project ID
+     - `limit` (optional): Result limit
+     - `threshold` (optional): Similarity threshold
+     - `filters` (optional): Search filters
+     - `fuzzy` (optional): Enable fuzzy matching
+
+4. **GET /suggest**
+   - Description: Search suggestions
+   - Query:
+     - `query` (required): Search query
+     - `projectId` (required): Project ID
+     - `limit` (optional): Suggestion limit
+     - `filters` (optional): Suggestion filters
+
+5. **GET /history**
+   - Description: Search history
+   - Query:
+     - `projectId` (required): Project ID
+     - `limit` (optional): History limit
+
+6. **POST /advanced**
+   - Description: Advanced search with multiple strategies
+   - Body:
+     - Advanced search parameters
+
+## 6. Root Endpoint
 
 Defined in: `src/api/HttpServer.ts`
 
