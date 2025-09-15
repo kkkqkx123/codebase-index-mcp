@@ -102,6 +102,8 @@ import { LSPEnhancedSearchService } from '../services/search/LSPEnhancedSearchSe
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
 import { SnippetController } from '../controllers/SnippetController';
+import { CacheController } from '../controllers/CacheController';
+import { ParserController } from '../controllers/ParserController';
 
 // Additional services from inversify.config.ts
 import { SemanticAnalysisOrchestrator } from '../services/SemanticAnalysisOrchestrator';
@@ -249,6 +251,8 @@ const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind })
   // Temporarily disable MonitoringController due to Prometheus dependencies
   // bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
   bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
+  bind(TYPES.CacheController).to(CacheController).inSingletonScope();
+  bind(TYPES.ParserController).to(ParserController).inSingletonScope();
 
   // Processing services already bound above
 });

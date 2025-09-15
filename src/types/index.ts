@@ -62,6 +62,8 @@ export const TYPES = {
   // Controllers
   MonitoringController: Symbol.for('MonitoringController'),
   SnippetController: Symbol.for('SnippetController'),
+  CacheController: Symbol.for('CacheController'),
+  ParserController: Symbol.for('ParserController'),
   GraphDatabaseErrorHandler: Symbol.for('GraphDatabaseErrorHandler'),
   ErrorClassifier: Symbol.for('ErrorClassifier'),
   NebulaQueryBuilder: Symbol.for('NebulaQueryBuilder'),

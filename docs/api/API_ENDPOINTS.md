@@ -374,7 +374,131 @@ Defined in: `src/api/routes/FileSystemRoutes.ts`
     - Parameters:
       - `path` (path, required): Path to check
 
-## 9. Root Endpoint
+## 10. Parser Service API (`/api/v1/parser`)
+
+Defined in: `src/api/routes/ParserRoutes.ts`
+
+### Endpoints:
+
+1. **POST /parse**
+   - Description: Parse a single file
+   - Body:
+     - `filePath` (required): File path to parse
+     - `options` (optional): Parse options (includeComments, includeAST, maxDepth, focus)
+
+2. **POST /parse-multiple**
+   - Description: Parse multiple files
+   - Body:
+     - `filePaths` (required): Array of file paths
+     - `options` (optional): Parse options
+
+3. **POST /extract-functions**
+   - Description: Extract functions from a file
+   - Body:
+     - `filePath` (required): File path
+
+4. **POST /extract-classes**
+   - Description: Extract classes from a file
+   - Body:
+     - `filePath` (required): File path
+
+5. **POST /extract-imports**
+   - Description: Extract imports from a file
+   - Body:
+     - `filePath` (required): File path
+
+6. **POST /validate-syntax**
+   - Description: Validate file syntax
+   - Body:
+     - `filePath` (required): File path
+
+7. **POST /query-ast**
+   - Description: Query AST nodes using XPath-like syntax
+   - Body:
+     - `filePath` (required): File path
+     - `query` (required): AST query string
+
+8. **POST /ast-summary**
+   - Description: Get AST summary statistics
+   - Body:
+     - `filePath` (required): File path
+
+9. **POST /compare-asts**
+   - Description: Compare two file ASTs
+   - Body:
+     - `filePath1` (required): First file path
+     - `filePath2` (required): Second file path
+
+10. **POST /search-ast**
+    - Description: Search for patterns in AST
+    - Body:
+      - `filePath` (required): File path
+      - `pattern` (required): Search pattern (type, name, contains)
+
+11. **POST /language-stats**
+    - Description: Get language statistics for files
+    - Body:
+      - `filePaths` (required): Array of file paths
+
+12. **GET /supported-languages**
+    - Description: Get list of supported languages
+
+13. **POST /detect-language**
+    - Description: Detect language from file path
+    - Body:
+      - `filePath` (required): File path
+
+## 11. Cache Management API (`/api/v1/cache`)
+
+Defined in: `src/api/routes/CacheRoutes.ts`
+
+### Endpoints:
+
+1. **GET /stats**
+   - Description: Get statistics for all cache instances
+
+2. **GET /health**
+   - Description: Get health status of cache system
+
+3. **GET /list**
+   - Description: List available cache instances
+
+4. **DELETE /:cacheName**
+   - Description: Clear specific cache instance
+   - Parameters:
+     - `cacheName` (path, required): Cache name
+
+5. **DELETE /**
+   - Description: Clear all cache instances
+
+6. **GET /:cacheName/value**
+   - Description: Get value from specific cache
+   - Parameters:
+     - `cacheName` (path, required): Cache name
+     - `key` (query, required): Cache key
+
+7. **POST /:cacheName/value**
+   - Description: Set value in specific cache
+   - Parameters:
+     - `cacheName` (path, required): Cache name
+   - Body:
+     - `key` (required): Cache key
+     - `value` (required): Cache value
+     - `ttl` (optional): TTL in seconds
+
+8. **DELETE /:cacheName/value**
+   - Description: Delete key from specific cache
+   - Parameters:
+     - `cacheName` (path, required): Cache name
+     - `key` (query, required): Cache key
+
+9. **GET /:cacheName/exists**
+   - Description: Check if key exists in cache
+   - Parameters:
+     - `cacheName` (path, required): Cache name
+     - `key` (query, required): Cache key
+
+## 12. Root Endpoint
 
 Defined in: `src/api/HttpServer.ts`
 

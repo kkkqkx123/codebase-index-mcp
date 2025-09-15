@@ -11,6 +11,8 @@ import { IndexingRoutes } from './routes/IndexingRoutes';
 import { SearchRoutes } from './routes/SearchRoutes';
 import { GraphAnalysisRoutes } from './routes/GraphAnalysisRoutes';
 import { FileSystemRoutes } from './routes/FileSystemRoutes';
+import { CacheRoutes } from './routes/CacheRoutes';
+import { ParserRoutes } from './routes/ParserRoutes';
 
 export class HttpServer {
   private app: Application;
@@ -160,6 +162,8 @@ export class HttpServer {
     this.app.use('/api/v1/search', new SearchRoutes().getRouter());
     this.app.use('/api/v1/graph', new GraphAnalysisRoutes().getRouter());
     this.app.use('/api/v1/filesystem', new FileSystemRoutes().getRouter());
+    this.app.use('/api/v1/cache', new CacheRoutes().getRouter());
+    this.app.use('/api/v1/parser', new ParserRoutes().getRouter());
 
     // Root endpoint
     this.app.get('/', (req: Request, res: Response) => {
