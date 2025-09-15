@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Project, ProjectConfiguration, IndexingHistoryEntry as IndexingHistory } from '../../../types/project.types';
-import { getProjects as getProject } from '../../../services/project.service';
+import { getProjectDetails } from '../../../services/project.service';
 import LoadingSpinner from '@components/common/LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '@components/common/ErrorMessage/ErrorMessage';
 import Button from '@components/common/Button/Button';
 import Card from '@components/common/Card/Card';
 import './ProjectDetails.module.css';
-import { response } from 'express';
-
 interface ProjectDetailsProps {
   projectId: string;
   onEdit?: (project: Project) => void;
@@ -266,13 +264,13 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
             {item.completedAt ? formatDuration(new Date(item.completedAt).getTime() - new Date(item.startedAt).getTime()) : 'Running...'}
           </span>
         </div>
+{item.errors.length > 0 && (
+  <div className="stat">
+    <span className="stat-label">Errors:</span>
+    <span className="stat-value error">{item.errors.length}</span>
+  </div>
+)}
 
-        {item.errors > 0 && (
-          <div className="stat">
-            <span className="stat-label">Errors:</span>
-            <span className="stat-value error">{item.errors}</span>
-          </div>
-        )}
       </div>
 
       {item.errorMessage && (
@@ -300,64 +298,75 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
   const [tempConfiguration, setTempConfiguration] = useState<ProjectConfiguration | null>(null);
-
-  const fetchProject = useCallback(async () => {
-    try {
-      setError(null);
-      const response = await getProject(projectId);
-      if (response.success && response.data) {
-        setProject(response.data);
-      } else {
-        throw new Error(response.error || 'Failed to fetch project details');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setLoading(false);
+const fetchProject = useCallback(async () => {
+  try {
+    setError(null);
+    const response = await getProjectDetails(projectId);
+    if (response.success && response.data) {
+      setProject(response.data);
+    } else {
+      throw new Error(response.error || 'Failed to fetch project details');
     }
-  }, [projectId]);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Unknown error occurred');
+  } finally {
+    setLoading(false);
+  }
+}, [projectId]);
 
-  const fetchHistory = useCallback(async () => {
-    try {
-      // const response = await getIndexingHistory(projectId);
-      if (response.success && response.data) {
-        setHistory(response.data);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch indexing history:', err);
-    }
-  }, [projectId]);
+const fetchHistory = useCallback(async () => {
+  try {
+    // const response = await getIndexingHistory(projectId);
+    // if (response.success && response.data) {
+    //   setHistory(response.data);
+    // }
+  } catch (err) {
+    console.warn('Failed to fetch indexing history:', err);
+  }
+}, [projectId]);
 
-  const handleConfigurationSave = async () => {
-    if (!tempConfiguration || !project) return;
+const handleConfigurationSave = async () => {
+  if (!tempConfiguration || !project) return;
 
-    setConfigLoading(true);
-    try {
-      // const response = await updateProjectConfiguration(projectId, tempConfiguration);
-      if (response.success && response.data) {
-        setProject({ ...project, configuration: response.data });
-        setIsEditingConfig(false);
-        setTempConfiguration(null);
-      } else {
-        throw new Error(response.error || 'Failed to update configuration');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update configuration');
-    } finally {
-      setConfigLoading(false);
-    }
-  };
+  setConfigLoading(true);
+  try {
+    // const response = await updateProjectConfiguration(projectId, tempConfiguration);
+    // if (response.success && response.data) {
+    //   setProject({ ...project, configuration: response.data });
+    //   setIsEditingConfig(false);
+    //   setTempConfiguration(null);
+    // } else {
+    //   throw new Error(response.error || 'Failed to update configuration');
+    // }
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Failed to update configuration');
+  } finally {
+    setConfigLoading(false);
+    setIsEditingConfig(false);
+    setTempConfiguration(null);
+  }
+};
+
 
   const handleConfigurationCancel = () => {
     setIsEditingConfig(false);
     setTempConfiguration(null);
   };
+const handleStartEditing = () => {
+  if (!project) return;
+  setIsEditingConfig(true);
+  setTempConfiguration(project.configuration ? { ...project.configuration } : {
+    recursive: true,
+    fileTypes: [],
+    excludePatterns: [],
+    includePatterns: [],
+    maxFileSize: 1024 * 1024,
+    encoding: 'utf-8',
+    followSymlinks: false,
+    respectGitignore: true
+  });
+};
 
-  const handleStartEditing = () => {
-    if (!project) return;
-    setIsEditingConfig(true);
-    setTempConfiguration({ ...project.configuration });
-  };
 
   const formatFileSize = (bytes: number): string => {
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -538,15 +547,24 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
             </Button>
           )}
         </div>
+<ConfigurationSection
+  configuration={tempConfiguration || project.configuration || {
+    recursive: true,
+    fileTypes: [],
+    excludePatterns: [],
+    includePatterns: [],
+    maxFileSize: 1024 * 1024,
+    encoding: 'utf-8',
+    followSymlinks: false,
+    respectGitignore: true
+  }}
+  isEditing={isEditingConfig}
+  onUpdate={setTempConfiguration}
+  onCancel={handleConfigurationCancel}
+  onSave={handleConfigurationSave}
+  loading={configLoading}
+/>
 
-        <ConfigurationSection
-          configuration={tempConfiguration || project.configuration}
-          isEditing={isEditingConfig}
-          onUpdate={setTempConfiguration}
-          onCancel={handleConfigurationCancel}
-          onSave={handleConfigurationSave}
-          loading={configLoading}
-        />
       </Card>
 
       {/* Indexing History */}
