@@ -27,6 +27,8 @@ import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService'
 import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
 import { EnhancedRuleFactory } from '../services/parser/treesitter-rule/EnhancedRuleFactory';
 import { SemgrepScanService } from '../services/semgrep/SemgrepScanService';
+import { EnhancedSemgrepScanService } from '../services/semgrep/EnhancedSemgrepScanService';
+import { SemgrepRuleAdapter } from '../services/semgrep/SemgrepRuleAdapter';
 import { SemanticAnalysisService } from '../services/parser/SemanticAnalysisService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
 import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
@@ -94,6 +96,8 @@ import { LSPClient } from '../services/lsp/LSPClient';
 import { LSPClientPool } from '../services/lsp/LSPClientPool';
 import { LSPErrorHandler } from '../services/lsp/LSPErrorHandler';
 import { LanguageServerRegistry } from '../services/lsp/LanguageServerRegistry';
+import { LSPSearchService } from '../services/lsp/LSPSearchService';
+import { LSPEnhancedSearchService } from '../services/search/LSPEnhancedSearchService';
 
 // Controllers
 import { MonitoringController } from '../controllers/MonitoringController';
@@ -104,6 +108,7 @@ import { SemanticAnalysisOrchestrator } from '../services/SemanticAnalysisOrches
 import { CallGraphService } from '../services/parser/CallGraphService';
 import { SemanticSemgrepService } from '../services/semgrep/SemanticSemgrepService';
 import { StaticAnalysisCoordinator } from '../services/static-analysis/StaticAnalysisCoordinator';
+import { EnhancedSemgrepAnalyzer } from '../services/static-analysis/EnhancedSemgrepAnalyzer';
 import { AdvancedTreeSitterService } from '../services/parser/AdvancedTreeSitterService';
 import { SymbolTableBuilder } from '../services/parser/SymbolTableBuilder';
 import { CFGBuilder } from '../services/parser/CFGBuilder';
@@ -152,6 +157,8 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
   bind(TYPES.SnippetExtractionRules).toConstantValue(EnhancedRuleFactory.createAllRules());
   bind(TYPES.SemgrepScanService).to(SemgrepScanService).inSingletonScope();
+  bind(TYPES.EnhancedSemgrepScanService).to(EnhancedSemgrepScanService).inSingletonScope();
+  bind(TYPES.SemgrepRuleAdapter).to(SemgrepRuleAdapter).inSingletonScope();
   bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
   bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
   bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
@@ -194,12 +201,15 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.LSPClientPool).to(LSPClientPool).inSingletonScope();
   bind(TYPES.LSPErrorHandler).to(LSPErrorHandler).inSingletonScope();
   bind(TYPES.LanguageServerRegistry).toConstantValue(LanguageServerRegistry.getInstance());
+  bind(TYPES.LSPSearchService).to(LSPSearchService).inSingletonScope();
+  bind(TYPES.LSPEnhancedSearchService).to(LSPEnhancedSearchService).inSingletonScope();
   
   // Additional services from inversify.config.ts
   bind(TYPES.SemanticAnalysisOrchestrator).to(SemanticAnalysisOrchestrator).inSingletonScope();
   bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
   bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
   bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
+  bind(TYPES.EnhancedSemgrepAnalyzer).to(EnhancedSemgrepAnalyzer).inSingletonScope();
   bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
 
   // Phase 2: Tree-sitter Deep Analysis Services
@@ -223,7 +233,7 @@ const syncModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
 });
 
 const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-  // Temporarily disable Prometheus metrics to avoid registration conflicts
+  // Temporarily disable Prometheus metrics due to registration conflicts
   // bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
 
   // Temporarily disable services that depend on PrometheusMetricsService

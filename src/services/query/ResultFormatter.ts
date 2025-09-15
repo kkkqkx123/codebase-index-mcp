@@ -1,4 +1,5 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from '../../types';
 import { ConfigService } from '../../config/ConfigService';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
@@ -132,19 +133,19 @@ export class ResultFormatter {
    private metricsService?: PrometheusMetricsService;
 
   constructor(
-     @inject(ConfigService) configService: ConfigService,
-     @inject(LoggerService) logger: LoggerService,
-     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-     @inject(ResultFormatterCache) cache: ResultFormatterCache,
-     @inject(ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader,
-     @inject('PrometheusMetricsService') metricsService?: PrometheusMetricsService
-   ) {
+    @inject(TYPES.ConfigService) configService: ConfigService,
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ResultFormatterCache) cache: ResultFormatterCache,
+    @inject(TYPES.ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader
+  ) {
      this.configService = configService;
      this.logger = logger;
      this.errorHandler = errorHandler;
      this.cache = cache;
      this.configLoader = configLoader;
-     this.metricsService = metricsService;
+     // Metrics service is temporarily disabled due to registration conflicts
+     this.metricsService = undefined;
    }
 
   private getConfig(): ResultFormatterFullConfig {
