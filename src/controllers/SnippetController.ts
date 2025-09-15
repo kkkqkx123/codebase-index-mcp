@@ -18,12 +18,12 @@ export class SnippetController {
   private storageCoordinator: StorageCoordinator;
 
   constructor(
-    @inject(ConfigService) configService: ConfigService,
+    @inject(TYPES.ConfigService) configService: ConfigService,
     @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.IndexService) indexService: IndexService,
     @inject(TYPES.IndexCoordinator) indexCoordinator: IndexCoordinator,
-    @inject(StorageCoordinator) storageCoordinator: StorageCoordinator
+    @inject(TYPES.StorageCoordinator) storageCoordinator: StorageCoordinator
   ) {
     this.configService = configService;
     this.logger = logger;

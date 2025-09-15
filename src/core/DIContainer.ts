@@ -11,6 +11,7 @@ import { ParserService } from '../services/parser/ParserService';
 import { QdrantService } from '../database/QdrantService';
 import { NebulaService } from '../database/NebulaService';
 import { NebulaConnectionManager } from '../database/nebula/NebulaConnectionManager';
+import { NebulaSpaceManager } from '../database/nebula/NebulaSpaceManager';
 import { OpenAIEmbedder } from '../embedders/OpenAIEmbedder';
 import { OllamaEmbedder } from '../embedders/OllamaEmbedder';
 import { GeminiEmbedder } from '../embedders/GeminiEmbedder';
@@ -24,6 +25,7 @@ import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
 import { TreeSitterService } from '../services/parser/TreeSitterService';
 import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService';
 import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
+import { EnhancedRuleFactory } from '../services/parser/treesitter-rule/EnhancedRuleFactory';
 import { SemgrepScanService } from '../services/semgrep/SemgrepScanService';
 import { SemanticAnalysisService } from '../services/parser/SemanticAnalysisService';
 import { SmartCodeParser } from '../services/parser/SmartCodeParser';
@@ -35,6 +37,7 @@ import { CacheManager } from '../services/cache/CacheManager';
 import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 import { VectorStorageService } from '../services/storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../services/storage/graph/GraphPersistenceService';
+import { GraphPersistenceUtils } from '../services/storage/graph/GraphPersistenceUtils';
 import { GraphCacheService } from '../services/storage/graph/GraphCacheService';
 import { GraphPerformanceMonitor } from '../services/storage/graph/GraphPerformanceMonitor';
 import { GraphBatchOptimizer } from '../services/storage/graph/GraphBatchOptimizer';
@@ -116,6 +119,7 @@ const databaseModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =
   bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
   bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
   bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
+  bind(TYPES.NebulaSpaceManager).to(NebulaSpaceManager).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
   bind(TYPES.NebulaQueryBuilder).to(NebulaQueryBuilder).inSingletonScope();
 });
@@ -141,6 +145,7 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
   bind(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
   bind(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
+  bind(TYPES.SnippetExtractionRules).toConstantValue(EnhancedRuleFactory.createAllRules());
   bind(TYPES.SemgrepScanService).to(SemgrepScanService).inSingletonScope();
   bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
   bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
@@ -149,16 +154,19 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.ChangeDetectionService).to(ChangeDetectionService).inSingletonScope();
   bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
   bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
-  bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
-  bind(TYPES.GraphCacheService).to(GraphCacheService).inSingletonScope();
-  bind(TYPES.GraphPerformanceMonitor).to(GraphPerformanceMonitor).inSingletonScope();
+  // Temporarily disable graph services to resolve dependency issues
+  // bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
+  // bind(TYPES.GraphPersistenceUtils).to(GraphPersistenceUtils).inSingletonScope();
+  // bind(TYPES.GraphCacheService).to(GraphCacheService).inSingletonScope();
+  // bind(TYPES.GraphPerformanceMonitor).to(GraphPerformanceMonitor).inSingletonScope();
   bind(TYPES.GraphBatchOptimizer).to(GraphBatchOptimizer).inSingletonScope();
   bind(TYPES.GraphQueryBuilder).to(GraphQueryBuilder).inSingletonScope();
-  bind(TYPES.GraphSearchService).to(GraphSearchService).inSingletonScope();
+  // bind(TYPES.GraphSearchService).to(GraphSearchService).inSingletonScope();
   bind(TYPES.BatchProcessingService).to(BatchProcessingService).inSingletonScope();
   bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
   bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
-  bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
+  // Temporarily disable StorageCoordinator due to graph service dependencies
+  // bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
   bind(TYPES.SemanticSearchService).to(SemanticSearchService).inSingletonScope();
   bind(TYPES.SearchCoordinator).to(SearchCoordinator).inSingletonScope();
   bind(TYPES.HybridSearchService).to(HybridSearchService).inSingletonScope();
@@ -206,9 +214,12 @@ const syncModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
 });
 
 const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-  bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
-  bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
-  bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
+  // Temporarily disable Prometheus metrics to avoid registration conflicts
+  // bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
+
+  // Temporarily disable services that depend on PrometheusMetricsService
+  // bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
+  // bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
   bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics).inSingletonScope();
   bind(TYPES.BatchPerformanceMonitor).to(BatchPerformanceMonitor).inSingletonScope();
   bind(TYPES.SemgrepMetricsService).to(SemgrepMetricsService).inSingletonScope();
@@ -216,9 +227,10 @@ const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind })
 });
 
 const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-  bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
+  // Temporarily disable MonitoringController due to Prometheus dependencies
+  // bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
   bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
-  
+
   // Processing services
   bind(TYPES.BatchProcessor).to(BatchProcessor).inSingletonScope();
 });

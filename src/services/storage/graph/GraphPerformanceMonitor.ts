@@ -1,5 +1,6 @@
 import { LoggerService } from '../../../core/LoggerService';
-import { injectable } from 'inversify';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '../../../types';
 
 export interface PerformanceMetrics {
   queryExecutionTimes: number[];
@@ -40,7 +41,7 @@ export class GraphPerformanceMonitor {
   private logger: LoggerService;
   private monitoringInterval: NodeJS.Timeout | null = null;
 
-  constructor(logger: LoggerService) {
+  constructor(@inject(TYPES.LoggerService) logger: LoggerService) {
     this.logger = logger;
   }
 

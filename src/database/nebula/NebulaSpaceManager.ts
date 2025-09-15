@@ -30,8 +30,8 @@ export class NebulaSpaceManager {
   constructor(
     @inject(TYPES.NebulaService) nebulaService: NebulaService,
     @inject(TYPES.LoggerService) logger: LoggerService,
-    @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
-    @inject(ConfigService) configService: ConfigService
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService
   ) {
     this.nebulaService = nebulaService;
     this.logger = logger;

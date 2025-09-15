@@ -23,8 +23,9 @@ export class HttpServer {
     this.logger = container.get<LoggerService>(TYPES.LoggerService);
     this.errorHandler = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
     this.configService = container.get<ConfigService>(TYPES.ConfigService);
-    
-    this.monitoringController = container.get(TYPES.MonitoringController);
+
+    // Temporarily disable monitoring controller due to Prometheus dependencies
+    // this.monitoringController = container.get(TYPES.MonitoringController);
     this.port = this.configService.get('port') || 3000;
     this.rateLimitMap = new Map();
     this.app = express();
@@ -146,10 +147,12 @@ export class HttpServer {
     
     // API routes
     this.app.use('/api/v1/snippets', new SnippetRoutes().getRouter());
-    this.app.use('/api/v1/monitoring', new MonitoringRoutes().getRouter());
+    // Temporarily disable monitoring routes due to Prometheus dependencies
+    // this.app.use('/api/v1/monitoring', new MonitoringRoutes().getRouter());
     this.app.use('/api/v1/analysis', new StaticAnalysisRoutes().getRouter());
     
-    // Health check endpoint
+    // Temporarily disable health check endpoint due to Prometheus dependencies
+    /*
     this.app.get('/health', async (req: Request, res: Response) => {
       try {
         const result = await this.monitoringController.getHealthStatus();
@@ -162,7 +165,7 @@ export class HttpServer {
         });
       }
     });
-    
+
     // Metrics endpoint
     this.app.get('/metrics', async (req: Request, res: Response) => {
       try {
@@ -175,6 +178,7 @@ export class HttpServer {
         });
       }
     });
+    */
     
     // Root endpoint
     this.app.get('/', (req: Request, res: Response) => {

@@ -95,13 +95,13 @@ export class GraphPersistenceService {
     @inject(TYPES.ConfigService) configService: ConfigService,
     @inject(TYPES.BatchProcessingMetrics) batchMetrics: BatchProcessingMetrics,
     @inject(TYPES.NebulaQueryBuilder) queryBuilder: NebulaQueryBuilder,
-    @inject(GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler,
-    @inject(GraphPersistenceUtils) persistenceUtils: GraphPersistenceUtils,
-    @inject(GraphCacheService) cacheService: GraphCacheService,
-    @inject(GraphPerformanceMonitor) performanceMonitor: GraphPerformanceMonitor,
-    @inject(GraphBatchOptimizer) batchOptimizer: GraphBatchOptimizer,
-    @inject(EnhancedQueryBuilder) enhancedQueryBuilder: EnhancedQueryBuilder,
-    @inject(GraphSearchService) searchService: GraphSearchService
+    @inject(TYPES.GraphDatabaseErrorHandler) graphErrorHandler: GraphDatabaseErrorHandler,
+    @inject(TYPES.GraphPersistenceUtils) persistenceUtils: GraphPersistenceUtils,
+    @inject(TYPES.GraphCacheService) cacheService: GraphCacheService,
+    @inject(TYPES.GraphPerformanceMonitor) performanceMonitor: GraphPerformanceMonitor,
+    @inject(TYPES.GraphBatchOptimizer) batchOptimizer: GraphBatchOptimizer,
+    @inject(TYPES.GraphQueryBuilder) enhancedQueryBuilder: EnhancedQueryBuilder,
+    @inject(TYPES.GraphSearchService) searchService: GraphSearchService
   ) {
     this.nebulaService = nebulaService;
     this.nebulaSpaceManager = nebulaSpaceManager;

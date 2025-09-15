@@ -113,21 +113,23 @@ export interface ServiceMetrics {
 
 @injectable()
 export class PrometheusMetricsService {
-  private logger: LoggerService;
-  private errorHandler: ErrorHandlerService;
-  private configService: ConfigService;
-  private qdrantService: QdrantService;
-  private nebulaService: NebulaService;
-  private performanceMonitor: PerformanceMonitor;
-  private batchMetrics: BatchProcessingMetrics;
-  private batchPerformanceMonitor: BatchPerformanceMonitor;
-  private semgrepMetricsService: SemgrepMetricsService;
+  private static instance: PrometheusMetricsService;
+  private static isInitializing = false;
+  private logger!: LoggerService;
+  private errorHandler!: ErrorHandlerService;
+  private configService!: ConfigService;
+  private qdrantService!: QdrantService;
+  private nebulaService!: NebulaService;
+  private performanceMonitor!: PerformanceMonitor;
+  private batchMetrics!: BatchProcessingMetrics;
+  private batchPerformanceMonitor!: BatchPerformanceMonitor;
+  private semgrepMetricsService!: SemgrepMetricsService;
 
   // Prometheus metrics registry
-  private registry: promClient.Registry;
+  private registry!: promClient.Registry;
 
   // Prometheus metrics
-  private databaseMetrics: {
+  private databaseMetrics!: {
     qdrantConnectionStatus: promClient.Gauge;
     qdrantPointCount: promClient.Gauge;
     qdrantCollectionCount: promClient.Gauge;
@@ -138,7 +140,7 @@ export class PrometheusMetricsService {
     nebulaLatency: promClient.Histogram;
   };
 
-  private systemMetrics: {
+  private systemMetrics!: {
     memoryUsage: promClient.Gauge;
     cpuUsage: promClient.Gauge;
     uptime: promClient.Gauge;
@@ -148,7 +150,7 @@ export class PrometheusMetricsService {
     networkBytesReceived: promClient.Gauge;
   };
 
-  private serviceMetrics: {
+  private serviceMetrics!: {
     fileWatcherProcessedFiles: promClient.Gauge;
     semanticAnalysisCount: promClient.Gauge;
     qdrantOperations: promClient.Gauge;
@@ -169,10 +171,91 @@ export class PrometheusMetricsService {
     nebulaLatency: promClient.Histogram;
   };
 
-  private alertMetrics: {
+  private alertMetrics!: {
     alertCount: promClient.Counter;
     alertSeverity: promClient.Gauge;
   };
+
+  // Helper function to safely create or get existing metric
+  private safeGetOrCreateHistogram<T extends promClient.Histogram>(
+    name: string,
+    help: string,
+    buckets: number[],
+    existingMetric?: T
+  ): T {
+    if (existingMetric) {
+      return existingMetric;
+    }
+
+    // Check if metric already exists in registry
+    try {
+      const existing = this.registry.getSingleMetric(name);
+      if (existing && existing instanceof promClient.Histogram) {
+        return existing as T;
+      }
+    } catch (error) {
+      // Metric doesn't exist, continue with creation
+    }
+
+    return new promClient.Histogram({
+      name,
+      help,
+      buckets,
+      registers: [this.registry]
+    }) as T;
+  }
+
+  private safeGetOrCreateGauge<T extends promClient.Gauge>(
+    name: string,
+    help: string,
+    existingMetric?: T
+  ): T {
+    if (existingMetric) {
+      return existingMetric;
+    }
+
+    // Check if metric already exists in registry
+    try {
+      const existing = this.registry.getSingleMetric(name);
+      if (existing && existing instanceof promClient.Gauge) {
+        return existing as T;
+      }
+    } catch (error) {
+      // Metric doesn't exist, continue with creation
+    }
+
+    return new promClient.Gauge({
+      name,
+      help,
+      registers: [this.registry]
+    }) as T;
+  }
+
+  private safeGetOrCreateCounter<T extends promClient.Counter>(
+    name: string,
+    help: string,
+    existingMetric?: T
+  ): T {
+    if (existingMetric) {
+      return existingMetric;
+    }
+
+    // Check if metric already exists in registry
+    try {
+      const existing = this.registry.getSingleMetric(name);
+      if (existing && existing instanceof promClient.Counter) {
+        return existing as T;
+      }
+    } catch (error) {
+      // Metric doesn't exist, continue with creation
+    }
+
+    return new promClient.Counter({
+      name,
+      help,
+      registers: [this.registry]
+    }) as T;
+  }
 
   constructor(
     @inject(TYPES.ConfigService) configService: ConfigService,
@@ -195,11 +278,11 @@ export class PrometheusMetricsService {
     this.batchPerformanceMonitor = batchPerformanceMonitor;
     this.semgrepMetricsService = semgrepMetricsService;
 
-    // Initialize Prometheus registry
-    this.registry = new promClient.Registry();
+    // Initialize Prometheus registry - use global registry to avoid conflicts
+    this.registry = promClient.register;
     promClient.collectDefaultMetrics({ register: this.registry });
 
-    // Initialize Prometheus metrics
+    // Initialize Prometheus metrics using safe creation methods
     this.databaseMetrics = {
       qdrantConnectionStatus: new promClient.Gauge({
         name: 'qdrant_connection_status',
@@ -395,6 +478,10 @@ export class PrometheusMetricsService {
     };
 
     this.logger.info('Prometheus metrics service initialized with real prom-client');
+
+    // Assign singleton instance and complete initialization
+    PrometheusMetricsService.instance = this;
+    PrometheusMetricsService.isInitializing = false;
   }
 
   async collectDatabaseMetrics(): Promise<DatabaseMetrics> {
