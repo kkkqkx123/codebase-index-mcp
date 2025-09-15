@@ -4,9 +4,11 @@
 
 This implementation plan provides a comprehensive, actionable checklist for building the frontend interface for the Codebase Index MCP service. The plan is organized in phases, with each phase building upon the previous one to ensure incremental progress and early validation of core functionality.
 
+Based on the analysis, significant architectural adjustments are required to align the frontend with the existing MCP service architecture. The plan has been updated to include the necessary HTTP-to-MCP adapter layer, authentication system, and secure monitoring integration.
+
 ## Implementation Tasks
 
-### Phase 1: Project Setup and Core Infrastructure
+### Phase 1: Project Setup and Core Infrastructure (Week 1-2)
 
 #### 1.1 Initialize Frontend Project Structure
 - [ ] Create `src/frontend/` directory structure
@@ -23,7 +25,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Setup hot module replacement (HMR) for development
 
 #### 1.3 Implement Core TypeScript Types
-- [ ] Create `src/frontend/types/api.types.ts` with API response interfaces
+- [ ] Create `src/frontend/types/api.types.ts` with API response interfaces aligned to actual endpoints
 - [ ] Create `src/frontend/types/dashboard.types.ts` with dashboard data structures
 - [ ] Create `src/frontend/types/project.types.ts` with project management types
 - [ ] Create `src/frontend/types/graph.types.ts` with graph visualization types
@@ -36,37 +38,37 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Implement basic component tests for core components
 - [ ] Configure code coverage reporting
 
-### Phase 2: API Integration and State Management
+### Phase 2: HTTP-to-MCP Adapter and Authentication (Week 3-4)
 
-#### 2.1 Implement API Service Layer
-- [ ] Create `src/frontend/services/api.service.ts` with HTTP client setup
+#### 2.1 Implement HTTP-to-MCP Adapter Layer
+- [ ] Create `src/api/mcp-adapter/` directory for adapter implementation
+- [ ] Implement adapter for indexing endpoints (`/api/v1/indexing/create`, `/api/v1/indexing/status/:projectId`)
+- [ ] Implement adapter for search endpoints (`/api/v1/search/hybrid`)
+- [ ] Implement adapter for graph endpoints (`/api/v1/graph/analyze`)
+- [ ] Add error handling and response transformation for MCP service responses
+
+#### 2.2 Implement Authentication System
+- [ ] Create `src/frontend/services/auth.service.ts` for JWT management
+- [ ] Implement login/logout functionality
+- [ ] Add request interceptors for authentication headers
+- [ ] Implement response interceptors for authentication errors
+- [ ] Create authentication context and hooks for React components
+
+#### 2.3 Update API Service Layer
+- [ ] Update `src/frontend/services/api.service.ts` to use correct endpoint paths
 - [ ] Implement request/response interceptors for authentication and error handling
-- [ ] Create typed API methods for all MCP service endpoints
+- [ ] Create typed API methods aligned with actual backend endpoints
 - [ ] Implement retry logic and rate limiting handling
 - [ ] Add request/response logging for debugging
 
-#### 2.2 Implement Monitoring Integration Service
-- [ ] Create `src/frontend/services/metrics.service.ts` for Prometheus integration
-- [ ] Implement `src/frontend/services/grafana.service.ts` for dashboard embedding
-- [ ] Create methods for fetching system health metrics
+#### 2.4 Implement Backend Proxy Integration
+- [ ] Update `src/frontend/services/metrics.service.ts` to use backend proxy endpoints
+- [ ] Implement `src/frontend/services/monitoring.service.ts` for secure monitoring integration
+- [ ] Create methods for fetching system health metrics through backend proxy
 - [ ] Implement real-time metrics polling logic
 - [ ] Add error handling for monitoring service failures
 
-#### 2.3 Setup State Management
-- [ ] Install and configure Redux Toolkit
-- [ ] Create store configuration with middleware setup
-- [ ] Implement `src/frontend/store/dashboard.slice.ts` for dashboard state
-- [ ] Implement `src/frontend/store/projects.slice.ts` for project management state
-- [ ] Implement `src/frontend/store/search.slice.ts` for search functionality state
-
-#### 2.4 Implement Custom Hooks
-- [ ] Create `src/frontend/hooks/useApi.ts` for API call management
-- [ ] Create `src/frontend/hooks/useMetrics.ts` for metrics polling
-- [ ] Create `src/frontend/hooks/useProjects.ts` for project data management
-- [ ] Create `src/frontend/hooks/useWebSocket.ts` for real-time updates
-- [ ] Create `src/frontend/hooks/useDebounce.ts` for input debouncing
-
-### Phase 3: Common Components and Layout
+### Phase 3: Common Components and Layout (Week 5)
 
 #### 3.1 Implement Layout and Navigation
 - [ ] Create `src/frontend/components/common/Layout/Layout.tsx` main layout component
@@ -96,28 +98,28 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Setup theming system (light/dark mode)
 - [ ] Implement responsive design breakpoints
 
-### Phase 4: Dashboard Implementation
+### Phase 4: Dashboard Implementation (Week 6)
 
 #### 4.1 Implement System Health Component
 - [ ] Create `src/frontend/components/dashboard/SystemHealth/SystemHealth.tsx`
-- [ ] Fetch and display system health status from existing endpoints
+- [ ] Fetch and display system health status from backend proxy endpoints
 - [ ] Implement health status indicators and color coding
 - [ ] Add real-time health status updates
 - [ ] Create detailed health breakdown on hover/click
 
 #### 4.2 Implement Metrics Display Component
 - [ ] Create `src/frontend/components/dashboard/MetricsDisplay/MetricsDisplay.tsx`
-- [ ] Fetch and display performance metrics from Prometheus
+- [ ] Fetch and display performance metrics from backend proxy
 - [ ] Implement metric cards with trend indicators
 - [ ] Add metric filtering and time range selection
 - [ ] Create sparkline charts for metric trends
 
 #### 4.3 Implement Grafana Integration
 - [ ] Create `src/frontend/components/dashboard/GrafanaIntegration/GrafanaIntegration.tsx`
-- [ ] Implement embedded Grafana dashboard iframe
+- [ ] Implement Grafana dashboard links through backend-generated URLs (not embedded iframes)
 - [ ] Add dashboard switching functionality
-- [ ] Implement authentication for Grafana access
-- [ ] Create responsive iframe containers
+- [ ] Implement authentication for Grafana access through backend
+- [ ] Create responsive dashboard link containers
 
 #### 4.4 Implement Project Summary Component
 - [ ] Create `src/frontend/components/dashboard/ProjectSummary/ProjectSummary.tsx`
@@ -133,25 +135,25 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Add responsive layout for different screen sizes
 - [ ] Implement dashboard configuration options
 
-### Phase 5: Project Management Implementation
+### Phase 5: Project Management Implementation (Week 7)
 
 #### 5.1 Implement Project List Component
 - [ ] Create `src/frontend/components/projects/ProjectList/ProjectList.tsx`
-- [ ] Fetch and display list of indexed projects
+- [ ] Fetch and display list of indexed projects through MCP adapter
 - [ ] Implement project status indicators
 - [ ] Add sorting and filtering capabilities
 - [ ] Create project actions (edit, delete, re-index)
 
 #### 5.2 Implement Project Form Component
 - [ ] Create `src/frontend/components/projects/ProjectForm/ProjectForm.tsx`
-- [ ] Implement form for adding new projects
+- [ ] Implement form for adding new projects through MCP adapter
 - [ ] Add form validation for project paths
 - [ ] Create project options configuration
 - [ ] Implement form submission and error handling
 
 #### 5.3 Implement Indexing Progress Component
 - [ ] Create `src/frontend/components/projects/IndexingProgress/IndexingProgress.tsx`
-- [ ] Display real-time indexing progress
+- [ ] Display real-time indexing progress through MCP adapter
 - [ ] Implement progress bars and status updates
 - [ ] Show detailed indexing statistics
 - [ ] Add estimated completion time calculations
@@ -166,22 +168,22 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 #### 5.5 Assemble Project Management Page
 - [ ] Create `src/frontend/components/projects/ProjectManagement.tsx` main page component
 - [ ] Integrate all project management components
-- [ ] Implement project CRUD operations
+- [ ] Implement project CRUD operations through MCP adapter
 - [ ] Add project search and filtering
 - [ ] Create responsive layout for project management
 
-### Phase 6: Search Implementation
+### Phase 6: Search Implementation (Week 8)
 
 #### 6.1 Implement Search Bar Component
 - [ ] Create `src/frontend/components/search/SearchBar/SearchBar.tsx`
-- [ ] Implement search input with advanced options
+- [ ] Implement search input with advanced options using correct API endpoint
 - [ ] Add search history and saved queries
 - [ ] Implement real-time search suggestions
 - [ ] Create keyboard shortcuts for search
 
 #### 6.2 Implement Search Results Component
 - [ ] Create `src/frontend/components/search/SearchResults/SearchResults.tsx`
-- [ ] Display search results with syntax highlighting
+- [ ] Display search results with syntax highlighting using actual response format
 - [ ] Implement result pagination and sorting
 - [ ] Add result preview and context display
 - [ ] Create result metadata display
@@ -207,7 +209,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Add keyboard navigation support
 - [ ] Create responsive search interface
 
-### Phase 7: Graph Visualization Implementation
+### Phase 7: Graph Visualization Implementation (Week 9)
 
 #### 7.1 Implement Graph Viewer Component
 - [ ] Create `src/frontend/components/graph/GraphViewer/GraphViewer.tsx`
@@ -244,7 +246,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Add graph state management
 - [ ] Create graph configuration persistence
 
-### Phase 8: Debugging Tools Implementation
+### Phase 8: Debugging Tools Implementation (Week 10)
 
 #### 8.1 Implement API Logs Component
 - [ ] Create `src/frontend/components/debug/ApiLogs/ApiLogs.tsx`
@@ -255,7 +257,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 
 #### 8.2 Implement Performance Metrics Component
 - [ ] Create `src/frontend/components/debug/PerformanceMetrics/PerformanceMetrics.tsx`
-- [ ] Display detailed performance metrics
+- [ ] Display detailed performance metrics from backend proxy
 - [ ] Implement metric comparison and trending
 - [ ] Add performance alerting
 - [ ] Create performance optimization suggestions
@@ -281,7 +283,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Add debugging session persistence
 - [ ] Create debugging documentation and help
 
-### Phase 9: Testing and Quality Assurance
+### Phase 9: Testing and Quality Assurance (Week 11)
 
 #### 9.1 Implement Component Tests
 - [ ] Write unit tests for all components
@@ -299,7 +301,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 
 #### 9.3 Implement Integration Tests
 - [ ] Create end-to-end test scenarios
-- [ ] Implement API integration tests
+- [ ] Implement API integration tests with MCP adapter
 - [ ] Add database integration testing
 - [ ] Create user workflow testing
 - [ ] Implement cross-browser testing
@@ -311,7 +313,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 - [ ] Create performance regression testing
 - [ ] Implement continuous performance monitoring
 
-### Phase 10: Documentation and Deployment
+### Phase 10: Documentation and Deployment (Week 12)
 
 #### 10.1 Create Technical Documentation
 - [ ] Write component documentation
@@ -352,7 +354,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 
 ### Integration Testing
 - [ ] Test component interactions
-- [ ] Validate API integration
+- [ ] Validate API integration with MCP adapter
 - [ ] Test state management
 - [ ] Validate routing behavior
 - [ ] Test real-time updates
@@ -366,7 +368,7 @@ This implementation plan provides a comprehensive, actionable checklist for buil
 
 ### Performance Testing
 - [ ] Measure component render times
-- [ ] Test API response times
+- [ ] Test API response times with MCP adapter
 - [ ] Validate memory usage
 - [ ] Test large dataset handling
 - [ ] Measure bundle size impact
@@ -377,10 +379,11 @@ The implementation will be considered successful when:
 
 ### Functional Requirements
 - [ ] All core features are implemented and working
-- [ ] Integration with existing MCP service APIs is complete
-- [ ] Prometheus+Grafana integration is functional
+- [ ] Integration with existing MCP service APIs is complete through adapter layer
+- [ ] Secure monitoring integration is functional via backend proxy
 - [ ] All user stories from requirements are satisfied
 - [ ] Error handling and recovery mechanisms work correctly
+- [ ] Authentication system is fully implemented and secure
 
 ### Performance Requirements
 - [ ] Page load times are under 2 seconds
@@ -410,6 +413,7 @@ The implementation will be considered successful when:
 - [ ] Performance bottlenecks - Early performance profiling and optimization
 - [ ] Browser compatibility - Cross-browser testing and polyfills
 - [ ] Memory leaks - Regular memory profiling and testing
+- [ ] MCP adapter complexity - Thorough testing of adapter layer
 
 ### Integration Risks
 - [ ] Backend API changes - Close coordination with backend team
@@ -426,9 +430,9 @@ The implementation will be considered successful when:
 ## Dependencies
 
 ### External Dependencies
-- [ ] Backend MCP service APIs
-- [ ] Prometheus monitoring system
-- [ ] Grafana dashboards
+- [ ] Backend MCP service APIs with HTTP adapter layer
+- [ ] Prometheus monitoring system (accessed through backend proxy)
+- [ ] Grafana dashboards (accessed through backend-generated URLs)
 - [ ] Database services (Qdrant, Nebula)
 - [ ] Authentication and authorization systems
 
@@ -462,5 +466,12 @@ The implementation will be considered successful when:
 ## Conclusion
 
 This implementation plan provides a comprehensive roadmap for building the frontend interface for the Codebase Index MCP service. The phased approach ensures incremental progress, early validation of core functionality, and maintains flexibility for changing requirements. Each phase builds upon the previous one, creating a solid foundation for the final product.
+
+Key changes from the original plan based on analysis:
+1. Added Phase 2 specifically for HTTP-to-MCP adapter layer and authentication implementation
+2. Updated API endpoints to match actual backend implementation
+3. Modified monitoring integration to use secure backend proxy approach
+4. Extended timeline from 10 to 12 weeks to account for architectural work
+5. Added specific tasks for implementing authentication system
 
 The plan emphasizes quality through comprehensive testing, performance optimization, and adherence to best practices. By following this plan, the team can deliver a high-quality, extensible frontend interface that meets all requirements and provides an excellent user experience for debugging MCP service functionality.

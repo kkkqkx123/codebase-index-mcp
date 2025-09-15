@@ -49,6 +49,12 @@ This document outlines the comprehensive design for a web-based frontend interfa
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### Key Architectural Changes Based on Analysis
+
+1. **HTTP-to-MCP Adapter Layer**: A new adapter layer is required to bridge frontend HTTP requests with backend MCP services that use stdio protocol.
+2. **Backend Proxy for Monitoring**: Direct browser-to-Prometheus access is insecure and should be replaced with backend proxy endpoints.
+3. **Authentication System**: Implementation of JWT-based authentication system to secure frontend-backend communication.
+
 ### Directory Structure
 
 ```
@@ -129,7 +135,7 @@ src/frontend/
 - **Data Fetching**: React Query + Axios for API calls
 - **Testing**: Jest + React Testing Library
 - **Graph Visualization**: D3.js or vis.js for interactive graphs
-- **Monitoring Integration**: Prometheus client library + Grafana embedding
+- **Monitoring Integration**: Backend proxy for Prometheus metrics + Grafana embedding
 - **WebSocket**: Socket.io or native WebSocket for real-time updates
 
 ## Components and Interfaces
@@ -156,7 +162,7 @@ interface DashboardData {
 - System health status from existing monitoring endpoints
 - Project count and indexing statistics
 - Database connection status (Qdrant, Nebula)
-- Performance metrics from Prometheus
+- Performance metrics from backend proxy (not direct Prometheus access)
 - Embedded Grafana dashboards for detailed metrics
 - Auto-refresh functionality
 
@@ -203,15 +209,15 @@ interface SearchQuery {
 
 interface SearchResult {
   id: string;
-  file: string;
-  line: number;
+  filePath: string;
   content: string;
   score: number;
-  context: string;
+  similarity: number;
   metadata: {
     language: string;
-    function?: string;
-    class?: string;
+    startLine: number;
+    endLine: number;
+    chunkType: string;
   };
 }
 ```
@@ -278,14 +284,21 @@ class ApiService {
   }
 
   async createIndex(projectPath: string, options?: IndexOptions): Promise<IndexResponse> {
-    return this.axiosInstance.post('/api/v1/index/create', {
+    return this.axiosInstance.post('/api/v1/indexing/create', {
       projectPath,
       options
     });
   }
 
   async search(query: SearchQuery): Promise<SearchResults> {
-    return this.axiosInstance.post('/api/v1/search', query);
+    return this.axiosInstance.post('/api/v1/search/hybrid', {
+      query: query.text,
+      projectId: query.projectId,
+      limit: query.limit,
+      threshold: query.threshold,
+      filters: query.filters,
+      searchType: query.includeGraph ? 'hybrid' : 'semantic'
+    });
   }
 
   async getGraph(projectPath: string, options?: GraphOptions): Promise<GraphData> {
@@ -295,44 +308,39 @@ class ApiService {
     });
   }
 
-  async getStatus(projectPath: string): Promise<ProjectStatus> {
-    return this.axiosInstance.get(`/api/v1/status/${encodeURIComponent(projectPath)}`);
+  async getStatus(projectId: string): Promise<ProjectStatus> {
+    return this.axiosInstance.get(`/api/v1/indexing/status/${encodeURIComponent(projectId)}`);
   }
 }
 ```
 
-#### Metrics Service (Prometheus Integration)
+#### Metrics Service (Backend Proxy Integration)
 ```typescript
 class MetricsService {
-  private prometheusUrl: string;
-  private grafanaUrl: string;
+  private baseUrl: string;
 
   constructor(config: MetricsConfig) {
-    this.prometheusUrl = config.prometheusUrl;
-    this.grafanaUrl = config.grafanaUrl;
+    this.baseUrl = config.baseUrl; // Points to backend proxy, not direct Prometheus
   }
 
   async getMetrics(query: string, timeRange: TimeRange): Promise<PrometheusResponse> {
-    const url = `${this.prometheusUrl}/api/v1/query`;
-    const params = {
+    // Call backend proxy endpoint, not direct Prometheus
+    return this.axiosInstance.post('/api/v1/monitoring/query', {
       query,
       start: timeRange.start,
-      end: timeRange.end,
-      step: timeRange.step
-    };
-
-    return axios.get(url, { params });
+      end: timeRange.end
+    });
   }
 
   async getSystemHealth(): Promise<SystemHealth> {
-    const metrics = await this.getMetrics('up', { start: Date.now() - 300000, end: Date.now() });
-    return this.transformToHealthStatus(metrics);
+    const response = await this.axiosInstance.get('/api/v1/monitoring/health');
+    return response.data;
   }
 
-  getGrafanaDashboardUrl(dashboardId: string, params: Record<string, string>): string {
-    const baseUrl = `${this.grafanaUrl}/d/${dashboardId}`;
-    const queryParams = new URLSearchParams(params).toString();
-    return `${baseUrl}?${queryParams}`;
+  async getGrafanaDashboardUrl(dashboardId: string): Promise<string> {
+    // Use backend-generated signed URLs or tokens
+    const response = await this.axiosInstance.get(`/api/v1/monitoring/grafana/${dashboardId}`);
+    return response.data.url;
   }
 }
 ```
@@ -361,6 +369,28 @@ interface HealthStatus {
   };
   lastChecked: Date;
   issues: HealthIssue[];
+}
+
+interface IndexResponse {
+  success: boolean;
+  filesProcessed: number;
+  filesSkipped: number;
+  processingTime: number;
+  errors: string[];
+}
+
+interface SearchResult {
+  id: string;
+  filePath: string;
+  content: string;
+  score: number;
+  similarity: number;
+  metadata: {
+    language: string;
+    startLine: number;
+    endLine: number;
+    chunkType: string;
+  };
 }
 
 // Project Types
@@ -406,8 +436,7 @@ interface FrontendConfig {
     retryAttempts: number;
   };
   monitoring: {
-    prometheusUrl: string;
-    grafanaUrl: string;
+    baseUrl: string; // Backend proxy base URL
     grafanaDashboards: {
       system: string;
       performance: string;
@@ -610,7 +639,7 @@ describe('Frontend-Backend Integration', () => {
 
   beforeAll(() => {
     server = setupServer(
-      rest.post('/api/v1/search', (req, res, ctx) => {
+      rest.post('/api/v1/search/hybrid', (req, res, ctx) => {
         return res(
           ctx.status(200),
           ctx.json({
@@ -618,10 +647,16 @@ describe('Frontend-Backend Integration', () => {
             results: [
               {
                 id: '1',
-                file: 'test.ts',
-                line: 10,
+                filePath: 'test.ts',
                 content: 'function test() {}',
-                score: 0.9
+                score: 0.9,
+                similarity: 0.85,
+                metadata: {
+                  language: 'typescript',
+                  startLine: 1,
+                  endLine: 1,
+                  chunkType: 'function'
+                }
               }
             ],
             total: 1,
@@ -902,13 +937,14 @@ const setupProxy = () => {
 - Facilitates future extensibility for new features
 
 ### 3. Integration with Existing Monitoring
-**Decision**: Leveraging existing Prometheus+Grafana infrastructure instead of creating new monitoring.
+**Decision**: Leveraging existing Prometheus+Grafana infrastructure through backend proxy instead of direct access.
 
 **Rationale**:
 - Avoids duplication of monitoring effort
 - Maintains consistency with existing DevOps practices
 - Reduces maintenance overhead
 - Provides comprehensive metrics without additional setup
+- Addresses security concerns with direct Prometheus access
 
 ### 4. State Management Strategy
 **Decision**: Using Redux Toolkit for complex state, React Query for server state.
@@ -920,13 +956,14 @@ const setupProxy = () => {
 - Excellent TypeScript support and developer experience
 
 ### 5. API-First Integration
-**Decision**: Communicating through existing HTTP API endpoints rather than direct database access.
+**Decision**: Communicating through HTTP API endpoints with backend adapter for MCP services.
 
 **Rationale**:
 - Maintains separation between frontend and backend concerns
 - Leverages existing business logic and validation
 - Supports future scalability with microservices
 - Enables proper authentication and authorization
+- Bridges frontend HTTP requirements with backend MCP stdio protocol
 
 ### 6. Progressive Enhancement Approach
 **Decision**: Building core functionality first, then adding advanced features.
@@ -939,31 +976,34 @@ const setupProxy = () => {
 
 ## Implementation Roadmap
 
-### Phase 1: Core Infrastructure (Week 1-2)
+### Phase 1: Core Infrastructure and HTTP-MCP Adapter (Week 1-3)
 - Setup project structure and build configuration
-- Implement basic API integration layer
+- Implement HTTP-to-MCP adapter layer for backend communication
 - Create foundational components (layout, navigation, error handling)
 - Setup testing framework and CI/CD pipeline
+- Implement authentication system with JWT tokens
 
-### Phase 2: Dashboard and Project Management (Week 3-4)
-- Implement dashboard with health status and metrics
+### Phase 2: Dashboard and Project Management (Week 4-5)
+- Implement dashboard with health status and metrics via backend proxy
 - Create project management interface
-- Integrate with existing monitoring endpoints
+- Integrate with backend proxy for monitoring endpoints
 - Add real-time status updates
+- Implement project CRUD operations
 
-### Phase 3: Search and Graph Visualization (Week 5-6)
-- Implement code search functionality
+### Phase 3: Search and Graph Visualization (Week 6-7)
+- Implement code search functionality with corrected API endpoints
 - Create graph visualization components
 - Add filtering and advanced search options
 - Optimize performance for large datasets
 
-### Phase 4: Debugging Tools and Optimization (Week 7-8)
+### Phase 4: Debugging Tools and Monitoring Integration (Week 8-9)
 - Add comprehensive debugging features
-- Implement performance monitoring
+- Implement secure monitoring integration via backend proxy
 - Optimize component rendering and API calls
 - Add comprehensive testing coverage
 
-### Phase 5: Extensibility Features (Week 9-10)
+### Phase 5: Optimization and Extensibility Features (Week 10-12)
+- Performance optimization passes
 - Create plugin system for future enhancements
 - Prepare for natural language query integration
 - Add theming and customization options
@@ -971,6 +1011,13 @@ const setupProxy = () => {
 
 ## Conclusion
 
-This design provides a comprehensive blueprint for building a frontend interface for the Codebase Index MCP service. The architecture emphasizes integration with existing infrastructure, modular design for extensibility, and robust error handling. By leveraging the current Prometheus+Grafana monitoring system and existing API endpoints, the frontend will provide a seamless debugging experience while maintaining consistency with the overall system architecture.
+This design provides a comprehensive blueprint for building a frontend interface for the Codebase Index MCP service. The architecture emphasizes integration with existing infrastructure, modular design for extensibility, and robust error handling. 
+
+Key changes from the original design based on analysis:
+1. Implementation of HTTP-to-MCP adapter layer to bridge protocol mismatch
+2. Secure monitoring integration through backend proxy instead of direct access
+3. Updated API endpoints to match actual backend implementation
+4. Revised implementation timeline to account for architectural work
+5. Alignment of TypeScript types with actual API responses
 
 The design follows SOLID principles and best practices for React development, ensuring maintainability and scalability. The component-based architecture allows for easy extension and customization, particularly for future natural language query capabilities.

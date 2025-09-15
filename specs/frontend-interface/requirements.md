@@ -11,12 +11,12 @@ This document outlines the requirements for a simple frontend interface for the 
 #### 1.1 Dashboard Overview
 **As a developer, I want a dashboard that shows the system status and key metrics integrated with existing Prometheus+Grafana monitoring, so that I can quickly understand the current state of the codebase indexing service.**
 
-1.1.1 The dashboard SHALL display system health status (healthy/degraded/error) from existing monitoring endpoints
+1.1.1 The dashboard SHALL display system health status (healthy/degraded/error) from backend proxy endpoints
 1.1.2 The dashboard SHALL show current indexed projects count from existing API endpoints
 1.1.3 The dashboard SHALL display database connection status (Qdrant, Nebula) from existing health checks
-1.1.4 The dashboard SHALL show basic performance metrics from existing Prometheus metrics (last indexing time, total files indexed)
-1.1.5 The dashboard SHALL integrate with existing Grafana dashboards for detailed metrics visualization
-1.1.6 The dashboard SHALL update status information automatically every 30 seconds using existing monitoring data
+1.1.4 The dashboard SHALL show basic performance metrics from backend proxy endpoints (last indexing time, total files indexed)
+1.1.5 The dashboard SHALL integrate with existing Grafana dashboards through backend-generated URLs for detailed metrics visualization
+1.1.6 The dashboard SHALL update status information automatically every 30 seconds using backend proxy data
 
 #### 1.2 Project Management Interface
 **As a developer, I want to manage codebase indexing projects through a web interface, so that I can easily create, monitor, and debug indexing operations.**
@@ -33,7 +33,7 @@ This document outlines the requirements for a simple frontend interface for the 
 1.3.1 The interface SHALL provide a search input field for code queries
 1.3.2 The interface SHALL display search results with code snippets and metadata
 1.3.3 The interface SHALL support filtering by project or file type
-1.3.4 The interface SHALL show search result relevance scores
+1.3.4 The interface SHALL show search result relevance scores and similarity metrics
 1.3.5 The interface SHALL provide pagination for large result sets
 
 #### 1.4 Graph Visualization Interface
@@ -51,13 +51,13 @@ This document outlines the requirements for a simple frontend interface for the 
 **As a system architect, I want the frontend to integrate seamlessly with the existing MCP service architecture and Prometheus+Grafana monitoring, so that it maintains consistency and extensibility.**
 
 2.1.1 The frontend SHALL be placed in `src/frontend/` directory to separate from backend code
-2.1.2 The frontend SHALL communicate with the existing HTTP API endpoints
+2.1.2 The frontend SHALL communicate with the existing HTTP API endpoints through a backend adapter layer for MCP services
 2.1.3 The frontend SHALL use the same error handling patterns as the backend
 2.1.4 The frontend SHALL support the same CORS configuration as the existing API
 2.1.5 The frontend SHALL integrate with the existing logging system for debugging
-2.1.6 The frontend SHALL leverage existing Prometheus metrics endpoints for performance data
-2.1.7 The frontend SHALL embed or link to existing Grafana dashboards for detailed monitoring
-2.1.8 The frontend SHALL reuse existing health check endpoints for system status
+2.1.6 The frontend SHALL leverage backend proxy endpoints for performance data instead of direct Prometheus access
+2.1.7 The frontend SHALL link to existing Grafana dashboards through backend-generated URLs for detailed monitoring
+2.1.8 The frontend SHALL reuse existing health check endpoints through backend proxy
 
 #### 2.2 Performance and Scalability
 **As a developer, I want the frontend to be responsive and scalable, so that it can handle large codebases and multiple concurrent users.**
@@ -92,11 +92,11 @@ This document outlines the requirements for a simple frontend interface for the 
 **As a developer, I want built-in debugging features that integrate with existing monitoring tools, so that I can easily troubleshoot MCP service issues.**
 
 3.2.1 The interface SHALL display API request/response logs for debugging
-3.2.2 The interface SHALL show database query performance metrics from existing Prometheus metrics
-3.2.3 The interface SHALL provide access to service health endpoints
+3.2.2 The interface SHALL show database query performance metrics from backend proxy endpoints
+3.2.3 The interface SHALL provide access to service health endpoints through backend proxy
 3.2.4 The interface SHALL include detailed error context and stack traces
 3.2.5 The interface SHALL support development mode with enhanced debugging information
-3.2.6 The interface SHALL integrate with existing logging and monitoring infrastructure
+3.2.6 The interface SHALL integrate with existing logging and monitoring infrastructure through backend proxy
 
 #### 3.3 Documentation and Help
 **As a new user, I want comprehensive documentation and help features, so that I can quickly understand how to use the interface effectively.**
@@ -112,11 +112,11 @@ This document outlines the requirements for a simple frontend interface for the 
 #### 4.1 Authentication and Authorization
 **As a security conscious developer, I want proper authentication and access control, so that I can ensure the interface is secure.**
 
-4.1.1 The interface SHALL support API key authentication
+4.1.1 The interface SHALL support JWT token authentication
 4.1.2 The interface SHALL implement proper CORS policies
 4.1.3 The interface SHALL sanitize user inputs to prevent XSS attacks
 4.1.4 The interface SHALL use HTTPS for all API communications
-4.1.5 The interface SHALL implement rate limiting for API calls
+4.1.5 The interface SHALL implement rate limiting for API calls through backend services
 
 #### 4.2 Data Privacy and Protection
 **As a developer, I want to ensure codebase data remains private and secure, so that I can safely use the interface for sensitive projects.**
@@ -133,7 +133,7 @@ This document outlines the requirements for a simple frontend interface for the 
 **As a developer, I want a smooth development setup, so that I can quickly start working on the frontend.**
 
 5.1.1 The frontend SHALL integrate with the existing npm scripts
-5.1.2 The frontend SHALL include development server configuration
+5.1.2 The frontend SHALL include development server configuration with proxy to backend API
 5.1.3 The frontend SHALL support hot reloading during development
 5.1.4 The frontend SHALL include TypeScript configuration and linting
 5.1.5 The frontend SHALL provide testing setup and examples
@@ -153,19 +153,21 @@ The frontend interface will be considered successful when:
 
 1. **Functionality**: All core features (dashboard, project management, search, graph visualization) are working as specified
 2. **Performance**: The interface loads quickly and handles large datasets efficiently
-3. **Integration**: The frontend integrates seamlessly with the existing MCP service architecture
+3. **Integration**: The frontend integrates seamlessly with the existing MCP service architecture through backend adapter layer
 4. **Extensibility**: The architecture supports easy addition of new features, especially natural language query capabilities
 5. **Usability**: Developers can easily use the interface to debug and manage codebase indexing operations
 6. **Maintainability**: The code follows existing project patterns and is well-documented
+7. **Security**: The interface implements proper authentication and follows security best practices
 
 ## Constraints and Assumptions
 
 ### Constraints
 - The frontend must be placed in `src/frontend/` directory
-- Must use the existing HTTP API endpoints for all functionality
+- Must use the existing HTTP API endpoints for all functionality with backend adapter for MCP services
 - Cannot modify the core MCP service architecture
 - Must follow the existing TypeScript and linting configuration
 - Must be extensible for future natural language query features
+- Must implement authentication system for secure access
 
 ### Assumptions
 - Users have basic knowledge of codebase indexing concepts
@@ -173,3 +175,4 @@ The frontend interface will be considered successful when:
 - Users will access the interface through modern web browsers
 - Development environment meets Node.js 18+ requirements
 - Database services (Qdrant, Neo4j/Nebula) are running and accessible
+- Backend will provide HTTP-to-MCP adapter layer for service communication
