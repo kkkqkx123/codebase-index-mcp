@@ -233,10 +233,10 @@ const syncModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
 });
 
 const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-  // Temporarily disable Prometheus metrics due to registration conflicts
-  // bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
+  // Enable Prometheus metrics service
+  bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
 
-  // Temporarily disable services that depend on PrometheusMetricsService
+  // Enable services that depend on PrometheusMetricsService
   // bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
   // bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
   bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics).inSingletonScope();

@@ -137,15 +137,15 @@ export class ResultFormatter {
     @inject(TYPES.LoggerService) logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.ResultFormatterCache) cache: ResultFormatterCache,
-    @inject(TYPES.ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader
+    @inject(TYPES.ResultFormatterConfigLoader) configLoader: ResultFormatterConfigLoader,
+    @inject(TYPES.PrometheusMetricsService) metricsService?: PrometheusMetricsService
   ) {
      this.configService = configService;
      this.logger = logger;
      this.errorHandler = errorHandler;
      this.cache = cache;
      this.configLoader = configLoader;
-     // Metrics service is temporarily disabled due to registration conflicts
-     this.metricsService = undefined;
+     this.metricsService = metricsService;
    }
 
   private getConfig(): ResultFormatterFullConfig {

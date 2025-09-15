@@ -284,197 +284,50 @@ export class PrometheusMetricsService {
 
     // Initialize Prometheus metrics using safe creation methods
     this.databaseMetrics = {
-      qdrantConnectionStatus: new promClient.Gauge({
-        name: 'qdrant_connection_status',
-        help: 'Qdrant database connection status (1 = connected, 0 = disconnected)',
-        registers: [this.registry]
-      }),
-      qdrantPointCount: new promClient.Gauge({
-        name: 'qdrant_point_count',
-        help: 'Total number of points in Qdrant',
-        registers: [this.registry]
-      }),
-      qdrantCollectionCount: new promClient.Gauge({
-        name: 'qdrant_collection_count',
-        help: 'Total number of collections in Qdrant',
-        registers: [this.registry]
-      }),
-      qdrantLatency: new promClient.Histogram({
-        name: 'qdrant_latency_ms',
-        help: 'Qdrant database latency in milliseconds',
-        buckets: [10, 50, 100, 200, 500, 1000],
-        registers: [this.registry]
-      }),
-      nebulaConnectionStatus: new promClient.Gauge({
-        name: 'nebula_connection_status',
-        help: 'Nebula database connection status (1 = connected, 0 = disconnected)',
-        registers: [this.registry]
-      }),
-      nebulaNodeCount: new promClient.Gauge({
-        name: 'nebula_node_count',
-        help: 'Total number of nodes in Nebula graph',
-        registers: [this.registry]
-      }),
-      nebulaRelationshipCount: new promClient.Gauge({
-        name: 'nebula_relationship_count',
-        help: 'Total number of relationships in Nebula graph',
-        registers: [this.registry]
-      }),
-      nebulaLatency: new promClient.Histogram({
-        name: 'nebula_latency_ms',
-        help: 'Nebula database latency in milliseconds',
-        buckets: [10, 50, 100, 200, 500, 1000],
-        registers: [this.registry]
-      })
+      qdrantConnectionStatus: this.safeGetOrCreateGauge('qdrant_connection_status', 'Qdrant database connection status (1 = connected, 0 = disconnected)'),
+      qdrantPointCount: this.safeGetOrCreateGauge('qdrant_point_count', 'Total number of points in Qdrant'),
+      qdrantCollectionCount: this.safeGetOrCreateGauge('qdrant_collection_count', 'Total number of collections in Qdrant'),
+      qdrantLatency: this.safeGetOrCreateHistogram('qdrant_latency_ms', 'Qdrant database latency in milliseconds', [10, 50, 100, 200, 500, 1000]),
+      nebulaConnectionStatus: this.safeGetOrCreateGauge('nebula_connection_status', 'Nebula database connection status (1 = connected, 0 = disconnected)'),
+      nebulaNodeCount: this.safeGetOrCreateGauge('nebula_node_count', 'Total number of nodes in Nebula graph'),
+      nebulaRelationshipCount: this.safeGetOrCreateGauge('nebula_relationship_count', 'Total number of relationships in Nebula graph'),
+      nebulaLatency: this.safeGetOrCreateHistogram('nebula_latency_ms', 'Nebula database latency in milliseconds', [10, 50, 100, 200, 500, 1000])
     };
 
     this.systemMetrics = {
-      memoryUsage: new promClient.Gauge({
-        name: 'system_memory_usage_percent',
-        help: 'System memory usage percentage',
-        registers: [this.registry]
-      }),
-      cpuUsage: new promClient.Gauge({
-        name: 'system_cpu_usage_percent',
-        help: 'System CPU usage percentage',
-        registers: [this.registry]
-      }),
-      uptime: new promClient.Gauge({
-        name: 'system_uptime_seconds',
-        help: 'System uptime in seconds',
-        registers: [this.registry]
-      }),
-      diskUsage: new promClient.Gauge({
-        name: 'system_disk_usage_mb',
-        help: 'System disk usage in MB',
-        registers: [this.registry]
-      }),
-      diskFree: new promClient.Gauge({
-        name: 'system_disk_free_mb',
-        help: 'System disk free space in MB',
-        registers: [this.registry]
-      }),
-      networkBytesSent: new promClient.Gauge({
-        name: 'system_network_bytes_sent',
-        help: 'System network bytes sent',
-        registers: [this.registry]
-      }),
-      networkBytesReceived: new promClient.Gauge({
-        name: 'system_network_bytes_received',
-        help: 'System network bytes received',
-        registers: [this.registry]
-      })
+      memoryUsage: this.safeGetOrCreateGauge('system_memory_usage_percent', 'System memory usage percentage'),
+      cpuUsage: this.safeGetOrCreateGauge('system_cpu_usage_percent', 'System CPU usage percentage'),
+      uptime: this.safeGetOrCreateGauge('system_uptime_seconds', 'System uptime in seconds'),
+      diskUsage: this.safeGetOrCreateGauge('system_disk_usage_mb', 'System disk usage in MB'),
+      diskFree: this.safeGetOrCreateGauge('system_disk_free_mb', 'System disk free space in MB'),
+      networkBytesSent: this.safeGetOrCreateGauge('system_network_bytes_sent', 'System network bytes sent'),
+      networkBytesReceived: this.safeGetOrCreateGauge('system_network_bytes_received', 'System network bytes received')
     };
 
     this.serviceMetrics = {
-      fileWatcherProcessedFiles: new promClient.Gauge({
-        name: 'file_watcher_processed_files_total',
-        help: 'Total number of files processed by file watcher',
-        registers: [this.registry]
-      }),
-      semanticAnalysisCount: new promClient.Gauge({
-        name: 'semantic_analysis_count_total',
-        help: 'Total number of semantic analyses performed',
-        registers: [this.registry]
-      }),
-      qdrantOperations: new promClient.Gauge({
-        name: 'qdrant_operations_total',
-        help: 'Total number of Qdrant operations performed',
-        registers: [this.registry]
-      }),
-      nebulaOperations: new promClient.Gauge({
-        name: 'nebula_operations_total',
-        help: 'Total number of Nebula operations performed',
-        registers: [this.registry]
-      }),
-      semgrepScansTotal: new promClient.Counter({
-        name: 'semgrep_scans_total',
-        help: 'Total number of semgrep scans performed',
-        registers: [this.registry]
-      }),
-      semgrepScansSuccessful: new promClient.Counter({
-        name: 'semgrep_scans_successful_total',
-        help: 'Total number of successful semgrep scans',
-        registers: [this.registry]
-      }),
-      semgrepScansFailed: new promClient.Counter({
-        name: 'semgrep_scans_failed_total',
-        help: 'Total number of failed semgrep scans',
-        registers: [this.registry]
-      }),
-      semgrepFindingsTotal: new promClient.Gauge({
-        name: 'semgrep_findings_total',
-        help: 'Total number of semgrep findings',
-        registers: [this.registry]
-      }),
-      semgrepFindingsError: new promClient.Gauge({
-        name: 'semgrep_findings_error_total',
-        help: 'Total number of semgrep findings with error severity',
-        registers: [this.registry]
-      }),
-      semgrepFindingsWarning: new promClient.Gauge({
-        name: 'semgrep_findings_warning_total',
-        help: 'Total number of semgrep findings with warning severity',
-        registers: [this.registry]
-      }),
-      semgrepFindingsInfo: new promClient.Gauge({
-        name: 'semgrep_findings_info_total',
-        help: 'Total number of semgrep findings with info severity',
-        registers: [this.registry]
-      }),
-      semgrepScanDuration: new promClient.Histogram({
-        name: 'semgrep_scan_duration_seconds',
-        help: 'Semgrep scan duration in seconds',
-        buckets: [0.1, 0.5, 1, 5, 10, 30, 60],
-        registers: [this.registry]
-      }),
-      errorCount: new promClient.Gauge({
-        name: 'error_count_total',
-        help: 'Total number of errors encountered',
-        registers: [this.registry]
-      }),
-      errorRate: new promClient.Gauge({
-        name: 'error_rate_percent',
-        help: 'Error rate percentage',
-        registers: [this.registry]
-      }),
-      fileWatcherLatency: new promClient.Histogram({
-        name: 'file_watcher_latency_ms',
-        help: 'File watcher latency in milliseconds',
-        buckets: [10, 50, 100, 200, 500, 1000],
-        registers: [this.registry]
-      }),
-      semanticAnalysisLatency: new promClient.Histogram({
-        name: 'semantic_analysis_latency_ms',
-        help: 'Semantic analysis latency in milliseconds',
-        buckets: [10, 50, 100, 200, 500, 1000],
-        registers: [this.registry]
-      }),
-      qdrantLatency: new promClient.Histogram({
-        name: 'qdrant_latency_ms',
-        help: 'Qdrant operation latency in milliseconds',
-        buckets: [10, 50, 100, 200, 500, 1000],
-        registers: [this.registry]
-      }),
-      nebulaLatency: new promClient.Histogram({
-        name: 'nebula_latency_ms',
-        help: 'Nebula operation latency in milliseconds',
-        buckets: [10, 50, 100, 200, 500, 1000],
-        registers: [this.registry]
-      })
+      fileWatcherProcessedFiles: this.safeGetOrCreateGauge('file_watcher_processed_files_total', 'Total number of files processed by file watcher'),
+      semanticAnalysisCount: this.safeGetOrCreateGauge('semantic_analysis_count_total', 'Total number of semantic analyses performed'),
+      qdrantOperations: this.safeGetOrCreateGauge('qdrant_operations_total', 'Total number of Qdrant operations performed'),
+      nebulaOperations: this.safeGetOrCreateGauge('nebula_operations_total', 'Total number of Nebula operations performed'),
+      semgrepScansTotal: this.safeGetOrCreateCounter('semgrep_scans_total', 'Total number of semgrep scans performed'),
+      semgrepScansSuccessful: this.safeGetOrCreateCounter('semgrep_scans_successful_total', 'Total number of successful semgrep scans'),
+      semgrepScansFailed: this.safeGetOrCreateCounter('semgrep_scans_failed_total', 'Total number of failed semgrep scans'),
+      semgrepFindingsTotal: this.safeGetOrCreateGauge('semgrep_findings_total', 'Total number of semgrep findings'),
+      semgrepFindingsError: this.safeGetOrCreateGauge('semgrep_findings_error_total', 'Total number of semgrep findings with error severity'),
+      semgrepFindingsWarning: this.safeGetOrCreateGauge('semgrep_findings_warning_total', 'Total number of semgrep findings with warning severity'),
+      semgrepFindingsInfo: this.safeGetOrCreateGauge('semgrep_findings_info_total', 'Total number of semgrep findings with info severity'),
+      semgrepScanDuration: this.safeGetOrCreateHistogram('semgrep_scan_duration_seconds', 'Semgrep scan duration in seconds', [0.1, 0.5, 1, 5, 10, 30, 60]),
+      errorCount: this.safeGetOrCreateGauge('error_count_total', 'Total number of errors encountered'),
+      errorRate: this.safeGetOrCreateGauge('error_rate_percent', 'Error rate percentage'),
+      fileWatcherLatency: this.safeGetOrCreateHistogram('file_watcher_latency_ms', 'File watcher latency in milliseconds', [10, 50, 100, 200, 500, 1000]),
+      semanticAnalysisLatency: this.safeGetOrCreateHistogram('semantic_analysis_latency_ms', 'Semantic analysis latency in milliseconds', [10, 50, 100, 200, 500, 1000]),
+      qdrantLatency: this.safeGetOrCreateHistogram('qdrant_latency_ms', 'Qdrant operation latency in milliseconds', [10, 50, 100, 200, 500, 1000]),
+      nebulaLatency: this.safeGetOrCreateHistogram('nebula_latency_ms', 'Nebula operation latency in milliseconds', [10, 50, 100, 200, 500, 1000])
     };
 
     this.alertMetrics = {
-      alertCount: new promClient.Counter({
-        name: 'alerts_total',
-        help: 'Total number of alerts generated',
-        registers: [this.registry]
-      }),
-      alertSeverity: new promClient.Gauge({
-        name: 'alerts_severity',
-        help: 'Current alert severity level',
-        registers: [this.registry]
-      })
+      alertCount: this.safeGetOrCreateCounter('alerts_total', 'Total number of alerts generated'),
+      alertSeverity: this.safeGetOrCreateGauge('alerts_severity', 'Current alert severity level')
     };
 
     this.logger.info('Prometheus metrics service initialized with real prom-client');
