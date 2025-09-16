@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { GraphConfig, GraphData, GraphExportOptions, GraphLayoutAlgorithm } from '../../../types/graph.types';
+import { GraphConfig, GraphData } from '../../../types/graph.types';
 import { exportGraph } from '../../../services/graph.service';
 import styles from './GraphControls.module.css';
 

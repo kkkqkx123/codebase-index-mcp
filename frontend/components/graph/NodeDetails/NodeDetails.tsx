@@ -11,12 +11,6 @@ interface NodeDetailsProps {
   position?: { x: number; y: number };
 }
 
-interface EditableField {
-  label: string;
-  value: string;
-  isEditing: boolean;
-  field: keyof GraphNodeDetails;
-}
 
 const NodeDetails: React.FC<NodeDetailsProps> = ({
   node,

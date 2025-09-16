@@ -21,12 +21,12 @@ describe('GraphControls', () => {
       pan: { x: 0, y: 0 }
     },
     data: {
-      nodes: [],
-      edges: [],
+      nodes: [] as any[],
+      edges: [] as any[],
       metadata: {
         totalNodes: 0,
         totalEdges: 0,
-        layout: 'force',
+        layout: 'force' as const,
         renderingTime: 0
       }
     },

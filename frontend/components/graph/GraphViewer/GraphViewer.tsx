@@ -161,7 +161,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
         setState(prev => ({ ...prev, selectedNode: d }));
         if (onNodeClick) onNodeClick(d);
       })
-      .on('mouseenter', (event, d) => {
+      .on('mouseenter', (d) => {
         setState(prev => ({ ...prev, hoveredNode: d }));
         if (onNodeHover) onNodeHover(d);
       })

@@ -32,8 +32,8 @@ describe('GraphViewer', () => {
 
   it('renders without crashing when data is provided', () => {
     const mockData = {
-      nodes: [{ id: '1', label: 'Node 1', type: 'file', x: 0, y: 0, metadata: {} }],
-      edges: [{ id: '1-2', source: '1', target: '2', type: 'imports', weight: 1 }],
+      nodes: [{ id: '1', label: 'Node 1', type: 'file' as const, x: 0, y: 0, metadata: {} }],
+      edges: [{ id: '1-2', source: '1', target: '2', type: 'imports' as const, weight: 1 }],
       metadata: { totalNodes: 1, totalEdges: 1, layout: 'force', renderingTime: 0 }
     };
 
@@ -52,8 +52,8 @@ describe('GraphViewer', () => {
 
   it('shows zoom controls', () => {
     const mockData = {
-      nodes: [],
-      edges: [],
+      nodes: [] as any[],
+      edges: [] as any[],
       metadata: { totalNodes: 0, totalEdges: 0, layout: 'force', renderingTime: 0 }
     };
 
@@ -73,8 +73,8 @@ describe('GraphViewer', () => {
 
   it('handles layout changes with proper config', () => {
     const mockData = {
-      nodes: [],
-      edges: [],
+      nodes: [] as any[],
+      edges: [] as any[],
       metadata: { totalNodes: 0, totalEdges: 0, layout: 'force', renderingTime: 0 }
     };
 

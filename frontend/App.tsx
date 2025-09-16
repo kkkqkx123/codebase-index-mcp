@@ -13,13 +13,8 @@ import { ProjectManagement } from './components/projects';
 import { CodeSearch } from './components/search';
 // Import GraphVisualization component
 import { GraphVisualization } from './components/graph';
-
-const DebugTools = () => (
-  <div>
-    <h2>Debug Tools</h2>
-    <p>Debug and monitor MCP service functionality</p>
-  </div>
-);
+// Import DebugTools component
+import { DebugTools } from './components/debug';
 
 const App: React.FC = () => {
   return (

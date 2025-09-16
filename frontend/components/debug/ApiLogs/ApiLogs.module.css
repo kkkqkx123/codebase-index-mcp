@@ -1,0 +1,288 @@
+.apiLogs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filters select,
+.filters input {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+}
+
+.filters select:focus,
+.filters input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.logsContainer {
+  display: flex;
+  gap: 1rem;
+  min-height: 500px;
+}
+
+.logsList {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background);
+}
+
+.noLogs {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.logItem {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logItem:hover {
+  background-color: var(--color-background-hover);
+}
+
+.logItem.selected {
+  background-color: var(--color-background-selected);
+  border-left: 3px solid var(--color-primary);
+}
+
+.logSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.method {
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.method.get {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.method.post {
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.method.put {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.method.delete {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.method.patch {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.url {
+  flex: 1;
+  font-family: monospace;
+  color: var(--color-text-primary);
+}
+
+.status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.statusSuccess {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.statusRedirect {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.statusClientError {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.statusServerError {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.duration {
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.timestamp {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+}
+
+.error {
+  margin-top: 0.5rem;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.logDetails {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background);
+  overflow-y: auto;
+}
+
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-header);
+}
+
+.detailsHeader h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.detailsContent {
+  padding: 1rem;
+}
+
+.detailSection {
+  margin-bottom: 1.5rem;
+}
+
+.detailSection:last-child {
+  margin-bottom: 0;
+}
+
+.detailSection h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.detailRow {
+  display: flex;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.detailRow .label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 120px;
+}
+
+.codeBlock {
+  background: var(--color-code-background);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--color-code-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.errorDetails {
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+  border-radius: 4px;
+  padding: 1rem;
+  color: var(--color-danger);
+  font-family: monospace;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .logsContainer {
+    flex-direction: column;
+  }
+  
+  .logDetails {
+    max-height: 400px;
+  }
+  
+  .controls {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .filters {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .logSummary {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .url {
+    flex-basis: 100%;
+    order: 1;
+  }
+}
+
+/* Dark mode support */
+/* Dark mode styles are handled by CSS variables */
+@media (prefers-color-scheme: dark) {
+}

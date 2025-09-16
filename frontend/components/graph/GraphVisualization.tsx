@@ -139,13 +139,9 @@ const GraphVisualization: React.FC = () => {
         <div className={styles.sidebar}>
           <NodeDetails
             node={selectedNode}
-            onNavigate={(nodeId) => {
+            onNodeSelect={(nodeId) => {
               // In a real implementation, this would navigate to the specified node
               console.log('Navigate to node:', nodeId);
-            }}
-            onEdit={(nodeId, updates) => {
-              // In a real implementation, this would edit the node
-              console.log('Edit node:', nodeId, updates);
             }}
           />
         </div>

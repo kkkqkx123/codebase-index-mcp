@@ -11,7 +11,7 @@ describe('NodeDetails', () => {
   const mockNode = {
     id: '1',
     label: 'TestFunction',
-    type: 'function',
+    type: 'function' as const,
     x: 0,
     y: 0,
     metadata: {
@@ -23,7 +23,7 @@ describe('NodeDetails', () => {
   const mockNodeDetails = {
     id: '1',
     label: 'TestFunction',
-    type: 'function',
+    type: 'function' as const,
     filePath: '/path/to/file.ts',
     lineNumber: 10,
     content: 'function test() { return true; }',
