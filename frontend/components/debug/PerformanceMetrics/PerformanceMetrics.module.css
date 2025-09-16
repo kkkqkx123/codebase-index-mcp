@@ -109,9 +109,17 @@
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(var(--color-danger-rgb), 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(var(--color-danger-rgb), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--color-danger-rgb), 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-danger-rgb), 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--color-danger-rgb), 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-danger-rgb), 0);
+  }
 }
 
 .filters {
@@ -356,37 +364,37 @@
   .metricsContainer {
     flex-direction: column;
   }
-  
+
   .metricDetailsPanel {
     max-width: none;
     max-height: 400px;
   }
-  
+
   .controls {
     flex-direction: column;
     gap: 0.25rem;
   }
-  
+
   .filters {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .metricHeader {
     flex-wrap: wrap;
   }
-  
+
   .metricDetails {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .alertContent {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .alertActions {
     width: 100%;
     justify-content: flex-end;
@@ -394,8 +402,4 @@
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .performanceMetrics {
-    /* Dark mode styles are handled by CSS variables */
-  }
-}
+@media (prefers-color-scheme: dark) {}
