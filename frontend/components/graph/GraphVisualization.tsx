@@ -132,8 +132,8 @@ const GraphVisualization: React.FC = () => {
           <GraphViewer
             data={filteredData}
             config={config}
-            onNodeSelect={handleNodeSelect}
-            onConfigChange={handleConfigChange}
+            onNodeClick={handleNodeSelect}
+            onGraphChange={handleConfigChange}
           />
         </div>
         <div className={styles.sidebar}>

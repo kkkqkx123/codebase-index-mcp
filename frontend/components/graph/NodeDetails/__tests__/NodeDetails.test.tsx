@@ -120,7 +120,7 @@ describe('NodeDetails', () => {
   });
 
   it('renders empty state when no node is provided', () => {
-    render(<NodeDetails onClose={mockOnClose} onNodeSelect={mockOnNodeSelect} />);
+    render(<NodeDetails onClose={mockOnClose} onNodeSelect={mockOnNodeSelect} node={null} />);
 
     expect(screen.getByText('Select a node to view details')).toBeInTheDocument();
   });

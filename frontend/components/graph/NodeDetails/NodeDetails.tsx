@@ -69,7 +69,7 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
             const nodeRelationships: GraphNodeRelationship[] = [];
             response.data.edges.forEach(edge => {
               if (edge.source === node.id) {
-                const targetNode = response.data.nodes.find(n => n.id === edge.target);
+                const targetNode = response.data!.nodes.find(n => n.id === edge.target);
                 if (targetNode) {
                   nodeRelationships.push({
                     id: edge.id,
@@ -80,7 +80,7 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                   });
                 }
               } else if (edge.target === node.id) {
-                const sourceNode = response.data.nodes.find(n => n.id === edge.source);
+                const sourceNode = response.data!.nodes.find(n => n.id === edge.source);
                 if (sourceNode) {
                   nodeRelationships.push({
                     id: edge.id,
@@ -278,8 +278,8 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                 ) : (
                   <div className={styles.editableValue}>
                     <pre className={styles.codeContent}>{nodeDetails.content}</pre>
-                    <button 
-                      onClick={() => startEditing('content', nodeDetails.content)}
+                    <button
+                      onClick={() => startEditing('content', nodeDetails.content || '')}
                       className={styles.editButton}
                     >
                       ✏️
