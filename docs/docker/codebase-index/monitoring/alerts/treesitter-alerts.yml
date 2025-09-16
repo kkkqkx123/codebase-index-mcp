@@ -41,7 +41,7 @@ groups:
       service: treesitter
     annotations:
       summary: "Tree-sitter 缓存占用内存过高"
-      description: "Tree-sitter 缓存大小超过 100MB，当前值 {{ $value | humanizeBytes }}"
+      description: "Tree-sitter 缓存大小超过 100MB，当前值 {{ $value }} 字节"
 
   - alert: TreeSitterServiceDown
     expr: up{job="codebase-index-treesitter"} == 0

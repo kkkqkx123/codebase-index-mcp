@@ -61,7 +61,7 @@ services:
     ports:
       - "9121:9121"
     environment:
-      - REDIS_ADDR=127.0.0.1://host.docker.internal:6379
+      - REDIS_ADDR=host.docker.internal:6379
     restart: unless-stopped
     networks:
       - monitoring
