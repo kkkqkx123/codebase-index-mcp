@@ -142,7 +142,7 @@ describe('SearchBar', () => {
   });
 
   it('handles suggestion loading state', async () => {
-    (searchService.getSearchSuggestions as jest.Mock).mockImplementation(() => 
+    (searchService.getSearchSuggestions as jest.Mock).mockImplementation(() =>
       new Promise(resolve => setTimeout(() => resolve({ success: true, data: [] }), 100))
     );
     
@@ -151,7 +151,10 @@ describe('SearchBar', () => {
     const input = screen.getByPlaceholderText('Search code... (Ctrl+/ to focus)');
     fireEvent.change(input, { target: { value: 'test' } });
     
-    expect(screen.getByText('Loading suggestions...')).toBeInTheDocument();
+    // Wait for the loading state to appear
+    await waitFor(() => {
+      expect(screen.getByText('Loading suggestions...')).toBeInTheDocument();
+    });
   });
 
   it('handles suggestion fetch errors gracefully', async () => {
@@ -162,8 +165,8 @@ describe('SearchBar', () => {
     const input = screen.getByPlaceholderText('Search code... (Ctrl+/ to focus)');
     fireEvent.change(input, { target: { value: 'test' } });
     
+    // Wait for the loading state to appear and then disappear
     await waitFor(() => {
-      // Should not crash and should not show suggestions
       expect(screen.queryByText('Loading suggestions...')).not.toBeInTheDocument();
     });
   });

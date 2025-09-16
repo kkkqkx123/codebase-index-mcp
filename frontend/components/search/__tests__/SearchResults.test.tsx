@@ -101,6 +101,9 @@ describe('SearchResults', () => {
   });
 
   it('handles details fetch error gracefully', async () => {
+    // Mock console.error to prevent it from showing in test output
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     (searchService.getSearchResultDetails as jest.Mock).mockRejectedValue(new Error('API Error'));
     
     render(<SearchResults results={mockResults} />);
@@ -113,6 +116,9 @@ describe('SearchResults', () => {
       // Should not crash and should still show the button
       expect(screen.getByText('Show Details')).toBeInTheDocument();
     });
+    
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
 
   it('displays timestamp correctly', () => {

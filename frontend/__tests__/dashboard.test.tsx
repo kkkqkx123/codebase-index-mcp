@@ -1,6 +1,6 @@
 import React from 'react';
 // @ts-ignore - using frontend project's testing library
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import Dashboard from '../components/dashboard/Dashboard';
@@ -8,6 +8,18 @@ import SystemHealth from '../components/dashboard/SystemHealth/SystemHealth';
 import MetricsDisplay from '../components/dashboard/MetricsDisplay/MetricsDisplay';
 import ProjectSummary from '../components/dashboard/ProjectSummary/ProjectSummary';
 import GrafanaIntegration from '../components/dashboard/GrafanaIntegration/GrafanaIntegration';
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+});
 
 // Mock the services
 jest.mock('../services/monitoring.service', () => ({
@@ -51,6 +63,30 @@ jest.mock('../services/monitoring.service', () => ({
   getGrafanaDashboardUrl: jest.fn().mockResolvedValue({
     success: true,
     data: { url: 'http://localhost:3000/d/dashboard-1?auth=token' }
+  }),
+  convertBackendToFrontendHealthStatus: jest.fn().mockImplementation((backendResponse) => {
+    if (backendResponse.success && backendResponse.data) {
+      return {
+        overall: 'healthy',
+        components: {
+          database: 'healthy',
+          indexing: 'healthy',
+          api: 'healthy'
+        },
+        lastChecked: new Date(),
+        issues: []
+      };
+    }
+    return {
+      overall: 'error',
+      components: {
+        database: 'error',
+        indexing: 'error',
+        api: 'error'
+      },
+      lastChecked: new Date(),
+      issues: []
+    };
   })
 }));
 
@@ -130,11 +166,13 @@ describe('Phase 4 Dashboard Implementation', () => {
 
   describe('SystemHealth Component', () => {
     it('displays system health status', async () => {
-      render(
-        <TestWrapper>
-          <SystemHealth />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <SystemHealth />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('System Health')).toBeInTheDocument();
@@ -143,11 +181,13 @@ describe('Phase 4 Dashboard Implementation', () => {
     });
 
     it('shows component status indicators', async () => {
-      render(
-        <TestWrapper>
-          <SystemHealth />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <SystemHealth />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('database')).toBeInTheDocument();
@@ -159,11 +199,13 @@ describe('Phase 4 Dashboard Implementation', () => {
 
   describe('MetricsDisplay Component', () => {
     it('displays performance metrics', async () => {
-      render(
-        <TestWrapper>
-          <MetricsDisplay />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <MetricsDisplay />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Performance Metrics')).toBeInTheDocument();
@@ -174,11 +216,13 @@ describe('Phase 4 Dashboard Implementation', () => {
     });
 
     it('handles time range selection', async () => {
-      render(
-        <TestWrapper>
-          <MetricsDisplay />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <MetricsDisplay />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         const timeRangeButtons = screen.getAllByRole('button');
@@ -196,11 +240,13 @@ describe('Phase 4 Dashboard Implementation', () => {
 
   describe('ProjectSummary Component', () => {
     it('displays project statistics', async () => {
-      render(
-        <TestWrapper>
-          <ProjectSummary />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <ProjectSummary />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Project Overview')).toBeInTheDocument();
@@ -213,11 +259,13 @@ describe('Phase 4 Dashboard Implementation', () => {
     it('handles navigation to project management', async () => {
       const mockNavigate = jest.fn();
 
-      render(
-        <TestWrapper>
-          <ProjectSummary onNavigateToProjects={mockNavigate} />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <ProjectSummary onNavigateToProjects={mockNavigate} />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         const manageButton = screen.getByLabelText('Navigate to project management');
@@ -229,11 +277,13 @@ describe('Phase 4 Dashboard Implementation', () => {
 
   describe('GrafanaIntegration Component', () => {
     it('displays Grafana dashboards', async () => {
-      render(
-        <TestWrapper>
-          <GrafanaIntegration />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <GrafanaIntegration />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Grafana Dashboards')).toBeInTheDocument();
@@ -246,11 +296,13 @@ describe('Phase 4 Dashboard Implementation', () => {
       const originalOpen = window.open;
       window.open = jest.fn();
 
-      render(
-        <TestWrapper>
-          <GrafanaIntegration />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <GrafanaIntegration />
+          </TestWrapper>
+        );
+      });
 
       await waitFor(() => {
         const openButton = screen.getByLabelText('Open Codebase Index Metrics dashboard');
@@ -271,11 +323,13 @@ describe('Phase 4 Dashboard Implementation', () => {
         value: 375,
       });
 
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      );
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <Dashboard />
+          </TestWrapper>
+        );
+      });
 
       // Check if dashboard renders correctly on mobile
       await waitFor(() => {
@@ -285,25 +339,32 @@ describe('Phase 4 Dashboard Implementation', () => {
   });
 
   describe('Auto-refresh Functionality', () => {
-    it('enables auto-refresh by default', () => {
-      render(
-        <TestWrapper>
-          <Dashboard autoRefresh={true} refreshInterval={15000} />
-        </TestWrapper>
-      );
+    it('enables auto-refresh by default', async () => {
+      await act(async () => {
+        render(
+          <TestWrapper>
+            <Dashboard autoRefresh={true} refreshInterval={15000} />
+          </TestWrapper>
+        );
+      });
 
-      expect(screen.getByText(/Auto-refresh: 15s/)).toBeInTheDocument();
+      // Wait for the text to appear
+      await waitFor(() => {
+        expect(screen.getByText(/Auto-refresh: 15s/)).toBeInTheDocument();
+      });
     });
   });
 });
 
 describe('Integration Tests', () => {
   it('dashboard components work together correctly', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    );
+    await act(async () => {
+      render(
+        <TestWrapper>
+          <Dashboard />
+        </TestWrapper>
+      );
+    });
 
     // Wait for all components to load
     await waitFor(() => {

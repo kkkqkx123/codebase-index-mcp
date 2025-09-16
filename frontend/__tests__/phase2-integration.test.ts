@@ -53,23 +53,6 @@ import {
 } from '@services/monitoring.service';
 import { useMetricsPolling } from '@hooks/useMetricsPolling';
 
-// Mock axios
-jest.mock('axios', () => {
-  return {
-    create: jest.fn(() => ({
-      interceptors: {
-        request: { use: jest.fn() },
-        response: { use: jest.fn() }
-      },
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      patch: jest.fn()
-    })),
-    isAxiosError: jest.fn()
-  };
-});
 
 // Mock localStorage
 const localStorageMock = {
@@ -173,7 +156,7 @@ describe('Phase 2 Implementation Tests', () => {
 
   describe('Integration Tests', () => {
     test('All adapters can be imported without errors', () => {
-      expect(() => require('@api/mcp-adapter/index')).not.toThrow();
+      expect(() => require('@api/mcp-adapter')).not.toThrow();
       expect(() => require('@api/mcp-adapter/indexing.adapter')).not.toThrow();
       expect(() => require('@api/mcp-adapter/search.adapter')).not.toThrow();
       expect(() => require('@api/mcp-adapter/graph.adapter')).not.toThrow();

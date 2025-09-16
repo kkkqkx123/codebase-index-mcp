@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import Button from '../Button/Button';
 import styles from './ErrorMessage.module.css';
 
@@ -27,7 +27,7 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({
   dismissible = false,
   onDismiss
 }) => {
-  const [showErrorDetails, setShowErrorDetails] = React.useState(false);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   const getIcon = () => {
     switch (variant) {
