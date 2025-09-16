@@ -40,7 +40,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Debounced function to fetch suggestions
-  const debouncedFetchSuggestions = useDebounce(async (searchText: string) => {
+  const debouncedFetchSuggestions = useDebouncedCallback(async (searchText: string) => {
     if (searchText.length < 2) {
       setSuggestions([]);
       return;

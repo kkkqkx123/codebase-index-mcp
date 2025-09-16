@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
   moduleNameMapper: {
+    '\\.module\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@components/(.*)$': '<rootDir>/components/$1',
