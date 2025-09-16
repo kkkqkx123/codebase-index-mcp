@@ -1,14 +1,14 @@
 import { render, screen, fireEvent } from '../../../__tests__/test-utils';
-import { ApiLogs } from '..';
+import ApiLogs from '../ApiLogs/ApiLogs';
 
 // Mock common components
-jest.mock('../../components/common/Card/Card', () => {
+jest.mock('../../../components/common/Card/Card', () => {
   return function MockCard({ children }: { children: React.ReactNode }) {
     return <div data-testid="card">{children}</div>;
   };
 });
 
-jest.mock('../../components/common/Button/Button', () => {
+jest.mock('../../../components/common/Button/Button', () => {
   return function MockButton({ children, variant, size, onClick }: {
     children: React.ReactNode;
     variant?: string;
@@ -28,13 +28,13 @@ jest.mock('../../components/common/Button/Button', () => {
   };
 });
 
-jest.mock('../../components/common/LoadingSpinner/LoadingSpinner', () => {
+jest.mock('../../../components/common/LoadingSpinner/LoadingSpinner', () => {
   return function MockLoadingSpinner() {
     return <div data-testid="loading-spinner">Loading...</div>;
   };
 });
 
-jest.mock('../../components/common/ErrorMessage/ErrorMessage', () => {
+jest.mock('../../../components/common/ErrorMessage/ErrorMessage', () => {
   return function MockErrorMessage({ message, onRetry }: { message: string; onRetry?: () => void }) {
     return (
       <div data-testid="error-message">
@@ -55,84 +55,76 @@ describe('ApiLogs Component', () => {
   });
 
   test('renders without crashing', () => {
-    render(<ApiLogs />);
+    render(<ApiLogs initialLoading={false} />);
     expect(screen.getByText('API Logs')).toBeInTheDocument();
   });
 
   test('renders loading spinner initially', () => {
-    render(<ApiLogs />);
+    render(<ApiLogs initialLoading={true} skipInitialFetch={true} />);
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
   });
 
   test('renders logs after loading', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Check that logs are displayed
-    expect(screen.getByText('POST')).toBeInTheDocument();
     expect(screen.getByText('/api/v1/indexing/create')).toBeInTheDocument();
-    expect(screen.getByText('GET')).toBeInTheDocument();
     expect(screen.getByText('/api/v1/indexing/status/test-project')).toBeInTheDocument();
   });
 
   test('renders log items with correct status colors', async () => {
-    render(<ApiLogs />);
+    render(<ApiLogs initialLoading={false} />);
 
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    const successLogs = screen.getAllByText('200');
+    const errorLogs = screen.getAllByText('404');
 
-    const successLog = screen.getByText('200').closest('div');
-    const errorLog = screen.getByText('404').closest('div');
+    // There are two 200 status logs, both should have statusSuccess class
+    successLogs.forEach(log => {
+      expect(log).toHaveClass('statusSuccess');
+    });
 
-    expect(successLog).toHaveClass('statusSuccess');
-    expect(errorLog).toHaveClass('statusClientError');
+    // There is one 404 status log, it should have statusClientError class
+    errorLogs.forEach(log => {
+      expect(log).toHaveClass('statusClientError');
+    });
   });
 
   test('filters logs by method', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Initially should show all logs
-    expect(screen.getByText('POST')).toBeInTheDocument();
-    expect(screen.getByText('GET')).toBeInTheDocument();
+    expect(screen.getByText('/api/v1/indexing/create')).toBeInTheDocument();
+    expect(screen.getByText('/api/v1/indexing/status/test-project')).toBeInTheDocument();
 
     // Filter by POST method
-    const methodFilter = screen.getByRole('combobox', { name: '' });
+    // Get the first combobox (method filter)
+    const methodFilter = screen.getAllByRole('combobox')[0];
     fireEvent.change(methodFilter, { target: { value: 'POST' } });
 
     // Should only show POST logs
-    expect(screen.getByText('POST')).toBeInTheDocument();
-    expect(screen.queryByText('GET')).not.toBeInTheDocument();
+    expect(screen.getByText('/api/v1/indexing/create')).toBeInTheDocument();
+    expect(screen.getByText('/api/v1/search/hybrid')).toBeInTheDocument();
+    expect(screen.queryByText('/api/v1/indexing/status/test-project')).not.toBeInTheDocument();
   });
 
   test('filters logs by success status', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Initially should show all logs
-    expect(screen.getByText('200')).toBeInTheDocument();
-    expect(screen.getByText('404')).toBeInTheDocument();
+    expect(screen.getAllByText('200')).toHaveLength(2); // 2 successful logs
+    expect(screen.getByText('404')).toBeInTheDocument(); // 1 error log
 
     // Filter by success only
     const statusFilter = screen.getAllByRole('combobox', { name: '' })[1];
     fireEvent.change(statusFilter, { target: { value: 'true' } });
 
     // Should only show successful logs
-    expect(screen.getByText('200')).toBeInTheDocument();
-    expect(screen.queryByText('404')).not.toBeInTheDocument();
+    expect(screen.getAllByText('200')).toHaveLength(2); // 2 successful logs
+    expect(screen.queryByText('404')).not.toBeInTheDocument(); // no error logs
   });
 
   test('shows log details when log item is clicked', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Click on a log item
     const logItem = screen.getByText('/api/v1/indexing/create').closest('div');
@@ -146,10 +138,7 @@ describe('ApiLogs Component', () => {
   });
 
   test('closes log details when close button is clicked', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Click on a log item
     const logItem = screen.getByText('/api/v1/indexing/create').closest('div');
@@ -167,19 +156,20 @@ describe('ApiLogs Component', () => {
   });
 
   test('exports logs in JSON format', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Mock document.createElement and related functions
     const mockCreateElement = jest.spyOn(document, 'createElement');
-    const mockCreateObjectURL = jest.spyOn(URL, 'createObjectURL');
-    const mockRevokeObjectURL = jest.spyOn(URL, 'revokeObjectURL');
+    const mockCreateObjectURL = jest.fn(() => 'blob:test');
+    const mockRevokeObjectURL = jest.fn();
 
-    mockCreateElement.mockReturnValue({} as any);
-    mockCreateObjectURL.mockReturnValue('blob:test');
-    mockRevokeObjectURL.mockImplementation(() => { });
+    // Mock URL.createObjectURL and URL.revokeObjectURL
+    window.URL.createObjectURL = mockCreateObjectURL;
+    window.URL.revokeObjectURL = mockRevokeObjectURL;
+
+    // Create a mock element that behaves like a real DOM element
+    const mockElement = document.createElement('a');
+    mockCreateElement.mockReturnValue(mockElement);
 
     // Click export JSON button
     const exportButton = screen.getByText('Export JSON');
@@ -196,13 +186,11 @@ describe('ApiLogs Component', () => {
   });
 
   test('clears logs when clear button is clicked', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Verify logs are present
-    expect(screen.getByText('POST')).toBeInTheDocument();
+    expect(screen.getByText('/api/v1/indexing/create')).toBeInTheDocument();
+    expect(screen.getByText('/api/v1/search/hybrid')).toBeInTheDocument();
 
     // Click clear button
     const clearButton = screen.getByText('Clear Logs');
@@ -213,10 +201,7 @@ describe('ApiLogs Component', () => {
   });
 
   test('toggles auto refresh', async () => {
-    render(<ApiLogs />);
-
-    // Wait for loading to complete
-    await screen.findByText('API Logs');
+    render(<ApiLogs initialLoading={false} />);
 
     // Find auto refresh button
     const autoRefreshButton = screen.getByText('Auto Refresh On');

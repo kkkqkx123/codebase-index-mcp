@@ -76,19 +76,21 @@ const DevMode: React.FC<DevModeProps> = ({
 
   // Toggle feature on/off
   const toggleFeature = (featureId: string) => {
-    setFeatures(prev =>
-      prev.map(feature =>
+    setFeatures(prev => {
+      const updatedFeatures = prev.map(feature =>
         feature.id === featureId
           ? { ...feature, enabled: !feature.enabled }
           : feature
-      )
-    );
-
-    // Apply feature changes
-    const feature = features.find(f => f.id === featureId);
-    if (feature) {
-      applyFeatureChange(featureId, !feature.enabled);
-    }
+      );
+      
+      // Apply feature changes with the updated state
+      const feature = updatedFeatures.find(f => f.id === featureId);
+      if (feature) {
+        applyFeatureChange(featureId, !feature.enabled);
+      }
+      
+      return updatedFeatures;
+    });
   };
 
   // Apply feature changes (in a real app, this would affect the application behavior)

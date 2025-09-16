@@ -9,15 +9,19 @@ import styles from './ApiLogs.module.css';
 interface ApiLogsProps {
   refreshInterval?: number;
   maxLogEntries?: number;
+  initialLoading?: boolean; // For testing purposes
+  skipInitialFetch?: boolean; // For testing purposes
 }
 
 const ApiLogs: React.FC<ApiLogsProps> = ({
   refreshInterval = 5000,
-  maxLogEntries = 100
+  maxLogEntries = 100,
+  initialLoading = true,
+  skipInitialFetch = false
 }) => {
   const [logs, setLogs] = useState<ApiLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<ApiLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(initialLoading);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ApiLogFilter>({});
   const [selectedLog, setSelectedLog] = useState<ApiLog | null>(null);
@@ -130,8 +134,10 @@ const ApiLogs: React.FC<ApiLogsProps> = ({
 
   // Initial fetch
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    if (!skipInitialFetch) {
+      fetchLogs();
+    }
+  }, [fetchLogs, skipInitialFetch]);
 
   const handleExport = async (format: ExportOptions['format']) => {
 

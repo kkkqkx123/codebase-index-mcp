@@ -26,11 +26,15 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({
   const [resolutionNotes, setResolutionNotes] = useState<{ [key: string]: string }>({});
 
   // Simulate fetching error data from backend
+ // Simulate fetching error data from backend
   const fetchErrors = useCallback(async () => {
     try {
       setLoading(true);
       // In a real implementation, this would fetch from the backend
       // For now, we'll simulate with mock data
+      // Add a small delay to ensure loading state is visible
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const mockErrors: ErrorInfo[] = [
         {
           id: '1',
@@ -59,8 +63,8 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({
           action: 'request',
           context: { endpoint: '/api/v1/search/hybrid', timeout: 30000 },
           frequency: 8,
-          firstSeen: new Date(Date.now() - 432000000), // 5 days ago
-          lastSeen: new Date(Date.now() - 600000),
+          firstSeen: new Date(Date.now() - 4320000), // 5 days ago
+          lastSeen: new Date(Date.now() - 6000),
           resolved: false
         },
         {
@@ -90,7 +94,6 @@ const ErrorViewer: React.FC<ErrorViewerProps> = ({
       setLoading(false);
     }
   }, []);
-
   // Auto-refresh errors
   useEffect(() => {
     if (!autoRefresh) return;

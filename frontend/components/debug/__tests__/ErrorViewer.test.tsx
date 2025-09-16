@@ -1,14 +1,15 @@
 import { render, screen, fireEvent } from '../../../__tests__/test-utils';
+import { act } from 'react';
 import { ErrorViewer } from '..';
 
 // Mock common components
-jest.mock('../../components/common/Card/Card', () => {
+jest.mock('../../../components/common/Card/Card', () => {
   return function MockCard({ children }: { children: React.ReactNode }) {
     return <div data-testid="card">{children}</div>;
   };
 });
 
-jest.mock('../../components/common/Button/Button', () => {
+jest.mock('../../../components/common/Button/Button', () => {
   return function MockButton({ children, variant, size, onClick }: {
     children: React.ReactNode;
     variant?: string;
@@ -28,13 +29,13 @@ jest.mock('../../components/common/Button/Button', () => {
   };
 });
 
-jest.mock('../../components/common/LoadingSpinner/LoadingSpinner', () => {
+jest.mock('../../../components/common/LoadingSpinner/LoadingSpinner', () => {
   return function MockLoadingSpinner() {
     return <div data-testid="loading-spinner">Loading...</div>;
   };
 });
 
-jest.mock('../../components/common/ErrorMessage/ErrorMessage', () => {
+jest.mock('../../../components/common/ErrorMessage/ErrorMessage', () => {
   return function MockErrorMessage({ message, onRetry }: { message: string; onRetry?: () => void }) {
     return (
       <div data-testid="error-message">
@@ -54,10 +55,12 @@ describe('ErrorViewer Component', () => {
     jest.useRealTimers();
   });
 
-  test('renders without crashing', () => {
-    render(<ErrorViewer />);
-    expect(screen.getByText('Error Viewer')).toBeInTheDocument();
-  });
+   test('renders without crashing', async () => {
+     render(<ErrorViewer />);
+     // Wait for loading to complete
+     await screen.findByText('Error Viewer');
+     expect(screen.getByText('Error Viewer')).toBeInTheDocument();
+   });
 
   test('renders loading spinner initially', () => {
     render(<ErrorViewer />);
@@ -70,9 +73,15 @@ describe('ErrorViewer Component', () => {
     // Wait for loading to complete
     await screen.findByText('Error Viewer');
 
-    // Check that errors are displayed
+    // Check that active errors are displayed
     expect(screen.getByText('Cannot read property \'map\' of undefined')).toBeInTheDocument();
     expect(screen.getByText('Failed to fetch: Request timeout')).toBeInTheDocument();
+    
+    // Show resolved errors
+    const showResolvedButton = screen.getByText('Show Resolved');
+    fireEvent.click(showResolvedButton);
+    
+    // Check that resolved errors are displayed
     expect(screen.getByText('Project path is required')).toBeInTheDocument();
   });
 
@@ -83,16 +92,20 @@ describe('ErrorViewer Component', () => {
     await screen.findByText('Error Viewer');
 
     // Initially should show all errors
-    expect(screen.getByText('TypeError')).toBeInTheDocument();
-    expect(screen.getByText('NetworkError')).toBeInTheDocument();
+    expect(screen.getByText('TypeError', { selector: '.typeBadge' })).toBeInTheDocument();
+    expect(screen.getByText('NetworkError', { selector: '.typeBadge' })).toBeInTheDocument();
 
-    // Filter by TypeError
-    const typeFilter = screen.getByRole('combobox', { name: '' });
-    fireEvent.change(typeFilter, { target: { value: 'TypeError' } });
+    // Filter by TypeError - get the first combobox (type filter)
+      const typeFilter = screen.getAllByRole('combobox')[0];
+      fireEvent.change(typeFilter, { target: { value: 'TypeError' } });
+
+    // Wait for the filter to be applied
+    await screen.findByText('Cannot read property \'map\' of undefined');
 
     // Should only show TypeError errors
-    expect(screen.getByText('TypeError')).toBeInTheDocument();
-    expect(screen.queryByText('NetworkError')).not.toBeInTheDocument();
+    const typeBadges = screen.getAllByText('TypeError', { selector: '.typeBadge' });
+    expect(typeBadges).toHaveLength(1);
+    expect(screen.queryByText('NetworkError', { selector: '.typeBadge' })).not.toBeInTheDocument();
   });
 
   test('filters errors by component', async () => {
@@ -106,8 +119,8 @@ describe('ErrorViewer Component', () => {
     fireEvent.change(componentFilter, { target: { value: 'Dashboard' } });
 
     // Should only show Dashboard errors
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.queryByText('ApiService')).not.toBeInTheDocument();
+    expect(screen.getByText('Cannot read property \'map\' of undefined')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to fetch: Request timeout')).not.toBeInTheDocument();
   });
 
   test('shows resolved errors when toggled', async () => {
@@ -200,8 +213,11 @@ describe('ErrorViewer Component', () => {
     // Wait for loading to complete
     await screen.findByText('Error Viewer');
 
-    // Click on an error item
-    const errorItem = screen.getByText('Cannot read property \'map\' of undefined').closest('div');
+    // Click on an error item - we need to be more specific about which error item we're selecting
+    // Get the error item container for the TypeError
+    const errorItems = screen.getAllByText('Cannot read property \'map\' of undefined');
+    // The first one should be in the list item (the second one might be in the details panel)
+    const errorItem = errorItems[0].closest('.errorItem');
     fireEvent.click(errorItem!);
 
     // Add resolution notes
@@ -212,8 +228,21 @@ describe('ErrorViewer Component', () => {
     const resolveButton = screen.getByText('Mark as Resolved');
     fireEvent.click(resolveButton);
 
-    // Error should now be marked as resolved
-    expect(screen.getByText('✓ Resolved')).toBeInTheDocument();
+    // Close the details panel to see the list item
+    const closeButton = screen.getByText('×');
+    fireEvent.click(closeButton);
+
+    // Toggle to show resolved errors
+    const showResolvedButton = screen.getByText('Show Resolved');
+    fireEvent.click(showResolvedButton);
+
+    // Wait for the state update to be reflected in the UI
+    // Instead of looking for the text, let's check if the error item has the resolved class
+    const resolvedErrorItems = await screen.findAllByText('Cannot read property \'map\' of undefined');
+    const resolvedErrorItem = resolvedErrorItems[0].closest('.errorItem');
+    
+    // Check that the error item now has the 'resolved' class
+    expect(resolvedErrorItem).toHaveClass('resolved');
   });
 
   test('reopens resolved error', async () => {
@@ -246,12 +275,36 @@ describe('ErrorViewer Component', () => {
 
     // Mock document.createElement and related functions
     const mockCreateElement = jest.spyOn(document, 'createElement');
-    const mockCreateObjectURL = jest.spyOn(URL, 'createObjectURL');
-    const mockRevokeObjectURL = jest.spyOn(URL, 'revokeObjectURL');
+    const mockCreateObjectURL = jest.fn(() => 'blob:test');
+    const mockRevokeObjectURL = jest.fn();
+    
+    // Create a mock anchor element
+    const mockAnchor = document.createElement('a');
+    mockCreateElement.mockImplementation((tagName) => {
+      if (tagName === 'a') {
+        return mockAnchor;
+      }
+      // For other elements, return a basic HTMLElement
+      return document.createElement('div');
+    });
 
-    mockCreateElement.mockReturnValue({} as any);
-    mockCreateObjectURL.mockReturnValue('blob:test');
-    mockRevokeObjectURL.mockImplementation(() => { });
+    // Temporarily replace URL.createObjectURL and URL.revokeObjectURL
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: mockCreateObjectURL,
+      writable: true,
+    });
+    
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: mockRevokeObjectURL,
+      writable: true,
+    });
+
+    // Mock click method on the anchor element
+    const mockClick = jest.fn();
+    mockAnchor.click = mockClick;
 
     // Click export button
     const exportButton = screen.getByText('Export');
@@ -260,11 +313,19 @@ describe('ErrorViewer Component', () => {
     // Verify that export functions were called
     expect(mockCreateElement).toHaveBeenCalledWith('a');
     expect(mockCreateObjectURL).toHaveBeenCalled();
+    expect(mockClick).toHaveBeenCalled();
 
     // Clean up
     mockCreateElement.mockRestore();
-    mockCreateObjectURL.mockRestore();
-    mockRevokeObjectURL.mockRestore();
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: originalCreateObjectURL,
+      writable: true,
+    });
+    
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: originalRevokeObjectURL,
+      writable: true,
+    });
   });
 
   test('toggles auto refresh', async () => {
