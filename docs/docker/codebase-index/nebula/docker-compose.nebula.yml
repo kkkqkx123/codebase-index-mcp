@@ -12,6 +12,8 @@ services:
       - --port=9559
       - --data_path=/data/meta
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./data/meta0:/data
       - ./logs/metad0:/logs
@@ -40,6 +42,8 @@ services:
       - --port=9559
       - --data_path=/data/meta
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./data/meta1:/data
       - ./logs/metad1:/logs
@@ -68,6 +72,8 @@ services:
       - --port=9559
       - --data_path=/data/meta
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./data/meta2:/data
       - ./logs/metad2:/logs
@@ -97,6 +103,8 @@ services:
       - --port=9779
       - --data_path=/data/storage
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./data/storage0:/data
       - ./logs/storaged0:/logs
@@ -129,6 +137,8 @@ services:
       - --port=9779
       - --data_path=/data/storage
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./data/storage1:/data
       - ./logs/storaged1:/logs
@@ -161,6 +171,8 @@ services:
       - --port=9779
       - --data_path=/data/storage
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./data/storage2:/data
       - ./logs/storaged2:/logs
@@ -219,6 +231,8 @@ services:
       - --ws_ip=graphd
       - --enable_authorize=true
       - --minloglevel=0
+      - --log_dir=/logs
+      - --logtostderr=true
     volumes:
       - ./logs/graphd:/logs
       - ./nebula-graphd.conf:/usr/local/nebula/etc/nebula-graphd.conf
