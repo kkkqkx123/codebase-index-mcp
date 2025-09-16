@@ -1,0 +1,406 @@
+.graphVisualization {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8f9fa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.titleSection h1 {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.performanceMetrics {
+  display: flex;
+  gap: 16px;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.metricLabel {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.metricValue {
+  font-weight: 600;
+  color: #212529;
+  font-family: 'Courier New', monospace;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.graphViewerContainer {
+  flex: 1;
+  position: relative;
+  background: white;
+  margin: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.loadingContent {
+  text-align: center;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loadingContent p {
+  margin: 0;
+  font-size: 16px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.errorOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.errorContent {
+  text-align: center;
+  padding: 32px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+}
+
+.errorContent h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #dc3545;
+}
+
+.errorContent p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.retryButton {
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.statusBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: white;
+  border-top: 1px solid #dee2e6;
+  font-size: 12px;
+}
+
+.statusInfo {
+  display: flex;
+  gap: 16px;
+}
+
+.statusInfo span {
+  color: #6c757d;
+}
+
+.statusInfo span::after {
+  content: '•';
+  margin-left: 8px;
+  color: #dee2e6;
+}
+
+.statusInfo span:last-child::after {
+  content: none;
+}
+
+.statusActions {
+  display: flex;
+  gap: 8px;
+}
+
+.resetViewButton {
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resetViewButton:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #212529;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .performanceMetrics {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 12px 16px;
+  }
+  
+  .titleSection h1 {
+    font-size: 20px;
+  }
+  
+  .subtitle {
+    font-size: 12px;
+  }
+  
+  .performanceMetrics {
+    gap: 8px;
+  }
+  
+  .metric {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  .graphViewerContainer {
+    margin: 8px;
+  }
+  
+  .statusBar {
+    padding: 8px 16px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .statusInfo {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .statusInfo span::after {
+    margin-left: 4px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .graphVisualization {
+    background: #1a202c;
+  }
+  
+  .header {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+  
+  .titleSection h1 {
+    color: #e2e8f0;
+  }
+  
+  .subtitle {
+    color: #a0aec0;
+  }
+  
+  .metric {
+    background: #4a5568;
+    border-color: #718096;
+  }
+  
+  .metricLabel {
+    color: #a0aec0;
+  }
+  
+  .metricValue {
+    color: #e2e8f0;
+  }
+  
+  .graphViewerContainer {
+    background: #2d3748;
+  }
+  
+  .loadingContent {
+    background: #2d3748;
+  }
+  
+  .loadingContent p {
+    color: #e2e8f0;
+  }
+  
+  .errorContent {
+    background: #2d3748;
+  }
+  
+  .errorContent h3 {
+    color: #fc8181;
+  }
+  
+  .errorContent p {
+    color: #e2e8f0;
+  }
+  
+  .statusBar {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+  
+  .statusInfo span {
+    color: #a0aec0;
+  }
+  
+  .statusInfo span::after {
+    color: #4a5568;
+  }
+  
+  .resetViewButton {
+    background: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+  }
+  
+  .resetViewButton:hover {
+    background: #718096;
+    border-color: #a0aec0;
+    color: #ffffff;
+  }
+}
+
+/* Performance optimizations */
+.graphViewerContainer {
+  will-change: transform;
+  contain: layout style paint;
+}
+
+.loadingOverlay,
+.errorOverlay {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Loading animation for skeleton states */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Dark mode skeleton */
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #4a5568 25%,
+      #718096 50%,
+      #4a5568 75%
+    );
+    background-size: 200% 100%;
+  }
+}

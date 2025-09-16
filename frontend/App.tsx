@@ -11,13 +11,8 @@ import Dashboard from './components/dashboard/Dashboard';
 import { ProjectManagement } from './components/projects';
 // Import CodeSearch component
 import { CodeSearch } from './components/search';
-
-const GraphVisualization = () => (
-  <div>
-    <h2>Graph Visualization</h2>
-    <p>Visualize code relationships and dependencies</p>
-  </div>
-);
+// Import GraphVisualization component
+import { GraphVisualization } from './components/graph';
 
 const DebugTools = () => (
   <div>

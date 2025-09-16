@@ -1,0 +1,448 @@
+.nodeDetails {
+  position: absolute;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 350px;
+  max-height: 600px;
+  overflow: hidden;
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #dee2e6;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.nodeTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nodeTitle h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.nodeIcon {
+  font-size: 18px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.content {
+  padding: 16px;
+  max-height: calc(600px - 60px);
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+
+.value {
+  font-size: 14px;
+  color: #212529;
+  word-break: break-word;
+}
+
+.editableValue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.editableValue span,
+.editableValue pre {
+  flex: 1;
+  font-size: 14px;
+  color: #212529;
+}
+
+.editButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.editButton:hover {
+  opacity: 1;
+  background: #f8f9fa;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editField input,
+.editField textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.editField input:focus,
+.editField textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.saveButton,
+.cancelButton {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saveButton {
+  background: #007bff;
+  color: white;
+}
+
+.saveButton:hover {
+  background: #0056b3;
+}
+
+.cancelButton {
+  background: #6c757d;
+  color: white;
+}
+
+.cancelButton:hover {
+  background: #545b62;
+}
+
+.codeContent {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.relationshipsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.relationshipItem {
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8f9fa;
+}
+
+.relationshipItem:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.relationshipHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.relationshipIcon {
+  font-size: 14px;
+}
+
+.relationshipType {
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  text-transform: uppercase;
+}
+
+.relationshipDirection {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.relationshipTarget {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.targetLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #212529;
+}
+
+.targetId {
+  font-size: 11px;
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+}
+
+.noRelationships {
+  font-size: 13px;
+  color: #6c757d;
+  font-style: italic;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actionButton {
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionButton:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.loadingSpinner {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.error {
+  padding: 16px;
+  background: #f8d7da;
+  color: #721c24;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.emptyState {
+  padding: 40px 16px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .nodeDetails {
+    width: 300px;
+    max-height: 500px;
+  }
+  
+  .content {
+    max-height: calc(500px - 60px);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .nodeDetails {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+  
+  .header {
+    background: #4a5568;
+    border-color: #4a5568;
+  }
+  
+  .nodeTitle h3 {
+    color: #e2e8f0;
+  }
+  
+  .closeButton {
+    color: #a0aec0;
+  }
+  
+  .closeButton:hover {
+    background: #718096;
+    color: #e2e8f0;
+  }
+  
+  .section h4 {
+    color: #a0aec0;
+  }
+  
+  .field label {
+    color: #a0aec0;
+  }
+  
+  .value {
+    color: #e2e8f0;
+  }
+  
+  .editableValue span,
+  .editableValue pre {
+    color: #e2e8f0;
+  }
+  
+  .editButton:hover {
+    background: #4a5568;
+  }
+  
+  .editField input,
+  .editField textarea {
+    background: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+  }
+  
+  .editField input:focus,
+  .editField textarea:focus {
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.25);
+  }
+  
+  .codeContent {
+    background: #4a5568;
+    border-color: #718096;
+  }
+  
+  .relationshipItem {
+    background: #4a5568;
+    border-color: #718096;
+  }
+  
+  .relationshipItem:hover {
+    background: #718096;
+    border-color: #a0aec0;
+  }
+  
+  .relationshipType {
+    color: #a0aec0;
+  }
+  
+  .targetLabel {
+    color: #e2e8f0;
+  }
+  
+  .targetId {
+    color: #a0aec0;
+  }
+  
+  .actionButton {
+    background: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+  }
+  
+  .actionButton:hover {
+    background: #718096;
+    border-color: #a0aec0;
+  }
+  
+  .loadingSpinner {
+    color: #a0aec0;
+  }
+  
+  .error {
+    background: #742a2a;
+    color: #fed7d7;
+  }
+  
+  .emptyState {
+    color: #a0aec0;
+  }
+}
