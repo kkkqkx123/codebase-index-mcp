@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from '../../../__tests__/test-utils';
-import { act } from 'react';
 import { ErrorViewer } from '..';
 
 // Mock common components

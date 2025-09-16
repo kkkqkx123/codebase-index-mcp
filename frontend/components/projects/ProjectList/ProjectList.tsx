@@ -244,12 +244,21 @@ const ProjectList: React.FC<ProjectListProps> = ({
       setError(null);
       const response = await getProjects();
       if (response.success && response.data) {
-        setProjects(response.data);
+        // 确保数据是数组类型
+        if (Array.isArray(response.data)) {
+          setProjects(response.data);
+        } else {
+          console.error('Projects API response data is not an array:', response.data);
+          setError('Invalid project data format received from server');
+          setProjects([]);
+        }
       } else {
         setError(response.error || 'Failed to fetch projects');
+        setProjects([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -290,6 +299,12 @@ const ProjectList: React.FC<ProjectListProps> = ({
   };
 
   const getFilteredAndSortedProjects = (): Project[] => {
+    // 防御性检查：确保projects是数组
+    if (!Array.isArray(projects)) {
+      console.error('Projects is not an array:', projects);
+      return [];
+    }
+
     let filtered = projects;
 
     // Apply status filter
@@ -307,7 +322,12 @@ const ProjectList: React.FC<ProjectListProps> = ({
       );
     }
 
-    // Apply sorting
+    // Apply sorting - 确保filtered是数组
+    if (!Array.isArray(filtered)) {
+      console.error('Filtered projects is not an array:', filtered);
+      return [];
+    }
+
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   PerformanceMetric,
   PerformanceAlert,
-  TimeRange,
   FilterOptions
 } from '../../../types/debug.types';
 import Card from '../../common/Card/Card';
@@ -25,10 +24,6 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<PerformanceMetric | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>({
-    start: new Date(Date.now() - 360000), // 1 hour ago
-    end: new Date()
-  }); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [filters, setFilters] = useState<FilterOptions>({});
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');

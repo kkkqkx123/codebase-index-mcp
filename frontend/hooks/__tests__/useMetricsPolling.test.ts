@@ -79,7 +79,7 @@ describe('useMetricsPolling Hook', () => {
     (getRealTimeMetrics as jest.Mock).mockResolvedValue(mockResponse);
     const onSuccess = jest.fn();
 
-    const { result } = renderHook(() => useMetricsPolling(mockMetrics, { onSuccess }));
+    renderHook(() => useMetricsPolling(mockMetrics, { onSuccess }));
 
     await act(async () => {
       await Promise.resolve();
@@ -105,7 +105,7 @@ describe('useMetricsPolling Hook', () => {
 
     expect(result.current.error).toBe('Failed to fetch metrics');
     expect(onError).toHaveBeenCalledWith('Failed to fetch metrics');
- });
+  });
 
   test('should handle network error', async () => {
     (getRealTimeMetrics as jest.Mock).mockRejectedValue(new Error('Network error'));
@@ -180,7 +180,7 @@ describe('useMetricsPolling Hook', () => {
   test('should poll at specified interval', async () => {
     (getRealTimeMetrics as jest.Mock).mockResolvedValue(mockResponse);
 
-    const { result } = renderHook(() => useMetricsPolling(mockMetrics, { interval: 2000 }));
+    renderHook(() => useMetricsPolling(mockMetrics, { interval: 2000 }));
 
     // Initial fetch
     await act(async () => {
@@ -204,7 +204,7 @@ describe('useMetricsPolling Hook', () => {
   test('should not poll when document is hidden', async () => {
     (getRealTimeMetrics as jest.Mock).mockResolvedValue(mockResponse);
 
-    const { result } = renderHook(() => useMetricsPolling(mockMetrics, { interval: 1000 }));
+    renderHook(() => useMetricsPolling(mockMetrics, { interval: 1000 }));
 
     // Initial fetch
     await act(async () => {
@@ -248,7 +248,7 @@ describe('useMetricsPolling Hook', () => {
   test('should clean up interval on unmount', async () => {
     (getRealTimeMetrics as jest.Mock).mockResolvedValue(mockResponse);
 
-    const { result, unmount } = renderHook(() => useMetricsPolling(mockMetrics, { interval: 1000 }));
+    const { unmount } = renderHook(() => useMetricsPolling(mockMetrics, { interval: 1000 }));
 
     // Initial fetch
     await act(async () => {

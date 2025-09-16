@@ -12,8 +12,7 @@ interface ErrorViewerProps {
 }
 
 const ErrorViewer: React.FC<ErrorViewerProps> = ({
-  refreshInterval = 15000,
-  autoCapture = true // eslint-disable-line @typescript-eslint/no-unused-vars
+  refreshInterval = 15000
 }) => {
   const [errors, setErrors] = useState<ErrorInfo[]>([]);
   const [filteredErrors, setFilteredErrors] = useState<ErrorInfo[]>([]);

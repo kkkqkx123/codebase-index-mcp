@@ -150,9 +150,16 @@ export const apiRequest = async <T>(
       ...config,
     });
 
+    // 检查后端是否已经返回了ApiResponse格式的数据
+    let responseData = response.data;
+    if (responseData && typeof responseData === 'object' && 'success' in responseData && 'data' in responseData) {
+      // 如果后端已经返回了ApiResponse格式，直接使用其中的data
+      responseData = (responseData as any).data;
+    }
+
     return {
       success: true,
-      data: response.data,
+      data: responseData,
       timestamp: new Date().toISOString(),
     };
   } catch (error: any) {

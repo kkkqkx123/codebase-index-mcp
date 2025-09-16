@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import NodeDetails from '../NodeDetails';
 import * as graphService from '../../../../services/graph.service';
 
@@ -20,23 +20,7 @@ describe('NodeDetails', () => {
     },
   };
 
-  const mockNodeDetails = {
-    id: '1',
-    label: 'TestFunction',
-    type: 'function' as const,
-    filePath: '/path/to/file.ts',
-    lineNumber: 10,
-    content: 'function test() { return true; }',
-    relationships: [
-      {
-        id: 'rel-1',
-        targetNodeId: '2',
-        targetNodeLabel: 'AnotherFunction',
-        type: 'calls',
-        direction: 'out'
-      }
-    ]
-  };
+
 
   const mockOnClose = jest.fn();
   const mockOnNodeSelect = jest.fn();

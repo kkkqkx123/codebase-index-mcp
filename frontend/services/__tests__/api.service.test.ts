@@ -1,7 +1,4 @@
 import * as apiService from '../api.service';
-import axios from 'axios';
-import { authService } from '@services/auth.service';
-import { ApiResponse, AppError, ErrorType } from '../../types/api.types';
 
 // Mock axios
 jest.mock('axios', () => {
@@ -35,14 +32,6 @@ jest.mock('@services/auth.service', () => ({
 }));
 
 describe('API Service', () => {
-  const mockResponse = {
-    data: { message: 'success' },
-    status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: {}
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
   });

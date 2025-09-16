@@ -48,7 +48,7 @@ export const createIndexingProject = async (
 ): Promise<ApiResponse<CreateProjectResponse>> => {
   try {
     const response = await indexingApi.post<CreateProjectResponse>('/create', {
-      path,
+      projectPath: path,  // 修复参数名不匹配问题
       options
     });
     

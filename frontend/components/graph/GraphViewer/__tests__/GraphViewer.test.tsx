@@ -1,25 +1,22 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '../../../../__tests__/test-utils';
 import GraphViewer from '../GraphViewer';
 
-// Mock the entire GraphViewer component to avoid D3.js issues
-jest.mock('../GraphViewer', () => {
-  return {
-    __esModule: true,
-    default: ({ data, config, onNodeClick, onNodeHover, onGraphChange, width, height }: any) => {
-      return (
-        <div data-testid="graph-container">
-          <div>Mock Graph Viewer</div>
-          <div>Nodes: {data?.nodes?.length || 0}</div>
-          <div>Edges: {data?.edges?.length || 0}</div>
-          <button>+</button>
-          <button>-</button>
-          <button>Reset</button>
-        </div>
-      );
-    }
-  };
-});
+// Mock the GraphViewer component to avoid D3.js issues
+jest.mock('../GraphViewer', () => ({
+  __esModule: true,
+  default: ({ data }: any) => {
+    return (
+      <div data-testid="graph-container">
+        <div>Mock Graph Viewer</div>
+        <div>Nodes: {data?.nodes?.length || 0}</div>
+        <div>Edges: {data?.edges?.length || 0}</div>
+        <button>+</button>
+        <button>-</button>
+        <button>Reset</button>
+      </div>
+    );
+  }
+}));
 
 describe('GraphViewer', () => {
   const mockOnNodeClick = jest.fn();

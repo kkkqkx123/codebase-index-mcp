@@ -34,7 +34,6 @@ describe('Auth Service', () => {
   };
 
   const mockToken = 'mock-jwt-token';
- const mockExpiry = 3600; // 1 hour
 
   beforeEach(() => {
     jest.clearAllMocks();

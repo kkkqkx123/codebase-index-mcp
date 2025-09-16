@@ -20,7 +20,7 @@ import { ApiResponse } from '../types/api.types';
 export const validateProjectPath = async (
   path: string
 ): Promise<ApiResponse<PathValidationResult>> => {
-  return apiPost<PathValidationResult>('/projects/validate-path', { path });
+  return apiPost<PathValidationResult>('/indexing/validate-path', { path }); // 修复：使用正确的API路径
 };
 
 // Type for path validation result
@@ -38,7 +38,7 @@ interface PathValidationResult {
  * @returns Promise with list of projects
  */
 export const getProjects = async (): Promise<ApiResponse<Project[]>> => {
-  return apiGet<Project[]>('/projects');
+  return apiGet<Project[]>('/indexing/projects'); // 修复：使用正确的API路径
 };
 
 /**
@@ -49,7 +49,7 @@ export const getProjects = async (): Promise<ApiResponse<Project[]>> => {
 export const createProject = async (
   projectData: any
 ): Promise<ApiResponse<ProjectCreateResponse>> => {
-  return apiPost<ProjectCreateResponse>('/projects', projectData);
+  return apiPost<ProjectCreateResponse>('/indexing/projects', projectData); // 修复：使用正确的API路径
 };
 
 /**
@@ -60,7 +60,7 @@ export const createProject = async (
 export const deleteProject = async (
   projectId: string
 ): Promise<ApiResponse<ProjectDeleteResponse>> => {
-  return apiDelete<ProjectDeleteResponse>(`/projects/${projectId}`);
+  return apiDelete<ProjectDeleteResponse>(`/indexing/${projectId}`); // 修复：使用正确的API路径
 };
 
 /**
@@ -71,7 +71,7 @@ export const deleteProject = async (
 export const reindexProject = async (
   projectId: string
 ): Promise<ApiResponse<ProjectReindexResponse>> => {
-  return apiPost<ProjectReindexResponse>(`/projects/${projectId}/reindex`);
+  return apiPost<ProjectReindexResponse>(`/indexing/reindex/${projectId}`); // 修复：使用正确的API路径
 };
 
 /**
@@ -82,7 +82,7 @@ export const reindexProject = async (
 export const getProjectDetails = async (
   projectId: string
 ): Promise<ApiResponse<Project>> => {
-  return apiGet<Project>(`/projects/${projectId}`);
+  return apiGet<Project>(`/indexing/${projectId}`); // 修复：使用正确的API路径
 };
 
 /**
@@ -95,7 +95,7 @@ export const updateProject = async (
   projectId: string,
   projectData: any
 ): Promise<ApiResponse<Project>> => {
-  return apiPost<Project>(`/projects/${projectId}`, projectData);
+  return apiPost<Project>(`/indexing/${projectId}`, projectData); // 修复：使用正确的API路径
 };
 
 /**

@@ -1,7 +1,6 @@
 import * as monitoringService from '../monitoring.service';
 import { apiGet, apiPost } from '@services/api.service';
-import { SystemHealth, PrometheusResponse, GrafanaDashboard, ApiResponse } from '../../types/api.types';
-import { HealthStatus as FrontendHealthStatus } from '../../types/dashboard.types';
+import { PrometheusResponse, GrafanaDashboard, ApiResponse } from '../../types/api.types';
 
 // Mock the API service functions
 jest.mock('@services/api.service', () => ({

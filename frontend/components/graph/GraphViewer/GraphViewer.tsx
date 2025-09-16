@@ -48,7 +48,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<GraphViewerState>({
+  const [, setState] = useState<GraphViewerState>({
     zoom: config.zoom,
     pan: config.pan,
     selectedNode: null,

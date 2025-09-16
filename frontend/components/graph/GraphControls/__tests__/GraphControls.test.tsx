@@ -8,8 +8,7 @@ jest.mock('../../../../services/graph.service', () => ({
 }));
 
 describe('GraphControls', () => {
-  const mockOnFilterChange = jest.fn();
-  const mockOnSearch = jest.fn();
+  // const mockOnFilterChange = jest.fn();
   const mockOnLayoutChange = jest.fn();
   const mockOnPerformanceChange = jest.fn();
 
