@@ -71,7 +71,7 @@ const ResultItem: React.FC<ResultItemProps> = ({ result, onResultClick }) => {
     return (similarity * 100).toFixed(1) + '%';
   };
 
-  const highlightCode = (code: string, language: string): string => {
+  const highlightCode = (code: string): string => {
     // Simple syntax highlighting for common patterns
     // In a real implementation, you would use a library like Prism.js or highlight.js
     return code
@@ -117,7 +117,7 @@ const ResultItem: React.FC<ResultItemProps> = ({ result, onResultClick }) => {
         <div 
           className={styles.codePreview}
           dangerouslySetInnerHTML={{ 
-            __html: highlightCode(result.content, result.metadata.language) 
+            __html: highlightCode(result.content)
           }}
         />
       </div>

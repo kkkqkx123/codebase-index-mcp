@@ -26,7 +26,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
+      "@api/*": ["api/*"],
       "@components/*": ["components/*"],
+      "@contexts/*": ["contexts/*"],
       "@hooks/*": ["hooks/*"],
       "@services/*": ["services/*"],
       "@types/*": ["types/*"],
@@ -36,6 +38,6 @@
       "@config/*": ["config/*"]
     }
   },
-  "include": ["src", "components", "hooks", "services", "types", "utils", "store", "styles", "config", "contexts", "api", "App.tsx", "main.tsx", "global.d.ts"],
+  "include": ["src", "components", "hooks", "services", "types", "utils", "store", "styles", "config", "contexts", "api", "__tests__", "App.tsx", "main.tsx", "global.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

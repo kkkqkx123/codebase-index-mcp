@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { SearchQuery, SearchResult } from '../../../types/api.types';
+import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { SearchQuery } from '../../../types/api.types';
 import { performHybridSearch } from '../../../services/search.service';
 import styles from './SearchHistory.module.css';
 
@@ -24,12 +24,17 @@ interface SavedSearch {
   createdAt: Date;
 }
 
+// Forward ref for imperative handle
+export interface SearchHistoryRef {
+  addToHistory: (query: SearchQuery, resultsCount: number, executionTime: number) => void;
+}
+
 const MAX_HISTORY_ITEMS = 50;
 
-export const SearchHistory: React.FC<SearchHistoryProps> = ({
+const SearchHistoryComponent = forwardRef<SearchHistoryRef, SearchHistoryProps>(({
   onHistoryItemClick,
   className = ''
-}) => {
+}, ref) => {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [selectedTab, setSelectedTab] = useState<'history' | 'saved'>('history');
@@ -186,7 +191,7 @@ export const SearchHistory: React.FC<SearchHistoryProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [history, savedSearches]);
+ }, [history, savedSearches]);
 
   const formatTime = (date: Date): string => {
     const now = new Date();
@@ -214,11 +219,11 @@ export const SearchHistory: React.FC<SearchHistoryProps> = ({
   };
 
   // Expose addToHistory method for parent components
-  React.useImperativeHandle(ref, () => ({
+  useImperativeHandle(ref, () => ({
     addToHistory
   }));
 
-  return (
+ return (
     <div className={`${styles.searchHistory} ${className}`}>
       <div className={styles.historyHeader}>
         <h3>Search History</h3>
@@ -438,11 +443,6 @@ export const SearchHistory: React.FC<SearchHistoryProps> = ({
       )}
     </div>
   );
-};
+});
 
-// Forward ref for imperative handle
-interface SearchHistoryRef {
-  addToHistory: (query: SearchQuery, resultsCount: number, executionTime: number) => void;
-}
-
-export default React.forwardRef<SearchHistoryRef, SearchHistoryProps>(SearchHistory);
+export default SearchHistoryComponent;

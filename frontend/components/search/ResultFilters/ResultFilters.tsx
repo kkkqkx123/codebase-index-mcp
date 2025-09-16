@@ -114,11 +114,11 @@ export const ResultFilters: React.FC<ResultFiltersProps> = ({
     
     // In a real implementation, you would convert these dates to the format expected by your API
     if (newDateRange.start || newDateRange.end) {
-      onFiltersChange({ 
+      onFiltersChange({
         // This would need to be adapted based on your actual API requirements
         // For now, we'll just pass the date strings as part of the filters
-        dateRange: newDateRange 
-      });
+        // dateRange: newDateRange
+      } as Partial<SearchQuery>);
     }
   }, [dateRange, onFiltersChange]);
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SearchBar } from '../SearchBar/SearchBar';
 import * as searchService from '../../../services/search.service';

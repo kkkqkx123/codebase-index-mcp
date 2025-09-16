@@ -18,7 +18,7 @@ import {
   filterGraph, 
   exportGraph 
 } from '@api/mcp-adapter/graph.adapter';
-import { authService, User } from '@services/auth.service';
+import { authService } from '@services/auth.service';
 import { AuthProvider, useAuth } from '@contexts/AuthContext';
 import { 
   apiGet, 

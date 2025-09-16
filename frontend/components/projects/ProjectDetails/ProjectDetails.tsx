@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Project, ProjectConfiguration, IndexingHistoryEntry as IndexingHistory } from '../../../types/project.types';
+import { Project, ProjectConfiguration } from '../../../types/project.types';
 import { getProjectDetails } from '../../../services/project.service';
 import LoadingSpinner from '@components/common/LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '@components/common/ErrorMessage/ErrorMessage';
@@ -198,90 +198,6 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
   );
 };
 
-interface HistoryItemProps {
-  item: IndexingHistory;
-}
-
-const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'completed': return '#10b981'; // green
-      case 'failed': return '#ef4444'; // red
-      case 'running': return '#f59e0b'; // yellow
-      default: return '#6b7280'; // gray
-    }
-  };
-
-  const getStatusIcon = (status: string): string => {
-    switch (status) {
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      case 'running': return '🔄';
-      default: return '❓';
-    }
-  };
-
-  const formatDuration = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-
-    if (seconds < 60) {
-      return `${seconds}s`;
-    } else if (seconds < 3600) {
-      return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-    } else {
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      return `${hours}h ${minutes}m`;
-    }
-  };
-
-  return (
-    <div className="history-item">
-      <div className="history-header">
-        <div className="history-status">
-          <span
-            className="status-icon"
-            style={{ color: getStatusColor(item.status) }}
-          >
-            {getStatusIcon(item.status)}
-          </span>
-          <span className="status-text">{item.status}</span>
-        </div>
-        <span className="history-date">
-          {item.startedAt ? new Date(item.startedAt).toLocaleString() : 'N/A'}
-        </span>
-      </div>
-
-      <div className="history-stats">
-        <div className="stat">
-          <span className="stat-label">Files:</span>
-          <span className="stat-value">{item.filesProcessed.toLocaleString()}</span>
-        </div>
-
-        <div className="stat">
-          <span className="stat-label">Duration:</span>
-          <span className="stat-value">
-            {item.completedAt ? formatDuration(new Date(item.completedAt).getTime() - new Date(item.startedAt).getTime()) : 'Running...'}
-          </span>
-        </div>
-{item.errors.length > 0 && (
-  <div className="stat">
-    <span className="stat-label">Errors:</span>
-    <span className="stat-value error">{item.errors.length}</span>
-  </div>
-)}
-
-      </div>
-
-      {item.errorMessage && (
-        <div className="history-error">
-          <span className="error-label">Error:</span>
-          <span className="error-message">{item.errorMessage}</span>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   projectId,
@@ -292,7 +208,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   showActions = true
 }) => {
   const [project, setProject] = useState<Project | null>(null);
-  const [history, setHistory] = useState<IndexingHistory[]>([]);
+  // const [history, setHistory] = useState<IndexingHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditingConfig, setIsEditingConfig] = useState(false);
@@ -580,17 +496,11 @@ const handleStartEditing = () => {
           </Button>
         </div>
 
-        {history.length === 0 ? (
+        {
           <div className="no-history">
             <p>No indexing history available</p>
           </div>
-        ) : (
-          <div className="history-list">
-            {history.map((item, index) => (
-              <HistoryItem key={index} item={item} />
-            ))}
-          </div>
-        )}
+        }
       </Card>
     </div>
   );

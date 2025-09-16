@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { SearchQuery, SearchResults as SearchResultsType, SearchResult } from '../../types/api.types';
 import { performHybridSearch } from '../../services/search.service';
 import { getProjects } from '../../services/project.service';
 import { SearchBar } from './SearchBar/SearchBar';
 import { SearchResults } from './SearchResults/SearchResults';
 import { ResultFilters } from './ResultFilters/ResultFilters';
-import SearchHistory, { SearchHistoryRef } from './SearchHistory/SearchHistory';
+import SearchHistory from './SearchHistory/SearchHistory';
+import type { SearchHistoryRef } from './SearchHistory/SearchHistory';
 import styles from './CodeSearch.module.css';
 
 interface Project {
@@ -29,7 +30,7 @@ export const CodeSearch: React.FC = () => {
   const searchHistoryRef = useRef<SearchHistoryRef>(null);
 
   // Load projects on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const loadProjects = async () => {
       try {
         const response = await getProjects();
@@ -45,7 +46,7 @@ export const CodeSearch: React.FC = () => {
   }, []);
 
   // Keyboard shortcuts
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl/Cmd + K to focus search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -171,7 +172,7 @@ export const CodeSearch: React.FC = () => {
   return (
     <div className={styles.codeSearch}>
       {/* Add CSS animations for notifications */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideIn {
           from { transform: translateX(100%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }

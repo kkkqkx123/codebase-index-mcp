@@ -33,11 +33,8 @@ module.exports = {
   coverageDirectory: '../coverage/frontend',
   coverageReporters: ['text', 'lcov', 'html'],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
-  },
-  globals: {
-    'ts-jest': {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
-    },
+    }],
   },
 };

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { SearchQuery } from '../../../types/api.types';
 import { getSearchSuggestions } from '../../../services/search.service';
@@ -128,7 +128,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   }, []);
 
   // Close suggestions when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         suggestionsRef.current && 
@@ -146,7 +146,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <div className={`${styles.searchBar} ${className}`}>
-      <form onSubmit={handleSubmit} className={styles.searchForm}>
+      <form onSubmit={handleSubmit} className={styles.searchForm} role="form">
         <div className={styles.searchInputContainer}>
           <input
             ref={searchInputRef}
