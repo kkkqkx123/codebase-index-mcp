@@ -126,6 +126,8 @@ export interface PrometheusResponse {
 }
 
 export interface SystemHealth {
+  checks: any;
+  timestamp: string | number | Date;
   overall: 'healthy' | 'degraded' | 'error';
   components: {
     database: 'healthy' | 'degraded' | 'error';

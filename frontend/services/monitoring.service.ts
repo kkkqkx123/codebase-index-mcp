@@ -156,3 +156,11 @@ export const getRealTimeMetrics = async (
 ): Promise<ApiResponse<Record<string, any>>> => {
   return apiPost<Record<string, any>>('/monitoring/realtime', { metrics });
 };
+
+/**
+ * Get project statistics
+ * @returns Promise with project statistics data
+ */
+export const getProjectStats = async (): Promise<ApiResponse<any>> => {
+  return apiGet<any>('/monitoring/project-stats');
+};

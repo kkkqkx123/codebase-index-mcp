@@ -118,6 +118,10 @@ import { DataFlowAnalyzer } from '../services/parser/DataFlowGraph';
 import { IncrementalAnalyzer } from '../services/parser/IncrementalAnalyzer';
 import { SecurityAnalyzer } from '../services/parser/SecurityAnalyzer';
 
+// Project management services
+import { ProjectIdManager } from '../database/ProjectIdManager';
+import { ProjectLookupService } from '../database/ProjectLookupService';
+
 const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
   bind(TYPES.LoggerService).to(LoggerService).inSingletonScope();
@@ -213,6 +217,10 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
   bind(TYPES.EnhancedSemgrepAnalyzer).to(EnhancedSemgrepAnalyzer).inSingletonScope();
   bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
+
+  // Project management services
+  bind(TYPES.ProjectIdManager).to(ProjectIdManager).inSingletonScope();
+  bind(TYPES.ProjectLookupService).to(ProjectLookupService).inSingletonScope();
 
   // Phase 2: Tree-sitter Deep Analysis Services
   bind(TYPES.AdvancedTreeSitterService).to(AdvancedTreeSitterService).inSingletonScope();

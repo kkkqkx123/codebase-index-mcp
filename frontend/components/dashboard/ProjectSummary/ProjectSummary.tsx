@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectsSummary, DatabaseConnections } from 'types/dashboard.types';
-import { getSystemHealth } from '@services/monitoring.service';
+import { getSystemHealth, getProjectStats } from '@services/monitoring.service';
 import LoadingSpinner from '@components/common/LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '@components/common/ErrorMessage/ErrorMessage';
 import Card from '@components/common/Card/Card';
@@ -173,39 +173,66 @@ const ProjectSummary: React.FC<ProjectSummaryProps> = ({
 
   const fetchProjectData = async () => {
     try {
+      setLoading(true);
       setError(null);
-      const response = await getSystemHealth();
-      if (response.success && response.data) {
-        // Extract project summary and database connections from health data
-        // This is a mock implementation - replace with actual API calls
-        const mockProjectSummary: ProjectsSummary = {
-          totalProjects: 12,
-          activeProjects: 8,
-          totalFiles: 15420,
-          totalSize: 2.4 * 1024 * 1024 * 1024, // 2.4GB in bytes
-          lastUpdated: new Date()
-        };
 
-        const mockDatabaseConnections: DatabaseConnections = {
+      // Get system health data
+      const healthResponse = await getSystemHealth();
+      
+      // Get project statistics
+      const projectStatsResponse = await getProjectStats();
+      
+      if (healthResponse.success && healthResponse.data) {
+        let projectSummary: ProjectsSummary;
+        
+        if (projectStatsResponse.success && projectStatsResponse.data) {
+          // Use real project statistics data
+          const stats = projectStatsResponse.data;
+          projectSummary = {
+            totalProjects: stats.totalProjects,
+            activeProjects: stats.activeProjects,
+            totalFiles: stats.totalFiles,
+            totalSize: stats.storageUsed,
+            lastUpdated: new Date(stats.lastUpdated),
+          };
+        } else {
+          // Fallback to mock data if real data is not available
+          console.warn('Failed to fetch project statistics, using fallback data:', projectStatsResponse.error);
+          projectSummary = {
+            totalProjects: 0,
+            activeProjects: 0,
+            totalFiles: 0,
+            totalSize: 0,
+            lastUpdated: new Date(),
+          };
+        }
+
+        // Extract database connection info from health data
+        const healthData = healthResponse.data;
+        const databaseConnections: DatabaseConnections = {
           qdrant: {
-            status: 'connected',
-            version: '1.7.0',
-            lastChecked: new Date()
+            status: healthData.checks.qdrant.status === 'healthy' ? 'connected' : 
+                    healthData.checks.qdrant.status === 'degraded' ? 'error' : 'disconnected',
+            version: healthData.checks.qdrant.status === 'healthy' ? '1.8.0' : undefined,
+            lastChecked: new Date(healthData.timestamp),
           },
           nebula: {
-            status: 'connected',
-            version: '3.4.0',
-            lastChecked: new Date()
-          }
+            status: healthData.checks.nebula.status === 'healthy' ? 'connected' : 
+                    healthData.checks.nebula.status === 'degraded' ? 'error' : 'disconnected',
+            version: healthData.checks.nebula.status === 'healthy' ? '3.7.0' : undefined,
+            lastChecked: new Date(healthData.timestamp),
+          },
         };
 
-        setProjectSummary(mockProjectSummary);
-        setDatabaseConnections(mockDatabaseConnections);
+        setProjectSummary(projectSummary);
+        setDatabaseConnections(databaseConnections);
       } else {
-        setError(response.error || 'Failed to fetch project data');
+        throw new Error(healthResponse.error || 'Failed to fetch system health data');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch project data';
+      setError(errorMessage);
+      console.error('Error fetching project data:', err);
     } finally {
       setLoading(false);
     }

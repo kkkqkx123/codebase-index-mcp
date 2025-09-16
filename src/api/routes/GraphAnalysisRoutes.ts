@@ -8,6 +8,7 @@ import {
   DependencyResult,
   CallGraphResult,
 } from '../../services/graph/IGraphService';
+import { ProjectLookupService } from '../../database/ProjectLookupService';
 
 export interface GraphAnalysisRequest {
   projectId: string;
@@ -35,10 +36,12 @@ export interface CallGraphRequest {
 export class GraphAnalysisRoutes {
   private router: Router;
   private graphService: IGraphService;
+  private projectLookupService: ProjectLookupService;
 
   constructor() {
     const container = DIContainer.getInstance();
     this.graphService = container.get<IGraphService>(TYPES.GraphService);
+    this.projectLookupService = container.get<ProjectLookupService>(TYPES.ProjectLookupService);
     this.router = Router();
     this.setupRoutes();
   }
@@ -82,13 +85,25 @@ export class GraphAnalysisRoutes {
         return;
       }
 
-      const result = await this.graphService.analyzeCodebase(projectId, options);
+      // 将projectId转换为projectPath
+      const projectPath = await this.projectLookupService.getProjectPathByProjectId(projectId);
+      if (!projectPath) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Project path not found for project ID: ${projectId}`,
+        });
+        return;
+      }
+
+      const result = await this.graphService.analyzeCodebase(projectPath, options);
 
       res.status(200).json({
         success: true,
         data: result,
         metadata: {
           projectId,
+          projectPath,
           analysisOptions: options,
           timestamp: new Date().toISOString(),
         },
@@ -216,7 +231,18 @@ export class GraphAnalysisRoutes {
         return;
       }
 
-      const result = await this.graphService.analyzeCodebase(projectId, {
+      // 将projectId转换为projectPath
+      const projectPath = await this.projectLookupService.getProjectPathByProjectId(projectId);
+      if (!projectPath) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Project path not found for project ID: ${projectId}`,
+        });
+        return;
+      }
+
+      const result = await this.graphService.analyzeCodebase(projectPath, {
         depth: 2,
         includeExternal: false,
       });
@@ -238,6 +264,7 @@ export class GraphAnalysisRoutes {
         data: overview,
         metadata: {
           projectId,
+          projectPath,
           timestamp: new Date().toISOString(),
         },
       });
@@ -263,8 +290,19 @@ export class GraphAnalysisRoutes {
         return;
       }
 
+      // 将projectId转换为projectPath
+      const projectPath = await this.projectLookupService.getProjectPathByProjectId(projectId);
+      if (!projectPath) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Project path not found for project ID: ${projectId}`,
+        });
+        return;
+      }
+
       // Analyze all files in project to find circular dependencies
-      const result = await this.graphService.analyzeCodebase(projectId);
+      const result = await this.graphService.analyzeCodebase(projectPath);
 
       // Filter for circular dependencies
       const circularDependencies = result.relationships.filter(
@@ -282,6 +320,7 @@ export class GraphAnalysisRoutes {
         },
         metadata: {
           projectId,
+          projectPath,
           timestamp: new Date().toISOString(),
         },
       });
@@ -303,13 +342,25 @@ export class GraphAnalysisRoutes {
         return;
       }
 
-      const result = await this.graphService.analyzeCodebase(projectId);
+      // 将projectId转换为projectPath
+      const projectPath = await this.projectLookupService.getProjectPathByProjectId(projectId);
+      if (!projectPath) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Project path not found for project ID: ${projectId}`,
+        });
+        return;
+      }
+
+      const result = await this.graphService.analyzeCodebase(projectPath);
 
       res.status(200).json({
         success: true,
         data: result.metrics,
         metadata: {
           projectId,
+          projectPath,
           timestamp: new Date().toISOString(),
         },
       });

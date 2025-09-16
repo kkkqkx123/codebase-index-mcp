@@ -5,6 +5,8 @@ import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
 import { HealthCheckService } from '../services/monitoring/HealthCheckService';
 import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
+import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
+import { DIContainer } from '../core/DIContainer';
 import { TYPES } from '../types';
 
 @injectable()
@@ -191,6 +193,43 @@ export class MonitoringController {
           `Failed to get benchmark: ${error instanceof Error ? error.message : String(error)}`
         ),
         { component: 'MonitoringController', operation: 'getBenchmark' }
+      );
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  async getProjectStats(): Promise<any> {
+    try {
+      // Get the IndexCoordinator from DI container
+      const container = DIContainer.getInstance();
+      const indexCoordinator = container.get<IndexCoordinator>(TYPES.IndexCoordinator);
+      
+      // Get system status from IndexCoordinator
+      const systemStatus = await indexCoordinator.getStatus();
+      
+      // Transform the data to match the frontend requirements
+      const projectStats = {
+        totalProjects: systemStatus.storage.totalProjects,
+        activeProjects: systemStatus.indexing.activeProjects.length,
+        totalFiles: systemStatus.storage.totalFiles,
+        storageUsed: systemStatus.storage.storageSize,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      return {
+        success: true,
+        data: projectStats,
+      };
+    } catch (error) {
+      this.errorHandler.handleError(
+        new Error(
+          `Failed to get project stats: ${error instanceof Error ? error.message : String(error)}`
+        ),
+        { component: 'MonitoringController', operation: 'getProjectStats' }
       );
 
       return {

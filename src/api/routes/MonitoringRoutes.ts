@@ -65,6 +65,13 @@ export class MonitoringRoutes {
      * @returns {object} 200 - Benchmark data
      */
     this.router.get('/benchmark', this.getBenchmark.bind(this));
+
+    /**
+     * @route GET /api/v1/monitoring/project-stats
+     * @desc Get project statistics (total projects, active projects, total files, storage used)
+     * @returns {object} 200 - Project statistics
+     */
+    this.router.get('/project-stats', this.getProjectStats.bind(this));
   }
 
   private async getHealthStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -130,6 +137,15 @@ export class MonitoringRoutes {
   private async getBenchmark(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.monitoringController.getBenchmark();
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  private async getProjectStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await this.monitoringController.getProjectStats();
       res.status(200).json(result);
     } catch (error) {
       next(error);
