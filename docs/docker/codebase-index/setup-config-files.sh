@@ -31,12 +31,6 @@ echo "✓ nebula目录结构创建完成"
 
 # 创建qdrant目录结构
 # 现在使用127.0.0.1的qdrant，故跳过
-echo "=== 创建Qdrant目录结构 ==="
-mkdir -p qdrant/storage
-
-mkdir -p qdrant/config
-
-echo "✓ qdrant目录结构创建完成"
 
 # 检查并移动现有配置文件
 echo "=== 检查现有配置文件 ==="
@@ -56,12 +50,6 @@ find nebula/ -name "*.yml" -o -name "*.conf" -o -name "*.yaml" | xargs chmod 644
 chmod -R 755 nebula/data/* 2>/dev/null || true
 chmod -R 755 nebula/logs/* 2>/dev/null || true
 
-echo "正在设置Qdrant配置文件权限..."
-chmod -R 755 qdrant/
-find qdrant/ -name "*.yml" | xargs chmod 644 2>/dev/null || true
-chmod -R 755 qdrant/storage/ 2>/dev/null || true
-chmod -R 755 config/ 2>/dev/null || true
-find config/ -name "*.yaml" | xargs chmod 644 2>/dev/null || true
 
 echo "✓ 所有文件权限设置完成"
 

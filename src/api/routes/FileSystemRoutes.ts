@@ -89,14 +89,14 @@ export class FileSystemRoutes {
     // Analyze directory structure
     this.router.post('/analyze', this.analyzeDirectory.bind(this));
 
-    // Get file info
-    this.router.get('/info/:filePath(*)', this.getFileInfo.bind(this));
+    // Get file info - path-to-regexp 8.x 语法: /*filePath
+    this.router.get('/info/*filePath', this.getFileInfo.bind(this));
 
-    // List directory contents
-    this.router.get('/list/:dirPath(*)', this.listDirectory.bind(this));
+    // List directory contents - path-to-regexp 8.x 语法: /*dirPath
+    this.router.get('/list/*dirPath', this.listDirectory.bind(this));
 
-    // Check if path exists
-    this.router.get('/exists/:path(*)', this.pathExists.bind(this));
+    // Check if path exists - path-to-regexp 8.x 语法: /*path
+    this.router.get('/exists/*path', this.pathExists.bind(this));
   }
 
   private async traverseDirectory(req: Request, res: Response, next: NextFunction): Promise<void> {

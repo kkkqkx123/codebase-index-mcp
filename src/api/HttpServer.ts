@@ -30,8 +30,8 @@ export class HttpServer {
     this.errorHandler = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
     this.configService = container.get<ConfigService>(TYPES.ConfigService);
 
-    // Temporarily disable monitoring controller due to Prometheus dependencies
-    // this.monitoringController = container.get(TYPES.MonitoringController);
+    // Enable monitoring controller - dependencies are now available
+    this.monitoringController = container.get(TYPES.MonitoringController);
     this.port = this.configService.get('port') || 3000;
     this.rateLimitMap = new Map();
     this.app = express();

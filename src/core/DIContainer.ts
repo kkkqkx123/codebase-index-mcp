@@ -239,8 +239,8 @@ const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind })
   bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
 
   // Enable services that depend on PrometheusMetricsService
-  // bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
-  // bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
+  bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
+  bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
   bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics).inSingletonScope();
   bind(TYPES.BatchPerformanceMonitor).to(BatchPerformanceMonitor).inSingletonScope();
   bind(TYPES.SemgrepMetricsService).to(SemgrepMetricsService).inSingletonScope();
@@ -248,8 +248,8 @@ const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind })
 });
 
 const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-  // Temporarily disable MonitoringController due to Prometheus dependencies
-  // bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
+  // Enable MonitoringController - all dependencies are now available
+  bind(TYPES.MonitoringController).to(MonitoringController).inSingletonScope();
   bind(TYPES.SnippetController).to(SnippetController).inSingletonScope();
   bind(TYPES.CacheController).to(CacheController).inSingletonScope();
   bind(TYPES.ParserController).to(ParserController).inSingletonScope();
