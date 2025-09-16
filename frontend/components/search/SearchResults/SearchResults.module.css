@@ -1,0 +1,351 @@
+.searchResults {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.resultsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.resultsHeader h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.resultsCount {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.resultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resultItem {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.resultItem:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary);
+}
+
+.resultHeader {
+  padding: 16px;
+  cursor: pointer;
+  background: var(--color-background-hover);
+}
+
+.resultMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.filePath {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  display: block;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path {
+  display: block;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultStats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.languageBadge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  text-transform: uppercase;
+}
+
+.score, .similarity, .lineNumbers {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-background);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.resultContent {
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.codePreview {
+  background: var(--color-code-background);
+  border-radius: 4px;
+  padding: 16px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.codePreview .keyword {
+  color: #d73a49;
+  font-weight: 600;
+}
+
+.codePreview .comment {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.codePreview .string {
+  color: #032f62;
+}
+
+.codePreview .number {
+  color: #005cc5;
+}
+
+.resultActions {
+  padding: 12px 16px;
+  background: var(--color-background-hover);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detailsButton {
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.detailsButton:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.detailsButton:disabled {
+  background: var(--color-border);
+  cursor: not-allowed;
+}
+
+.resultDetails {
+  padding: 16px;
+  background: var(--color-background-hover);
+  border-top: 1px solid var(--color-border);
+}
+
+.resultDetails h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.detailsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detailItem {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.detailKey {
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 120px;
+}
+
+.detailValue {
+  flex: 1;
+  color: var(--color-text-secondary);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.resultsFooter {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.timestamp {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 16px;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-border);
+  border-top: 4px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 48px;
+  color: var(--color-text-secondary);
+}
+
+.emptyState h3 {
+  margin: 0 0 8px 0;
+  color: var(--color-text);
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .resultsHeader {
+    border-color: var(--color-border-dark);
+  }
+
+  .resultsHeader h3 {
+    color: var(--color-text-dark);
+  }
+
+  .resultsCount {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .resultItem {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .resultItem:hover {
+    border-color: var(--color-primary);
+  }
+
+  .resultHeader {
+    background: var(--color-background-hover-dark);
+  }
+
+  .fileName {
+    color: var(--color-text-dark);
+  }
+
+  .path {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .score, .similarity, .lineNumbers {
+    color: var(--color-text-secondary-dark);
+    background: var(--color-background-dark);
+  }
+
+  .resultContent {
+    border-color: var(--color-border-dark);
+  }
+
+  .codePreview {
+    background: var(--color-code-background-dark);
+  }
+
+  .resultActions {
+    background: var(--color-background-hover-dark);
+  }
+
+  .resultDetails {
+    background: var(--color-background-hover-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .resultDetails h4 {
+    color: var(--color-text-dark);
+  }
+
+  .detailKey {
+    color: var(--color-text-dark);
+  }
+
+  .detailValue {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .resultsFooter {
+    border-color: var(--color-border-dark);
+  }
+
+  .timestamp {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .loadingSpinner {
+    border-color: var(--color-border-dark);
+    border-top-color: var(--color-primary);
+  }
+
+  .emptyState h3 {
+    color: var(--color-text-dark);
+  }
+
+  .emptyState p {
+    color: var(--color-text-secondary-dark);
+  }
+}

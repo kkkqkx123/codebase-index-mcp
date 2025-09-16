@@ -1,0 +1,378 @@
+.searchHistory {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.historyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.historyHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.exportButton, .clearButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.exportButton:hover, .clearButton:hover {
+  background: var(--color-background-hover);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--color-text);
+  background: var(--color-background-hover);
+}
+
+.activeTab {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.historyContent, .savedContent {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-secondary);
+}
+
+.emptyState p {
+  margin: 0 0 8px 0;
+}
+
+.emptyStateSubtext {
+  font-size: 14px;
+  margin: 0;
+}
+
+.historyActions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.compareButton, .executeCompareButton {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.compareButton:hover:not(:disabled), .executeCompareButton:hover {
+  background: var(--color-background-hover);
+}
+
+.compareButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.activeCompareButton {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.executeCompareButton {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.historyList, .savedList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.historyItem, .savedItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-background-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.historyItem:hover, .savedItem:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.selectedItem {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.itemCheckbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.itemContent, .savedItemContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemQuery, .savedItemName {
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savedItemDescription {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta, .savedItemMeta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.itemTime, .itemResults, .savedItemTime, .savedItemQuery {
+  white-space: nowrap;
+}
+
+.itemActions, .savedItemActions {
+  display: flex;
+  gap: 4px;
+}
+
+.saveButton, .deleteButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.saveButton:hover, .deleteButton:hover {
+  background: var(--color-background-hover);
+}
+
+.comparisonResults {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.comparisonResults h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.comparisonTable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comparisonRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-background-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.comparisonQuery {
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.comparisonData {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comparisonMetric {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.metricLabel {
+  color: var(--color-text-secondary);
+  min-width: 60px;
+}
+
+.metricValue {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.comparisonError {
+  color: var(--color-error);
+  font-size: 12px;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .searchHistory {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .historyHeader {
+    border-color: var(--color-border-dark);
+  }
+
+  .historyHeader h3 {
+    color: var(--color-text-dark);
+  }
+
+  .exportButton:hover, .clearButton:hover {
+    background: var(--color-background-hover-dark);
+  }
+
+  .tabs {
+    border-color: var(--color-border-dark);
+  }
+
+  .tab:hover {
+    background: var(--color-background-hover-dark);
+  }
+
+  .historyItem, .savedItem {
+    background: var(--color-background-hover-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .historyItem:hover, .savedItem:hover {
+    border-color: var(--color-primary);
+  }
+
+  .selectedItem {
+    background: rgba(59, 130, 246, 0.2);
+  }
+
+  .itemQuery, .savedItemName {
+    color: var(--color-text-dark);
+  }
+
+  .savedItemDescription {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .itemMeta, .savedItemMeta {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .saveButton:hover, .deleteButton:hover {
+    background: var(--color-background-hover-dark);
+  }
+
+  .compareButton, .executeCompareButton {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+    color: var(--color-text-dark);
+  }
+
+  .compareButton:hover:not(:disabled), .executeCompareButton:hover {
+    background: var(--color-background-hover-dark);
+  }
+
+  .comparisonResults {
+    border-color: var(--color-border-dark);
+  }
+
+  .comparisonResults h4 {
+    color: var(--color-text-dark);
+  }
+
+  .comparisonRow {
+    background: var(--color-background-hover-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .comparisonQuery {
+    color: var(--color-text-dark);
+  }
+
+  .metricLabel {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .metricValue {
+    color: var(--color-text-dark);
+  }
+
+  .comparisonError {
+    color: var(--color-error-dark);
+  }
+}

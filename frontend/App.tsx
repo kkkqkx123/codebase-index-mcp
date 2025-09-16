@@ -9,13 +9,8 @@ import './styles/globals.css';
 import Dashboard from './components/dashboard/Dashboard';
 // Import ProjectManagement component
 import { ProjectManagement } from './components/projects';
-
-const CodeSearch = () => (
-  <div>
-    <h2>Code Search</h2>
-    <p>Search across your indexed codebases</p>
-  </div>
-);
+// Import CodeSearch component
+import { CodeSearch } from './components/search';
 
 const GraphVisualization = () => (
   <div>

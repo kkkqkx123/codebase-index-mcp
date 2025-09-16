@@ -1,0 +1,260 @@
+.searchBar {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.searchForm {
+  position: relative;
+}
+
+.searchInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.searchInputContainer:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.searchInput {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.searchButton {
+  padding: 12px 16px;
+  background: var(--color-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.searchButton:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.searchButton:disabled {
+  background: var(--color-border);
+  cursor: not-allowed;
+}
+
+.searchIcon {
+  color: white;
+}
+
+.suggestionsContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.suggestionItem {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s ease;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover {
+  background: var(--color-background-hover);
+}
+
+.advancedToggle {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text);
+  transition: all 0.2s ease;
+}
+
+.advancedToggle:hover {
+  background: var(--color-background-hover);
+  border-color: var(--color-primary);
+}
+
+.advancedOptions {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.advancedOption {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.optionLabel {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.optionSelect {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.optionSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.fileTypesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fileTypeLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.fileTypeCheckbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.thresholdSlider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.thresholdSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+}
+
+.thresholdSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: none;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .searchInputContainer {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .searchInputContainer:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+
+  .searchInput {
+    color: var(--color-text-dark);
+  }
+
+  .searchInput::placeholder {
+    color: var(--color-text-secondary-dark);
+  }
+
+  .suggestionsContainer {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .suggestionItem:hover {
+    background: var(--color-background-hover-dark);
+  }
+
+  .advancedToggle {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+    color: var(--color-text-dark);
+  }
+
+  .advancedToggle:hover {
+    background: var(--color-background-hover-dark);
+  }
+
+  .advancedOptions {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+  }
+
+  .optionLabel {
+    color: var(--color-text-dark);
+  }
+
+  .optionSelect {
+    background: var(--color-background-dark);
+    border-color: var(--color-border-dark);
+    color: var(--color-text-dark);
+  }
+
+  .fileTypeLabel {
+    color: var(--color-text-dark);
+  }
+
+  .thresholdSlider {
+    background: var(--color-border-dark);
+  }
+}
