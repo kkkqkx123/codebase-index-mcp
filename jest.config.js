@@ -7,6 +7,29 @@ module.exports = {
     '**/__tests__/**/*.+(ts|tsx|js)',
     '**/*.(test|spec).+(ts|tsx|js)'
   ],
+  projects: [
+    {
+      displayName: 'server',
+      testEnvironment: 'node',
+      roots: ['<rootDir>/src', '<rootDir>/test'],
+      testMatch: [
+        '**/?(*.)+(spec|test).ts',
+        '**/__tests__/**/*.+(ts|tsx|js)',
+        '**/*.(test|spec).+(ts|tsx|js)'
+      ],
+    },
+    {
+      displayName: 'frontend',
+      testEnvironment: 'jsdom',
+      roots: ['<rootDir>/frontend'],
+      testMatch: [
+        '**/?(*.)+(spec|test).tsx',
+        '**/__tests__/**/*.+(ts|tsx|js)',
+        '**/*.(test|spec).+(ts|tsx|js)'
+      ],
+      setupFilesAfterEnv: ['<rootDir>/frontend/test/setup.ts'],
+    }
+  ],
   transform: {
     '^.+\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.json'

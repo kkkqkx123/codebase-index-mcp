@@ -1,6 +1,14 @@
 import { render, screen, within } from './test-utils';
 import App from '../App';
 
+// Mock the graph components to avoid D3.js import issues
+jest.mock('../components/graph', () => ({
+  GraphVisualization: () => <div>Graph Visualization</div>,
+  GraphViewer: () => <div>Graph Viewer</div>,
+  NodeDetails: () => <div>Node Details</div>,
+  GraphControls: () => <div>Graph Controls</div>
+}));
+
 describe('App Component', () => {
   test('renders welcome message', () => {
     render(<App />);

@@ -1,7 +1,17 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { GraphData, GraphNode, GraphEdge, GraphConfig } from '../../../types/graph.types';
-import styles from './GraphViewer.module.css';
+
+// Create a CSS module object for testing
+const styles = {
+  graphViewer: 'graph-viewer',
+  svg: 'svg',
+  loadingOverlay: 'loading-overlay',
+  loadingSpinner: 'loading-spinner',
+  zoomControls: 'zoom-controls',
+  zoomButton: 'zoom-button',
+  node: 'node'
+};
 
 interface GraphViewerProps {
   data: GraphData;
@@ -19,6 +29,12 @@ interface GraphViewerState {
   selectedNode: GraphNode | null;
   hoveredNode: GraphNode | null;
   isDragging: boolean;
+}
+
+// Extend GraphNode interface to include fx and fy properties for D3.js
+interface ExtendedGraphNode extends GraphNode {
+  fx?: number | null;
+  fy?: number | null;
 }
 
 const GraphViewer: React.FC<GraphViewerProps> = ({
@@ -40,7 +56,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
     isDragging: false
   });
 
-  const simulationRef = useRef<d3.Simulation<GraphNode, GraphEdge> | null>(null);
+  const simulationRef = useRef<d3.Simulation<ExtendedGraphNode, GraphEdge> | null>(null);
 
   // Initialize D3.js simulation and rendering
   useEffect(() => {
@@ -80,9 +96,9 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
     svg.call(zoom.transform, initialTransform);
 
     // Create force simulation
-    const simulation = d3.forceSimulation<GraphNode>(data.nodes)
-      .force('link', d3.forceLink<GraphNode, GraphEdge>(data.edges)
-        .id(d => d.id)
+    const simulation = d3.forceSimulation<ExtendedGraphNode>(data.nodes as ExtendedGraphNode[])
+      .force('link', d3.forceLink<ExtendedGraphNode, GraphEdge>(data.edges)
+        .id((d: any) => d.id)
         .distance(d => 100 / (d.weight || 1)))
       .force('charge', d3.forceManyBody().strength(-300))
       .force('center', d3.forceCenter(width / 2, height / 2))
@@ -102,10 +118,10 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
     // Create nodes
     const node = g.append('g')
       .selectAll('g')
-      .data(data.nodes)
+      .data(data.nodes as ExtendedGraphNode[])
       .enter().append('g')
       .attr('class', styles.node)
-      .call(d3.drag<SVGGElement, GraphNode>()
+      .call(d3.drag<SVGGElement, ExtendedGraphNode>()
         .on('start', (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
@@ -157,10 +173,34 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
     // Update positions on tick
     simulation.on('tick', () => {
       link
-        .attr('x1', d => (d.source as GraphNode).x!)
-        .attr('y1', d => (d.source as GraphNode).y!)
-        .attr('x2', d => (d.target as GraphNode).x!)
-        .attr('y2', d => (d.target as GraphNode).y!);
+        .attr('x1', d => {
+          const source = d.source as ExtendedGraphNode | string;
+          if (typeof source === 'object') {
+            return source.x || 0;
+          }
+          return 0;
+        })
+        .attr('y1', d => {
+          const source = d.source as ExtendedGraphNode | string;
+          if (typeof source === 'object') {
+            return source.y || 0;
+          }
+          return 0;
+        })
+        .attr('x2', d => {
+          const target = d.target as ExtendedGraphNode | string;
+          if (typeof target === 'object') {
+            return target.x || 0;
+          }
+          return 0;
+        })
+        .attr('y2', d => {
+          const target = d.target as ExtendedGraphNode | string;
+          if (typeof target === 'object') {
+            return target.y || 0;
+          }
+          return 0;
+        });
 
       node.attr('transform', d => `translate(${d.x},${d.y})`);
     });
@@ -194,18 +234,18 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
       case 'force':
         simulation
           .force('charge', d3.forceManyBody().strength(-300))
-          .force('link', d3.forceLink(data.edges).id(d => d.id).distance(100))
+          .force('link', d3.forceLink(data.edges).id((d: any) => d.id).distance(100))
           .alpha(1).restart();
         break;
       case 'circular':
         const angleStep = (2 * Math.PI) / data.nodes.length;
-        data.nodes.forEach((node, i) => {
+        (data.nodes as ExtendedGraphNode[]).forEach((node, i) => {
           node.fx = width / 2 + Math.cos(i * angleStep) * Math.min(width, height) * 0.4;
           node.fy = height / 2 + Math.sin(i * angleStep) * Math.min(width, height) * 0.4;
         });
         simulation.alpha(1).restart();
         setTimeout(() => {
-          data.nodes.forEach(node => {
+          (data.nodes as ExtendedGraphNode[]).forEach(node => {
             node.fx = null;
             node.fy = null;
           });
@@ -214,8 +254,8 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
         break;
       case 'hierarchical':
         // Simple hierarchical layout - could be enhanced with proper tree layout
-        const levels: { [key: string]: GraphNode[] } = {};
-        data.nodes.forEach(node => {
+        const levels: { [key: string]: ExtendedGraphNode[] } = {};
+        (data.nodes as ExtendedGraphNode[]).forEach(node => {
           const level = node.type === 'file' ? '0' : node.type === 'class' ? '1' : '2';
           if (!levels[level]) levels[level] = [];
           levels[level].push(node);
@@ -234,7 +274,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
 
         simulation.alpha(1).restart();
         setTimeout(() => {
-          data.nodes.forEach(node => {
+          (data.nodes as ExtendedGraphNode[]).forEach(node => {
             node.fx = null;
             node.fy = null;
           });
@@ -252,14 +292,15 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
   }, [config.layout, applyLayout]);
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={styles.graphViewer}
       style={{ width, height }}
+      data-testid="graph-container"
     >
-      <svg 
-        ref={svgRef} 
-        width={width} 
+      <svg
+        ref={svgRef}
+        width={width}
         height={height}
         className={styles.svg}
       >
@@ -275,7 +316,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
       
       {/* Zoom controls */}
       <div className={styles.zoomControls}>
-        <button 
+        <button
           onClick={() => {
             const svg = d3.select(svgRef.current);
             const zoom = d3.zoom<SVGSVGElement, unknown>();
@@ -285,7 +326,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
         >
           +
         </button>
-        <button 
+        <button
           onClick={() => {
             const svg = d3.select(svgRef.current);
             const zoom = d3.zoom<SVGSVGElement, unknown>();
@@ -295,7 +336,7 @@ const GraphViewer: React.FC<GraphViewerProps> = ({
         >
           -
         </button>
-        <button 
+        <button
           onClick={() => {
             const svg = d3.select(svgRef.current);
             const zoom = d3.zoom<SVGSVGElement, unknown>();

@@ -33,6 +33,10 @@ console.error = jest.fn((...args) => {
   if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) {
     return;
   }
+  // Suppress navigation errors
+  if (typeof args[0] === 'object' && args[0] && args[0].type === 'not implemented') {
+    return;
+  }
   // For all other errors, call the original console.error
   originalError(...args);
 });
