@@ -1,36 +1,15 @@
-export const projects = [
-  {
-    displayName: 'server',
-    testEnvironment: 'node',
-    roots: ['<rootDir>/src', '<rootDir>/test'],
-    testMatch: [
-      '**/?(*.)+(spec|test).ts',
-      '**/__tests__/**/*.+(ts|tsx|js)',
-      '**/*.(test|spec).+(ts|tsx|js)'
-    ],
-    transform: {
-      '^.+\\.tsx?$': ['ts-jest', {
-        tsconfig: 'tsconfig.json'
-      }],
-    },
-  },
-  {
-    displayName: 'frontend',
-    testEnvironment: 'jsdom',
-    roots: ['<rootDir>/frontend'],
-    testMatch: [
-      '**/?(*.)+(spec|test).tsx',
-      '**/__tests__/**/*.+(ts|tsx|js)',
-      '**/*.(test|spec).+(ts|tsx|js)'
-    ],
-    setupFilesAfterEnv: ['<rootDir>/frontend/test/setup.ts'],
-    transform: {
-      '^.+\\.tsx?$': ['ts-jest', {
-        tsconfig: 'tsconfig.json'
-      }],
-    },
-  }
+export const testEnvironment = 'node';
+export const roots = ['<rootDir>/src', '<rootDir>/test'];
+export const testMatch = [
+  '**/?(*.)+(spec|test).ts',
+  '**/__tests__/**/*.+(ts|tsx|js)',
+  '**/*.(test|spec).+(ts|tsx|js)'
 ];
+export const transform = {
+  '^.+\\.tsx?$': ['ts-jest', {
+    tsconfig: 'tsconfig.json'
+  }],
+};
 export const collectCoverageFrom = [
   'src/**/*.ts',
   '!src/**/*.d.ts',

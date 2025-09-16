@@ -10,7 +10,7 @@ groups:
       service: nebula-personal
     annotations:
       summary: "个人NebulaGraph会话使用率较高"
-      description: "个人NebulaGraph会话使用率达到 {{ $value * 100 }}%，超过70%阈值"
+      description: "个人NebulaGraph会话使用率达到 {{ $value }}%，超过70%阈值"
 
   - alert: NebulaPersonalSessionLimitReached
     expr: nebula_num_sessions >= nebula_max_sessions
