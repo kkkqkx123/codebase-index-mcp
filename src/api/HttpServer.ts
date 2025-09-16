@@ -54,31 +54,32 @@ export class HttpServer {
     // CORS middleware
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       const origin = req.get('Origin');
-      // Cast configService to any to access getServerConfig method (which exists in the mock)
-      const corsConfig = (this.configService as any).getServerConfig().cors;
+      
+      // 允许的前端域名列表
+      const allowedOrigins = [
+        'http://localhost:3011',
+        'http://localhost:3012',
+        'http://127.0.0.1:3011',
+        'http://127.0.0.1:3012'
+      ];
 
-      // Check if CORS is enabled
-      if (corsConfig?.enabled) {
-        // Check if origin is allowed
-        if (corsConfig.origins.includes(origin || '')) {
-          res.header('Access-Control-Allow-Origin', origin || '*');
-        } else if (origin) {
-          // If origin is not allowed, return 403
-          return res.status(403).json({
-            success: false,
-            error: 'CORS origin not allowed',
-          });
-        }
+      // 检查来源是否在允许列表中
+      if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+      } else if (!origin) {
+        // 如果没有origin头，允许所有来源（开发环境）
+        res.header('Access-Control-Allow-Origin', '*');
+      }
 
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.header(
-          'Access-Control-Allow-Headers',
-          'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-        );
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token'
+      );
 
-        if (req.method === 'OPTIONS') {
-          return res.status(204).send();
-        }
+      if (req.method === 'OPTIONS') {
+        return res.status(204).send();
       }
 
       return next();
@@ -102,16 +103,10 @@ export class HttpServer {
   }
 
   private rateLimitingMiddleware(req: Request, res: Response, next: NextFunction): void {
-    // Cast configService to any to access getServerConfig method (which exists in the mock)
-    const rateLimitConfig = (this.configService as any).getServerConfig().rateLimit;
-
-    // If rate limiting is not configured, skip
-    if (!rateLimitConfig) {
-      return next();
-    }
-
-    const windowMs = rateLimitConfig.windowMs || 15 * 60 * 1000; // Default 15 minutes
-    const max = rateLimitConfig.max || 100; // Default 100 requests
+    // 开发环境下简化速率限制配置
+    const windowMs = 15 * 60 * 1000; // 默认15分钟
+    const max = 1000; // 默认1000个请求（开发环境放宽限制）
+    const enabled = true; // 默认启用
 
     // Use IP as key for rate limiting
     const key = req.ip || 'unknown';

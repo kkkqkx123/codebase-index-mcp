@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Layout from './components/common/Layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -20,18 +20,16 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/projects" element={<ProjectManagement />} />
-              <Route path="/search" element={<CodeSearch />} />
-              <Route path="/graph" element={<GraphVisualization />} />
-              <Route path="/debug" element={<DebugTools />} />
-            </Route>
-            <Route path="*" element={<div>Page not found</div>} />
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/projects" element={<ProjectManagement />} />
+            <Route path="/search" element={<CodeSearch />} />
+            <Route path="/graph" element={<GraphVisualization />} />
+            <Route path="/debug" element={<DebugTools />} />
+          </Route>
+          <Route path="*" element={<div>Page not found</div>} />
+        </Routes>
       </ThemeProvider>
     </ErrorBoundary>
   );
