@@ -26,12 +26,12 @@ export class HttpServer {
 
   constructor() {
     const container = DIContainer.getInstance();
-    this.logger = container.get<LoggerService>(TYPES.LoggerService);
-    this.errorHandler = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
-    this.configService = container.get<ConfigService>(TYPES.ConfigService);
+    this.logger = DIContainer.get<LoggerService>(TYPES.LoggerService);
+    this.errorHandler = DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+    this.configService = DIContainer.get<ConfigService>(TYPES.ConfigService);
 
     // Enable monitoring controller - dependencies are now available
-    this.monitoringController = container.get(TYPES.MonitoringController);
+    this.monitoringController = DIContainer.get(TYPES.MonitoringController);
     this.port = this.configService.get('port') || 3000;
     this.rateLimitMap = new Map();
     this.app = express();

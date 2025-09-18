@@ -36,8 +36,36 @@ export class LazyServiceLoader {
         bind(TYPES.GraphBatchOptimizer).to(require('../services/storage/graph/GraphBatchOptimizer').GraphBatchOptimizer).inSingletonScope();
         bind(TYPES.GraphQueryBuilder).to(require('../services/storage/graph/GraphQueryBuilder').GraphQueryBuilder).inSingletonScope();
         bind(TYPES.GraphSearchService).to(require('../services/storage/graph/GraphSearchService').GraphSearchService).inSingletonScope();
+        
+        // 静态分析相关服务
+        bind(TYPES.SemgrepScanService).to(require('../services/semgrep/SemgrepScanService').SemgrepScanService).inSingletonScope();
+        bind(TYPES.EnhancedSemgrepScanService).to(require('../services/semgrep/EnhancedSemgrepScanService').EnhancedSemgrepScanService).inSingletonScope();
+        bind(TYPES.SemgrepRuleAdapter).to(require('../services/static-analysis/SemgrepRuleAdapter').SemgrepRuleAdapter).inSingletonScope();
+        bind(TYPES.StaticAnalysisCoordinator).to(require('../services/static-analysis/StaticAnalysisCoordinator').StaticAnalysisCoordinator).inSingletonScope();
+        bind(TYPES.EnhancedSemgrepAnalyzer).to(require('../services/static-analysis/EnhancedSemgrepAnalyzer').EnhancedSemgrepAnalyzer).inSingletonScope();
+        bind(TYPES.SemgrepResultProcessor).to(require('../services/semgrep/SemgrepResultProcessor').SemgrepResultProcessor).inSingletonScope();
+        bind(TYPES.SemanticSemgrepService).to(require('../services/semgrep/SemanticSemgrepService').SemanticSemgrepService).inSingletonScope();
       });
       this.container.load(serviceModule);
+    }
+  }
+
+  /**
+   * 加载控制器模块
+   */
+  private loadControllerModule() {
+    if (!this.container.isBound(TYPES.MonitoringController)) {
+      // 先加载监控模块，因为控制器依赖于监控服务
+      this.loadMonitoringModule();
+      
+      const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
+        // Enable MonitoringController - all dependencies are now available
+        bind(TYPES.MonitoringController).to(require('../controllers/MonitoringController').MonitoringController).inSingletonScope();
+        bind(TYPES.SnippetController).to(require('../controllers/SnippetController').SnippetController).inSingletonScope();
+        bind(TYPES.CacheController).to(require('../controllers/CacheController').CacheController).inSingletonScope();
+        bind(TYPES.ParserController).to(require('../controllers/ParserController').ParserController).inSingletonScope();
+      });
+      this.container.load(controllerModule);
     }
   }
 
@@ -46,6 +74,9 @@ export class LazyServiceLoader {
    */
   private loadMonitoringModule() {
     if (!this.container.isBound(TYPES.BatchProcessingMetrics)) {
+      // 先加载服务模块，因为监控服务依赖于一些服务
+      this.loadServiceModule();
+      
       const monitoringModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
         // Enable Prometheus metrics service
         bind(TYPES.PrometheusMetricsService).to(require('../services/monitoring/PrometheusMetricsService').PrometheusMetricsService).inSingletonScope();
@@ -197,6 +228,9 @@ export class LazyServiceLoader {
    */
   loadHttpServer() {
     if (!this.container.isBound(TYPES.HttpServer)) {
+      // 先加载控制器模块
+      this.loadControllerModule();
+      
       const { HttpServer } = require('../api/HttpServer');
       
       this.container.bind(TYPES.HttpServer).toDynamicValue(() => {
