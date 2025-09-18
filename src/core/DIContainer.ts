@@ -82,10 +82,12 @@ import { LSPEnhancedSearchService } from '../services/search/LSPEnhancedSearchSe
 import { SearchCoordinator } from '../services/search/SearchCoordinator';
 import { SemanticSearchService } from '../services/search/SemanticSearchService';
 import { SemanticAnalysisOrchestrator } from '../services/SemanticAnalysisOrchestrator';
-import { EnhancedSemgrepScanService } from '../services/semgrep/EnhancedSemgrepScanService';
-import { SemanticSemgrepService } from '../services/semgrep/SemanticSemgrepService';
-import { SemgrepScanService, SemgrepRuleAdapter, StaticAnalysisCoordinator, SemgrepResultProcessor } from '../services/static-analysis';
-import { EnhancedSemgrepAnalyzer } from '../services/static-analysis/EnhancedSemgrepAnalyzer';
+import { StaticAnalysisService } from '../services/static-analysis/core/StaticAnalysisService';
+import { SemgrepIntegrationService } from '../services/static-analysis/core/SemgrepIntegrationService';
+import { AnalysisCoordinatorService } from '../services/static-analysis/core/AnalysisCoordinatorService';
+import { ResultProcessorService } from '../services/static-analysis/processing/ResultProcessorService';
+import { RuleManagerService } from '../services/static-analysis/processing/RuleManagerService';
+import { EnhancementService } from '../services/static-analysis/processing/EnhancementService';
 import { VectorStorageService, BatchProcessingService, EmbeddingService } from '../services/storage';
 import { GraphBatchOptimizer } from '../services/storage/graph/GraphBatchOptimizer';
 import { GraphCacheService } from '../services/storage/graph/GraphCacheService';
@@ -140,10 +142,19 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
   bind(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
   bind(TYPES.SnippetExtractionRules).toConstantValue(EnhancedRuleFactory.createAllRules());
-  bind(TYPES.SemgrepScanService).to(SemgrepScanService).inSingletonScope();
-  bind(TYPES.EnhancedSemgrepScanService).to(EnhancedSemgrepScanService).inSingletonScope();
-  bind(TYPES.SemgrepRuleAdapter).to(SemgrepRuleAdapter).inSingletonScope();
-  bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
+  // Unified static analysis services
+  bind(TYPES.StaticAnalysisService).to(StaticAnalysisService).inSingletonScope();
+  bind(TYPES.SemgrepIntegrationService).to(SemgrepIntegrationService).inSingletonScope();
+  bind(TYPES.AnalysisCoordinatorService).to(AnalysisCoordinatorService).inSingletonScope();
+  bind(TYPES.ResultProcessorService).to(ResultProcessorService).inSingletonScope();
+  bind(TYPES.RuleManagerService).to(RuleManagerService).inSingletonScope();
+  bind(TYPES.EnhancementService).to(EnhancementService).inSingletonScope();
+  
+  // Deprecated static analysis services (removed)
+  // bind(TYPES.SemgrepScanService).to(SemgrepScanService).inSingletonScope();
+  // bind(TYPES.EnhancedSemgrepScanService).to(EnhancedSemgrepScanService).inSingletonScope();
+  // bind(TYPES.SemgrepRuleAdapter).to(SemgrepRuleAdapter).inSingletonScope();
+  // bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
   bind(TYPES.SmartCodeParser).to(SmartCodeParser).inSingletonScope();
   bind(TYPES.FileSystemTraversal).to(FileSystemTraversal).inSingletonScope();
   bind(TYPES.FileWatcherService).to(FileWatcherService).inSingletonScope();
@@ -190,12 +201,13 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
 
   // Additional services from inversify.config.ts
   bind(TYPES.SemanticAnalysisOrchestrator).to(SemanticAnalysisOrchestrator).inSingletonScope();
-  bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
-  bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
-  bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
-  bind(TYPES.EnhancedSemgrepAnalyzer).to(EnhancedSemgrepAnalyzer).inSingletonScope();
-  bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
-
+  // bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
+  // bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
+  // Deprecated static analysis coordinator (removed)
+  // bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
+  // bind(TYPES.EnhancedSemgrepAnalyzer).to(EnhancedSemgrepAnalyzer).inSingletonScope();
+  // Deprecated result processor (removed)
+  // bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
   // Project management services
   bind(TYPES.ProjectIdManager).to(ProjectIdManager).inSingletonScope();
   bind(TYPES.ProjectLookupService).to(ProjectLookupService).inSingletonScope();

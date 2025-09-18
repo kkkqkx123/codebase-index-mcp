@@ -3,14 +3,14 @@ import { inject, injectable } from 'inversify';
 import { DIContainer } from '../../core/DIContainer';
 import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
-import { StaticAnalysisCoordinator } from '../../services/static-analysis/StaticAnalysisCoordinator';
-import { SemgrepScanService } from '../../services/semgrep/SemgrepScanService';
-import { SemgrepRuleAdapter } from '../../services/semgrep/SemgrepRuleAdapter';
+import { AnalysisCoordinatorService } from '../../services/static-analysis/core/AnalysisCoordinatorService';
+import { SemgrepIntegrationService } from '../../services/static-analysis/core/SemgrepIntegrationService';
+import { RuleManagerService } from '../../services/static-analysis/processing/RuleManagerService';
 import {
   SemgrepScanOptions as ScanOptions,
   SemgrepRule as SecurityRule,
-  SemgrepFinding,
 } from '../../models/StaticAnalysisTypes';
+import { SemgrepFinding } from '../../services/static-analysis/types/StaticAnalysisTypes';
 
 /**
  * 静态分析API路由
@@ -20,9 +20,9 @@ import {
 export class StaticAnalysisRoutes {
   public router: Router = Router();
   private logger: LoggerService;
-  private coordinator: StaticAnalysisCoordinator;
-  private scanService: SemgrepScanService;
-  private ruleAdapter: SemgrepRuleAdapter;
+  private coordinator: AnalysisCoordinatorService;
+  private scanService: SemgrepIntegrationService;
+  private ruleManager: RuleManagerService;
 
   /**
    * Helper function to safely extract error message
@@ -37,9 +37,9 @@ export class StaticAnalysisRoutes {
   constructor() {
     const container = DIContainer.getInstance();
     this.logger = container.get<LoggerService>(TYPES.LoggerService);
-    this.coordinator = container.get<StaticAnalysisCoordinator>(TYPES.StaticAnalysisCoordinator);
-    this.scanService = container.get<SemgrepScanService>(TYPES.SemgrepScanService);
-    this.ruleAdapter = container.get<SemgrepRuleAdapter>(TYPES.SemgrepRuleAdapter);
+    this.coordinator = container.get<AnalysisCoordinatorService>(TYPES.AnalysisCoordinatorService);
+    this.scanService = container.get<SemgrepIntegrationService>(TYPES.SemgrepIntegrationService);
+    this.ruleManager = container.get<RuleManagerService>(TYPES.RuleManagerService);
     this.setupRoutes();
   }
   private setupRoutes(): void {
@@ -231,7 +231,7 @@ export class StaticAnalysisRoutes {
    */
   private async getRuleTemplates(req: any, res: any): Promise<void> {
     try {
-      const templates = this.ruleAdapter.createSecurityRuleTemplates();
+      const templates = this.ruleManager.generateRuleTemplates();
 
       res.json({
         templates,
@@ -294,7 +294,7 @@ export class StaticAnalysisRoutes {
 
       res.json({
         summary: `Latest scan: ${latestScan.summary.totalFindings} findings in ${latestScan.summary.totalFiles} files`,
-        criticalIssues: latestScan.findings.filter((f: SemgrepFinding) => f.severity === 'ERROR'),
+        criticalIssues: latestScan.findings.filter((f) => f.severity === 'ERROR'),
         recommendations: [
           'Review critical issues first',
           'Address warnings in high-impact areas',

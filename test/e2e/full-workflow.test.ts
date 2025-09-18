@@ -34,7 +34,7 @@ describe('端到端工作流测试', () => {
   beforeAll(async () => {
     // 创建简化的测试容器（避免循环依赖）
     container = createSimpleTestContainer();
-    
+
     // 获取服务实例 - 使用TYPES符号
     indexService = container.get(TYPES.IndexService);
     parserService = container.get(TYPES.ParserService);
@@ -44,8 +44,8 @@ describe('端到端工作流测试', () => {
     errorHandlerService = container.get(TYPES.ErrorHandlerService);
     configService = container.get(TYPES.ConfigService);
     treeSitterService = container.get(TYPES.TreeSitterService);
-    semanticAnalysisService = container.get(TYPES.SemanticAnalysisService);
-    semgrepScanService = container.get(TYPES.EnhancedSemgrepScanService);
+    semanticAnalysisService = container.get(TYPES.StaticAnalysisService);
+    semgrepScanService = container.get(TYPES.SemgrepIntegrationService);
 
     // 创建测试项目目录结构
     if (!fs.existsSync(testProjectDir)) {
@@ -157,7 +157,7 @@ print(math_ops.multiply(2, 5))  # 10
 
     // 确保所有服务都已初始化
     jest.spyOn(vectorStorageService, 'initialize').mockResolvedValue(true);
-    
+
     await vectorStorageService.initialize();
     // TreeSitterService和SemanticAnalysisService没有initialize方法
     // EnhancedSemgrepScanService没有initialize方法
@@ -198,7 +198,7 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够提取代码片段并进行语义分析', async () => {
       // 测试代码片段提取
       const jsContent = fs.readFileSync(testFiles.javascript, 'utf-8');
-      
+
       // 使用tree-sitter解析并提取函数
       const parseResult = await treeSitterService.parseCode(jsContent, 'javascript');
       const functions = treeSitterService.extractFunctions(parseResult.ast);
@@ -209,8 +209,8 @@ print(math_ops.multiply(2, 5))  # 10
       // 测试语义分析（使用正确的接口）
       if (semanticAnalysisService && typeof semanticAnalysisService.analyzeSemanticContext === 'function') {
         const analysisResult = await semanticAnalysisService.analyzeSemanticContext(
-          testFiles.javascript, 
-          jsContent, 
+          testFiles.javascript,
+          jsContent,
           'javascript'
         );
         expect(analysisResult).toBeDefined();
@@ -220,14 +220,14 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够生成嵌入向量', async () => {
       // 测试嵌入生成
       const testText = '这是一个测试文本，用于生成嵌入向量';
-      
+
       // 模拟嵌入生成 - 返回number[]数组
       jest.spyOn(embeddingService, 'generateEmbedding').mockResolvedValue(
         new Array(1536).fill(0.1)
       );
 
       const embedding = await embeddingService.generateEmbedding(testText);
-      
+
       expect(embedding).toBeDefined();
       expect(Array.isArray(embedding)).toBe(true);
       expect(embedding.length).toBe(1536);
@@ -239,8 +239,8 @@ print(math_ops.multiply(2, 5))  # 10
         {
           id: 'test1',
           content: 'function test() { return "hello"; }',
-          metadata: { 
-            language: 'javascript', 
+          metadata: {
+            language: 'javascript',
             filePath: testFiles.javascript
           }
         }
@@ -279,7 +279,7 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够执行搜索查询', async () => {
       // 测试搜索功能
       const testQuery = '计算函数';
-      
+
       // 模拟查询处理 - 返回number[]数组
       jest.spyOn(embeddingService, 'generateEmbedding').mockResolvedValue(
         new Array(1536).fill(0.1)
@@ -305,7 +305,7 @@ print(math_ops.multiply(2, 5))  # 10
       ]);
 
       const searchResults = await vectorStorageService.searchVectors(new Array(1536).fill(0.1));
-      
+
       expect(searchResults).toBeDefined();
       expect(searchResults.length).toBeGreaterThan(0);
       expect(searchResults[0].score).toBeGreaterThan(0.8);
@@ -314,7 +314,7 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够处理整个项目索引', async () => {
       // 测试完整项目索引流程
       const projectPath = testProjectDir;
-      
+
       // 模拟索引构建
       jest.spyOn(indexService, 'createIndex').mockResolvedValue({
         success: true,
@@ -340,7 +340,7 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够集成tree-sitter和semgrep分析', async () => {
       // 测试tree-sitter和semgrep的集成
       const jsContent = fs.readFileSync(testFiles.javascript, 'utf-8');
-      
+
       // 测试tree-sitter解析
       const astResult = await treeSitterService.parseCode(jsContent, 'javascript');
       expect(astResult).toBeDefined();
@@ -355,8 +355,8 @@ print(math_ops.multiply(2, 5))  # 10
       // 测试语义分析集成
       if (semanticAnalysisService && typeof semanticAnalysisService.analyzeSemanticContext === 'function') {
         const analysisResult = await semanticAnalysisService.analyzeSemanticContext(
-          testFiles.javascript, 
-          jsContent, 
+          testFiles.javascript,
+          jsContent,
           'javascript'
         );
         expect(analysisResult).toBeDefined();
@@ -366,10 +366,10 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够处理错误情况', async () => {
       // 测试错误处理
       const invalidPath = '/invalid/path/to/file.js';
-      
+
       // 测试文件不存在的情况
       await expect(parserService.parseFile(invalidPath)).rejects.toThrow();
-      
+
       // 测试空查询搜索
       const emptyResults = await indexService.search('', 'test-project', { limit: 5 });
       expect(Array.isArray(emptyResults)).toBe(true);
@@ -379,31 +379,31 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够处理性能基准测试', async () => {
       // 性能基准测试
       const startTime = Date.now();
-      
+
       // 测试小文件解析性能
       const smallContent = 'function test() { return "hello"; }';
       const parseResult = await treeSitterService.parseCode(smallContent, 'javascript');
-      
+
       const parseTime = Date.now() - startTime;
-      
+
       expect(parseResult).toBeDefined();
       expect(parseTime).toBeLessThan(1000); // 解析时间应小于1秒
-      
+
       console.log(`小文件解析时间: ${parseTime}ms`);
     });
 
     it('应该能够验证数据一致性', async () => {
       // 数据一致性验证
       const testContent = 'const a = 1; const b = 2; function sum() { return a + b; }';
-      
+
       // 多次解析相同内容，结果应该一致
       const result1 = await treeSitterService.parseCode(testContent, 'javascript');
       const result2 = await treeSitterService.parseCode(testContent, 'javascript');
-      
+
       // 验证函数提取一致性
       const functions1 = treeSitterService.extractFunctions(result1.ast);
       const functions2 = treeSitterService.extractFunctions(result2.ast);
-      
+
       expect(functions1.length).toBe(functions2.length);
     });
 
@@ -424,7 +424,7 @@ print(math_ops.multiply(2, 5))  # 10
       );
 
       const results = await Promise.all(promises);
-      
+
       expect(results.length).toBe(concurrentRequests);
       results.forEach((result) => {
         expect(result).toBeDefined();
@@ -436,7 +436,7 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该能够缓存解析结果', async () => {
       // 测试缓存功能
       const jsContent = fs.readFileSync(testFiles.javascript, 'utf-8');
-      
+
       // 第一次解析
       const result1 = await treeSitterService.parseCode(jsContent, 'javascript');
       expect(result1).toBeDefined();
@@ -452,7 +452,7 @@ print(math_ops.multiply(2, 5))  # 10
       // 验证结果一致性
       const functions1 = treeSitterService.extractFunctions(result1.ast);
       const functions2 = treeSitterService.extractFunctions(result2.ast);
-      
+
       expect(functions1.length).toBe(functions2.length);
     });
   });
@@ -461,7 +461,7 @@ print(math_ops.multiply(2, 5))  # 10
     it('应该保持索引数据的一致性', async () => {
       const testId = 'consistency-test';
       const testContent = 'function consistent() { return "consistent"; }';
-      
+
       jest.spyOn(vectorStorageService, 'storeChunks').mockResolvedValue({
         success: true,
         processedFiles: 1,
@@ -508,7 +508,7 @@ print(math_ops.multiply(2, 5))  # 10
 
       // 检索数据
       const retrieved = await vectorStorageService.searchVectors(new Array(1536).fill(0.1));
-      
+
       expect(retrieved.length).toBe(1);
       expect(retrieved[0].id).toBe(testId);
       expect(retrieved[0].payload.content).toBe(testContent);

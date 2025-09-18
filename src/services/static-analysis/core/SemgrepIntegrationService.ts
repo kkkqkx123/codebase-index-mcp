@@ -2,30 +2,20 @@ import { inject, injectable } from 'inversify';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { TYPES } from '../../types';
-import { LoggerService } from '../../core/LoggerService';
-import { ConfigService } from '../../config/ConfigService';
-import {
-  SemgrepScanResult,
-  SemgrepScanOptions,
-  SemgrepFinding,
-  SemgrepRule,
-  ValidationResult,
-} from '../../models/StaticAnalysisTypes';
+import { TYPES } from '../../../types';
+import { LoggerService } from '../../../core/LoggerService';
+import { ConfigService } from '../../../config/ConfigService';
+import { SemgrepScanResult, SemgrepScanOptions, SemgrepFinding, SemgrepRule, ValidationResult } from '../types/StaticAnalysisTypes';
 
-// 使用统一的接口定义
-export interface ISemgrepScanService {
-  scanProject(projectPath: string, options?: SemgrepScanOptions): Promise<SemgrepScanResult>;
-  addCustomRule(rule: SemgrepRule): Promise<void>;
-  getAvailableRules(): Promise<SemgrepRule[]>;
-  validateRule(rule: SemgrepRule): Promise<ValidationResult>;
-  isSemgrepAvailable(): Promise<boolean>;
-}
-
+/**
+ * Unified Semgrep Integration Service
+ * Handles all Semgrep CLI operations and rule management
+ */
 @injectable()
-export class SemgrepScanService implements ISemgrepScanService {
+export class SemgrepIntegrationService {
   private semgrepPath: string;
   private rulesDir: string;
+  private enhancedRulesPath: string;
 
   constructor(
     @inject(TYPES.LoggerService) private logger: LoggerService,
@@ -34,8 +24,12 @@ export class SemgrepScanService implements ISemgrepScanService {
     const semgrepConfig = this.configService.get('semgrep');
     this.semgrepPath = semgrepConfig.binaryPath || 'semgrep';
     this.rulesDir = semgrepConfig.customRulesPath || './config/semgrep-rules';
+    this.enhancedRulesPath = semgrepConfig.enhancedRulesPath || './enhanced-rules';
   }
 
+  /**
+   * Scan a project with Semgrep
+   */
   async scanProject(
     projectPath: string,
     options: SemgrepScanOptions = {}
@@ -44,15 +38,15 @@ export class SemgrepScanService implements ISemgrepScanService {
     this.logger.info(`Starting Semgrep scan for project: ${projectPath}`);
 
     try {
-      // 验证Semgrep可用性
+      // Verify Semgrep is available
       if (!(await this.isSemgrepAvailable())) {
         throw new Error('Semgrep CLI is not available. Please install Semgrep first.');
       }
 
-      // 构建命令参数
+      // Build command arguments
       const args = this.buildScanArgs(projectPath, options);
 
-      // 执行扫描
+      // Execute scan
       const result = await this.executeSemgrep(args);
 
       const scanResult: SemgrepScanResult = {
@@ -93,6 +87,9 @@ export class SemgrepScanService implements ISemgrepScanService {
     }
   }
 
+  /**
+   * Add a custom rule
+   */
   async addCustomRule(rule: SemgrepRule): Promise<void> {
     try {
       const rulePath = path.join(this.rulesDir, `${rule.id}.yaml`);
@@ -108,11 +105,14 @@ export class SemgrepScanService implements ISemgrepScanService {
     }
   }
 
+  /**
+   * Get available rules
+   */
   async getAvailableRules(): Promise<SemgrepRule[]> {
     try {
       const rules: SemgrepRule[] = [];
 
-      // 检查规则目录是否存在
+      // Check if rules directory exists
       try {
         await fs.access(this.rulesDir);
       } catch {
@@ -126,7 +126,7 @@ export class SemgrepScanService implements ISemgrepScanService {
           const filePath = path.join(this.rulesDir, file.toString());
           const content = await fs.readFile(filePath, 'utf-8');
 
-          // 解析YAML文件并提取规则信息
+          // Parse YAML file and extract rule information
           const rule = this.parseRuleFromYaml(content);
           if (rule) {
             rules.push(rule);
@@ -141,6 +141,9 @@ export class SemgrepScanService implements ISemgrepScanService {
     }
   }
 
+  /**
+   * Validate a rule
+   */
   async validateRule(rule: SemgrepRule): Promise<ValidationResult> {
     try {
       const tempRulePath = path.join(this.rulesDir, 'temp', `${rule.id}.yaml`);
@@ -149,11 +152,11 @@ export class SemgrepScanService implements ISemgrepScanService {
       const ruleContent = this.generateRuleYaml(rule);
       await fs.writeFile(tempRulePath, ruleContent, 'utf-8');
 
-      // 使用Semgrep验证规则
+      // Validate rule with Semgrep
       const args = ['--validate', '--config', tempRulePath, '.'];
       const result = await this.executeSemgrep(args, process.cwd());
 
-      // 清理临时文件
+      // Clean up temporary file
       await fs.unlink(tempRulePath);
 
       return {
@@ -168,6 +171,9 @@ export class SemgrepScanService implements ISemgrepScanService {
     }
   }
 
+  /**
+   * Check if Semgrep is available
+   */
   async isSemgrepAvailable(): Promise<boolean> {
     try {
       const result = await this.executeCommand(this.semgrepPath, ['--version']);
@@ -177,10 +183,13 @@ export class SemgrepScanService implements ISemgrepScanService {
     }
   }
 
+  /**
+   * Build scan arguments
+   */
   private buildScanArgs(projectPath: string, options: SemgrepScanOptions): string[] {
     const args = ['scan', '--json', '--quiet', '--error'];
 
-    // 添加规则
+    // Add rules
     if (options.rules && options.rules.length > 0) {
       for (const rule of options.rules) {
         args.push('--config', rule);
@@ -189,29 +198,32 @@ export class SemgrepScanService implements ISemgrepScanService {
       args.push('--config', this.rulesDir);
     }
 
-    // 添加严重性过滤
+    // Add severity filter
     if (options.severity && options.severity.length > 0) {
       for (const severity of options.severity) {
         args.push('--severity', severity);
       }
     }
 
-    // 添加超时
+    // Add timeout
     if (options.timeout) {
       args.push('--timeout', options.timeout.toString());
     }
 
-    // 添加最大文件大小限制
+    // Add max target bytes
     const semgrepConfig = this.configService.get('semgrep');
     const maxTargetBytes = options.maxTargetBytes || semgrepConfig.maxTargetBytes || 1000000;
     args.push('--max-target-bytes', String(maxTargetBytes));
 
-    // 添加项目路径
+    // Add project path
     args.push(projectPath);
 
     return args;
   }
 
+  /**
+   * Execute Semgrep command
+   */
   private async executeSemgrep(args: string[], cwd?: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const child = spawn(this.semgrepPath, args, {
@@ -261,6 +273,9 @@ export class SemgrepScanService implements ISemgrepScanService {
     });
   }
 
+  /**
+   * Execute a command
+   */
   private async executeCommand(
     command: string,
     args: string[]
@@ -289,6 +304,9 @@ export class SemgrepScanService implements ISemgrepScanService {
     });
   }
 
+  /**
+   * Generate rule YAML
+   */
   private generateRuleYaml(rule: SemgrepRule): string {
     return `
 rules:
@@ -312,9 +330,12 @@ ${Object.entries(rule.metadata)
 `;
   }
 
+  /**
+   * Parse rule from YAML
+   */
   private parseRuleFromYaml(content: string): SemgrepRule | null {
     try {
-      // 简单的YAML解析，实际项目中应使用专门的YAML解析库
+      // Simple YAML parsing, in a real project we should use a proper YAML parser library
       const ruleMatch = content.match(/- id:\s*(\w+)/);
       const messageMatch = content.match(/message:\s*(.+)/);
       const severityMatch = content.match(/severity:\s*(\w+)/);

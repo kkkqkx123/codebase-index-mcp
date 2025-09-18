@@ -24,27 +24,98 @@ export class LazyServiceLoader {
   /**
    * 加载服务模块
    */
+  /**
+   * 加载服务模块
+   */
+  /**
+   * 加载服务模块
+   */
   private loadServiceModule() {
-    if (!this.container.isBound(TYPES.BatchProcessingService)) {
+    if (!this.container.isBound(TYPES.IndexService)) {
       const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-        // 从原始serviceModule中提取存储相关的绑定
-        bind(TYPES.BatchProcessingService).to(require('../services/storage/BatchProcessingService').BatchProcessingService).inSingletonScope();
-        bind(TYPES.EmbeddingService).to(require('../services/storage/EmbeddingService').EmbeddingService).inSingletonScope();
+        // 从原始serviceModule中提取所有绑定
+        bind(TYPES.IndexService).to(require('../services/indexing/IndexService').IndexService).inSingletonScope();
+        bind(TYPES.GraphService).to(require('../services/graph/GraphService').GraphService).inSingletonScope();
+        bind(TYPES.ParserService).to(require('../services/parser/ParserService').ParserService).inSingletonScope();
+        bind(TYPES.TreeSitterService).to(require('../services/parser/TreeSitterService').TreeSitterService).inSingletonScope();
+        bind(TYPES.TreeSitterCoreService).to(require('../services/parser/TreeSitterCoreService').TreeSitterCoreService).inSingletonScope();
+        bind(TYPES.SnippetExtractionService).to(require('../services/parser/SnippetExtractionService').SnippetExtractionService).inSingletonScope();
+        bind(TYPES.SnippetExtractionRules).toConstantValue(require('../services/parser/treesitter-rule/EnhancedRuleFactory').default.createAllRules());
+        
+        // Unified static analysis services
+        bind(TYPES.StaticAnalysisService).to(require('../services/static-analysis/core/StaticAnalysisService').StaticAnalysisService).inSingletonScope();
+        bind(TYPES.SemgrepIntegrationService).to(require('../services/static-analysis/core/SemgrepIntegrationService').SemgrepIntegrationService).inSingletonScope();
+        bind(TYPES.AnalysisCoordinatorService).to(require('../services/static-analysis/core/AnalysisCoordinatorService').AnalysisCoordinatorService).inSingletonScope();
+        bind(TYPES.ResultProcessorService).to(require('../services/static-analysis/processing/ResultProcessorService').ResultProcessorService).inSingletonScope();
+        bind(TYPES.RuleManagerService).to(require('../services/static-analysis/processing/RuleManagerService').RuleManagerService).inSingletonScope();
+        bind(TYPES.EnhancementService).to(require('../services/static-analysis/processing/EnhancementService').EnhancementService).inSingletonScope();
+        
+        // Other services
+        bind(TYPES.SmartCodeParser).to(require('../services/parser/SmartCodeParser').SmartCodeParser).inSingletonScope();
+        bind(TYPES.FileSystemTraversal).to(require('../services/filesystem/FileSystemTraversal').FileSystemTraversal).inSingletonScope();
+        bind(TYPES.FileWatcherService).to(require('../services/filesystem/FileWatcherService').FileWatcherService).inSingletonScope();
+        bind(TYPES.ChangeDetectionService).to(require('../services/filesystem/ChangeDetectionService').ChangeDetectionService).inSingletonScope();
+        bind(TYPES.HashBasedDeduplicator).to(require('../services/deduplication/HashBasedDeduplicator').HashBasedDeduplicator).inSingletonScope();
+        bind(TYPES.VectorStorageService).to(require('../services/storage/vector/VectorStorageService').VectorStorageService).inSingletonScope();
+        bind(TYPES.GraphPersistenceService).to(require('../services/storage/graph/GraphPersistenceService').GraphPersistenceService).inSingletonScope();
         bind(TYPES.GraphPersistenceUtils).to(require('../services/storage/graph/GraphPersistenceUtils').GraphPersistenceUtils).inSingletonScope();
         bind(TYPES.GraphCacheService).to(require('../services/storage/graph/GraphCacheService').GraphCacheService).inSingletonScope();
         bind(TYPES.GraphPerformanceMonitor).to(require('../services/storage/graph/GraphPerformanceMonitor').GraphPerformanceMonitor).inSingletonScope();
         bind(TYPES.GraphBatchOptimizer).to(require('../services/storage/graph/GraphBatchOptimizer').GraphBatchOptimizer).inSingletonScope();
         bind(TYPES.GraphQueryBuilder).to(require('../services/storage/graph/GraphQueryBuilder').GraphQueryBuilder).inSingletonScope();
         bind(TYPES.GraphSearchService).to(require('../services/storage/graph/GraphSearchService').GraphSearchService).inSingletonScope();
+        bind(TYPES.BatchProcessingService).to(require('../services/storage/BatchProcessingService').BatchProcessingService).inSingletonScope();
+        bind(TYPES.EmbeddingService).to(require('../services/storage/EmbeddingService').EmbeddingService).inSingletonScope();
         
-        // 静态分析相关服务
-        bind(TYPES.SemgrepScanService).to(require('../services/semgrep/SemgrepScanService').SemgrepScanService).inSingletonScope();
-        bind(TYPES.EnhancedSemgrepScanService).to(require('../services/semgrep/EnhancedSemgrepScanService').EnhancedSemgrepScanService).inSingletonScope();
-        bind(TYPES.SemgrepRuleAdapter).to(require('../services/static-analysis/SemgrepRuleAdapter').SemgrepRuleAdapter).inSingletonScope();
-        bind(TYPES.StaticAnalysisCoordinator).to(require('../services/static-analysis/StaticAnalysisCoordinator').StaticAnalysisCoordinator).inSingletonScope();
-        bind(TYPES.EnhancedSemgrepAnalyzer).to(require('../services/static-analysis/EnhancedSemgrepAnalyzer').EnhancedSemgrepAnalyzer).inSingletonScope();
-        bind(TYPES.SemgrepResultProcessor).to(require('../services/semgrep/SemgrepResultProcessor').SemgrepResultProcessor).inSingletonScope();
-        bind(TYPES.SemanticSemgrepService).to(require('../services/semgrep/SemanticSemgrepService').SemanticSemgrepService).inSingletonScope();
+        // Infrastructure services
+        bind(TYPES.AsyncPipeline).to(require('../services/infrastructure/AsyncPipeline').AsyncPipeline).inSingletonScope();
+        bind(TYPES.MemoryManager).to(require('../services/processing/MemoryManager').MemoryManager).inSingletonScope();
+        bind(TYPES.ObjectPool).to(require('../services/infrastructure/ObjectPool').ObjectPool).inSingletonScope();
+        bind(TYPES.BatchProcessor).to(require('../services/processing/BatchProcessor').BatchProcessor).inSingletonScope();
+        bind(TYPES.IndexCoordinator).to(require('../services/indexing/IndexCoordinator').IndexCoordinator).inSingletonScope();
+        bind(TYPES.StorageCoordinator).to(require('../services/storage/StorageCoordinator').StorageCoordinator).inSingletonScope();
+        bind(TYPES.SemanticSearchService).to(require('../services/search/SemanticSearchService').SemanticSearchService).inSingletonScope();
+        bind(TYPES.SearchCoordinator).to(require('../services/search/SearchCoordinator').SearchCoordinator).inSingletonScope();
+        bind(TYPES.HybridSearchService).to(require('../services/search/HybridSearchService').HybridSearchService).inSingletonScope();
+        bind(TYPES.RerankingService).to(require('../services/reranking/RerankingService').RerankingService).inSingletonScope();
+        bind(TYPES.QueryCache).to(require('../services/query/QueryCache').QueryCache).inSingletonScope();
+        bind(TYPES.QueryCoordinationService).to(require('../services/query/QueryCoordinationService').QueryCoordinationService).inSingletonScope();
+        bind(TYPES.ResultFusionEngine).to(require('../services/query/ResultFusionEngine').ResultFusionEngine).inSingletonScope();
+        bind(TYPES.QueryOptimizer).to(require('../services/query/QueryOptimizer').QueryOptimizer).inSingletonScope();
+        bind(TYPES.ResultFormatter).to(require('../services/query/ResultFormatter').ResultFormatter).inSingletonScope();
+        bind(TYPES.ResultFormatterCache).to(require('../services/query/ResultFormatterCache').ResultFormatterCache).inSingletonScope();
+        bind(TYPES.ResultFormatterConfigLoader).to(require('../services/query/ResultFormatterConfigLoader').ResultFormatterConfigLoader).inSingletonScope();
+        bind(TYPES.LSPService).to(require('../services/lsp/LSPService').LSPService).inSingletonScope();
+        bind(TYPES.LSPEnhancementPhase).to(require('../services/indexing/LSPEnhancementPhase').LSPEnhancementPhase).inSingletonScope();
+        bind(TYPES.EnhancedParserService).to(require('../services/parser/EnhancedParserService').EnhancedParserService).inSingletonScope();
+        bind(TYPES.LSPManager).to(require('../services/lsp/LSPManager').LSPManager).inSingletonScope();
+        bind(TYPES.LSPClientPool).to(require('../services/lsp/LSPClientPool').LSPClientPool).inSingletonScope();
+        bind(TYPES.LSPErrorHandler).to(require('../services/lsp/LSPErrorHandler').LSPErrorHandler).inSingletonScope();
+        bind(TYPES.LanguageServerRegistry).toConstantValue(require('../services/lsp/LanguageServerRegistry').LanguageServerRegistry.getInstance());
+        bind(TYPES.LSPSearchService).to(require('../services/lsp/LSPSearchService').LSPSearchService).inSingletonScope();
+        bind(TYPES.LSPEnhancedSearchService).to(require('../services/search/LSPEnhancedSearchService').LSPEnhancedSearchService).inSingletonScope();
+        
+        // Additional services
+        bind(TYPES.SemanticAnalysisOrchestrator).to(require('../services/SemanticAnalysisOrchestrator').SemanticAnalysisOrchestrator).inSingletonScope();
+        bind(TYPES.ProjectIdManager).to(require('../database/ProjectIdManager').ProjectIdManager).inSingletonScope();
+        bind(TYPES.ProjectLookupService).to(require('../database/ProjectLookupService').ProjectLookupService).inSingletonScope();
+        
+        // Phase 2: Tree-sitter Deep Analysis Services
+        bind(TYPES.AdvancedTreeSitterService).to(require('../services/parser/AdvancedTreeSitterService').AdvancedTreeSitterService).inSingletonScope();
+        bind(TYPES.SymbolTableBuilder).to(require('../services/parser/SymbolTableBuilder').SymbolTableBuilder).inSingletonScope();
+        bind(TYPES.CFGBuilder).to(require('../services/parser/CFGBuilder').CFGBuilder).inSingletonScope();
+        bind(TYPES.DataFlowAnalyzer).to(require('../services/parser/DataFlowGraph').DataFlowAnalyzer).inSingletonScope();
+        bind(TYPES.IncrementalAnalyzer).to(require('../services/parser/IncrementalAnalyzer').IncrementalAnalyzer).inSingletonScope();
+        bind(TYPES.SecurityAnalyzer).to(require('../services/parser/SecurityAnalyzer').SecurityAnalyzer).inSingletonScope();
+        
+        // Sync services
+        bind(TYPES.EntityIdManager).to(require('../services/sync/EntityIdManager').EntityIdManager).inSingletonScope();
+        bind(TYPES.EntityMappingService).to(require('../services/sync/EntityMappingService').EntityMappingService).inSingletonScope();
+        bind(TYPES.TransactionCoordinator).to(require('../services/sync/TransactionCoordinator').TransactionCoordinator).inSingletonScope();
+        bind(TYPES.ConsistencyChecker).to(require('../services/sync/ConsistencyChecker').ConsistencyChecker).inSingletonScope();
+        
+        // Queue services
+        bind(TYPES.EventQueueService).to(require('../services/EventQueueService').EventQueueService).inSingletonScope();
       });
       this.container.load(serviceModule);
     }
@@ -246,12 +317,16 @@ export class LazyServiceLoader {
    */
   loadMCPServer() {
     if (!this.container.isBound(TYPES.MCPServer)) {
-      const { MCPServer } = require('../mcp/MCPServer');
-      const loggerService = this.container.get(TYPES.LoggerService);
-      const indexService = this.container.get(TYPES.IndexService);
-      const graphService = this.container.get(TYPES.GraphService);
+      // 先加载服务模块，确保IndexService和GraphService可用
+      this.loadServiceModule();
       
-      this.container.bind(TYPES.MCPServer).toDynamicValue(() => {
+      const { MCPServer } = require('../mcp/MCPServer');
+      
+      this.container.bind(TYPES.MCPServer).toDynamicValue(context => {
+        const loggerService = context.get(TYPES.LoggerService);
+        const indexService = context.get(TYPES.IndexService);
+        const graphService = context.get(TYPES.GraphService);
+        
         return new MCPServer(
           loggerService,
           indexService,

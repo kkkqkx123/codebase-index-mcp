@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { TreeSitterCoreService } from './TreeSitterCoreService';
-import { SemgrepScanService } from '../semgrep/SemgrepScanService';
+import { SemgrepIntegrationService } from '../static-analysis/core/SemgrepIntegrationService';
 import { LoggerService } from '../../core/LoggerService';
 import { TYPES } from '../../types';
 
@@ -92,7 +92,7 @@ export interface SideEffect {
 export class SemanticAnalysisService {
   constructor(
     @inject(TYPES.TreeSitterCoreService) private treeSitterService: TreeSitterCoreService,
-    @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
+    @inject(TYPES.SemgrepIntegrationService) private semgrepService: SemgrepIntegrationService,
     @inject(TYPES.LoggerService) private logger: LoggerService
   ) {}
 

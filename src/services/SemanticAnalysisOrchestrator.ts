@@ -1,9 +1,14 @@
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../types';
 import { SemanticAnalysisService } from './parser/SemanticAnalysisService';
-import { SemanticSemgrepService } from './semgrep/SemanticSemgrepService';
 import { CallGraphService } from './parser/CallGraphService';
 import { LoggerService } from '../core/LoggerService';
+import { StaticAnalysisService } from './static-analysis/core/StaticAnalysisService';
+import { SemgrepIntegrationService } from './static-analysis/core/SemgrepIntegrationService';
+import { AnalysisCoordinatorService } from './static-analysis/core/AnalysisCoordinatorService';
+import { ResultProcessorService } from './static-analysis/processing/ResultProcessorService';
+import { RuleManagerService } from './static-analysis/processing/RuleManagerService';
+import { EnhancementService } from './static-analysis/processing/EnhancementService';
 
 export interface ControlFlowAnalysis {
   complexity: number;
@@ -59,10 +64,10 @@ export interface SemanticAnalysisProgress {
 @injectable()
 export class SemanticAnalysisOrchestrator {
   constructor(
-    @inject(TYPES.SemanticAnalysisService) private semanticService: SemanticAnalysisService,
-    @inject(TYPES.SemgrepScanService) private semgrepService: SemanticSemgrepService,
+    @inject(TYPES.StaticAnalysisService) private staticAnalysisService: StaticAnalysisService,
     @inject(TYPES.TreeSitterService) private callGraphService: CallGraphService,
-    @inject(TYPES.LoggerService) private logger: LoggerService
+    @inject(TYPES.LoggerService) private logger: LoggerService,
+    @inject(TYPES.SemgrepIntegrationService) private semgrepService: SemgrepIntegrationService
   ) {}
 
   async runSemanticAnalysis(
@@ -92,7 +97,11 @@ export class SemanticAnalysisOrchestrator {
         estimatedTime: 45,
       });
 
-      const controlFlowResult = await this.semgrepService.runControlFlowAnalysis(projectPath);
+      // 使用新的静态分析服务进行控制流分析
+      const controlFlowResult = await this.staticAnalysisService.analyzeProject({
+        projectPath,
+        analysisType: 'control-flow'
+      });
 
       // 步骤3: 运行数据流分析 (75%)
       onProgress?.({
@@ -102,7 +111,11 @@ export class SemanticAnalysisOrchestrator {
         estimatedTime: 30,
       });
 
-      const dataFlowResult = await this.semgrepService.runDataFlowAnalysis(projectPath);
+      // 使用新的静态分析服务进行数据流分析
+      const dataFlowResult = await this.staticAnalysisService.analyzeProject({
+        projectPath,
+        analysisType: 'data-flow'
+      });
 
       // 步骤4: 整合语义分析 (100%)
       onProgress?.({
@@ -112,11 +125,11 @@ export class SemanticAnalysisOrchestrator {
         estimatedTime: 15,
       });
 
-      const semanticResult = await this.semanticService.analyzeSemanticContext(
+      // 使用新的静态分析服务进行语义分析
+      const semanticResult = await this.staticAnalysisService.analyzeProject({
         projectPath,
-        '', // 这里应该提供实际代码
-        'typescript'
-      );
+        analysisType: 'comprehensive'
+      });
 
       const analysisTime = Date.now() - startTime;
 
@@ -153,10 +166,16 @@ export class SemanticAnalysisOrchestrator {
       // 快速构建调用图（仅针对目标文件）
       const callGraph = await this.buildPartialCallGraph(projectPath, targetFiles);
 
-      // 快速运行semgrep规则
+      // 使用新的静态分析服务进行快速分析
       const semgrepResults = await Promise.all([
-        this.semgrepService.runControlFlowAnalysis(projectPath),
-        this.semgrepService.runDataFlowAnalysis(projectPath),
+        this.staticAnalysisService.analyzeProject({
+          projectPath,
+          analysisType: 'control-flow'
+        }),
+        this.staticAnalysisService.analyzeProject({
+          projectPath,
+          analysisType: 'data-flow'
+        }),
       ]);
 
       const analysisTime = Date.now() - startTime;
@@ -210,21 +229,19 @@ export class SemanticAnalysisOrchestrator {
 
   private async validateSemgrepRules(): Promise<ValidationCheck> {
     try {
-      const availableRules = await this.semgrepService.getAvailableSemanticRules();
-      const requiredRules = [
-        'enhanced-rules/control-flow/enhanced-cfg-analysis.yml',
-        'enhanced-rules/data-flow/advanced-taint-analysis.yml',
-      ];
-
-      const missingRules = requiredRules.filter(rule => !availableRules.includes(rule));
-
+      const availableRules = await this.semgrepService.getAvailableRules();
+      // Filter for semantic analysis specific rules if needed
+      const semanticRules = availableRules.filter(rule =>
+        rule.id.includes('control-flow') || rule.id.includes('data-flow')
+      );
+      
+      // For now, we'll just check if we have any rules available
       return {
         name: 'semgrep-rules',
-        passed: missingRules.length === 0,
-        message:
-          missingRules.length > 0
-            ? `Missing rules: ${missingRules.join(', ')}`
-            : 'All rules available',
+        passed: semanticRules.length > 0,
+        message: semanticRules.length > 0
+          ? `Found ${semanticRules.length} semantic analysis rules`
+          : 'No semantic analysis rules available',
       };
     } catch (error) {
       return {

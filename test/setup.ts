@@ -88,12 +88,12 @@ import { MCPServer } from '../src/mcp/MCPServer';
 import { DIContainer } from '../src/core/DIContainer';
 import { QdrantService } from '../src/database/QdrantService';
 import { FileWatcherService } from '../src/services/filesystem/FileWatcherService';
-import { EnhancedSemgrepScanService } from '../src/services/semgrep/EnhancedSemgrepScanService';
-import { SemgrepScanService } from '../src/services/semgrep/SemgrepScanService';
-import { SemanticAnalysisService } from '../src/services/parser/SemanticAnalysisService';
-import { StaticAnalysisCoordinator } from '../src/services/static-analysis/StaticAnalysisCoordinator';
-import { SemgrepResultProcessor } from '../src/services/semgrep/SemgrepResultProcessor';
-import { EnhancedSemgrepAnalyzer } from '../src/services/static-analysis/EnhancedSemgrepAnalyzer';
+import { SemgrepIntegrationService } from '../src/services/static-analysis/core/SemgrepIntegrationService';
+import { AnalysisCoordinatorService } from '../src/services/static-analysis/core/AnalysisCoordinatorService';
+import { ResultProcessorService } from '../src/services/static-analysis/processing/ResultProcessorService';
+import { RuleManagerService } from '../src/services/static-analysis/processing/RuleManagerService';
+import { EnhancementService } from '../src/services/static-analysis/processing/EnhancementService';
+import { StaticAnalysisService } from '../src/services/static-analysis/core/StaticAnalysisService';
 import { EmbeddingService } from '../src/services/storage/EmbeddingService';
 
 // Load main .env file before any other setup
@@ -105,20 +105,20 @@ beforeAll(() => {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
   process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
-  
+
   // Use main .env file configuration instead of hardcoded values
   // All environment variables will be loaded from the main .env file
-  
+
   // Override only specific test configurations if needed
   // These are kept for test environment stability
   process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'test-key';
   process.env.MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-embed';
-  
+
   // Custom embedding services configuration - use .env values or defaults
   process.env.CUSTOM_CUSTOM1_BASE_URL = process.env.CUSTOM_CUSTOM1_BASE_URL || 'http://localhost:8000';
   process.env.CUSTOM_CUSTOM2_BASE_URL = process.env.CUSTOM_CUSTOM2_BASE_URL || 'http://localhost:8001';
   process.env.CUSTOM_CUSTOM3_BASE_URL = process.env.CUSTOM_CUSTOM3_BASE_URL || 'http://localhost:8002';
-  
+
   // siliconflow configuration - use .env values or defaults
   process.env.SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || 'test-key';
   process.env.SILICONFLOW_BASE_URL = process.env.SILICONFLOW_BASE_URL || 'http://localhost:8000';
@@ -129,7 +129,7 @@ beforeAll(() => {
   process.env.QDRANT_HOST = process.env.QDRANT_HOST || 'localhost';
   process.env.QDRANT_PORT = process.env.QDRANT_PORT || '6333';
   process.env.QDRANT_COLLECTION = process.env.QDRANT_COLLECTION || 'code-snippets';
-  
+
   // Nebula configuration - use .env values or defaults
   process.env.NEBULA_HOST = process.env.NEBULA_HOST || 'localhost';
   process.env.NEBULA_PORT = process.env.NEBULA_PORT || '9669';
@@ -141,7 +141,7 @@ beforeAll(() => {
 // Set up dependency injection container for tests
 export const createTestContainer = () => {
   const container = new Container();
-  
+
   // Mock LoggerService
   const mockLogger = {
     info: jest.fn(),
@@ -149,9 +149,9 @@ export const createTestContainer = () => {
     warn: jest.fn(),
     error: jest.fn(),
   };
-  
+
   container.bind<LoggerService>(LoggerService).toConstantValue(mockLogger as any);
-  
+
   // Mock ErrorHandlerService with proper dependencies
   const mockErrorHandler = {
     handleError: jest.fn(),
@@ -162,9 +162,9 @@ export const createTestContainer = () => {
     markErrorHandled: jest.fn(),
     clearErrorReports: jest.fn(),
   };
-  
+
   container.bind<ErrorHandlerService>(ErrorHandlerService).toConstantValue(mockErrorHandler as any);
-  
+
   // Mock EntityIdManager for tests that need it
   container.bind<EntityIdManager>(EntityIdManager).toConstantValue({
     generateEntityId: jest.fn(),
@@ -176,7 +176,7 @@ export const createTestContainer = () => {
     getUnsyncedMappings: jest.fn(),
     getSyncStats: jest.fn(),
   } as any);
-  
+
   // Mock ConfigService for tests that need it - use actual .env values
   const mockConfig = {
     get: jest.fn().mockImplementation((key: string) => {
@@ -258,9 +258,9 @@ export const createTestContainer = () => {
     }),
     getAll: jest.fn().mockReturnValue({})
   };
-  
+
   container.bind<ConfigService>(ConfigService).toConstantValue(mockConfig as any);
-  
+
   // Add missing service bindings for integration tests
   container.bind<MemoryManager>(MemoryManager).toSelf().inSingletonScope();
   container.bind<IndexCoordinator>(IndexCoordinator).toSelf().inSingletonScope();
@@ -270,7 +270,7 @@ export const createTestContainer = () => {
   container.bind<BatchProcessor>(BatchProcessor).toSelf().inSingletonScope();
   container.bind<ObjectPool<any>>(ObjectPool).toSelf().inSingletonScope();
   container.bind<HashUtils>(HashUtils).toSelf().inSingletonScope();
-  
+
   // Mock database services for testing
   const mockQdrantService = {
     store: jest.fn().mockResolvedValue(true),
@@ -278,16 +278,16 @@ export const createTestContainer = () => {
     delete: jest.fn().mockResolvedValue(true),
     healthCheck: jest.fn().mockResolvedValue(true),
   };
-  
+
   container.bind('QdrantService').toConstantValue(mockQdrantService);
-  
+
   const mockNebulaService = {
     executeQuery: jest.fn().mockResolvedValue({}),
     healthCheck: jest.fn().mockResolvedValue(true),
   };
-  
+
   container.bind('NebulaService').toConstantValue(mockNebulaService);
-  
+
   // Mock VectorStorageService for testing
   const mockVectorStorage = {
     initialize: jest.fn().mockResolvedValue(true),
@@ -305,9 +305,9 @@ export const createTestContainer = () => {
       errors: []
     }),
   };
-  
+
   container.bind(TYPES.VectorStorageService).toConstantValue(mockVectorStorage as any);
-  
+
   // Mock ParserService for testing
   const mockParserService = {
     parseFile: jest.fn().mockImplementation((filePath: string) => {
@@ -315,7 +315,7 @@ export const createTestContainer = () => {
       if (filePath.includes('/invalid/path/') || filePath.includes('\\invalid\\path\\')) {
         return Promise.reject(new Error(`文件不存在: ${filePath}`));
       }
-      
+
       // 根据文件扩展名返回正确的语言
       let language = 'javascript';
       if (filePath.endsWith('.ts')) {
@@ -323,7 +323,7 @@ export const createTestContainer = () => {
       } else if (filePath.endsWith('.py')) {
         language = 'python';
       }
-      
+
       return Promise.resolve({
         language,
         functions: [{ name: 'testFunction', parameters: [], returnType: 'void' }],
@@ -339,9 +339,9 @@ export const createTestContainer = () => {
       variables: []
     }]),
   };
-  
+
   container.bind(TYPES.ParserService).toConstantValue(mockParserService as any);
-  
+
   // Mock IndexService for testing
   const mockIndexService = {
     createIndex: jest.fn().mockResolvedValue({
@@ -362,19 +362,19 @@ export const createTestContainer = () => {
     }),
     search: jest.fn().mockResolvedValue([]),
   };
-  
+
   container.bind(TYPES.IndexService).toConstantValue(mockIndexService as any);
-  
+
   // Create mock embedders
-  
+
   // Create proper mock embedder classes that implement the Embedder interface
   class MockEmbedder {
     private name: string;
-    
+
     constructor(name: string) {
       this.name = name;
     }
-    
+
     async embed(input: any) {
       if (Array.isArray(input)) {
         return input.map((_, index) => ({
@@ -392,15 +392,15 @@ export const createTestContainer = () => {
         };
       }
     }
-    
+
     async isAvailable() {
       return true;
     }
-    
+
     getModelName() {
       return `${this.name}-test-model`;
     }
-    
+
     getDimensions() {
       return 1536;
     }
@@ -409,7 +409,7 @@ export const createTestContainer = () => {
   const createMockEmbedder = (name: string) => {
     return new MockEmbedder(name) as any;
   };
-  
+
   // Bind mock embedders with proper interface binding
   const openaiMock = createMockEmbedder('openai');
   const ollamaMock = createMockEmbedder('ollama');
@@ -428,11 +428,11 @@ export const createTestContainer = () => {
   container.bind<Custom1Embedder>(Custom1Embedder).toConstantValue(custom1Mock as any);
   container.bind<Custom2Embedder>(Custom2Embedder).toConstantValue(custom2Mock as any);
   container.bind<Custom3Embedder>(Custom3Embedder).toConstantValue(custom3Mock as any);
-  
+
   // Bind factory and dimension adapter
   container.bind<EmbedderFactory>(EmbedderFactory).toSelf().inSingletonScope();
   container.bind<DimensionAdapterService>(DimensionAdapterService).toSelf().inSingletonScope();
-  
+
   // Bind memory management services
   container.bind<MemoryManager>(MemoryManager).toSelf().inSingletonScope();
   container.bind<MemoryManagerOptions>('MemoryManagerOptions').toConstantValue({
@@ -445,11 +445,11 @@ export const createTestContainer = () => {
     gcThreshold: 90,
     maxMemoryMB: 1024
   });
-  
+
   // Bind processing services
   container.bind<BatchProcessor>(BatchProcessor).toSelf().inSingletonScope();
   container.bind<AsyncPipeline>(AsyncPipeline).toSelf().inSingletonScope();
-  
+
   // Bind infrastructure services
   const defaultPoolOptions: PoolOptions<any> = {
     initialSize: 10,
@@ -462,15 +462,15 @@ export const createTestContainer = () => {
   };
   container.bind<ObjectPool<any>>(ObjectPool).toSelf().inSingletonScope();
   container.bind<PoolOptions<any>>('PoolOptions').toConstantValue(defaultPoolOptions);
-  
+
   // Bind TreeSitter services for parser integration tests
   container.bind(TreeSitterCoreService).toSelf().inSingletonScope();
   container.bind(SnippetExtractionService).toSelf().inSingletonScope();
-  
+
   // Bind FileWatcherService for integration tests
   container.bind<FileWatcherService>(FileWatcherService).toSelf().inSingletonScope();
   container.bind<TraversalOptions>('TraversalOptions').toConstantValue({});
-  
+
   // Bind filesystem services
   container.bind<FileSystemTraversal>(FileSystemTraversal).toSelf().inSingletonScope();
   container.bind<SmartCodeParser>(SmartCodeParser).toSelf().inSingletonScope();
@@ -479,7 +479,7 @@ export const createTestContainer = () => {
   container.bind<ChangeDetectionOptions>('ChangeDetectionOptions').toConstantValue({});
   container.bind<EventQueueService>(EventQueueService).toSelf().inSingletonScope();
   container.bind<EventQueueOptions>('EventQueueOptions').toConstantValue({});
-  
+
   // Mock FileWatcherService for tests that need it
   const mockFileWatcherService = {
     watch: jest.fn(),
@@ -491,16 +491,16 @@ export const createTestContainer = () => {
     isWatching: jest.fn().mockReturnValue(false)
   };
   container.bind('FileWatcherService').toConstantValue(mockFileWatcherService);
-  
-  // Bind core services using actual TYPES symbols
-  container.bind(TYPES.EnhancedSemgrepScanService).to(EnhancedSemgrepScanService).inSingletonScope();
-  container.bind(TYPES.SemanticAnalysisService).to(SemanticAnalysisService).inSingletonScope();
-  container.bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
-  container.bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
-  container.bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
-  container.bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
 
-  container.bind(TYPES.SemgrepScanService).toConstantValue({
+  // Bind core services using actual TYPES symbols
+  container.bind(TYPES.SemgrepIntegrationService).to(SemgrepIntegrationService).inSingletonScope();
+  container.bind(TYPES.StaticAnalysisService).to(StaticAnalysisService).inSingletonScope();
+  container.bind(TYPES.TreeSitterService).to(TreeSitterService).inSingletonScope();
+  container.bind(TYPES.AnalysisCoordinatorService).to(AnalysisCoordinatorService).inSingletonScope();
+  container.bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
+  container.bind(TYPES.ResultProcessorService).to(ResultProcessorService).inSingletonScope();
+
+  container.bind(TYPES.SemgrepIntegrationService).toConstantValue({
     scanProject: jest.fn().mockResolvedValue({
       results: [],
       errors: [],
@@ -512,17 +512,17 @@ export const createTestContainer = () => {
       }
     })
   } as any);
-  
+
   // 使用实际存在的TYPES符号
-  container.bind(TYPES.EnhancedSemgrepAnalyzer).toConstantValue({
-    analyzeProject: jest.fn().mockResolvedValue({
-      controlFlow: { functions: [] },
-      dataFlow: { variables: [] },
-      securityIssues: { issues: [] },
-      metrics: { cyclomaticComplexity: 0 }
+  container.bind(TYPES.EnhancementService).toConstantValue({
+    enhanceResults: jest.fn().mockResolvedValue({
+      findings: [],
+      metrics: {},
+      recommendations: [],
+      enhancedData: {}
     })
   } as any);
-  
+
   // 对于不在TYPES中的服务，使用直接类绑定
   container.bind(HashUtils).toSelf().inSingletonScope();
   container.bind(PathUtils).toSelf().inSingletonScope();
@@ -541,7 +541,7 @@ export const createTestContainer = () => {
   container.bind(MCPServer).toSelf().inSingletonScope();
   container.bind(DIContainer).toSelf().inSingletonScope();
   container.bind(DimensionAdapterService).toSelf().inSingletonScope();
-  
+
   // Bind snippet extraction rules
   container.bind(TYPES.SnippetExtractionRules).toConstantValue([
     new ControlStructureRule(),
@@ -555,52 +555,52 @@ export const createTestContainer = () => {
     new TemplateLiteralRule(),
     new DestructuringAssignmentRule()
   ]);
-  
+
   // Bind database services
   container.bind(TYPES.NebulaQueryBuilder).to(NebulaQueryBuilder).inSingletonScope();
   container.bind(TYPES.GraphDatabaseErrorHandler).to(GraphDatabaseErrorHandler).inSingletonScope();
   container.bind(TYPES.ErrorClassifier).to(ErrorClassifier).inSingletonScope();
-  
+
   // Bind deduplication services
   container.bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
-  
+
   // Bind graph services
   container.bind(TYPES.GraphService).to(GraphService).inSingletonScope();
   container.bind('IGraphService').to(GraphService).inSingletonScope();
-  
+
   // Bind monitoring services
   container.bind(TYPES.HealthCheckService).to(HealthCheckService).inSingletonScope();
   container.bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService).inSingletonScope();
   container.bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService).inSingletonScope();
-  
+
   // Bind query services
   container.bind(TYPES.QueryCache).to(QueryCache).inSingletonScope();
   container.bind(TYPES.QueryCoordinationService).to(QueryCoordinationService).inSingletonScope();
   container.bind(TYPES.QueryOptimizer).to(QueryOptimizer).inSingletonScope();
   container.bind(TYPES.ResultFusionEngine).to(ResultFusionEngine).inSingletonScope();
-  
+
   // Bind reranking services
   container.bind(TYPES.RerankingService).to(RerankingService).inSingletonScope();
   container.bind(MLRerankingService).toSelf().inSingletonScope();
   container.bind(RealTimeLearningService).toSelf().inSingletonScope();
   container.bind(SimilarityAlgorithms).toSelf().inSingletonScope();
-  
+
   // Bind sync services
   container.bind(TYPES.ConsistencyChecker).to(ConsistencyChecker).inSingletonScope();
-  
+
   // Bind database services
   container.bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
-  
+
   // Bind search services
   container.bind(TYPES.SearchCoordinator).to(SearchCoordinator).inSingletonScope();
   container.bind(TYPES.SemanticSearchService).to(SemanticSearchService).inSingletonScope();
   container.bind(TYPES.HybridSearchService).to(HybridSearchService).inSingletonScope();
   container.bind(TYPES.RerankingService).to(RerankingService).inSingletonScope();
-  
+
   // Bind sync services
   container.bind(TYPES.TransactionCoordinator).to(TransactionCoordinator).inSingletonScope();
   container.bind(TYPES.EntityMappingService).to(EntityMappingService).inSingletonScope();
-  
+
   // Bind missing services for e2e tests
   container.bind(TYPES.IndexCoordinator).to(IndexCoordinator).inSingletonScope();
   container.bind(TYPES.StorageCoordinator).to(StorageCoordinator).inSingletonScope();
@@ -618,7 +618,7 @@ export const createTestContainer = () => {
     creator: () => '',
     resetter: (path: string) => path,
     validator: (path: string) => typeof path === 'string',
-    destroy: (path: string) => {},
+    destroy: (path: string) => { },
     evictionPolicy: 'lru'
   }));
 

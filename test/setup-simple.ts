@@ -11,7 +11,8 @@ import { EmbeddingService } from '../src/services/storage/EmbeddingService';
 import { VectorStorageService } from '../src/services/storage/vector/VectorStorageService';
 import { TreeSitterService } from '../src/services/parser/TreeSitterService';
 import { SemanticAnalysisService } from '../src/services/parser/SemanticAnalysisService';
-import { EnhancedSemgrepScanService } from '../src/services/semgrep/EnhancedSemgrepScanService';
+import { StaticAnalysisService } from '../src/services/static-analysis/core/StaticAnalysisService';
+import { SemgrepIntegrationService } from '../src/services/static-analysis/core/SemgrepIntegrationService';
 import { LSPManager } from '../src/services/lsp/LSPManager';
 import { LSPSearchService } from '../src/services/lsp/LSPSearchService';
 import { LanguageServerRegistry } from '../src/services/lsp/LanguageServerRegistry';
@@ -164,7 +165,7 @@ export const createSimpleTestContainer = () => {
     }),
   };
   
-  container.bind<SemanticAnalysisService>(TYPES.SemanticAnalysisService).toConstantValue(mockSemanticAnalysisService as any);
+  container.bind<StaticAnalysisService>(TYPES.StaticAnalysisService).toConstantValue(mockSemanticAnalysisService as any);
   
   const mockSemgrepScanService = {
     scanProject: jest.fn().mockResolvedValue({
@@ -179,7 +180,7 @@ export const createSimpleTestContainer = () => {
     }),
   };
   
-  container.bind<EnhancedSemgrepScanService>(TYPES.EnhancedSemgrepScanService).toConstantValue(mockSemgrepScanService as any);
+  container.bind<SemgrepIntegrationService>(TYPES.SemgrepIntegrationService).toConstantValue(mockSemgrepScanService as any);
   
   // Mock IndexService (simplified without complex dependencies)
   const mockIndexService = {

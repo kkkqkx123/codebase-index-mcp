@@ -2,8 +2,8 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../../types';
 import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { SemgrepScanService } from '../semgrep/SemgrepScanService';
-import { SemgrepResultProcessor } from '../semgrep/SemgrepResultProcessor';
+import { SemgrepIntegrationService } from '../static-analysis/core/SemgrepIntegrationService';
+import { ResultProcessorService } from '../static-analysis/processing/ResultProcessorService';
 import { SemgrepMetrics } from './PrometheusMetricsService';
 
 export interface SemgrepScanStats {
@@ -45,8 +45,8 @@ export class SemgrepMetricsService {
   constructor(
     @inject(TYPES.LoggerService) private logger: LoggerService,
     @inject(TYPES.ErrorHandlerService) private errorHandler: ErrorHandlerService,
-    @inject(TYPES.SemgrepScanService) private semgrepService: SemgrepScanService,
-    @inject(TYPES.SemgrepResultProcessor) private resultProcessor: SemgrepResultProcessor
+    @inject(TYPES.SemgrepIntegrationService) private semgrepService: SemgrepIntegrationService,
+    @inject(TYPES.ResultProcessorService) private resultProcessor: ResultProcessorService
   ) {}
 
   /**

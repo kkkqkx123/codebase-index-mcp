@@ -1,8 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { DIContainer } from '../core/DIContainer';
-import { TYPES } from '../types';
 import { LoggerService } from '../core/LoggerService';
 import { IndexService } from '../services/indexing/IndexService';
 import { GraphService } from '../services/graph/GraphService';
@@ -14,11 +12,14 @@ export class MCPServer {
   private indexService: IndexService;
   private graphService: GraphService;
 
-  constructor() {
-    const container = DIContainer.getInstance();
-    this.logger = container.get<LoggerService>(TYPES.LoggerService);
-    this.indexService = container.get<IndexService>(TYPES.IndexService);
-    this.graphService = container.get<GraphService>(TYPES.GraphService);
+  constructor(
+    logger: LoggerService,
+    indexService: IndexService,
+    graphService: GraphService
+  ) {
+    this.logger = logger;
+    this.indexService = indexService;
+    this.graphService = graphService;
 
     // Initialize the server with basic configuration
     this.server = new McpServer({

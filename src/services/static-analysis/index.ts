@@ -1,47 +1,105 @@
 /**
  * Static Analysis Service Integration
  *
- * This module provides the main entry point for static analysis services,
- * including Semgrep integration and result processing.
+ * This module provides the main entry point for unified static analysis services,
+ * including Semgrep integration, result processing, and enhancement capabilities.
  */
 
-import { StaticAnalysisCoordinator } from './StaticAnalysisCoordinator';
-import { SemgrepScanService } from '../semgrep/SemgrepScanService';
-import { SemgrepResultProcessor } from '../semgrep/SemgrepResultProcessor';
-import { SemgrepRuleAdapter } from '../semgrep/SemgrepRuleAdapter';
-import { AnalysisResultFusion } from './AnalysisResultFusion';
+// Core services
+import { StaticAnalysisService } from './core/StaticAnalysisService';
+import { SemgrepIntegrationService } from './core/SemgrepIntegrationService';
+import { AnalysisCoordinatorService } from './core/AnalysisCoordinatorService';
 
-// Export main services
+// Processing services
+import { ResultProcessorService } from './processing/ResultProcessorService';
+import { RuleManagerService } from './processing/RuleManagerService';
+import { EnhancementService } from './processing/EnhancementService';
+
+// Types
+import * as StaticAnalysisTypes from './types/StaticAnalysisTypes';
+
+// Export services
 export {
-  StaticAnalysisCoordinator,
-  SemgrepScanService,
-  SemgrepResultProcessor,
-  SemgrepRuleAdapter,
-  AnalysisResultFusion,
+  StaticAnalysisService,
+  SemgrepIntegrationService,
+  AnalysisCoordinatorService,
+  ResultProcessorService,
+  RuleManagerService,
+ EnhancementService,
 };
 
 // Export types
-export * from '../../models/StaticAnalysisTypes';
+export { StaticAnalysisTypes };
 
-// Service factory for dependency injection
+// Export all types directly for convenience
+export type {
+  AnalysisRequest,
+  AnalysisOptions,
+  AnalysisResult,
+  AnalysisContext,
+  EnhancedFinding,
+  SemgrepScanResult,
+  SemgrepFinding,
+  SemgrepRule,
+  SemgrepScanOptions,
+ AnalysisTask,
+  ValidationResult,
+} from './types/StaticAnalysisTypes';
+
+/**
+ * Service factory for dependency injection
+ */
 export class StaticAnalysisServiceFactory {
-  static createCoordinator(
+  static createStaticAnalysisService(
+    logger: any,
+    semgrepService: any,
+    coordinator: any,
+    processor: any,
+    ruleManager: any,
+    enhancer: any
+  ): StaticAnalysisService {
+    return new StaticAnalysisService(
+      logger,
+      semgrepService,
+      coordinator,
+      processor,
+      ruleManager,
+      enhancer
+    );
+  }
+
+  static createSemgrepIntegrationService(
+    logger: any,
+    configService: any
+  ): SemgrepIntegrationService {
+    return new SemgrepIntegrationService(logger, configService);
+  }
+
+  static createAnalysisCoordinatorService(
     logger: any,
     eventQueue: any,
     semgrepService: any,
-    enhancedSemgrepService: any,
-    resultProcessor: any,
     nebulaService: any,
     qdrantService: any
-  ): StaticAnalysisCoordinator {
-    return new StaticAnalysisCoordinator(
+  ): AnalysisCoordinatorService {
+    return new AnalysisCoordinatorService(
       logger,
       eventQueue,
       semgrepService,
-      enhancedSemgrepService,
-      resultProcessor,
       nebulaService,
       qdrantService
     );
+  }
+
+  static createResultProcessorService(logger: any): ResultProcessorService {
+    return new ResultProcessorService(logger);
+  }
+
+  static createRuleManagerService(logger: any, configService: any): RuleManagerService {
+    return new RuleManagerService(logger, configService);
+  }
+
+  static createEnhancementService(logger: any): EnhancementService {
+    return new EnhancementService(logger);
   }
 }

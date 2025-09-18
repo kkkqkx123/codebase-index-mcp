@@ -82,15 +82,23 @@ export const TYPES = {
   SnippetExtractionRules: Symbol.for('SnippetExtractionRules'),
 
   // Static analysis services
-  StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
-  SemgrepScanService: Symbol.for('SemgrepScanService'),
-  EnhancedSemgrepScanService: Symbol.for('EnhancedSemgrepScanService'),
-  EnhancedSemgrepAnalyzer: Symbol.for('EnhancedSemgrepAnalyzer'),
-  SemgrepResultProcessor: Symbol.for('SemgrepResultProcessor'),
-  SemgrepRuleAdapter: Symbol.for('SemgrepRuleAdapter'),
-  SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
-  SemanticSemgrepService: Symbol.for('SemanticSemgrepService'),
-  CallGraphService: Symbol.for('CallGraphService'),
+  StaticAnalysisService: Symbol.for('StaticAnalysisService'),
+  SemgrepIntegrationService: Symbol.for('SemgrepIntegrationService'),
+  AnalysisCoordinatorService: Symbol.for('AnalysisCoordinatorService'),
+  ResultProcessorService: Symbol.for('ResultProcessorService'),
+  RuleManagerService: Symbol.for('RuleManagerService'),
+  EnhancementService: Symbol.for('EnhancementService'),
+  
+  // Deprecated static analysis services (removed)
+  // StaticAnalysisCoordinator: Symbol.for('StaticAnalysisCoordinator'),
+  // SemgrepScanService: Symbol.for('SemgrepScanService'),
+  // EnhancedSemgrepScanService: Symbol.for('EnhancedSemgrepScanService'),
+  // EnhancedSemgrepAnalyzer: Symbol.for('EnhancedSemgrepAnalyzer'),
+  // SemgrepResultProcessor: Symbol.for('SemgrepResultProcessor'),
+  // SemgrepRuleAdapter: Symbol.for('SemgrepRuleAdapter'),
+  // SemanticAnalysisService: Symbol.for('SemanticAnalysisService'),
+  // SemanticSemgrepService: Symbol.for('SemanticSemgrepService'),
+  // CallGraphService: Symbol.for('CallGraphService'),
 
   // Embedders
   SiliconFlowEmbedder: Symbol.for('SiliconFlowEmbedder'),
