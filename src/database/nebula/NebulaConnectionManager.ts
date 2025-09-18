@@ -140,10 +140,26 @@ export class NebulaConnectionManager {
       }
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      // 更详细地处理错误对象，确保能正确提取错误信息
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        // 如果error是一个对象，尝试提取有用的信息
+        try {
+          errorMessage = JSON.stringify(error);
+        } catch (stringifyError) {
+          // 如果JSON.stringify失败，使用toString方法
+          errorMessage = Object.prototype.toString.call(error);
+        }
+      } else {
+        errorMessage = String(error);
+      }
+      
       this.logger.error('NebulaGraph connection failed:', {
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
+        originalError: error, // 保留原始错误对象用于调试
       });
       this.errorHandler.handleError(
         new Error(`Failed to connect to NebulaGraph: ${errorMessage}`),
@@ -165,7 +181,7 @@ export class NebulaConnectionManager {
         }
         this.client = null;
       }
-      return false;
+      throw new Error(`Failed to connect to NebulaGraph: ${errorMessage}`);
     }
   }
 

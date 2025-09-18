@@ -27,15 +27,29 @@ export class NebulaService {
         this.logger.info('NebulaGraph service initialized successfully');
         return true;
       }
-      return false;
+      throw new Error('Failed to connect to NebulaGraph');
     } catch (error) {
+      // 更详细地处理错误对象，确保能正确提取错误信息
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        // 如果error是一个对象，尝试提取有用的信息
+        try {
+          errorMessage = JSON.stringify(error);
+        } catch (stringifyError) {
+          // 如果JSON.stringify失败，使用toString方法
+          errorMessage = Object.prototype.toString.call(error);
+        }
+      } else {
+        errorMessage = String(error);
+      }
+
       this.errorHandler.handleError(
-        new Error(
-          `Failed to initialize NebulaGraph service: ${error instanceof Error ? error.message : String(error)}`
-        ),
+        new Error(`Failed to initialize NebulaGraph service: ${errorMessage}`),
         { component: 'NebulaService', operation: 'initialize' }
       );
-      return false;
+      throw new Error(`Failed to initialize NebulaGraph service: ${errorMessage}`);
     }
   }
 

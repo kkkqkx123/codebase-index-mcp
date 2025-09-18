@@ -145,6 +145,22 @@ export class GraphPersistenceService {
       this.logger.info('Graph persistence service initialized');
       return true;
     } catch (error) {
+      // 更详细地处理错误对象，确保能正确提取错误信息
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        // 如果error是一个对象，尝试提取有用的信息
+        try {
+          errorMessage = JSON.stringify(error);
+        } catch (stringifyError) {
+          // 如果JSON.stringify失败，使用toString方法
+          errorMessage = Object.prototype.toString.call(error);
+        }
+      } else {
+        errorMessage = String(error);
+      }
+
       const errorContext = {
         component: 'GraphPersistenceService',
         operation: 'initialize',
@@ -152,9 +168,7 @@ export class GraphPersistenceService {
       };
 
       const result = await this.graphErrorHandler.handleError(
-        new Error(
-          `Failed to initialize graph persistence: ${error instanceof Error ? error.message : String(error)}`
-        ),
+        new Error(`Failed to initialize graph persistence: ${errorMessage}`),
         errorContext
       );
 
@@ -162,7 +176,9 @@ export class GraphPersistenceService {
         errorType: result.action,
         suggestions: result.suggestions,
       });
-      return false;
+      
+      // Re-throw the error to ensure it's properly handled by the calling code
+      throw new Error(`Failed to initialize graph persistence: ${errorMessage}`);
     }
   }
 
