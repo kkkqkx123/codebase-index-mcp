@@ -3,7 +3,7 @@ import { injectable } from 'inversify';
 
 @injectable()
 export class ErrorClassifier {
-  async classifyError(error: Error): Promise<ErrorClassification> {
+  classifyError(error: Error): ErrorClassification {
     const message = error.message.toLowerCase();
     const name = error.name.toLowerCase();
 

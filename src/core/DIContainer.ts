@@ -5,11 +5,7 @@ import { ConfigService } from '../config/ConfigService';
 import { LoggerService } from '../core/LoggerService';
 import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { ConfigFactory } from '../config/ConfigFactory';
-import { IndexService } from '../services/indexing/IndexService';
-import { GraphService } from '../services/graph/GraphService';
-import { ParserService } from '../services/parser/ParserService';
-import { QdrantService } from '../database/QdrantService';
-import { NebulaService } from '../database/NebulaService';
+import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
 import { NebulaConnectionManager } from '../database/nebula/NebulaConnectionManager';
 import { NebulaSpaceManager } from '../database/nebula/NebulaSpaceManager';
 import { OpenAIEmbedder } from '../embedders/OpenAIEmbedder';
@@ -22,105 +18,87 @@ import { Custom2Embedder } from '../embedders/Custom2Embedder';
 import { Custom3Embedder } from '../embedders/Custom3Embedder';
 import { EmbedderFactory } from '../embedders/EmbedderFactory';
 import { EmbeddingCacheService } from '../embedders/EmbeddingCacheService';
-import { TreeSitterService } from '../services/parser/TreeSitterService';
-import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService';
-import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
-import { EnhancedRuleFactory } from '../services/parser/treesitter-rule/EnhancedRuleFactory';
-import { SemgrepScanService } from '../services/semgrep/SemgrepScanService';
-import { EnhancedSemgrepScanService } from '../services/semgrep/EnhancedSemgrepScanService';
-import { SemgrepRuleAdapter } from '../services/semgrep/SemgrepRuleAdapter';
-import { SemanticAnalysisService } from '../services/parser/SemanticAnalysisService';
-import { SmartCodeParser } from '../services/parser/SmartCodeParser';
-import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
-import { FileWatcherService } from '../services/filesystem/FileWatcherService';
-import { ChangeDetectionService } from '../services/filesystem/ChangeDetectionService';
-import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
-import { CacheManager } from '../services/cache/CacheManager';
-import { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
-import { VectorStorageService } from '../services/storage/vector/VectorStorageService';
-import { GraphPersistenceService } from '../services/storage/graph/GraphPersistenceService';
-import { GraphPersistenceUtils } from '../services/storage/graph/GraphPersistenceUtils';
-import { GraphCacheService } from '../services/storage/graph/GraphCacheService';
-import { GraphPerformanceMonitor } from '../services/storage/graph/GraphPerformanceMonitor';
-import { GraphBatchOptimizer } from '../services/storage/graph/GraphBatchOptimizer';
-import { GraphQueryBuilder } from '../services/storage/graph/GraphQueryBuilder';
-import { GraphSearchService } from '../services/storage/graph/GraphSearchService';
-import { BatchProcessingService } from '../services/storage/BatchProcessingService';
-import { EmbeddingService } from '../services/storage/EmbeddingService';
-import { EntityIdManager } from '../services/sync/EntityIdManager';
-import { EntityMappingService } from '../services/sync/EntityMappingService';
-import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
-import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
-import { EventQueueService } from '../services/EventQueueService';
 import { GraphDatabaseErrorHandler } from '../core/GraphDatabaseErrorHandler';
 import { ErrorClassifier } from '../core/ErrorClassifier';
 import { NebulaQueryBuilder } from '../database/nebula/NebulaQueryBuilder';
+import { LazyServiceLoader } from './LazyServiceLoader';
+import { CacheController } from '../controllers/CacheController';
+import { MonitoringController } from '../controllers/MonitoringController';
+import { ParserController } from '../controllers/ParserController';
+import { SnippetController } from '../controllers/SnippetController';
+import { NebulaService } from '../database/NebulaService';
+import { ProjectIdManager } from '../database/ProjectIdManager';
+import { ProjectLookupService } from '../database/ProjectLookupService';
+import { QdrantService } from '../database/QdrantService';
+import { CacheManager } from '../services/cache/CacheManager';
+import { HashBasedDeduplicator } from '../services/deduplication/HashBasedDeduplicator';
+import { EventQueueService } from '../services/EventQueueService';
+import { ChangeDetectionService } from '../services/filesystem/ChangeDetectionService';
+import { FileSystemTraversal } from '../services/filesystem/FileSystemTraversal';
+import { FileWatcherService } from '../services/filesystem/FileWatcherService';
+import { GraphService } from '../services/graph/GraphService';
 import { IndexCoordinator } from '../services/indexing/IndexCoordinator';
-import { StorageCoordinator } from '../services/storage/StorageCoordinator';
-import { SemanticSearchService } from '../services/search/SemanticSearchService';
-import { SearchCoordinator } from '../services/search/SearchCoordinator';
-import { HybridSearchService } from '../services/search/HybridSearchService';
-import { RerankingService } from '../services/reranking/RerankingService';
+import { IndexService } from '../services/indexing/IndexService';
+import { LSPEnhancementPhase } from '../services/indexing/LSPEnhancementPhase';
+import { AsyncPipeline } from '../services/infrastructure/AsyncPipeline';
+import { ObjectPool } from '../services/infrastructure/ObjectPool';
+import { LSPManager, LSPClientPool, LSPErrorHandler, LanguageServerRegistry } from '../services/lsp';
+import { LSPSearchService } from '../services/lsp/LSPSearchService';
+import { LSPService } from '../services/lsp/LSPService';
+import { BatchPerformanceMonitor } from '../services/monitoring/BatchPerformanceMonitor';
+import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMetrics';
+import { HealthCheckService } from '../services/monitoring/HealthCheckService';
+import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
+import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
+import { SemgrepMetricsService } from '../services/monitoring/SemgrepMetricsService';
+import { AdvancedTreeSitterService } from '../services/parser/AdvancedTreeSitterService';
+import { CallGraphService } from '../services/parser/CallGraphService';
+import { CFGBuilder } from '../services/parser/CFGBuilder';
+import { DataFlowAnalyzer } from '../services/parser/DataFlowGraph';
+import { EnhancedParserService } from '../services/parser/EnhancedParserService';
+import { IncrementalAnalyzer } from '../services/parser/IncrementalAnalyzer';
+import { ParserService } from '../services/parser/ParserService';
+import { SecurityAnalyzer } from '../services/parser/SecurityAnalyzer';
+import { SemanticAnalysisService } from '../services/parser/SemanticAnalysisService';
+import { SmartCodeParser } from '../services/parser/SmartCodeParser';
+import { SnippetExtractionService } from '../services/parser/SnippetExtractionService';
+import { SymbolTableBuilder } from '../services/parser/SymbolTableBuilder';
+import EnhancedRuleFactory from '../services/parser/treesitter-rule/EnhancedRuleFactory';
+import { TreeSitterCoreService } from '../services/parser/TreeSitterCoreService';
+import { TreeSitterService } from '../services/parser/TreeSitterService';
+import { BatchProcessor } from '../services/processing/BatchProcessor';
+import { MemoryManager } from '../services/processing/MemoryManager';
+import { PerformanceMonitor } from '../services/query/PerformanceMonitor';
 import { QueryCache } from '../services/query/QueryCache';
 import { QueryCoordinationService } from '../services/query/QueryCoordinationService';
-import { ResultFusionEngine } from '../services/query/ResultFusionEngine';
 import { QueryOptimizer } from '../services/query/QueryOptimizer';
 import { ResultFormatter } from '../services/query/ResultFormatter';
 import { ResultFormatterCache } from '../services/query/ResultFormatterCache';
 import { ResultFormatterConfigLoader } from '../services/query/ResultFormatterConfigLoader';
-import { SemgrepResultProcessor } from '../services/semgrep/SemgrepResultProcessor';
-
-// Monitoring services
-import { PrometheusMetricsService } from '../services/monitoring/PrometheusMetricsService';
-import { HealthCheckService } from '../services/monitoring/HealthCheckService';
-import { PerformanceAnalysisService } from '../services/monitoring/PerformanceAnalysisService';
-
-// Processing services
-import { BatchProcessor } from '../services/processing/BatchProcessor';
-import { PerformanceMonitor } from '../services/monitoring/PerformanceMonitor';
-import { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMetrics';
-import { BatchPerformanceMonitor } from '../services/monitoring/BatchPerformanceMonitor';
-import { SemgrepMetricsService } from '../services/monitoring/SemgrepMetricsService';
-
-// Infrastructure services
-import { AsyncPipeline } from '../services/infrastructure/AsyncPipeline';
-import { MemoryManager } from '../services/processing/MemoryManager';
-import { ObjectPool } from '../services/infrastructure/ObjectPool';
-
-// LSP services
-import { LSPService } from '../services/lsp/LSPService';
-import { LSPEnhancementPhase } from '../services/indexing/LSPEnhancementPhase';
-import { EnhancedParserService } from '../services/parser/EnhancedParserService';
-import { LSPManager } from '../services/lsp/LSPManager';
-import { LSPClient } from '../services/lsp/LSPClient';
-import { LSPClientPool } from '../services/lsp/LSPClientPool';
-import { LSPErrorHandler } from '../services/lsp/LSPErrorHandler';
-import { LanguageServerRegistry } from '../services/lsp/LanguageServerRegistry';
-import { LSPSearchService } from '../services/lsp/LSPSearchService';
+import { ResultFusionEngine } from '../services/query/ResultFusionEngine';
+import { RerankingService } from '../services/reranking/RerankingService';
+import { HybridSearchService } from '../services/search/HybridSearchService';
 import { LSPEnhancedSearchService } from '../services/search/LSPEnhancedSearchService';
-
-// Controllers
-import { MonitoringController } from '../controllers/MonitoringController';
-import { SnippetController } from '../controllers/SnippetController';
-import { CacheController } from '../controllers/CacheController';
-import { ParserController } from '../controllers/ParserController';
-
-// Additional services from inversify.config.ts
+import { SearchCoordinator } from '../services/search/SearchCoordinator';
+import { SemanticSearchService } from '../services/search/SemanticSearchService';
 import { SemanticAnalysisOrchestrator } from '../services/SemanticAnalysisOrchestrator';
-import { CallGraphService } from '../services/parser/CallGraphService';
+import { EnhancedSemgrepScanService } from '../services/semgrep/EnhancedSemgrepScanService';
 import { SemanticSemgrepService } from '../services/semgrep/SemanticSemgrepService';
-import { StaticAnalysisCoordinator } from '../services/static-analysis/StaticAnalysisCoordinator';
+import { SemgrepScanService, SemgrepRuleAdapter, StaticAnalysisCoordinator, SemgrepResultProcessor } from '../services/static-analysis';
 import { EnhancedSemgrepAnalyzer } from '../services/static-analysis/EnhancedSemgrepAnalyzer';
-import { AdvancedTreeSitterService } from '../services/parser/AdvancedTreeSitterService';
-import { SymbolTableBuilder } from '../services/parser/SymbolTableBuilder';
-import { CFGBuilder } from '../services/parser/CFGBuilder';
-import { DataFlowAnalyzer } from '../services/parser/DataFlowGraph';
-import { IncrementalAnalyzer } from '../services/parser/IncrementalAnalyzer';
-import { SecurityAnalyzer } from '../services/parser/SecurityAnalyzer';
-
-// Project management services
-import { ProjectIdManager } from '../database/ProjectIdManager';
-import { ProjectLookupService } from '../database/ProjectLookupService';
+import { VectorStorageService, BatchProcessingService, EmbeddingService } from '../services/storage';
+import { GraphBatchOptimizer } from '../services/storage/graph/GraphBatchOptimizer';
+import { GraphCacheService } from '../services/storage/graph/GraphCacheService';
+import { GraphPerformanceMonitor } from '../services/storage/graph/GraphPerformanceMonitor';
+import { GraphPersistenceService } from '../services/storage/graph/GraphPersistenceService';
+import { GraphPersistenceUtils } from '../services/storage/graph/GraphPersistenceUtils';
+import { GraphQueryBuilder } from '../services/storage/graph/GraphQueryBuilder';
+import { GraphSearchService } from '../services/storage/graph/GraphSearchService';
+import { StorageCoordinator } from '../services/storage/StorageCoordinator';
+import { ConsistencyChecker } from '../services/sync/ConsistencyChecker';
+import { EntityIdManager } from '../services/sync/EntityIdManager';
+import { EntityMappingService } from '../services/sync/EntityMappingService';
+import { TransactionCoordinator } from '../services/sync/TransactionCoordinator';
 
 const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
   bind(TYPES.ConfigService).to(ConfigService).inSingletonScope();
@@ -268,25 +246,115 @@ const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind })
 export { TYPES };
 export class DIContainer {
   private static instance: Container | null = null;
+  private static lazyLoader: LazyServiceLoader | null = null;
 
   static getInstance(): Container {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
-      DIContainer.instance.load(
+      void DIContainer.instance.load(
         coreModule,
         databaseModule,
-        embedderModule,
-        serviceModule,
-        queueModule,
-        syncModule,
-        monitoringModule,
-        controllerModule
+        embedderModule
+        // 其他模块将通过懒加载方式加载
       );
+
+      // 初始化懒加载器
+      DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
     }
     return DIContainer.instance;
   }
 
+  static get<T>(serviceIdentifier: string | symbol): T {
+    if (!DIContainer.instance) {
+      DIContainer.instance = new Container();
+      void DIContainer.instance.load(
+        coreModule,
+        databaseModule,
+        embedderModule
+      );
+
+      // 初始化懒加载器
+      DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
+    }
+
+    // 检查是否为核心服务
+    const coreServices = [
+      TYPES.ConfigService,
+      TYPES.LoggerService,
+      TYPES.ErrorHandlerService,
+      TYPES.QdrantClientWrapper,
+      TYPES.NebulaConnectionManager,
+      TYPES.NebulaSpaceManager,
+      TYPES.EmbeddingCacheService,
+      TYPES.OpenAIEmbedder,
+      TYPES.OllamaEmbedder,
+      TYPES.GeminiEmbedder,
+      TYPES.MistralEmbedder,
+      TYPES.SiliconFlowEmbedder,
+      TYPES.Custom1Embedder,
+      TYPES.Custom2Embedder,
+      TYPES.Custom3Embedder,
+      TYPES.EmbedderFactory,
+      TYPES.GraphDatabaseErrorHandler,
+      TYPES.ErrorClassifier,
+      TYPES.NebulaQueryBuilder,
+      TYPES.ConfigFactory
+    ];
+
+    if (coreServices.includes(serviceIdentifier as symbol)) {
+      return DIContainer.instance.get<T>(serviceIdentifier);
+    }
+
+    // 非核心服务通过懒加载器加载
+    if (!DIContainer.lazyLoader) {
+      throw new Error('LazyServiceLoader not initialized');
+    }
+
+    // 设置日志服务（在核心服务加载后）
+    if (serviceIdentifier === TYPES.LoggerService) {
+      DIContainer.lazyLoader.setLogger(DIContainer.instance.get(TYPES.LoggerService));
+    }
+
+    // 根据服务类型加载对应的服务
+    switch (serviceIdentifier) {
+      case TYPES.VectorStorageService:
+        return DIContainer.lazyLoader.loadVectorStorageService() as T;
+      case TYPES.GraphPersistenceService:
+        return DIContainer.lazyLoader.loadGraphPersistenceService() as T;
+      case TYPES.QdrantService:
+        return DIContainer.lazyLoader.loadQdrantService() as T;
+      case TYPES.NebulaService:
+        return DIContainer.lazyLoader.loadNebulaService() as T;
+      case TYPES.HttpServer:
+        return DIContainer.lazyLoader.loadHttpServer() as T;
+      case TYPES.MCPServer:
+        return DIContainer.lazyLoader.loadMCPServer() as T;
+      default:
+        // 对于其他服务，尝试直接从容器获取
+        // 如果不存在则抛出错误
+        if (DIContainer.instance.isBound(serviceIdentifier)) {
+          return DIContainer.instance.get<T>(serviceIdentifier);
+        }
+        throw new Error(`Service ${String(serviceIdentifier)} not found`);
+    }
+  }
+
   static reset(): void {
     DIContainer.instance = null;
+    DIContainer.lazyLoader = null;
+  }
+
+  static isServiceLoaded(serviceIdentifier: string | symbol): boolean {
+    if (!DIContainer.lazyLoader) {
+      return false;
+    }
+    return DIContainer.lazyLoader.isServiceLoaded(serviceIdentifier);
+  }
+
+  static getLoadedServices(): string[] {
+    if (!DIContainer.lazyLoader) {
+      return [];
+    }
+    return DIContainer.lazyLoader.getLoadedServices();
   }
 }

@@ -6,7 +6,8 @@ import { ConfigService } from '../../config/ConfigService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
 import { NebulaQueryBuilder } from '../../database/nebula/NebulaQueryBuilder';
-import { TYPES } from '../../core/DIContainer';
+import { ResultFormatter } from '../query/ResultFormatter';
+import { TYPES } from '../../types';
 
 describe('GraphService', () => {
   let container: Container;
@@ -17,6 +18,7 @@ describe('GraphService', () => {
   let mockErrorHandlerService: jest.Mocked<ErrorHandlerService>;
   let mockGraphPersistenceService: jest.Mocked<GraphPersistenceService>;
   let mockNebulaQueryBuilder: jest.Mocked<NebulaQueryBuilder>;
+  let mockResultFormatter: jest.Mocked<ResultFormatter>;
 
   beforeEach(() => {
     container = new Container();
@@ -59,16 +61,21 @@ describe('GraphService', () => {
       buildCountQuery: jest.fn(),
     } as any;
 
-    // Bind mocks to container
-    container.bind(NebulaService).toConstantValue(mockNebulaService);
-    container.bind(LoggerService).toConstantValue(mockLoggerService);
-    container.bind(ConfigService).toConstantValue(mockConfigService);
-    container.bind(ErrorHandlerService).toConstantValue(mockErrorHandlerService);
-    container.bind(GraphPersistenceService).toConstantValue(mockGraphPersistenceService);
-    container.bind(NebulaQueryBuilder).toConstantValue(mockNebulaQueryBuilder);
-    container.bind(GraphService).to(GraphService);
+    mockResultFormatter = {
+      formatForLLM: jest.fn(),
+    } as any;
 
-    graphService = container.get<GraphService>(GraphService);
+    // Bind mocks to container
+    container.bind(TYPES.NebulaService).toConstantValue(mockNebulaService);
+    container.bind(TYPES.LoggerService).toConstantValue(mockLoggerService);
+    container.bind(TYPES.ConfigService).toConstantValue(mockConfigService);
+    container.bind(TYPES.ErrorHandlerService).toConstantValue(mockErrorHandlerService);
+    container.bind(TYPES.GraphPersistenceService).toConstantValue(mockGraphPersistenceService);
+    container.bind(TYPES.NebulaQueryBuilder).toConstantValue(mockNebulaQueryBuilder);
+    container.bind(TYPES.ResultFormatter).toConstantValue(mockResultFormatter);
+    container.bind(TYPES.GraphService).to(GraphService);
+
+    graphService = container.get<GraphService>(TYPES.GraphService);
   });
 
   afterEach(() => {
@@ -102,6 +109,11 @@ describe('GraphService', () => {
       };
 
       mockNebulaService.executeReadQuery.mockResolvedValue(mockResult);
+      mockResultFormatter.formatForLLM.mockResolvedValue({
+        status: 'success',
+        data: { formatted: 'result' },
+        meta: { tool: 'test', duration_ms: 10 }
+      });
 
       const result = await graphService.analyzeCodebase(projectPath);
 

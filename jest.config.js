@@ -19,7 +19,9 @@ export const collectCoverageFrom = [
 export const coverageDirectory = 'coverage';
 export const coverageReporters = ['text', 'lcov', 'html'];
 export const moduleNameMapper = {
-  '^@nebula-contrib/nebula-nodejs$': '<rootDir>/__mocks__/@nebula-contrib/nebula-nodejs.js'
+  '^@nebula-contrib/nebula-nodejs$': '<rootDir>/__mocks__/@nebula-contrib/nebula-nodejs.js',
+  '^@test/(.*)$': '<rootDir>/test/$1',
+  '^src/(.*)$': '<rootDir>/src/$1'
 };
 export const testTimeout = 10000;
 export const verbose = true;

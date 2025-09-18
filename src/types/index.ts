@@ -143,4 +143,8 @@ export const TYPES = {
   GraphPersistenceUtils: Symbol.for('GraphPersistenceUtils'),
   EnhancedQueryBuilder: Symbol.for('EnhancedQueryBuilder'),
   DataFlowGraph: Symbol.for('DataFlowGraph'),
+
+  // Server types
+  HttpServer: Symbol.for('HttpServer'),
+  MCPServer: Symbol.for('MCPServer'),
 } as const;

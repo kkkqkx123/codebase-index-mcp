@@ -5,7 +5,8 @@ import { SnippetController } from '../controllers/SnippetController';
 import { MonitoringController } from '../controllers/MonitoringController';
 import { LoggerService } from '../core/LoggerService';
 import { ConfigService } from '../config/ConfigService';
-import { DIContainer, TYPES } from '../core/DIContainer';
+import { DIContainer } from '../core/DIContainer';
+import { TYPES } from '../types';
 import { Router, Request, Response } from 'express';
 
 // Mock StaticAnalysisRoutes to avoid dependency issues
