@@ -4,8 +4,8 @@ import { TYPES } from '../types';
 
 // 导入所有需要的服务类型
 import type { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
-import type { LoggerService } from '../core/LoggerService';
-import type { ErrorHandlerService } from '../core/ErrorHandlerService';
+import type { LoggerService } from './LoggerService';
+import type { ErrorHandlerService } from './ErrorHandlerService';
 import type { ConfigService } from '../config/ConfigService';
 import type { BatchProcessingMetrics } from '../services/monitoring/BatchProcessingMetrics';
 import type { EmbedderFactory } from '../embedders/EmbedderFactory';
@@ -14,7 +14,7 @@ import type { EmbeddingService } from '../services/storage/EmbeddingService';
 import type { NebulaService } from '../database/NebulaService';
 import type { NebulaSpaceManager } from '../database/nebula/NebulaSpaceManager';
 import type { NebulaQueryBuilder } from '../database/nebula/NebulaQueryBuilder';
-import type { GraphDatabaseErrorHandler } from '../core/GraphDatabaseErrorHandler';
+import type { GraphDatabaseErrorHandler } from './GraphDatabaseErrorHandler';
 import type { GraphPersistenceUtils } from '../services/storage/graph/GraphPersistenceUtils';
 import type { GraphCacheService } from '../services/storage/graph/GraphCacheService';
 import type { GraphPerformanceMonitor } from '../services/storage/graph/GraphPerformanceMonitor';

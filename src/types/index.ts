@@ -155,4 +155,9 @@ export const TYPES = {
   // Server types
   HttpServer: Symbol.for('HttpServer'),
   MCPServer: Symbol.for('MCPServer'),
+
+  // Service Group Management
+  ServiceGroupController: Symbol.for('ServiceGroupController'),
+  ServiceGroupRoutes: Symbol.for('ServiceGroupRoutes'),
+  LazyServiceLoader: Symbol.for('LazyServiceLoader'),
 } as const;
