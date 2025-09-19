@@ -1,6 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../types';
-import { VectorStorageService, IndexingResult } from './vector/VectorStorageService';
+import { VectorStorageService } from './vector/VectorStorageService';
+import { IndexingResult } from './vector/IVectorStorageService';
 import {
   GraphPersistenceService,
   GraphPersistenceResult,

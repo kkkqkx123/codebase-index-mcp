@@ -19,13 +19,12 @@ import { BatchProcessingService } from '../BatchProcessingService';
 import { EmbeddingService } from '../EmbeddingService';
 import { VectorStorageUtils } from '../utils/VectorStorageUtils';
 import { ChunkProcessingUtils } from '../utils/ChunkProcessingUtils';
-
-export interface VectorStorageConfig {
-  collectionName: string;
-  vectorSize: number;
-  distance: 'Cosine' | 'Euclidean' | 'Dot';
-  recreateCollection: boolean;
-}
+import {
+  IVectorStorageService,
+  VectorStorageConfig,
+  IndexingOptions,
+  IndexingResult,
+} from './IVectorStorageService';
 
 export interface ProjectVectorConfig {
   collectionName: string;
@@ -34,25 +33,8 @@ export interface ProjectVectorConfig {
   recreateCollection: boolean;
 }
 
-export interface IndexingOptions {
-  projectId?: string;
-  batchSize?: number;
-  skipDeduplication?: boolean;
-  overwriteExisting?: boolean;
-}
-
-export interface IndexingResult {
-  success: boolean;
-  processedFiles: number;
-  totalChunks: number;
-  uniqueChunks: number;
-  duplicatesRemoved: number;
-  processingTime: number;
-  errors: string[];
-}
-
 @injectable()
-export class VectorStorageService {
+export class VectorStorageService implements IVectorStorageService {
   private qdrantClient: QdrantClientWrapper;
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;

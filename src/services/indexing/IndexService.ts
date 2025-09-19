@@ -5,6 +5,7 @@ import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { IndexCoordinator } from './IndexCoordinator';
 import { ConfigService } from '../../config/ConfigService';
 import { SearchQuery } from '../search/SearchCoordinator';
+import { IIndexService } from './IIndexService';
 
 export interface IndexOptions {
   recursive?: boolean;
@@ -48,7 +49,7 @@ export interface IndexStatus {
 }
 
 @injectable()
-export class IndexService {
+export class IndexService implements IIndexService {
   private logger: LoggerService;
   private errorHandler: ErrorHandlerService;
   private configService: ConfigService;
