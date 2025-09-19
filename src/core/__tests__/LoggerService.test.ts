@@ -5,8 +5,16 @@ describe('LoggerService', () => {
   let mockLogger: any;
 
   beforeEach(() => {
-    // Clear module cache and mock winston
+    // Clear module cache and reset singleton instances
     jest.resetModules();
+    
+    // Reset static properties on LoggerService
+    const LoggerServiceModule = require('../LoggerService');
+    if (LoggerServiceModule.LoggerService) {
+      LoggerServiceModule.LoggerService.instance = null;
+      LoggerServiceModule.LoggerService.loggerInstance = null;
+    }
+    
     jest.doMock('winston', () => ({
       createLogger: jest.fn(),
       format: {
@@ -44,6 +52,24 @@ describe('LoggerService', () => {
 
   describe('Constructor', () => {
     it('should create logger with configuration object', () => {
+      // Clear the mock call history to ensure we're testing the initial creation
+      winston.createLogger.mockClear();
+      
+      // Create a new instance to trigger logger creation
+      jest.resetModules();
+      const LoggerServiceModule = require('../LoggerService');
+      if (LoggerServiceModule.LoggerService) {
+        LoggerServiceModule.LoggerService.instance = null;
+        LoggerServiceModule.LoggerService.loggerInstance = null;
+      }
+      
+      // Re-import and setup mock again
+      winston = require('winston');
+      LoggerService = require('../LoggerService').LoggerService;
+      winston.createLogger.mockReturnValue(mockLogger);
+      
+      const newLoggerService = new LoggerService();
+      
       // The test should check the actual configuration based on environment variables
       // Since LOG_FORMAT is not set, it should use the combined format
       expect(winston.createLogger).toHaveBeenCalledWith(
@@ -57,10 +83,29 @@ describe('LoggerService', () => {
     it('should use environment variables when provided', () => {
       const originalLogLevel = process.env.LOG_LEVEL;
       const originalLogFormat = process.env.LOG_FORMAT;
+      const originalNodeEnv = process.env.NODE_ENV;
 
+      // Set environment variables
       process.env.LOG_LEVEL = 'debug';
       process.env.LOG_FORMAT = 'text';
+      process.env.NODE_ENV = 'test'; // Set to test to avoid file transports
 
+      // Clear module cache and reset singleton for this test
+      jest.resetModules();
+      const LoggerServiceModule = require('../LoggerService');
+      if (LoggerServiceModule.LoggerService) {
+        LoggerServiceModule.LoggerService.instance = null;
+        LoggerServiceModule.LoggerService.loggerInstance = null;
+      }
+
+      // Re-import with new environment
+      winston = require('winston');
+      LoggerService = require('../LoggerService').LoggerService;
+      
+      // Reset the mock to track the new call
+      winston.createLogger.mockClear();
+      winston.createLogger.mockReturnValue(mockLogger);
+      
       const newLoggerService = new LoggerService();
 
       expect(winston.createLogger).toHaveBeenCalledWith(
@@ -71,15 +116,20 @@ describe('LoggerService', () => {
       );
 
       // Restore original environment variables
-      if (originalLogLevel) {
+      if (originalLogLevel !== undefined) {
         process.env.LOG_LEVEL = originalLogLevel;
       } else {
         delete process.env.LOG_LEVEL;
       }
-      if (originalLogFormat) {
+      if (originalLogFormat !== undefined) {
         process.env.LOG_FORMAT = originalLogFormat;
       } else {
         delete process.env.LOG_FORMAT;
+      }
+      if (originalNodeEnv !== undefined) {
+        process.env.NODE_ENV = originalNodeEnv;
+      } else {
+        delete process.env.NODE_ENV;
       }
     });
   });
@@ -157,6 +207,12 @@ describe('LoggerService', () => {
 
   describe('Log Level Handling', () => {
     it('should use different log levels based on environment', () => {
+      const originalLogLevel = process.env.LOG_LEVEL;
+      const originalNodeEnv = process.env.NODE_ENV;
+      
+      // Set to test environment to avoid file transports
+      process.env.NODE_ENV = 'test';
+      
       const testCases = [
         { level: 'error' },
         { level: 'warn' },
@@ -166,6 +222,22 @@ describe('LoggerService', () => {
       ];
 
       testCases.forEach(({ level }) => {
+        // Clear module cache and reset singleton for each test case
+        jest.resetModules();
+        const LoggerServiceModule = require('../LoggerService');
+        if (LoggerServiceModule.LoggerService) {
+          LoggerServiceModule.LoggerService.instance = null;
+          LoggerServiceModule.LoggerService.loggerInstance = null;
+        }
+        
+        // Re-import with new environment
+        winston = require('winston');
+        LoggerService = require('../LoggerService').LoggerService;
+        
+        // Reset the mock to track the new call
+        winston.createLogger.mockClear();
+        winston.createLogger.mockReturnValue(mockLogger);
+        
         process.env.LOG_LEVEL = level;
 
         const newLoggerService = new LoggerService();
@@ -176,6 +248,18 @@ describe('LoggerService', () => {
           })
         );
       });
+      
+      // Restore original environment variables
+      if (originalLogLevel !== undefined) {
+        process.env.LOG_LEVEL = originalLogLevel;
+      } else {
+        delete process.env.LOG_LEVEL;
+      }
+      if (originalNodeEnv !== undefined) {
+        process.env.NODE_ENV = originalNodeEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
     });
   });
 });

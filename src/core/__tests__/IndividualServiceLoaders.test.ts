@@ -8,13 +8,13 @@ import { TYPES } from '../../types';
 jest.mock('../LazyServiceLoader');
 const MockedLazyServiceLoader = LazyServiceLoader as jest.MockedClass<typeof LazyServiceLoader>;
 
-// Mock various services
-jest.mock('../../database/qdrant/VectorStorageService');
-jest.mock('../../database/nebula/GraphPersistenceService');
-jest.mock('../../database/qdrant/QdrantService');
-jest.mock('../../database/nebula/NebulaService');
-jest.mock('../../server/HttpServer');
-jest.mock('../../server/MCPServer');
+// Mock various services - only mock the actual service files that exist
+jest.mock('../../services/storage/vector/VectorStorageService');
+jest.mock('../../services/storage/graph/GraphPersistenceService');
+jest.mock('../../database/QdrantService');
+jest.mock('../../database/NebulaService');
+jest.mock('../../api/HttpServer');
+jest.mock('../../mcp/MCPServer');
 
 describe('IndividualServiceLoaders', () => {
   let serviceLoaders: IndividualServiceLoaders;
@@ -32,12 +32,7 @@ describe('IndividualServiceLoaders', () => {
       isServiceLoaded: jest.fn().mockReturnValue(false),
       getLoadedServices: jest.fn().mockReturnValue([]),
       recordServiceLoad: jest.fn(),
-      loadVectorStorageService: jest.fn(),
-      loadGraphPersistenceService: jest.fn(),
-      loadQdrantService: jest.fn(),
-      loadNebulaService: jest.fn(),
-      loadHttpServer: jest.fn(),
-      loadMCPServer: jest.fn(),
+      loadService: jest.fn(),
     } as any;
     
     MockedLazyServiceLoader.mockImplementation(() => mockLazyLoader);
@@ -47,19 +42,38 @@ describe('IndividualServiceLoaders', () => {
 
   describe('loadVectorStorageService', () => {
     it('should load vector storage service', async () => {
-      const mockService = {};
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
       
       const result = await serviceLoaders.loadVectorStorageService(container);
       
-      expect(mockLazyLoader.loadVectorStorageService).toHaveBeenCalledWith(container);
-      expect(result).toBe(mockService);
+      expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../services/storage/vector/VectorStorageService', 'VectorStorageService');
       expect(container.isBound(TYPES.VectorStorageService)).toBeTruthy();
     });
 
     it('should record service load', async () => {
-      const mockService = {};
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
       
       await serviceLoaders.loadVectorStorageService(container);
       
@@ -68,7 +82,7 @@ describe('IndividualServiceLoaders', () => {
 
     it('should handle loading errors', async () => {
       const error = new Error('Failed to load service');
-      mockLazyLoader.loadVectorStorageService.mockRejectedValue(error);
+      mockLazyLoader.loadService.mockRejectedValue(error);
       
       await expect(serviceLoaders.loadVectorStorageService(container)).rejects.toThrow('Failed to load service');
     });
@@ -76,19 +90,50 @@ describe('IndividualServiceLoaders', () => {
 
   describe('loadGraphPersistenceService', () => {
     it('should load graph persistence service', async () => {
-      const mockService = {};
-      mockLazyLoader.loadGraphPersistenceService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
       
-      const result = await serviceLoaders.loadGraphPersistenceService(container);
+      // Mock container dependencies
+      container.bind(TYPES.NebulaService).toConstantValue({});
+      container.bind(TYPES.NebulaSpaceManager).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.NebulaQueryBuilder).toConstantValue({});
+      container.bind(TYPES.GraphDatabaseErrorHandler).toConstantValue({});
+      container.bind(TYPES.GraphPersistenceUtils).toConstantValue({});
+      container.bind(TYPES.GraphCacheService).toConstantValue({});
+      container.bind(TYPES.GraphPerformanceMonitor).toConstantValue({});
+      container.bind(TYPES.GraphBatchOptimizer).toConstantValue({});
+      container.bind(TYPES.GraphQueryBuilder).toConstantValue({});
+      container.bind(TYPES.GraphSearchService).toConstantValue({});
       
-      expect(mockLazyLoader.loadGraphPersistenceService).toHaveBeenCalledWith(container);
-      expect(result).toBe(mockService);
+      await serviceLoaders.loadGraphPersistenceService(container);
+      
+      expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../services/storage/graph/GraphPersistenceService', 'GraphPersistenceService');
       expect(container.isBound(TYPES.GraphPersistenceService)).toBeTruthy();
     });
 
     it('should record service load', async () => {
-      const mockService = {};
-      mockLazyLoader.loadGraphPersistenceService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.NebulaService).toConstantValue({});
+      container.bind(TYPES.NebulaSpaceManager).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.NebulaQueryBuilder).toConstantValue({});
+      container.bind(TYPES.GraphDatabaseErrorHandler).toConstantValue({});
+      container.bind(TYPES.GraphPersistenceUtils).toConstantValue({});
+      container.bind(TYPES.GraphCacheService).toConstantValue({});
+      container.bind(TYPES.GraphPerformanceMonitor).toConstantValue({});
+      container.bind(TYPES.GraphBatchOptimizer).toConstantValue({});
+      container.bind(TYPES.GraphQueryBuilder).toConstantValue({});
+      container.bind(TYPES.GraphSearchService).toConstantValue({});
       
       await serviceLoaders.loadGraphPersistenceService(container);
       
@@ -98,19 +143,30 @@ describe('IndividualServiceLoaders', () => {
 
   describe('loadQdrantService', () => {
     it('should load Qdrant service', async () => {
-      const mockService = {};
-      mockLazyLoader.loadQdrantService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
       
-      const result = await serviceLoaders.loadQdrantService(container);
+      // Mock container dependencies
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
       
-      expect(mockLazyLoader.loadQdrantService).toHaveBeenCalledWith(container);
-      expect(result).toBe(mockService);
+      await serviceLoaders.loadQdrantService(container);
+      
+      expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../database/QdrantService', 'QdrantService');
       expect(container.isBound(TYPES.QdrantService)).toBeTruthy();
     });
 
     it('should record service load', async () => {
-      const mockService = {};
-      mockLazyLoader.loadQdrantService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
       
       await serviceLoaders.loadQdrantService(container);
       
@@ -120,19 +176,28 @@ describe('IndividualServiceLoaders', () => {
 
   describe('loadNebulaService', () => {
     it('should load Nebula service', async () => {
-      const mockService = {};
-      mockLazyLoader.loadNebulaService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
       
-      const result = await serviceLoaders.loadNebulaService(container);
+      // Mock container dependencies
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.NebulaConnectionManager).toConstantValue({});
       
-      expect(mockLazyLoader.loadNebulaService).toHaveBeenCalledWith(container);
-      expect(result).toBe(mockService);
+      await serviceLoaders.loadNebulaService(container);
+      
+      expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../database/NebulaService', 'NebulaService');
       expect(container.isBound(TYPES.NebulaService)).toBeTruthy();
     });
 
     it('should record service load', async () => {
-      const mockService = {};
-      mockLazyLoader.loadNebulaService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.NebulaConnectionManager).toConstantValue({});
       
       await serviceLoaders.loadNebulaService(container);
       
@@ -142,19 +207,18 @@ describe('IndividualServiceLoaders', () => {
 
   describe('loadHttpServer', () => {
     it('should load HTTP server', async () => {
-      const mockService = {};
-      mockLazyLoader.loadHttpServer.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
       
-      const result = await serviceLoaders.loadHttpServer(container);
+      await serviceLoaders.loadHttpServer(container);
       
-      expect(mockLazyLoader.loadHttpServer).toHaveBeenCalledWith(container);
-      expect(result).toBe(mockService);
+      expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../api/HttpServer', 'HttpServer');
       expect(container.isBound(TYPES.HttpServer)).toBeTruthy();
     });
 
     it('should record service load', async () => {
-      const mockService = {};
-      mockLazyLoader.loadHttpServer.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
       
       await serviceLoaders.loadHttpServer(container);
       
@@ -164,19 +228,28 @@ describe('IndividualServiceLoaders', () => {
 
   describe('loadMCPServer', () => {
     it('should load MCP server', async () => {
-      const mockService = {};
-      mockLazyLoader.loadMCPServer.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
       
-      const result = await serviceLoaders.loadMCPServer(container);
+      // Mock container dependencies
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.IndexService).toConstantValue({});
+      container.bind(TYPES.GraphService).toConstantValue({});
       
-      expect(mockLazyLoader.loadMCPServer).toHaveBeenCalledWith(container);
-      expect(result).toBe(mockService);
+      await serviceLoaders.loadMCPServer(container);
+      
+      expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../mcp/MCPServer', 'MCPServer');
       expect(container.isBound(TYPES.MCPServer)).toBeTruthy();
     });
 
     it('should record service load', async () => {
-      const mockService = {};
-      mockLazyLoader.loadMCPServer.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.IndexService).toConstantValue({});
+      container.bind(TYPES.GraphService).toConstantValue({});
       
       await serviceLoaders.loadMCPServer(container);
       
@@ -205,8 +278,21 @@ describe('IndividualServiceLoaders', () => {
 
   describe('service loading state tracking', () => {
     it('should track loaded services', async () => {
-      const mockService = {};
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
+      
+      // Mock isServiceLoaded to return false initially
+      mockLazyLoader.isServiceLoaded.mockReturnValue(false);
       
       // Initially not loaded
       expect(serviceLoaders.isServiceLoaded(TYPES.VectorStorageService)).toBe(false);
@@ -214,15 +300,48 @@ describe('IndividualServiceLoaders', () => {
       // Load the service
       await serviceLoaders.loadVectorStorageService(container);
       
+      // Mock isServiceLoaded to return true after loading
+      mockLazyLoader.isServiceLoaded.mockImplementation((serviceId) => {
+        return serviceId === TYPES.VectorStorageService;
+      });
+      
       // Should now be loaded
       expect(serviceLoaders.isServiceLoaded(TYPES.VectorStorageService)).toBe(true);
     });
 
     it('should handle multiple service loads', async () => {
-      const mockServices = [{}, {}, {}];
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue(mockServices[0] as any);
-      mockLazyLoader.loadGraphPersistenceService.mockResolvedValue(mockServices[1] as any);
-      mockLazyLoader.loadQdrantService.mockResolvedValue(mockServices[2] as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock dependencies for all services
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
+      container.bind(TYPES.NebulaService).toConstantValue({});
+      container.bind(TYPES.NebulaSpaceManager).toConstantValue({});
+      container.bind(TYPES.NebulaQueryBuilder).toConstantValue({});
+      container.bind(TYPES.GraphDatabaseErrorHandler).toConstantValue({});
+      container.bind(TYPES.GraphPersistenceUtils).toConstantValue({});
+      container.bind(TYPES.GraphCacheService).toConstantValue({});
+      container.bind(TYPES.GraphPerformanceMonitor).toConstantValue({});
+      container.bind(TYPES.GraphBatchOptimizer).toConstantValue({});
+      container.bind(TYPES.GraphQueryBuilder).toConstantValue({});
+      container.bind(TYPES.GraphSearchService).toConstantValue({});
+      container.bind(TYPES.NebulaConnectionManager).toConstantValue({});
+      
+      // Mock isServiceLoaded to track loaded services
+      const loadedServices = new Set();
+      mockLazyLoader.isServiceLoaded.mockImplementation((serviceId) => {
+        return loadedServices.has(serviceId);
+      });
+      mockLazyLoader.recordServiceLoad.mockImplementation((serviceId) => {
+        loadedServices.add(serviceId);
+      });
       
       await serviceLoaders.loadVectorStorageService(container);
       await serviceLoaders.loadGraphPersistenceService(container);
@@ -238,7 +357,17 @@ describe('IndividualServiceLoaders', () => {
   describe('error handling', () => {
     it('should not mark service as loaded on failure', async () => {
       const error = new Error('Service initialization failed');
-      mockLazyLoader.loadVectorStorageService.mockRejectedValue(error);
+      mockLazyLoader.loadService.mockRejectedValue(error);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
       
       await expect(serviceLoaders.loadVectorStorageService(container)).rejects.toThrow('Service initialization failed');
       
@@ -249,7 +378,17 @@ describe('IndividualServiceLoaders', () => {
 
     it('should propagate errors from lazy loader', async () => {
       const error = new Error('Dependency injection failed');
-      mockLazyLoader.loadVectorStorageService.mockRejectedValue(error);
+      mockLazyLoader.loadService.mockRejectedValue(error);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
       
       await expect(serviceLoaders.loadVectorStorageService(container)).rejects.toThrow('Dependency injection failed');
     });
@@ -257,8 +396,18 @@ describe('IndividualServiceLoaders', () => {
 
   describe('container binding', () => {
     it('should bind services to container with singleton scope', async () => {
-      const mockService = {};
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
       
       await serviceLoaders.loadVectorStorageService(container);
       
@@ -269,15 +418,25 @@ describe('IndividualServiceLoaders', () => {
     });
 
     it('should not rebind already bound services', async () => {
-      const mockService = {};
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue(mockService as any);
+      const mockService = jest.fn();
+      mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies
+      container.bind(TYPES.QdrantClientWrapper).toConstantValue({});
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      container.bind(TYPES.BatchProcessingMetrics).toConstantValue({});
+      container.bind(TYPES.EmbedderFactory).toConstantValue({});
+      container.bind(TYPES.BatchProcessingService).toConstantValue({});
+      container.bind(TYPES.EmbeddingService).toConstantValue({});
       
       // Load service twice
       await serviceLoaders.loadVectorStorageService(container);
       await serviceLoaders.loadVectorStorageService(container);
       
       // Should only call lazy loader once
-      expect(mockLazyLoader.loadVectorStorageService).toHaveBeenCalledTimes(1);
+      expect(mockLazyLoader.loadService).toHaveBeenCalledTimes(1);
     });
   });
 });

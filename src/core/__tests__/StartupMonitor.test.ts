@@ -3,14 +3,20 @@ import { StartupMonitor, PhaseMetrics, StartupReport } from '../StartupMonitor';
 import { DIContainer } from '../DIContainer';
 
 // Mock DIContainer with static methods
-jest.mock('../DIContainer', () => ({
-  ...jest.requireActual('../DIContainer'),
-  getLoadedServices: jest.fn().mockReturnValue([]),
-  getInstance: jest.fn(),
-  get: jest.fn(),
-  reset: jest.fn(),
-  isServiceLoaded: jest.fn(),
-}));
+jest.mock('../DIContainer', () => {
+  const actual = jest.requireActual('../DIContainer');
+  return {
+    ...actual,
+    DIContainer: {
+      ...actual.DIContainer,
+      getLoadedServices: jest.fn().mockReturnValue([]),
+      getInstance: jest.fn(),
+      get: jest.fn(),
+      reset: jest.fn(),
+      isServiceLoaded: jest.fn(),
+    }
+  };
+});
 
 describe('StartupMonitor', () => {
   let startupMonitor: StartupMonitor;
