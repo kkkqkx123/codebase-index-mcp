@@ -46,8 +46,19 @@ export class HttpServer {
   }
 
   private setupMiddleware(): void {
-    // Parse JSON bodies
-    this.app.use(express.json({ limit: '10mb' }));
+    // Parse JSON bodies with error handling
+    this.app.use(express.json({ 
+      limit: '10mb',
+      // 自定义错误处理
+      verify: (req: any, res: any, buf: Buffer, encoding: string) => {
+        try {
+          JSON.parse(buf.toString());
+        } catch (e) {
+          // 存储解析错误，将在错误处理中间件中使用
+          req._jsonParseError = e;
+        }
+      }
+    }));
 
     // Parse URL-encoded bodies
     this.app.use(express.urlencoded({ extended: true }));
@@ -185,24 +196,33 @@ export class HttpServer {
     });
 
     // Global error handler
-    this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-      this.errorHandler.handleError(error, {
-        component: 'HttpServer',
-        operation: 'globalErrorHandler',
-        metadata: {
-          method: req.method,
-          url: req.url,
-          userAgent: req.get('User-Agent'),
-        },
-      });
-
-      res.status(500).json({
+  this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+    // 检查是否是JSON解析错误
+    if ((req as any)._jsonParseError || error.name === 'SyntaxError' && error.message.includes('JSON')) {
+      return res.status(400).json({
         success: false,
-        error: 'Internal Server Error',
-        message:
-          process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+        error: 'Bad Request',
+        message: 'Invalid JSON format'
       });
+    }
+
+    this.errorHandler.handleError(error, {
+      component: 'HttpServer',
+      operation: 'globalErrorHandler',
+      metadata: {
+        method: req.method,
+        url: req.url,
+        userAgent: req.get('User-Agent'),
+      },
     });
+
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message:
+        process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+    });
+  });
   }
 
   async start(): Promise<any> {
