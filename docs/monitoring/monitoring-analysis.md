@@ -113,7 +113,7 @@ The codebase-index project implements a comprehensive monitoring system that tra
 ## Integration Patterns
 
 ### Dependency Injection
-All monitoring services are registered in the DI container (`src/inversify.config.ts`):
+All monitoring services are registered in the DI container (`src/DIContainer.ts`):
 - `BatchPerformanceMonitor`
 - `BatchProcessingMetrics`
 - `PerformanceMonitor`

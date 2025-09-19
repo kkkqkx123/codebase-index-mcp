@@ -47,7 +47,7 @@
 - 配置对象的集中管理
 
 **核心文件：**
-- <mcfile name="inversify.config.ts" path="src/inversify.config.ts"></mcfile> - 依赖注入配置
+- <mcfile name="DIContainer.ts" path="src/DIContainer.ts"></mcfile> - 依赖注入配置
 - <mcfile name="DIContainer.ts" path="src/core/DIContainer.ts"></mcfile> - 容器管理
 - <mcfile name="types/index.ts" path="src/types/index.ts"></mcfile> - 类型符号定义
 

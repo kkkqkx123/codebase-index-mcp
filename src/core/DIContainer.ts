@@ -199,20 +199,12 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.LSPSearchService).to(LSPSearchService).inSingletonScope();
   bind(TYPES.LSPEnhancedSearchService).to(LSPEnhancedSearchService).inSingletonScope();
 
-  // Additional services from inversify.config.ts
+  // Additional services
   bind(TYPES.SemanticAnalysisOrchestrator).to(SemanticAnalysisOrchestrator).inSingletonScope();
-  // bind(TYPES.CallGraphService).to(CallGraphService).inSingletonScope();
-  // bind(TYPES.SemanticSemgrepService).to(SemanticSemgrepService).inSingletonScope();
-  // Deprecated static analysis coordinator (removed)
-  // bind(TYPES.StaticAnalysisCoordinator).to(StaticAnalysisCoordinator).inSingletonScope();
-  // bind(TYPES.EnhancedSemgrepAnalyzer).to(EnhancedSemgrepAnalyzer).inSingletonScope();
-  // Deprecated result processor (removed)
-  // bind(TYPES.SemgrepResultProcessor).to(SemgrepResultProcessor).inSingletonScope();
-  // Project management services
   bind(TYPES.ProjectIdManager).to(ProjectIdManager).inSingletonScope();
   bind(TYPES.ProjectLookupService).to(ProjectLookupService).inSingletonScope();
 
-  // Phase 2: Tree-sitter Deep Analysis Services
+  // Tree-sitter Deep Analysis Services
   bind(TYPES.AdvancedTreeSitterService).to(AdvancedTreeSitterService).inSingletonScope();
   bind(TYPES.SymbolTableBuilder).to(SymbolTableBuilder).inSingletonScope();
   bind(TYPES.CFGBuilder).to(CFGBuilder).inSingletonScope();

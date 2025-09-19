@@ -402,7 +402,7 @@ npm install tree-sitter-typescript tree-sitter-javascript tree-sitter-python
 
 ### 2. 配置更新
 
-在 <mcfile name="inversify.config.ts" path="src/inversify.config.ts"></mcfile> 中确保正确绑定服务：
+在 <mcfile name="DIContainer.ts" path="src/DIContainer.ts"></mcfile> 中确保正确绑定服务：
 
 ```typescript
 container.bind<TreeSitterCoreService>(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
