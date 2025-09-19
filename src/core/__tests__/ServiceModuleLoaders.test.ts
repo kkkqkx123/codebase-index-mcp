@@ -48,10 +48,25 @@ describe('ServiceModuleLoaders', () => {
         // Return a mock class/function for any service
         return Promise.resolve(class MockService {});
       }),
-      loadVectorStorageService: jest.fn(),
-      loadGraphPersistenceService: jest.fn(),
-      loadQdrantService: jest.fn(),
-      loadNebulaService: jest.fn(),
+      loadVectorStorageService: jest.fn().mockImplementation(() => {
+        // Mock binding the service to container
+        container.bind(TYPES.VectorStorageService).toConstantValue({} as any);
+        return Promise.resolve();
+      }),
+      loadGraphPersistenceService: jest.fn().mockImplementation(() => {
+        container.bind(TYPES.GraphPersistenceService).toConstantValue({} as any);
+        return Promise.resolve();
+      }),
+      loadQdrantService: jest.fn().mockImplementation(async () => {
+        // Bind QdrantService to container
+        container.bind(TYPES.QdrantService).toConstantValue({});
+        return { qdrantService: {} } as any;
+      }),
+      loadNebulaService: jest.fn().mockImplementation(async () => {
+        // Bind NebulaService to container
+        container.bind(TYPES.NebulaService).toConstantValue({});
+        return { nebulaService: {} } as any;
+      }),
       loadHttpServer: jest.fn(),
       loadMCPServer: jest.fn(),
     } as any;
@@ -66,8 +81,16 @@ describe('ServiceModuleLoaders', () => {
       // Mock all service loading methods to resolve successfully
       mockLazyLoader.loadVectorStorageService.mockResolvedValue({} as any);
       mockLazyLoader.loadGraphPersistenceService.mockResolvedValue({} as any);
-      mockLazyLoader.loadQdrantService.mockResolvedValue({} as any);
-      mockLazyLoader.loadNebulaService.mockResolvedValue({} as any);
+      mockLazyLoader.loadQdrantService.mockImplementation(async () => {
+        // Bind QdrantService to container
+        container.bind(TYPES.QdrantService).toConstantValue({});
+        return { qdrantService: {} } as any;
+      });
+      mockLazyLoader.loadNebulaService.mockImplementation(async () => {
+        // Bind NebulaService to container
+        container.bind(TYPES.NebulaService).toConstantValue({});
+        return { nebulaService: {} } as any;
+      });
       
       await serviceModuleLoaders.ensureServiceModuleLoaded(container);
       
@@ -86,18 +109,26 @@ describe('ServiceModuleLoaders', () => {
 
     it('should handle partial loading failures', async () => {
       // Mock some services to succeed and some to fail
-      mockLazyLoader.loadVectorStorageService.mockResolvedValue({} as any);
+      mockLazyLoader.loadVectorStorageService.mockImplementation(() => {
+        container.bind(TYPES.VectorStorageService).toConstantValue({} as any);
+        return Promise.resolve();
+      });
       mockLazyLoader.loadGraphPersistenceService.mockRejectedValue(new Error('Failed to load graph service'));
-      mockLazyLoader.loadQdrantService.mockResolvedValue({} as any);
+      mockLazyLoader.loadQdrantService.mockImplementation(() => {
+        container.bind(TYPES.QdrantService).toConstantValue({} as any);
+        return Promise.resolve();
+      });
       
       await expect(serviceModuleLoaders.ensureServiceModuleLoaded(container)).rejects.toThrow('Failed to load graph service');
       
-      // Check that successful loads are still bound
+      // Check that successful loads before the failure are still bound
       expect(container.isBound(TYPES.VectorStorageService)).toBeTruthy();
-      expect(container.isBound(TYPES.QdrantService)).toBeTruthy();
+      
+      // Services after the failure point should not be bound (due to sequential execution)
+      expect(container.isBound(TYPES.QdrantService)).toBeFalsy();
       
       // Failed service should not be bound
-      expect(container.isBound(TYPES.GraphPersistenceService)).toBeTruthy();
+      expect(container.isBound(TYPES.GraphPersistenceService)).toBeFalsy();
     });
 
     it('should not reload already loaded services', async () => {
@@ -215,7 +246,10 @@ describe('ServiceModuleLoaders', () => {
       mockLazyLoader.loadService.mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
-          return Promise.resolve({} as any);
+          // Mock binding IndexService to container for the first call
+          const MockIndexService = class {};
+          container.bind(TYPES.IndexService).toConstantValue(new MockIndexService() as any);
+          return Promise.resolve(MockIndexService);
         } else {
           return Promise.reject(new Error('Database connection failed'));
         }
