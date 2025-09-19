@@ -650,12 +650,20 @@ export class NebulaConnectionManager {
     
     // 等待连接就绪
     await new Promise<void>((resolve, reject) => {
+      let timeoutId: NodeJS.Timeout | null = null;
+
       const readyHandler = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         client.removeListener('error', errorHandler);
         resolve();
       };
 
       const errorHandler = (error: any) => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         client.removeListener('ready', readyHandler);
         reject(error);
       };
@@ -664,7 +672,7 @@ export class NebulaConnectionManager {
       client.on('error', errorHandler);
 
       // 设置超时
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         client.removeListener('ready', readyHandler);
         client.removeListener('error', errorHandler);
         reject(new Error('Connection timeout'));

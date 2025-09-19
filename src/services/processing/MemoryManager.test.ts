@@ -1,16 +1,18 @@
 import { MemoryManager, MemoryManagerOptions } from './MemoryManager';
-import { LoggerService } from '../../core/LoggerService';
-import { createTestContainer } from '../../../test/setup';
 
 describe('MemoryManager', () => {
   let memoryManager: MemoryManager;
-  let loggerService: jest.Mocked<LoggerService>;
-  let container: any;
+  let loggerService: any;
   let mockOptions: MemoryManagerOptions;
 
   beforeEach(() => {
-    container = createTestContainer();
-    loggerService = container.get(LoggerService);
+    // 创建mock的logger服务
+    loggerService = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
 
     mockOptions = {
       checkInterval: 1000,
@@ -27,7 +29,10 @@ describe('MemoryManager', () => {
   });
 
   afterEach(() => {
-    // Note: isMonitoring method doesn't exist in current implementation
+    // 停止监控以清理资源
+    if (memoryManager && typeof memoryManager.stopMonitoring === 'function') {
+      memoryManager.stopMonitoring();
+    }
   });
 
   describe('constructor', () => {

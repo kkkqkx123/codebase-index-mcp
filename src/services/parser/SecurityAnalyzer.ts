@@ -49,12 +49,12 @@ export class SecurityAnalyzer {
       type: SecurityIssueType.XSS,
       severity: SecuritySeverity.HIGH,
       patterns: [
-        /innerHTML\s*=\s*[^;]*\+/i,
-        /outerHTML\s*=\s*[^;]*\+/i,
-        /document\.write\s*\([^)]*\+/i,
-        /eval\s*\([^)]*\+/i,
-        /setTimeout\s*\([^)]*\+/i,
-        /setInterval\s*\([^)]*\+/i,
+        /innerHTML\s*=\s*[^;]+/i,
+        /outerHTML\s*=\s*[^;]+/i,
+        /document\.write\s*\([^)]+\)/i,
+        /eval\s*\([^)]+\)/i,
+        /setTimeout\s*\([^)]+\)/i,
+        /setInterval\s*\([^)]+\)/i,
       ],
       taintSources: ['req.body', 'req.query', 'req.params', 'userInput', 'input'],
       taintSinks: ['innerHTML', 'outerHTML', 'document.write', 'eval', 'setTimeout', 'setInterval'],
@@ -162,24 +162,28 @@ export class SecurityAnalyzer {
     lines.forEach((line, lineIndex) => {
       this.securityPatterns.forEach(pattern => {
         pattern.patterns.forEach(regex => {
-          let match;
-          while ((match = regex.exec(line)) !== null) {
-            issues.push({
-              id: `pattern_${Date.now()}_${Math.random()}`,
-              type: pattern.type,
-              severity: pattern.severity,
-              message: pattern.description,
-              location: {
-                filePath,
-                startLine: lineIndex + 1,
-                endLine: lineIndex + 1,
-                startColumn: match.index + 1,
-                endColumn: match.index + match[0].length + 1,
-              },
-              variables: [],
-              taintPath: [],
-              code: line.trim(),
-              remediation: pattern.remediation,
+          // 使用有限制的匹配，避免无限循环
+          const matches = line.match(regex);
+          if (matches) {
+            matches.forEach((match, matchIndex) => {
+              const matchStart = line.indexOf(match, matchIndex > 0 ? line.indexOf(matches[matchIndex - 1]) + matches[matchIndex - 1].length : 0);
+              issues.push({
+                id: `pattern_${Date.now()}_${Math.random()}`,
+                type: pattern.type,
+                severity: pattern.severity,
+                message: pattern.description,
+                location: {
+                  filePath,
+                  startLine: lineIndex + 1,
+                  endLine: lineIndex + 1,
+                  startColumn: matchStart + 1,
+                  endColumn: matchStart + match.length + 1,
+                },
+                variables: [],
+                taintPath: [],
+                code: line.trim(),
+                remediation: pattern.remediation,
+              });
             });
           }
         });
@@ -221,30 +225,36 @@ export class SecurityAnalyzer {
       'setInterval',
     ];
 
-    // 分析从source到sink的数据流
-    for (const source of sensitiveSources) {
-      for (const sink of sensitiveSinks) {
-        // 简化的数据流分析
-        const paths: any[] = []; // 实际实现需要调用dataFlow.getPaths(source, sink)
-        paths.forEach(path => {
-          issues.push({
-            id: `dataflow_${Date.now()}_${Math.random()}`,
-            type: this.getIssueTypeForSink(sink),
-            severity: SecuritySeverity.HIGH,
-            message: `Potential ${this.getIssueTypeForSink(sink)} from ${source} to ${sink}`,
-            location: {
-              filePath,
-              startLine: 1,
-              endLine: 1,
-              startColumn: 1,
-              endColumn: 1,
-            },
-            variables: [source, sink],
-            taintPath: [],
-            code: `${source} -> ${sink}`,
-            remediation: `Validate and sanitize ${source} before using in ${sink}`,
-          });
-        });
+    // 简化的数据流分析 - 只在实际代码中检测到相关模式时才分析
+    const hasSensitiveContent = sensitiveSources.some(source => sourceCode.includes(source)) || 
+                                 sensitiveSinks.some(sink => sourceCode.includes(sink));
+    
+    if (hasSensitiveContent) {
+      // 分析从source到sink的数据流
+      for (const source of sensitiveSources) {
+        for (const sink of sensitiveSinks) {
+          // 简化的数据流分析 - 实际实现需要调用dataFlow.getPaths(source, sink)
+          // 这里只是模拟，不生成实际路径
+          if (sourceCode.includes(source) && sourceCode.includes(sink)) {
+            issues.push({
+              id: `dataflow_${Date.now()}_${Math.random()}`,
+              type: this.getIssueTypeForSink(sink),
+              severity: SecuritySeverity.HIGH,
+              message: `Potential ${this.getIssueTypeForSink(sink)} from ${source} to ${sink}`,
+              location: {
+                filePath,
+                startLine: 1,
+                endLine: 1,
+                startColumn: 1,
+                endColumn: 1,
+              },
+              variables: [source, sink],
+              taintPath: [],
+              code: `${source} -> ${sink}`,
+              remediation: `Validate and sanitize ${source} before using in ${sink}`,
+            });
+          }
+        }
       }
     }
 
@@ -296,35 +306,40 @@ export class SecurityAnalyzer {
   ): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
 
-    // 检测符号表中的敏感变量使用
+    // 检测符号表中的敏感变量使用 - 限制检测范围
     const sensitivePatterns = [/password/i, /secret/i, /key/i, /token/i, /credential/i];
-
-    sensitivePatterns.forEach(pattern => {
-      if (pattern.test(sourceCode)) {
-        const lines = sourceCode.split('\n');
-        lines.forEach((line, lineIndex) => {
-          if (pattern.test(line)) {
-            issues.push({
-              id: `symbol_${Date.now()}_${Math.random()}`,
-              type: SecurityIssueType.INSECURE_DESERIALIZATION,
-              severity: SecuritySeverity.MEDIUM,
-              message: 'Sensitive information detected in source code',
-              location: {
-                filePath,
-                startLine: lineIndex + 1,
-                endLine: lineIndex + 1,
-                startColumn: 1,
-                endColumn: line.length,
-              },
-              variables: [],
-              taintPath: [],
-              code: line.trim(),
-              remediation: 'Avoid hardcoding sensitive information, use secure configuration',
-            });
-          }
-        });
-      }
-    });
+    
+    // 只在代码较短时进行完整检测，避免大文件导致性能问题
+    const maxLinesForFullScan = 1000;
+    const lines = sourceCode.split('\n');
+    
+    if (lines.length <= maxLinesForFullScan) {
+      sensitivePatterns.forEach(pattern => {
+        if (pattern.test(sourceCode)) {
+          lines.forEach((line, lineIndex) => {
+            if (pattern.test(line)) {
+              issues.push({
+                id: `symbol_${Date.now()}_${Math.random()}`,
+                type: SecurityIssueType.INSECURE_DESERIALIZATION,
+                severity: SecuritySeverity.MEDIUM,
+                message: 'Sensitive information detected in source code',
+                location: {
+                  filePath,
+                  startLine: lineIndex + 1,
+                  endLine: lineIndex + 1,
+                  startColumn: 1,
+                  endColumn: line.length,
+                },
+                variables: [],
+                taintPath: [],
+                code: line.trim(),
+                remediation: 'Avoid hardcoding sensitive information, use secure configuration',
+              });
+            }
+          });
+        }
+      });
+    }
 
     return issues;
   }

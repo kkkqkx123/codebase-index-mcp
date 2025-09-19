@@ -195,7 +195,7 @@ describe('BaseEmbedder', () => {
       });
 
       // Verify the result was cached
-      const cachedResult = mockCacheService.get('new text', 'test-model');
+      const cachedResult = await mockCacheService.get('new text', 'test-model');
       expect(cachedResult).toEqual(result);
     });
 
@@ -230,14 +230,14 @@ describe('BaseEmbedder', () => {
       }
 
       // Verify the results were cached
-      const cachedResult1 = mockCacheService.get('text 1', 'test-model');
+      const cachedResult1 = await mockCacheService.get('text 1', 'test-model');
       if (Array.isArray(results)) {
         expect(cachedResult1).toEqual(results[0]);
       } else {
         expect(cachedResult1).toEqual(results);
       }
 
-      const cachedResult2 = mockCacheService.get('text 2', 'test-model');
+      const cachedResult2 = await mockCacheService.get('text 2', 'test-model');
       if (Array.isArray(results) && results.length > 1) {
         expect(cachedResult2).toEqual(results[1]);
       } else {
@@ -284,7 +284,7 @@ describe('BaseEmbedder', () => {
       }
 
       // Verify the new result was cached
-      const newCachedResult = mockCacheService.get('new text', 'test-model');
+      const newCachedResult = await mockCacheService.get('new text', 'test-model');
       if (Array.isArray(results) && results.length > 1) {
         expect(newCachedResult).toEqual(results[1]);
       } else {
@@ -335,20 +335,57 @@ describe('BaseEmbedder', () => {
         },
       });
 
-      const limitedEmbedder = new TestEmbedder(
+      // Create a test embedder that simulates slow processing
+      class SlowTestEmbedder extends BaseEmbedder {
+        private modelName: string = 'test-model';
+        private dimensions: number = 768;
+
+        constructor(
+          configService: ConfigService,
+          logger: LoggerService,
+          errorHandler: ErrorHandlerService,
+          cacheService: EmbeddingCacheService
+        ) {
+          super(configService, logger, errorHandler, cacheService);
+        }
+
+        async embed(
+          input: EmbeddingInput | EmbeddingInput[]
+        ): Promise<EmbeddingResult | EmbeddingResult[]> {
+          // This is just a mock implementation for testing
+          const inputs = Array.isArray(input) ? input : [input];
+
+          return await this.embedWithCache(input, async inputs => {
+            // Simulate slow processing
+            await new Promise(resolve => setTimeout(resolve, 50));
+            return inputs.map(inp => ({
+              vector: new Array(this.dimensions).fill(0.1),
+              dimensions: this.dimensions,
+              model: this.getModelName(),
+              processingTime: 100,
+            }));
+          });
+        }
+
+        getDimensions(): number {
+          return this.dimensions;
+        }
+
+        getModelName(): string {
+          return this.modelName;
+        }
+
+        async isAvailable(): Promise<boolean> {
+          return true;
+        }
+      }
+
+      const slowEmbedder = new SlowTestEmbedder(
         limitedConfigService as unknown as ConfigService,
         mockLoggerService as unknown as LoggerService,
         mockErrorHandlerService as unknown as ErrorHandlerService,
         mockCacheService as unknown as EmbeddingCacheService
       );
-
-      // Override embed method to simulate slow processing
-      const originalEmbed = limitedEmbedder.embed.bind(limitedEmbedder);
-      limitedEmbedder.embed = async (input: EmbeddingInput | EmbeddingInput[]) => {
-        // Simulate slow processing
-        await new Promise(resolve => setTimeout(resolve, 50));
-        return originalEmbed(input);
-      };
 
       const input1: EmbeddingInput = { text: 'text 1' };
       const input2: EmbeddingInput = { text: 'text 2' };
@@ -356,8 +393,8 @@ describe('BaseEmbedder', () => {
       // Start two requests concurrently
       const start = Date.now();
       const [result1, result2] = await Promise.all([
-        limitedEmbedder.embed(input1),
-        limitedEmbedder.embed(input2),
+        slowEmbedder.embed(input1),
+        slowEmbedder.embed(input2),
       ]);
       const end = Date.now();
 
@@ -367,7 +404,7 @@ describe('BaseEmbedder', () => {
 
       // Total time should be at least 100ms (50ms for each request, one after the other)
       // But less than 200ms (if they ran in parallel, it would be ~50ms)
-      expect(end - start).toBeGreaterThanOrEqual(60);
+      expect(end - start).toBeGreaterThanOrEqual(90);
       expect(end - start).toBeLessThan(200);
     });
   });
