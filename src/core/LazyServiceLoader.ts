@@ -1,6 +1,14 @@
 import { Container, ContainerModule } from 'inversify';
 import { Newable } from '@inversifyjs/common';
 import { TYPES } from '../types';
+import { 
+  SERVICE_GROUPS, 
+  SERVICE_DEPENDENCIES, 
+  SERVICE_GROUP_MAPPING,
+  ServiceGroup 
+} from './ServiceGroupDefinitions';
+import { ServiceModuleLoaders } from './ServiceModuleLoaders';
+import { IndividualServiceLoaders } from './IndividualServiceLoaders';
 
 // 导入所有需要的服务类型
 import type { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
@@ -26,161 +34,6 @@ import type { IndexService } from '../services/indexing/IndexService';
 import type { GraphService } from '../services/graph/GraphService';
 import type { MCPServer } from '../mcp/MCPServer';
 
-// 服务分组定义
-const SERVICE_GROUPS = {
-  CORE: 'core',
-  PARSER: 'parser',
-  STATIC_ANALYSIS: 'static-analysis',
-  STORAGE: 'storage',
-  SEARCH: 'search',
-  LSP: 'lsp',
-  MONITORING: 'monitoring',
-  CONTROLLERS: 'controllers',
-  INFRASTRUCTURE: 'infrastructure',
-  ADVANCED_PARSER: 'advanced-parser',
-  SYNC: 'sync',
-  SERVER: 'server'
-} as const;
-
-// 服务依赖关系映射
-const SERVICE_DEPENDENCIES: Record<string, string[]> = {
-  [SERVICE_GROUPS.CORE]: [],
-  [SERVICE_GROUPS.PARSER]: [SERVICE_GROUPS.CORE],
-  [SERVICE_GROUPS.STATIC_ANALYSIS]: [SERVICE_GROUPS.PARSER],
-  [SERVICE_GROUPS.STORAGE]: [SERVICE_GROUPS.CORE],
-  [SERVICE_GROUPS.SEARCH]: [SERVICE_GROUPS.STORAGE],
-  [SERVICE_GROUPS.LSP]: [SERVICE_GROUPS.PARSER, SERVICE_GROUPS.SEARCH],
-  [SERVICE_GROUPS.MONITORING]: [SERVICE_GROUPS.CORE],
-  [SERVICE_GROUPS.CONTROLLERS]: [SERVICE_GROUPS.MONITORING],
-  [SERVICE_GROUPS.INFRASTRUCTURE]: [SERVICE_GROUPS.CORE],
-  [SERVICE_GROUPS.ADVANCED_PARSER]: [SERVICE_GROUPS.PARSER],
-  [SERVICE_GROUPS.SYNC]: [SERVICE_GROUPS.STORAGE],
-  [SERVICE_GROUPS.SERVER]: [SERVICE_GROUPS.CORE]
-};
-
-// 服务分组映射
-const SERVICE_GROUP_MAPPING: Record<string, string> = {
-  // 核心服务
-  [TYPES.ConfigService]: SERVICE_GROUPS.CORE,
-  [TYPES.LoggerService]: SERVICE_GROUPS.CORE,
-  [TYPES.ErrorHandlerService]: SERVICE_GROUPS.CORE,
-  [TYPES.GraphDatabaseErrorHandler]: SERVICE_GROUPS.CORE,
-  [TYPES.EmbedderFactory]: SERVICE_GROUPS.CORE,
-  [TYPES.QdrantClientWrapper]: SERVICE_GROUPS.CORE,
-  [TYPES.NebulaConnectionManager]: SERVICE_GROUPS.CORE,
-  [TYPES.NebulaSpaceManager]: SERVICE_GROUPS.CORE,
-  [TYPES.NebulaQueryBuilder]: SERVICE_GROUPS.CORE,
-  [TYPES.ProjectIdManager]: SERVICE_GROUPS.CORE,
-  [TYPES.ProjectLookupService]: SERVICE_GROUPS.CORE,
-
-  // 解析器服务
-  [TYPES.ParserService]: SERVICE_GROUPS.PARSER,
-  [TYPES.TreeSitterService]: SERVICE_GROUPS.PARSER,
-  [TYPES.TreeSitterCoreService]: SERVICE_GROUPS.PARSER,
-  [TYPES.SnippetExtractionService]: SERVICE_GROUPS.PARSER,
-  [TYPES.SnippetExtractionRules]: SERVICE_GROUPS.PARSER,
-  [TYPES.SmartCodeParser]: SERVICE_GROUPS.PARSER,
-  [TYPES.EnhancedParserService]: SERVICE_GROUPS.PARSER,
-
-  // 静态分析服务
-  [TYPES.StaticAnalysisService]: SERVICE_GROUPS.STATIC_ANALYSIS,
-  [TYPES.SemgrepIntegrationService]: SERVICE_GROUPS.STATIC_ANALYSIS,
-  [TYPES.AnalysisCoordinatorService]: SERVICE_GROUPS.STATIC_ANALYSIS,
-  [TYPES.ResultProcessorService]: SERVICE_GROUPS.STATIC_ANALYSIS,
-  [TYPES.RuleManagerService]: SERVICE_GROUPS.STATIC_ANALYSIS,
-  [TYPES.EnhancementService]: SERVICE_GROUPS.STATIC_ANALYSIS,
-
-  // 存储服务
-  [TYPES.VectorStorageService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphPersistenceService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphPersistenceUtils]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphCacheService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphPerformanceMonitor]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphBatchOptimizer]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphQueryBuilder]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphSearchService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.BatchProcessingService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.EmbeddingService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.QdrantService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.NebulaService]: SERVICE_GROUPS.STORAGE,
-
-  // 搜索服务
-  [TYPES.SemanticSearchService]: SERVICE_GROUPS.SEARCH,
-  [TYPES.SearchCoordinator]: SERVICE_GROUPS.SEARCH,
-  [TYPES.HybridSearchService]: SERVICE_GROUPS.SEARCH,
-  [TYPES.RerankingService]: SERVICE_GROUPS.SEARCH,
-  [TYPES.QueryCache]: SERVICE_GROUPS.SEARCH,
-  [TYPES.QueryCoordinationService]: SERVICE_GROUPS.SEARCH,
-  [TYPES.ResultFusionEngine]: SERVICE_GROUPS.SEARCH,
-  [TYPES.QueryOptimizer]: SERVICE_GROUPS.SEARCH,
-  [TYPES.ResultFormatter]: SERVICE_GROUPS.SEARCH,
-  [TYPES.ResultFormatterCache]: SERVICE_GROUPS.SEARCH,
-  [TYPES.ResultFormatterConfigLoader]: SERVICE_GROUPS.SEARCH,
-  [TYPES.PerformanceMonitor]: SERVICE_GROUPS.SEARCH,
-
-  // LSP服务
-  [TYPES.LSPService]: SERVICE_GROUPS.LSP,
-  [TYPES.LSPEnhancementPhase]: SERVICE_GROUPS.LSP,
-  [TYPES.LSPManager]: SERVICE_GROUPS.LSP,
-  [TYPES.LSPClientPool]: SERVICE_GROUPS.LSP,
-  [TYPES.LSPErrorHandler]: SERVICE_GROUPS.LSP,
-  [TYPES.LanguageServerRegistry]: SERVICE_GROUPS.LSP,
-  [TYPES.LSPSearchService]: SERVICE_GROUPS.LSP,
-  [TYPES.LSPEnhancedSearchService]: SERVICE_GROUPS.LSP,
-
-  // 监控服务
-  [TYPES.PrometheusMetricsService]: SERVICE_GROUPS.MONITORING,
-  [TYPES.HealthCheckService]: SERVICE_GROUPS.MONITORING,
-  [TYPES.PerformanceAnalysisService]: SERVICE_GROUPS.MONITORING,
-  [TYPES.BatchProcessingMetrics]: SERVICE_GROUPS.MONITORING,
-  [TYPES.BatchPerformanceMonitor]: SERVICE_GROUPS.MONITORING,
-  [TYPES.SemgrepMetricsService]: SERVICE_GROUPS.MONITORING,
-
-  // 控制器
-  [TYPES.MonitoringController]: SERVICE_GROUPS.CONTROLLERS,
-  [TYPES.SnippetController]: SERVICE_GROUPS.CONTROLLERS,
-  [TYPES.CacheController]: SERVICE_GROUPS.CONTROLLERS,
-  [TYPES.ParserController]: SERVICE_GROUPS.CONTROLLERS,
-
-  // 基础设施服务
-  [TYPES.AsyncPipeline]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.MemoryManager]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.ObjectPool]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.BatchProcessor]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.IndexCoordinator]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.StorageCoordinator]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.SemanticAnalysisOrchestrator]: SERVICE_GROUPS.INFRASTRUCTURE,
-  [TYPES.EventQueueService]: SERVICE_GROUPS.INFRASTRUCTURE,
-
-  // 高级解析器服务
-  [TYPES.AdvancedTreeSitterService]: SERVICE_GROUPS.ADVANCED_PARSER,
-  [TYPES.SymbolTableBuilder]: SERVICE_GROUPS.ADVANCED_PARSER,
-  [TYPES.CFGBuilder]: SERVICE_GROUPS.ADVANCED_PARSER,
-  [TYPES.DataFlowAnalyzer]: SERVICE_GROUPS.ADVANCED_PARSER,
-  [TYPES.IncrementalAnalyzer]: SERVICE_GROUPS.ADVANCED_PARSER,
-  [TYPES.SecurityAnalyzer]: SERVICE_GROUPS.ADVANCED_PARSER,
-
-  // 同步服务
-  [TYPES.EntityIdManager]: SERVICE_GROUPS.SYNC,
-  [TYPES.EntityMappingService]: SERVICE_GROUPS.SYNC,
-  [TYPES.TransactionCoordinator]: SERVICE_GROUPS.SYNC,
-  [TYPES.ConsistencyChecker]: SERVICE_GROUPS.SYNC,
-
-  // 服务器服务
-  [TYPES.HttpServer]: SERVICE_GROUPS.SERVER,
-  [TYPES.MCPServer]: SERVICE_GROUPS.SERVER,
-
-  // 文件系统服务
-  [TYPES.FileSystemTraversal]: SERVICE_GROUPS.CORE,
-  [TYPES.FileWatcherService]: SERVICE_GROUPS.CORE,
-  [TYPES.ChangeDetectionService]: SERVICE_GROUPS.CORE,
-  [TYPES.HashBasedDeduplicator]: SERVICE_GROUPS.CORE,
-
-  // 索引和图形服务
-  [TYPES.IndexService]: SERVICE_GROUPS.STORAGE,
-  [TYPES.GraphService]: SERVICE_GROUPS.STORAGE
-};
-
 /**
  * 懒加载服务实现类
  * 负责按需加载非核心服务，避免启动时加载所有服务
@@ -190,6 +43,8 @@ export class LazyServiceLoader {
   private loadedServices: Set<string | symbol> = new Set();
   private loadedModules = new Map<string, Promise<any>>();
   private logger: any;
+  private moduleLoaders: ServiceModuleLoaders;
+  private individualLoaders: IndividualServiceLoaders;
   
   // 新增：服务分组加载状态跟踪
   private loadedGroups: Set<string> = new Set();
@@ -198,6 +53,8 @@ export class LazyServiceLoader {
 
   constructor(container: Container) {
     this.container = container;
+    this.moduleLoaders = new ServiceModuleLoaders(this);
+    this.individualLoaders = new IndividualServiceLoaders(this);
   }
 
   /**
@@ -210,7 +67,7 @@ export class LazyServiceLoader {
   /**
    * 通用服务加载方法
    */
-  private async loadService<T>(modulePath: string, exportName: string): Promise<T> {
+  async loadService<T>(modulePath: string, exportName: string): Promise<T> {
     if (!this.loadedModules.has(modulePath)) {
       this.loadedModules.set(modulePath, import(modulePath));
     }
@@ -222,402 +79,87 @@ export class LazyServiceLoader {
    * 加载服务模块（按需加载）
    */
   private async ensureServiceModuleLoaded(): Promise<void> {
-    if (!this.container.isBound(TYPES.IndexService)) {
-      const serviceModule = new ContainerModule(async ({ bind, unbind, isBound, rebind }) => {
-        // 按需加载服务类
-        const IndexService = await this.loadService('../services/indexing/IndexService', 'IndexService');
-        const GraphService = await this.loadService('../services/graph/GraphService', 'GraphService');
-        const ParserService = await this.loadService('../services/parser/ParserService', 'ParserService');
-        const TreeSitterService = await this.loadService('../services/parser/TreeSitterService', 'TreeSitterService');
-        const TreeSitterCoreService = await this.loadService('../services/parser/TreeSitterCoreService', 'TreeSitterCoreService');
-        const SnippetExtractionService = await this.loadService('../services/parser/SnippetExtractionService', 'SnippetExtractionService');
-        const EnhancedRuleFactory = await this.loadService('../services/parser/treesitter-rule/EnhancedRuleFactory', 'default');
-        
-        // Unified static analysis services
-        const StaticAnalysisService = await this.loadService('../services/static-analysis/core/StaticAnalysisService', 'StaticAnalysisService');
-        const SemgrepIntegrationService = await this.loadService('../services/static-analysis/core/SemgrepIntegrationService', 'SemgrepIntegrationService');
-        const AnalysisCoordinatorService = await this.loadService('../services/static-analysis/core/AnalysisCoordinatorService', 'AnalysisCoordinatorService');
-        const ResultProcessorService = await this.loadService('../services/static-analysis/processing/ResultProcessorService', 'ResultProcessorService');
-        const RuleManagerService = await this.loadService('../services/static-analysis/processing/RuleManagerService', 'RuleManagerService');
-        const EnhancementService = await this.loadService('../services/static-analysis/processing/EnhancementService', 'EnhancementService');
-        
-        // Other services
-        const SmartCodeParser = await this.loadService('../services/parser/SmartCodeParser', 'SmartCodeParser');
-        const FileSystemTraversal = await this.loadService('../services/filesystem/FileSystemTraversal', 'FileSystemTraversal');
-        const FileWatcherService = await this.loadService('../services/filesystem/FileWatcherService', 'FileWatcherService');
-        const ChangeDetectionService = await this.loadService('../services/filesystem/ChangeDetectionService', 'ChangeDetectionService');
-        const HashBasedDeduplicator = await this.loadService('../services/deduplication/HashBasedDeduplicator', 'HashBasedDeduplicator');
-        const VectorStorageService = await this.loadService('../services/storage/vector/VectorStorageService', 'VectorStorageService');
-        const GraphPersistenceService = await this.loadService('../services/storage/graph/GraphPersistenceService', 'GraphPersistenceService');
-        const GraphPersistenceUtils = await this.loadService('../services/storage/graph/GraphPersistenceUtils', 'GraphPersistenceUtils');
-        const GraphCacheService = await this.loadService('../services/storage/graph/GraphCacheService', 'GraphCacheService');
-        const GraphPerformanceMonitor = await this.loadService('../services/storage/graph/GraphPerformanceMonitor', 'GraphPerformanceMonitor');
-        const GraphBatchOptimizer = await this.loadService('../services/storage/graph/GraphBatchOptimizer', 'GraphBatchOptimizer');
-        const GraphQueryBuilder = await this.loadService('../services/storage/graph/GraphQueryBuilder', 'GraphQueryBuilder');
-        const GraphSearchService = await this.loadService('../services/storage/graph/GraphSearchService', 'GraphSearchService');
-        const BatchProcessingService = await this.loadService('../services/storage/BatchProcessingService', 'BatchProcessingService');
-        const EmbeddingService = await this.loadService('../services/storage/EmbeddingService', 'EmbeddingService');
-        
-        // Infrastructure services
-        const AsyncPipeline = await this.loadService('../services/infrastructure/AsyncPipeline', 'AsyncPipeline');
-        const MemoryManager = await this.loadService('../services/processing/MemoryManager', 'MemoryManager');
-        const ObjectPool = await this.loadService('../services/infrastructure/ObjectPool', 'ObjectPool');
-        const BatchProcessor = await this.loadService('../services/processing/BatchProcessor', 'BatchProcessor');
-        const IndexCoordinator = await this.loadService('../services/indexing/IndexCoordinator', 'IndexCoordinator');
-        const StorageCoordinator = await this.loadService('../services/storage/StorageCoordinator', 'StorageCoordinator');
-        const SemanticSearchService = await this.loadService('../services/search/SemanticSearchService', 'SemanticSearchService');
-        const SearchCoordinator = await this.loadService('../services/search/SearchCoordinator', 'SearchCoordinator');
-        const HybridSearchService = await this.loadService('../services/search/HybridSearchService', 'HybridSearchService');
-        const RerankingService = await this.loadService('../services/reranking/RerankingService', 'RerankingService');
-        const QueryCache = await this.loadService('../services/query/QueryCache', 'QueryCache');
-        const QueryCoordinationService = await this.loadService('../services/query/QueryCoordinationService', 'QueryCoordinationService');
-        const ResultFusionEngine = await this.loadService('../services/query/ResultFusionEngine', 'ResultFusionEngine');
-        const QueryOptimizer = await this.loadService('../services/query/QueryOptimizer', 'QueryOptimizer');
-        const ResultFormatter = await this.loadService('../services/query/ResultFormatter', 'ResultFormatter');
-        const ResultFormatterCache = await this.loadService('../services/query/ResultFormatterCache', 'ResultFormatterCache');
-        const ResultFormatterConfigLoader = await this.loadService('../services/query/ResultFormatterConfigLoader', 'ResultFormatterConfigLoader');
-        const LSPService = await this.loadService('../services/lsp/LSPService', 'LSPService');
-        const LSPEnhancementPhase = await this.loadService('../services/indexing/LSPEnhancementPhase', 'LSPEnhancementPhase');
-        const EnhancedParserService = await this.loadService('../services/parser/EnhancedParserService', 'EnhancedParserService');
-        const LSPManager = await this.loadService('../services/lsp/LSPManager', 'LSPManager');
-        const LSPClientPool = await this.loadService('../services/lsp/LSPClientPool', 'LSPClientPool');
-        const LSPErrorHandler = await this.loadService('../services/lsp/LSPErrorHandler', 'LSPErrorHandler');
-        const LanguageServerRegistry = await this.loadService('../services/lsp/LanguageServerRegistry', 'LanguageServerRegistry');
-        const LSPSearchService = await this.loadService('../services/lsp/LSPSearchService', 'LSPSearchService');
-        const LSPEnhancedSearchService = await this.loadService('../services/search/LSPEnhancedSearchService', 'LSPEnhancedSearchService');
-        
-        // 加载基础设施服务
-        const SemanticAnalysisOrchestrator = await this.loadService('../services/infrastructure/SemanticAnalysisOrchestrator', 'SemanticAnalysisOrchestrator');
-        const ProjectIdManager = await this.loadService('../services/core/ProjectIdManager', 'ProjectIdManager');
-        const ProjectLookupService = await this.loadService('../services/core/ProjectLookupService', 'ProjectLookupService');
-        const AdvancedTreeSitterService = await this.loadService('../services/parser/AdvancedTreeSitterService', 'AdvancedTreeSitterService');
-        const SymbolTableBuilder = await this.loadService('../services/analysis/SymbolTableBuilder', 'SymbolTableBuilder');
-        const CFGBuilder = await this.loadService('../services/analysis/CFGBuilder', 'CFGBuilder');
-        const DataFlowAnalyzer = await this.loadService('../services/analysis/DataFlowAnalyzer', 'DataFlowAnalyzer');
-        const IncrementalAnalyzer = await this.loadService('../services/analysis/IncrementalAnalyzer', 'IncrementalAnalyzer');
-        const SecurityAnalyzer = await this.loadService('../services/analysis/SecurityAnalyzer', 'SecurityAnalyzer');
-        const EntityIdManager = await this.loadService('../services/sync/EntityIdManager', 'EntityIdManager');
-        const EntityMappingService = await this.loadService('../services/sync/EntityMappingService', 'EntityMappingService');
-        const TransactionCoordinator = await this.loadService('../services/sync/TransactionCoordinator', 'TransactionCoordinator');
-        const ConsistencyChecker = await this.loadService('../services/sync/ConsistencyChecker', 'ConsistencyChecker');
-        const EventQueueService = await this.loadService('../services/infrastructure/EventQueueService', 'EventQueueService');
-        
-        bind(TYPES.SemanticAnalysisOrchestrator).to(SemanticAnalysisOrchestrator as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.ProjectIdManager).to(ProjectIdManager as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.ProjectLookupService).to(ProjectLookupService as unknown as Newable<unknown>).inSingletonScope();
-        
-        bind(TYPES.AdvancedTreeSitterService).to(AdvancedTreeSitterService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.SymbolTableBuilder).to(SymbolTableBuilder as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.CFGBuilder).to(CFGBuilder as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.DataFlowAnalyzer).to(DataFlowAnalyzer as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.IncrementalAnalyzer).to(IncrementalAnalyzer as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.SecurityAnalyzer).to(SecurityAnalyzer as unknown as Newable<unknown>).inSingletonScope();
-        
-        bind(TYPES.EntityIdManager).to(EntityIdManager as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.EntityMappingService).to(EntityMappingService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.TransactionCoordinator).to(TransactionCoordinator as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.ConsistencyChecker).to(ConsistencyChecker as unknown as Newable<unknown>).inSingletonScope();
-        
-        bind(TYPES.EventQueueService).to(EventQueueService as unknown as Newable<unknown>).inSingletonScope();
-      });
-      await this.container.load(serviceModule);
-    }
+    await this.moduleLoaders.ensureServiceModuleLoaded(this.container);
   }
 
   /**
    * 加载控制器模块（按需加载）
    */
   private async ensureControllerModuleLoaded(): Promise<void> {
-    if (!this.container.isBound(TYPES.MonitoringController)) {
-      // 先加载监控模块，因为控制器依赖于监控服务
-      await this.ensureMonitoringModuleLoaded();
-      
-      const controllerModule = new ContainerModule(async ({ bind, unbind, isBound, rebind }) => {
-        // 按需加载控制器
-        const MonitoringController = await this.loadService('../controllers/MonitoringController', 'MonitoringController');
-        const SnippetController = await this.loadService('../controllers/SnippetController', 'SnippetController');
-        const CacheController = await this.loadService('../controllers/CacheController', 'CacheController');
-        const ParserController = await this.loadService('../controllers/ParserController', 'ParserController');
-        
-        bind(TYPES.MonitoringController).to(MonitoringController as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.SnippetController).to(SnippetController as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.CacheController).to(CacheController as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.ParserController).to(ParserController as unknown as Newable<unknown>).inSingletonScope();
-      });
-      await this.container.loadSync(controllerModule);
-    }
+    await this.moduleLoaders.ensureControllerModuleLoaded(this.container);
   }
 
   /**
    * 加载监控模块（按需加载）
    */
   private async ensureMonitoringModuleLoaded(): Promise<void> {
-    if (!this.container.isBound(TYPES.BatchProcessingMetrics)) {
-      // 先加载服务模块，因为监控服务依赖于一些服务
-      await this.ensureServiceModuleLoaded();
-      
-      const monitoringModule = new ContainerModule(async ({ bind, unbind, isBound, rebind }) => {
-        // 按需加载监控服务
-        const PrometheusMetricsService = await this.loadService('../services/monitoring/PrometheusMetricsService', 'PrometheusMetricsService');
-        const HealthCheckService = await this.loadService('../services/monitoring/HealthCheckService', 'HealthCheckService');
-        const PerformanceAnalysisService = await this.loadService('../services/monitoring/PerformanceAnalysisService', 'PerformanceAnalysisService');
-        const BatchProcessingMetrics = await this.loadService('../services/monitoring/BatchProcessingMetrics', 'BatchProcessingMetrics');
-        const BatchPerformanceMonitor = await this.loadService('../services/monitoring/BatchPerformanceMonitor', 'BatchPerformanceMonitor');
-        const SemgrepMetricsService = await this.loadService('../services/monitoring/SemgrepMetricsService', 'SemgrepMetricsService');
-        const PerformanceMonitor = await this.loadService('../services/query/PerformanceMonitor', 'PerformanceMonitor');
-        
-        bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.HealthCheckService).to(HealthCheckService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.BatchPerformanceMonitor).to(BatchPerformanceMonitor as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.SemgrepMetricsService).to(SemgrepMetricsService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.PerformanceMonitor).to(PerformanceMonitor as unknown as Newable<unknown>).inSingletonScope();
-      });
-      await this.container.loadSync(monitoringModule);
-    }
+    await this.moduleLoaders.ensureMonitoringModuleLoaded(this.container);
   }
 
-
-  /**
-   * 加载监控模块
-   */
-  private async loadMonitoringModule() {
-    if (!this.container.isBound(TYPES.BatchProcessingMetrics)) {
-      // 先加载服务模块，因为监控服务依赖于一些服务
-      await this.ensureServiceModuleLoaded();
-      
-      const monitoringModule = new ContainerModule(async ({ bind, unbind, isBound, rebind }) => {
-        // 按需加载监控服务
-        const PrometheusMetricsService = await this.loadService('../services/monitoring/PrometheusMetricsService', 'PrometheusMetricsService');
-        const HealthCheckService = await this.loadService('../services/monitoring/HealthCheckService', 'HealthCheckService');
-        const PerformanceAnalysisService = await this.loadService('../services/monitoring/PerformanceAnalysisService', 'PerformanceAnalysisService');
-        const BatchProcessingMetrics = await this.loadService('../services/monitoring/BatchProcessingMetrics', 'BatchProcessingMetrics');
-        const BatchPerformanceMonitor = await this.loadService('../services/monitoring/BatchPerformanceMonitor', 'BatchPerformanceMonitor');
-        const SemgrepMetricsService = await this.loadService('../services/monitoring/SemgrepMetricsService', 'SemgrepMetricsService');
-        const PerformanceMonitor = await this.loadService('../services/query/PerformanceMonitor', 'PerformanceMonitor');
-        
-        bind(TYPES.PrometheusMetricsService).to(PrometheusMetricsService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.HealthCheckService).to(HealthCheckService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.PerformanceAnalysisService).to(PerformanceAnalysisService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.BatchProcessingMetrics).to(BatchProcessingMetrics as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.BatchPerformanceMonitor).to(BatchPerformanceMonitor as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.SemgrepMetricsService).to(SemgrepMetricsService as unknown as Newable<unknown>).inSingletonScope();
-        bind(TYPES.PerformanceMonitor).to(PerformanceMonitor as unknown as Newable<unknown>).inSingletonScope();
-      });
-      await this.container.loadSync(monitoringModule);
-    }
-  }
+  // 具体服务加载方法委托给IndividualServiceLoaders
 
   /**
    * 加载向量存储服务
    */
   async loadVectorStorageService() {
-    if (!this.container.isBound(TYPES.VectorStorageService)) {
-      // 先加载服务模块和监控模块
-      await this.ensureServiceModuleLoaded();
-      await this.ensureMonitoringModuleLoaded();
-      
-      const VectorStorageService = await this.loadService('../services/storage/vector/VectorStorageService', 'VectorStorageService');
-      const qdrantClient = this.container.get<QdrantClientWrapper>(TYPES.QdrantClientWrapper);
-      const loggerService = this.container.get<LoggerService>(TYPES.LoggerService);
-      const errorHandlerService = this.container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
-      const configService = this.container.get<ConfigService>(TYPES.ConfigService);
-      const batchMetrics = this.container.get<BatchProcessingMetrics>(TYPES.BatchProcessingMetrics);
-      const embedderFactory = this.container.get<EmbedderFactory>(TYPES.EmbedderFactory);
-      const batchProcessingService = this.container.get<BatchProcessingService>(TYPES.BatchProcessingService);
-      const embeddingService = this.container.get<EmbeddingService>(TYPES.EmbeddingService);
-      
-      this.container.bind(TYPES.VectorStorageService).toDynamicValue(() => {
-        return new (VectorStorageService as unknown as Newable<any>)(
-          qdrantClient,
-          loggerService,
-          errorHandlerService,
-          configService,
-          batchMetrics,
-          embedderFactory,
-          batchProcessingService,
-          embeddingService
-        );
-      }).inSingletonScope();
-    }
-    this.recordServiceLoad(TYPES.VectorStorageService);
-    return this.container.get(TYPES.VectorStorageService);
+    return this.individualLoaders.loadVectorStorageService(this.container);
   }
 
   /**
    * 加载图持久化服务
    */
   async loadGraphPersistenceService() {
-    if (!this.container.isBound(TYPES.GraphPersistenceService)) {
-      // 先加载服务模块和监控模块
-      await this.ensureServiceModuleLoaded();
-      await this.ensureMonitoringModuleLoaded();
-      
-      const GraphPersistenceService = await this.loadService('../services/storage/graph/GraphPersistenceService', 'GraphPersistenceService');
-      const nebulaService = this.container.get<NebulaService>(TYPES.NebulaService);
-      const nebulaSpaceManager = this.container.get<NebulaSpaceManager>(TYPES.NebulaSpaceManager);
-      const loggerService = this.container.get<LoggerService>(TYPES.LoggerService);
-      const errorHandlerService = this.container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
-      const configService = this.container.get<ConfigService>(TYPES.ConfigService);
-      const batchMetrics = this.container.get<BatchProcessingMetrics>(TYPES.BatchProcessingMetrics);
-      const queryBuilder = this.container.get<NebulaQueryBuilder>(TYPES.NebulaQueryBuilder);
-      const graphErrorHandler = this.container.get<GraphDatabaseErrorHandler>(TYPES.GraphDatabaseErrorHandler);
-      const persistenceUtils = this.container.get<GraphPersistenceUtils>(TYPES.GraphPersistenceUtils);
-      const cacheService = this.container.get<GraphCacheService>(TYPES.GraphCacheService);
-      const performanceMonitor = this.container.get<GraphPerformanceMonitor>(TYPES.GraphPerformanceMonitor);
-      const batchOptimizer = this.container.get<GraphBatchOptimizer>(TYPES.GraphBatchOptimizer);
-      const enhancedQueryBuilder = this.container.get<GraphQueryBuilder>(TYPES.GraphQueryBuilder);
-      const searchService = this.container.get<GraphSearchService>(TYPES.GraphSearchService);
-      
-      this.container.bind(TYPES.GraphPersistenceService).toDynamicValue(() => {
-        return new (GraphPersistenceService as unknown as Newable<any>)(
-          nebulaService,
-          nebulaSpaceManager,
-          loggerService,
-          errorHandlerService,
-          configService,
-          batchMetrics,
-          queryBuilder,
-          graphErrorHandler,
-          persistenceUtils,
-          cacheService,
-          performanceMonitor,
-          batchOptimizer,
-          enhancedQueryBuilder,
-          searchService
-        );
-      }).inSingletonScope();
-    }
-    this.recordServiceLoad(TYPES.GraphPersistenceService);
-    return this.container.get(TYPES.GraphPersistenceService);
+    return this.individualLoaders.loadGraphPersistenceService(this.container);
   }
 
   /**
    * 加载Qdrant服务
    */
   async loadQdrantService() {
-    if (!this.container.isBound(TYPES.QdrantService)) {
-      const QdrantService = await this.loadService('../database/QdrantService', 'QdrantService');
-      const configService = this.container.get<ConfigService>(TYPES.ConfigService);
-      const loggerService = this.container.get<LoggerService>(TYPES.LoggerService);
-      const errorHandlerService = this.container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
-      const qdrantClient = this.container.get<QdrantClientWrapper>(TYPES.QdrantClientWrapper);
-      
-      this.container.bind(TYPES.QdrantService).toDynamicValue(() => {
-        return new (QdrantService as unknown as Newable<any>)(
-          configService,
-          loggerService,
-          errorHandlerService,
-          qdrantClient
-        );
-      }).inSingletonScope();
-    }
-    this.recordServiceLoad(TYPES.QdrantService);
-    return this.container.get(TYPES.QdrantService);
+    return this.individualLoaders.loadQdrantService(this.container);
   }
 
   /**
    * 加载Nebula服务
    */
   async loadNebulaService() {
-    if (!this.container.isBound(TYPES.NebulaService)) {
-      const NebulaService = await this.loadService('../database/NebulaService', 'NebulaService');
-      const loggerService = this.container.get<LoggerService>(TYPES.LoggerService);
-      const errorHandlerService = this.container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
-      const nebulaConnection = this.container.get<NebulaConnectionManager>(TYPES.NebulaConnectionManager);
-      
-      this.container.bind(TYPES.NebulaService).toDynamicValue(() => {
-        return new (NebulaService as unknown as Newable<any>)(
-          loggerService,
-          errorHandlerService,
-          nebulaConnection
-        );
-      }).inSingletonScope();
-    }
-    this.recordServiceLoad(TYPES.NebulaService);
-    return this.container.get(TYPES.NebulaService);
+    return this.individualLoaders.loadNebulaService(this.container);
   }
 
   /**
    * 加载HTTP服务器
    */
   async loadHttpServer() {
-    if (!this.container.isBound(TYPES.HttpServer)) {
-      // 先加载控制器模块
-      await this.ensureControllerModuleLoaded();
-      
-      const HttpServer = await this.loadService('../api/HttpServer', 'HttpServer');
-      
-      this.container.bind(TYPES.HttpServer).toDynamicValue(() => {
-        return new (HttpServer as unknown as Newable<any>)();
-      }).inSingletonScope();
-    }
-    this.recordServiceLoad(TYPES.HttpServer);
-    return this.container.get(TYPES.HttpServer);
+    return this.individualLoaders.loadHttpServer(this.container);
   }
 
   /**
    * 加载MCP服务器
    */
   async loadMCPServer() {
-    if (!this.container.isBound(TYPES.MCPServer)) {
-      // 先加载服务模块，确保IndexService和GraphService可用
-      await this.ensureServiceModuleLoaded();
-      
-      const MCPServer = await this.loadService('../mcp/MCPServer', 'MCPServer');
-      const loggerService = this.container.get<LoggerService>(TYPES.LoggerService);
-      const indexService = this.container.get<IndexService>(TYPES.IndexService);
-      const graphService = this.container.get<GraphService>(TYPES.GraphService);
-      
-      this.container.bind(TYPES.MCPServer).toDynamicValue(context => {
-        return new (MCPServer as unknown as Newable<any>)(
-          loggerService,
-          indexService,
-          graphService
-        );
-      }).inSingletonScope();
-    }
-    this.recordServiceLoad(TYPES.MCPServer);
-    return this.container.get(TYPES.MCPServer);
+    return this.individualLoaders.loadMCPServer(this.container);
   }
 
   /**
-   * 获取服务加载状态
+   * 记录服务加载时间
    */
-  isServiceLoaded(serviceIdentifier: string | symbol): boolean {
-    return this.loadedServices.has(serviceIdentifier);
-  }
-
-  /**
-   * 获取已加载的服务列表
-   */
-  getLoadedServices(): string[] {
-    return Array.from(this.loadedServices).map(key => String(key));
- }
-
-  /**
-   * 记录服务加载
-   */
-  recordServiceLoad(serviceIdentifier: string | symbol): void {
-    this.loadedServices.add(serviceIdentifier);
-    this.serviceLoadTimes.set(serviceIdentifier, Date.now());
+  recordServiceLoad(serviceId: string | symbol): void {
+    this.serviceLoadTimes.set(serviceId, Date.now());
+    this.loadedServices.add(serviceId);
     
     // 记录服务所属的分组
-    const group = SERVICE_GROUP_MAPPING[String(serviceIdentifier)];
+    const group = SERVICE_GROUP_MAPPING[String(serviceId)];
     if (group) {
       this.loadedGroups.add(group);
     }
     
     if (this.logger) {
-      this.logger.info(`Lazy service loaded: ${String(serviceIdentifier)}`);
+      this.logger.info(`Lazy service loaded: ${String(serviceId)}`);
     }
   }
 
-  // 新增：服务分组加载辅助方法
-
   /**
-   * 检查服务分组是否已加载
+   * 检查分组是否已加载
    */
   isGroupLoaded(group: string): boolean {
     return this.loadedGroups.has(group);
@@ -679,13 +221,25 @@ export class LazyServiceLoader {
     };
   }
 
-  // 新增：服务分组加载核心方法
+  /**
+   * 检查服务是否已加载
+   */
+  isServiceLoaded(serviceIdentifier: string | symbol): boolean {
+    return this.loadedServices.has(serviceIdentifier);
+  }
 
   /**
-   * 加载服务分组及其依赖
+   * 获取已加载的服务列表
+   */
+  getLoadedServices(): string[] {
+    return Array.from(this.loadedServices).map(key => String(key));
+  }
+
+  /**
+   * 加载服务分组
    */
   async loadServiceGroup(group: string): Promise<void> {
-    if (this.isGroupLoaded(group)) {
+    if (this.loadedGroups.has(group)) {
       if (this.logger) {
         this.logger.info(`Service group ${group} is already loaded`);
       }
@@ -847,8 +401,6 @@ export class LazyServiceLoader {
     
     return stats.sort((a, b) => a.loadTime - b.loadTime);
   }
-
-  // 新增：服务分组加载的API接口
 
   /**
    * 获取所有可用的服务分组

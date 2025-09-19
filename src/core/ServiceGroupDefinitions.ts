@@ -1,0 +1,158 @@
+import { TYPES } from '../types';
+
+// 服务分组定义
+export const SERVICE_GROUPS = {
+  CORE: 'core',
+  PARSER: 'parser',
+  STATIC_ANALYSIS: 'static-analysis',
+  STORAGE: 'storage',
+  SEARCH: 'search',
+  LSP: 'lsp',
+  MONITORING: 'monitoring',
+  CONTROLLERS: 'controllers',
+  INFRASTRUCTURE: 'infrastructure',
+  ADVANCED_PARSER: 'advanced-parser',
+  SYNC: 'sync',
+  SERVER: 'server'
+} as const;
+
+export type ServiceGroup = typeof SERVICE_GROUPS[keyof typeof SERVICE_GROUPS];
+
+// 服务依赖关系映射
+export const SERVICE_DEPENDENCIES: Record<string, string[]> = {
+  [SERVICE_GROUPS.CORE]: [],
+  [SERVICE_GROUPS.PARSER]: [SERVICE_GROUPS.CORE],
+  [SERVICE_GROUPS.STATIC_ANALYSIS]: [SERVICE_GROUPS.PARSER],
+  [SERVICE_GROUPS.STORAGE]: [SERVICE_GROUPS.CORE],
+  [SERVICE_GROUPS.SEARCH]: [SERVICE_GROUPS.STORAGE],
+  [SERVICE_GROUPS.LSP]: [SERVICE_GROUPS.PARSER, SERVICE_GROUPS.SEARCH],
+  [SERVICE_GROUPS.MONITORING]: [SERVICE_GROUPS.CORE],
+  [SERVICE_GROUPS.CONTROLLERS]: [SERVICE_GROUPS.MONITORING],
+  [SERVICE_GROUPS.INFRASTRUCTURE]: [SERVICE_GROUPS.CORE],
+  [SERVICE_GROUPS.ADVANCED_PARSER]: [SERVICE_GROUPS.PARSER],
+  [SERVICE_GROUPS.SYNC]: [SERVICE_GROUPS.STORAGE],
+  [SERVICE_GROUPS.SERVER]: [SERVICE_GROUPS.CORE]
+};
+
+// 服务分组映射
+export const SERVICE_GROUP_MAPPING: Record<string, string> = {
+  // 核心服务
+  [TYPES.ConfigService]: SERVICE_GROUPS.CORE,
+  [TYPES.LoggerService]: SERVICE_GROUPS.CORE,
+  [TYPES.ErrorHandlerService]: SERVICE_GROUPS.CORE,
+  [TYPES.GraphDatabaseErrorHandler]: SERVICE_GROUPS.CORE,
+  [TYPES.EmbedderFactory]: SERVICE_GROUPS.CORE,
+  [TYPES.QdrantClientWrapper]: SERVICE_GROUPS.CORE,
+  [TYPES.NebulaConnectionManager]: SERVICE_GROUPS.CORE,
+  [TYPES.NebulaSpaceManager]: SERVICE_GROUPS.CORE,
+  [TYPES.NebulaQueryBuilder]: SERVICE_GROUPS.CORE,
+  [TYPES.ProjectIdManager]: SERVICE_GROUPS.CORE,
+  [TYPES.ProjectLookupService]: SERVICE_GROUPS.CORE,
+
+  // 解析器服务
+  [TYPES.ParserService]: SERVICE_GROUPS.PARSER,
+  [TYPES.TreeSitterService]: SERVICE_GROUPS.PARSER,
+  [TYPES.TreeSitterCoreService]: SERVICE_GROUPS.PARSER,
+  [TYPES.SnippetExtractionService]: SERVICE_GROUPS.PARSER,
+  [TYPES.SnippetExtractionRules]: SERVICE_GROUPS.PARSER,
+  [TYPES.SmartCodeParser]: SERVICE_GROUPS.PARSER,
+  [TYPES.EnhancedParserService]: SERVICE_GROUPS.PARSER,
+
+  // 静态分析服务
+  [TYPES.StaticAnalysisService]: SERVICE_GROUPS.STATIC_ANALYSIS,
+  [TYPES.SemgrepIntegrationService]: SERVICE_GROUPS.STATIC_ANALYSIS,
+  [TYPES.AnalysisCoordinatorService]: SERVICE_GROUPS.STATIC_ANALYSIS,
+  [TYPES.ResultProcessorService]: SERVICE_GROUPS.STATIC_ANALYSIS,
+  [TYPES.RuleManagerService]: SERVICE_GROUPS.STATIC_ANALYSIS,
+  [TYPES.EnhancementService]: SERVICE_GROUPS.STATIC_ANALYSIS,
+
+  // 存储服务
+  [TYPES.VectorStorageService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphPersistenceService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphPersistenceUtils]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphCacheService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphPerformanceMonitor]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphBatchOptimizer]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphQueryBuilder]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphSearchService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.BatchProcessingService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.EmbeddingService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.QdrantService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.NebulaService]: SERVICE_GROUPS.STORAGE,
+
+  // 搜索服务
+  [TYPES.SemanticSearchService]: SERVICE_GROUPS.SEARCH,
+  [TYPES.SearchCoordinator]: SERVICE_GROUPS.SEARCH,
+  [TYPES.HybridSearchService]: SERVICE_GROUPS.SEARCH,
+  [TYPES.RerankingService]: SERVICE_GROUPS.SEARCH,
+  [TYPES.QueryCache]: SERVICE_GROUPS.SEARCH,
+  [TYPES.QueryCoordinationService]: SERVICE_GROUPS.SEARCH,
+  [TYPES.ResultFusionEngine]: SERVICE_GROUPS.SEARCH,
+  [TYPES.QueryOptimizer]: SERVICE_GROUPS.SEARCH,
+  [TYPES.ResultFormatter]: SERVICE_GROUPS.SEARCH,
+  [TYPES.ResultFormatterCache]: SERVICE_GROUPS.SEARCH,
+  [TYPES.ResultFormatterConfigLoader]: SERVICE_GROUPS.SEARCH,
+  [TYPES.PerformanceMonitor]: SERVICE_GROUPS.SEARCH,
+
+  // LSP服务
+  [TYPES.LSPService]: SERVICE_GROUPS.LSP,
+  [TYPES.LSPEnhancementPhase]: SERVICE_GROUPS.LSP,
+  [TYPES.LSPManager]: SERVICE_GROUPS.LSP,
+  [TYPES.LSPClientPool]: SERVICE_GROUPS.LSP,
+  [TYPES.LSPErrorHandler]: SERVICE_GROUPS.LSP,
+  [TYPES.LanguageServerRegistry]: SERVICE_GROUPS.LSP,
+  [TYPES.LSPSearchService]: SERVICE_GROUPS.LSP,
+  [TYPES.LSPEnhancedSearchService]: SERVICE_GROUPS.LSP,
+
+  // 监控服务
+  [TYPES.PrometheusMetricsService]: SERVICE_GROUPS.MONITORING,
+  [TYPES.HealthCheckService]: SERVICE_GROUPS.MONITORING,
+  [TYPES.PerformanceAnalysisService]: SERVICE_GROUPS.MONITORING,
+  [TYPES.BatchProcessingMetrics]: SERVICE_GROUPS.MONITORING,
+  [TYPES.BatchPerformanceMonitor]: SERVICE_GROUPS.MONITORING,
+  [TYPES.SemgrepMetricsService]: SERVICE_GROUPS.MONITORING,
+
+  // 控制器
+  [TYPES.MonitoringController]: SERVICE_GROUPS.CONTROLLERS,
+  [TYPES.SnippetController]: SERVICE_GROUPS.CONTROLLERS,
+  [TYPES.CacheController]: SERVICE_GROUPS.CONTROLLERS,
+  [TYPES.ParserController]: SERVICE_GROUPS.CONTROLLERS,
+
+  // 基础设施服务
+  [TYPES.AsyncPipeline]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.MemoryManager]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.ObjectPool]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.BatchProcessor]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.IndexCoordinator]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.StorageCoordinator]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.SemanticAnalysisOrchestrator]: SERVICE_GROUPS.INFRASTRUCTURE,
+  [TYPES.EventQueueService]: SERVICE_GROUPS.INFRASTRUCTURE,
+
+  // 高级解析器服务
+  [TYPES.AdvancedTreeSitterService]: SERVICE_GROUPS.ADVANCED_PARSER,
+  [TYPES.SymbolTableBuilder]: SERVICE_GROUPS.ADVANCED_PARSER,
+  [TYPES.CFGBuilder]: SERVICE_GROUPS.ADVANCED_PARSER,
+  [TYPES.DataFlowAnalyzer]: SERVICE_GROUPS.ADVANCED_PARSER,
+  [TYPES.IncrementalAnalyzer]: SERVICE_GROUPS.ADVANCED_PARSER,
+  [TYPES.SecurityAnalyzer]: SERVICE_GROUPS.ADVANCED_PARSER,
+
+  // 同步服务
+  [TYPES.EntityIdManager]: SERVICE_GROUPS.SYNC,
+  [TYPES.EntityMappingService]: SERVICE_GROUPS.SYNC,
+  [TYPES.TransactionCoordinator]: SERVICE_GROUPS.SYNC,
+  [TYPES.ConsistencyChecker]: SERVICE_GROUPS.SYNC,
+
+  // 服务器服务
+  [TYPES.HttpServer]: SERVICE_GROUPS.SERVER,
+  [TYPES.MCPServer]: SERVICE_GROUPS.SERVER,
+
+  // 文件系统服务
+  [TYPES.FileSystemTraversal]: SERVICE_GROUPS.CORE,
+  [TYPES.FileWatcherService]: SERVICE_GROUPS.CORE,
+  [TYPES.ChangeDetectionService]: SERVICE_GROUPS.CORE,
+  [TYPES.HashBasedDeduplicator]: SERVICE_GROUPS.CORE,
+
+  // 索引和图形服务
+  [TYPES.IndexService]: SERVICE_GROUPS.STORAGE,
+  [TYPES.GraphService]: SERVICE_GROUPS.STORAGE
+};
