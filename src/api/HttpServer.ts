@@ -17,24 +17,28 @@ import { ParserRoutes } from './routes/ParserRoutes';
 export class HttpServer {
   private app: Application;
   private server: any; // Store the server instance
-  private logger: LoggerService;
-  private errorHandler: ErrorHandlerService;
-  private configService: ConfigService;
+  private logger!: LoggerService;
+  private errorHandler!: ErrorHandlerService;
+  private configService!: ConfigService;
   private monitoringController: any; // We'll fix the type later
   private port: number;
   private rateLimitMap: Map<string, { count: number; resetTime: number }>;
 
   constructor() {
-    const container = DIContainer.getInstance();
-    this.logger = DIContainer.get<LoggerService>(TYPES.LoggerService);
-    this.errorHandler = DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
-    this.configService = DIContainer.get<ConfigService>(TYPES.ConfigService);
-
-    // Enable monitoring controller - dependencies are now available
-    this.monitoringController = DIContainer.get(TYPES.MonitoringController);
-    this.port = this.configService.get('port') || 3000;
+    this.port = 3000; // Default port, will be updated in initialize()
     this.rateLimitMap = new Map();
     this.app = express();
+  }
+
+  async initialize(): Promise<void> {
+    const container = DIContainer.getInstance();
+    this.logger = await DIContainer.get<LoggerService>(TYPES.LoggerService);
+    this.errorHandler = await DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+    this.configService = await DIContainer.get<ConfigService>(TYPES.ConfigService);
+
+    // Enable monitoring controller - dependencies are now available
+    this.monitoringController = await DIContainer.get(TYPES.MonitoringController);
+    this.port = this.configService.get('port') || 3000;
 
     this.setupMiddleware();
     this.setupRoutes();

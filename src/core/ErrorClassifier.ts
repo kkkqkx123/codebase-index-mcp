@@ -4,8 +4,18 @@ import { injectable } from 'inversify';
 @injectable()
 export class ErrorClassifier {
   classifyError(error: Error): ErrorClassification {
-    const message = error.message.toLowerCase();
-    const name = error.name.toLowerCase();
+    // Handle null or undefined error
+    if (!error) {
+      return {
+        type: 'unknown',
+        severity: 'medium',
+        retryable: false,
+        suggestedAction: 'Investigate error logs',
+      };
+    }
+
+    const message = error.message?.toLowerCase() || '';
+    const name = error.name?.toLowerCase() || '';
 
     // Connection errors
     if (this.isConnectionError(message, name)) {
@@ -72,7 +82,8 @@ export class ErrorClassifier {
       message.includes('connect') ||
       message.includes('network') ||
       message.includes('econnrefused') ||
-      message.includes('timeout') ||
+      message.includes('econnreset') ||
+      message.includes('enotfound') ||
       name.includes('connection') ||
       name.includes('network')
     );
@@ -82,6 +93,9 @@ export class ErrorClassifier {
     return (
       message.includes('timeout') ||
       message.includes('time out') ||
+      message.includes('etimedout') ||
+      message.includes('timed out') ||
+      message.includes('timeout after') ||
       message.includes('deadline') ||
       name.includes('timeout')
     );
@@ -116,6 +130,7 @@ export class ErrorClassifier {
       message.includes('denied') ||
       message.includes('unauthorized') ||
       message.includes('forbidden') ||
+      message.includes('insufficient privileges') ||
       name.includes('permission') ||
       name.includes('access')
     );

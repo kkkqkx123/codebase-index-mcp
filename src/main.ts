@@ -23,9 +23,9 @@ async function main(): Promise<void> {
   try {
     startupMonitor.startPhase('di-container-initialization');
     const container = DIContainer.getInstance();
-    const config = DIContainer.get<ConfigService>(TYPES.ConfigService);
-    const logger = DIContainer.get<LoggerService>(TYPES.LoggerService);
-    const errorHandler = DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+    const config = await DIContainer.get<ConfigService>(TYPES.ConfigService);
+    const logger = await DIContainer.get<LoggerService>(TYPES.LoggerService);
+    const errorHandler = await DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
     startupMonitor.endPhase('di-container-initialization');
 
     logger.info('Starting Codebase Index Service', {
@@ -38,10 +38,13 @@ async function main(): Promise<void> {
     startupMonitor.startPhase('concurrent-initialization');
     
     // Get services through DI container (lazy loading)
-    const httpServer = DIContainer.get<any>(TYPES.HttpServer);
-    const mcpServer = DIContainer.get<any>(TYPES.MCPServer);
-    const vectorStorage = DIContainer.get<any>(TYPES.VectorStorageService);
-    const graphStorage = DIContainer.get<any>(TYPES.GraphPersistenceService);
+    const httpServer = await DIContainer.get<any>(TYPES.HttpServer);
+    const mcpServer = await DIContainer.get<any>(TYPES.MCPServer);
+    const vectorStorage = await DIContainer.get<any>(TYPES.VectorStorageService);
+    const graphStorage = await DIContainer.get<any>(TYPES.GraphPersistenceService);
+    
+    // Initialize HttpServer
+    await httpServer.initialize();
     
     // Concurrently start servers and initialize storage services with timeout
     const [_, __, vectorInitialized, graphInitialized] = await Promise.all([
@@ -116,9 +119,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(error => {
-  const logger = DIContainer.get<LoggerService>(TYPES.LoggerService);
-  const errorHandler = DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+main().catch(async error => {
+  const logger = await DIContainer.get<LoggerService>(TYPES.LoggerService);
+  const errorHandler = await DIContainer.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
   
   logger.error('Fatal error in main process', error);
   errorHandler.handleError(error instanceof Error ? error : new Error(String(error)), {

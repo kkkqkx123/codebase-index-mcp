@@ -252,6 +252,11 @@ export class DIContainer {
   private static instance: Container | null = null;
   private static lazyLoader: LazyServiceLoader | null = null;
 
+  // 允许测试时注入自定义的LazyServiceLoader
+  static setLazyLoader(loader: LazyServiceLoader | null): void {
+    DIContainer.lazyLoader = loader;
+  }
+
   static getInstance(): Container {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
@@ -262,13 +267,15 @@ export class DIContainer {
         // 其他模块将通过懒加载方式加载
       );
 
-      // 初始化懒加载器
-      DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
+      // 初始化懒加载器（如果还没有设置）
+      if (!DIContainer.lazyLoader) {
+        DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
+      }
     }
     return DIContainer.instance;
   }
 
-  static get<T>(serviceIdentifier: string | symbol): T {
+  static async get<T>(serviceIdentifier: string | symbol): Promise<T> {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
       void DIContainer.instance.load(
