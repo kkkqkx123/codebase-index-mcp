@@ -5,6 +5,7 @@ import { LoggerService } from '../../core/LoggerService';
 import { ErrorHandlerService } from '../../core/ErrorHandlerService';
 import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
+import { GraphSearchService, SearchOptions } from '../storage/graph/GraphSearchService';
 import { EmbedderFactory } from '../../embedders/EmbedderFactory';
 import { ResultFusionEngine } from './ResultFusionEngine';
 import { QueryOptimizer } from './QueryOptimizer';
@@ -23,8 +24,14 @@ export interface QueryRequest {
       language?: string[];
       fileType?: string[];
       path?: string[];
+      nodeTypes?: string[];
+      relationshipTypes?: string[];
+      projectId?: string;
+      filePath?: string;
     };
     searchType?: 'semantic' | 'hybrid' | 'graph';
+    graphSearchType?: 'semantic' | 'relationship' | 'path' | 'fuzzy';
+    minScore?: number;
   };
 }
 
@@ -70,6 +77,7 @@ export class QueryCoordinationService {
   private configService: ConfigService;
   private vectorStorage: VectorStorageService;
   private graphStorage: GraphPersistenceService;
+  private graphSearchService: GraphSearchService;
   private embedderFactory: EmbedderFactory;
   private resultFusion: ResultFusionEngine;
   private queryOptimizer: QueryOptimizer;
@@ -83,6 +91,7 @@ export class QueryCoordinationService {
     @inject(ErrorHandlerService) errorHandler: ErrorHandlerService,
     @inject(TYPES.VectorStorageService) vectorStorage: VectorStorageService,
     @inject(TYPES.GraphPersistenceService) graphStorage: GraphPersistenceService,
+    @inject(TYPES.GraphSearchService) graphSearchService: GraphSearchService,
     @inject(TYPES.EmbedderFactory) embedderFactory: EmbedderFactory,
     @inject(ResultFusionEngine) resultFusion: ResultFusionEngine,
     @inject(QueryOptimizer) queryOptimizer: QueryOptimizer,
@@ -95,6 +104,7 @@ export class QueryCoordinationService {
     this.errorHandler = errorHandler;
     this.vectorStorage = vectorStorage;
     this.graphStorage = graphStorage;
+    this.graphSearchService = graphSearchService;
     this.embedderFactory = embedderFactory;
     this.resultFusion = resultFusion;
     this.queryOptimizer = queryOptimizer;
@@ -309,7 +319,12 @@ export class QueryCoordinationService {
 
       const results = await this.vectorStorage.searchVectors(embeddingVector, {
         limit: request.options?.limit || 10,
-        filter: request.options?.filters,
+        filter: request.options?.filters ? {
+          language: request.options.filters.language,
+          chunkType: request.options.filters.fileType,
+          filePath: request.options.filters.path,
+          projectId: request.options.filters.projectId,
+        } : undefined,
       });
 
       return {
@@ -339,15 +354,48 @@ export class QueryCoordinationService {
         };
       }
 
-      // For now, return empty results as graph search is not implemented
-      const results: any[] = [];
+      const searchOptions: SearchOptions = {
+        limit: request.options?.limit || 10,
+        nodeTypes: request.options?.filters?.nodeTypes,
+        relationshipTypes: request.options?.filters?.relationshipTypes,
+        projectId: request.options?.filters?.projectId,
+        filePath: request.options?.filters?.filePath,
+        minScore: request.options?.minScore || 0.1,
+      };
+
+      let searchResults: any[] = [];
+      
+      // 根据查询类型调用不同的搜索方法
+      if (request.options?.graphSearchType === 'relationship') {
+        searchResults = await this.graphSearchService.relationshipSearch(request.query, searchOptions);
+      } else if (request.options?.graphSearchType === 'path') {
+        // pathSearch需要sourceId和targetId两个参数，这里使用查询字符串作为sourceId，targetNode作为targetId
+        searchResults = await this.graphSearchService.pathSearch(
+          request.query,
+          searchOptions.targetNode || '',
+          searchOptions
+        );
+      } else if (request.options?.graphSearchType === 'fuzzy') {
+        searchResults = await this.graphSearchService.fuzzySearch(request.query, searchOptions);
+      } else {
+        // 默认使用语义搜索
+        searchResults = await this.graphSearchService.semanticSearch(request.query, searchOptions);
+      }
+
+      // 将SearchResult转换为QueryResult格式
+      const results = searchResults.map(searchResult => 
+        this.graphSearchService.transformToQueryResult(searchResult)
+      );
 
       return {
         results,
         executionTime: Date.now() - startTime,
       };
     } catch (error) {
-      this.logger.error('Graph search failed', { error });
+      this.logger.error('Graph search failed', { 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return {
         results: [],
         executionTime: Date.now() - startTime,

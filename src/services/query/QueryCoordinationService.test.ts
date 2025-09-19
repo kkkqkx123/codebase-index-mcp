@@ -1,6 +1,7 @@
 import { QueryCoordinationService } from './QueryCoordinationService';
 import { VectorStorageService } from '../storage/vector/VectorStorageService';
 import { GraphPersistenceService } from '../storage/graph/GraphPersistenceService';
+import { GraphSearchService } from '../storage/graph/GraphSearchService';
 import { ResultFusionEngine } from './ResultFusionEngine';
 import { QueryOptimizer } from './QueryOptimizer';
 import { QueryCache } from './QueryCache';
@@ -15,6 +16,7 @@ describe('QueryCoordinationService', () => {
   let queryCoordinationService: QueryCoordinationService;
   let mockVectorStorageService: jest.Mocked<VectorStorageService>;
   let mockGraphPersistenceService: jest.Mocked<GraphPersistenceService>;
+  let mockGraphSearchService: jest.Mocked<GraphSearchService>;
   let mockResultFusionEngine: jest.Mocked<ResultFusionEngine>;
   let mockQueryOptimizer: jest.Mocked<QueryOptimizer>;
   let mockQueryCache: jest.Mocked<QueryCache>;
@@ -34,6 +36,13 @@ describe('QueryCoordinationService', () => {
 
     mockGraphPersistenceService = {
       search: jest.fn().mockResolvedValue([]),
+    } as any;
+
+    mockGraphSearchService = {
+      semanticSearch: jest.fn().mockResolvedValue([]),
+      relationshipSearch: jest.fn().mockResolvedValue([]),
+      pathSearch: jest.fn().mockResolvedValue([]),
+      fuzzySearch: jest.fn().mockResolvedValue([]),
     } as any;
 
     mockResultFusionEngine = {
@@ -101,6 +110,7 @@ describe('QueryCoordinationService', () => {
       mockErrorHandlerService,
       mockVectorStorageService,
       mockGraphPersistenceService,
+      mockGraphSearchService,
       mockEmbedderFactory,
       mockResultFusionEngine,
       mockQueryOptimizer,

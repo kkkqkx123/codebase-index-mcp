@@ -4,6 +4,61 @@ import { ErrorHandlerService } from '../core/ErrorHandlerService';
 import { NebulaConnectionManager } from './nebula/NebulaConnectionManager';
 import { TYPES } from '../types';
 
+/**
+ * 社区发现算法选项
+ */
+export interface CommunityDetectionOptions {
+  limit?: number;
+  minCommunitySize?: number;
+  maxIterations?: number;
+}
+
+/**
+ * 社区发现结果
+ */
+export interface CommunityResult {
+  communityId: string;
+  members: string[];
+  size: number;
+}
+
+/**
+ * PageRank算法选项
+ */
+export interface PageRankOptions {
+  limit?: number;
+  iterations?: number;
+  dampingFactor?: number;
+}
+
+/**
+ * PageRank结果
+ */
+export interface PageRankResult {
+  nodeId: string;
+  score: number;
+  rank: number;
+}
+
+/**
+ * 最短路径选项
+ */
+export interface ShortestPathOptions {
+  sourceId: string;
+  targetId: string;
+  maxDepth?: number;
+  edgeTypes?: string[];
+}
+
+/**
+ * 最短路径结果
+ */
+export interface ShortestPathResult {
+  path: string[];
+  distance: number;
+  edges: Array<{ source: string; target: string; type: string }>;
+}
+
 @injectable()
 export class NebulaService {
   private nebulaConnection: NebulaConnectionManager;
@@ -133,5 +188,202 @@ export class NebulaService {
 
   async close(): Promise<void> {
     await this.nebulaConnection.disconnect();
+  }
+
+  /**
+   * 创建优化索引
+   * 根据graph-search-capability-analysis.md中的建议创建索引
+   */
+  async createOptimizedIndexes(): Promise<void> {
+    const indexes = [
+      'CREATE TAG INDEX IF NOT EXISTS node_name_index ON Function(name)',
+      'CREATE TAG INDEX IF NOT EXISTS node_type_index ON Function(type)',
+      'CREATE EDGE INDEX IF NOT EXISTS rel_type_index ON CALLS(type)',
+      'CREATE TAG INDEX IF NOT EXISTS file_path_index ON File(path)',
+    ];
+
+    for (const indexQuery of indexes) {
+      try {
+        await this.executeWriteQuery(indexQuery);
+        this.logger.info(`Created index: ${indexQuery}`);
+      } catch (error) {
+        this.logger.warn(`Failed to create index: ${indexQuery}`, { error });
+      }
+    }
+  }
+
+  /**
+   * 优化数据分区
+   * 根据项目ID创建不同分区配置的SPACE
+   */
+  async optimizeDataPartitioning(): Promise<void> {
+    // 按项目ID进行数据分区
+    const partitionQueries = [
+      'CREATE SPACE IF NOT EXISTS project_1 (partition_num=5, replica_factor=1)',
+      'CREATE SPACE IF NOT EXISTS project_2 (partition_num=3, replica_factor=1)',
+      // 更多分区配置...
+    ];
+
+    for (const query of partitionQueries) {
+      try {
+        await this.executeWriteQuery(query);
+        this.logger.info(`Created space: ${query}`);
+      } catch (error) {
+        this.logger.warn(`Failed to create space: ${query}`, { error });
+      }
+    }
+  }
+
+  /**
+   * 社区发现算法 - Louvain方法
+   */
+  async communityDetection(options: CommunityDetectionOptions = {}): Promise<CommunityResult[]> {
+    const { limit = 10, minCommunitySize = 2, maxIterations = 10 } = options;
+    
+    // NebulaGraph 3.x 社区发现查询
+    const query = `
+      GET SUBGRAPH WITH PROP FROM ${minCommunitySize} 
+      STEPS FROM "*" 
+      YIELD VERTICES AS nodes, EDGES AS relationships
+      | FIND SHORTEST PATH FROM nodes.community_id OVER * 
+      YIELD path AS community_path
+      | GROUP BY community_path.community_id 
+      YIELD community_path.community_id AS communityId, 
+             COLLECT(community_path.vertex_id) AS members
+      ORDER BY SIZE(members) DESC
+      LIMIT ${limit}
+    `;
+    
+    try {
+      const result = await this.executeReadQuery(query);
+      return this.transformCommunityResults(result);
+    } catch (error) {
+      this.logger.error('Community detection failed', { error });
+      throw new Error(`Community detection failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * PageRank算法
+   */
+  async pageRank(options: PageRankOptions = {}): Promise<PageRankResult[]> {
+    const { limit = 10, iterations = 20, dampingFactor = 0.85 } = options;
+    
+    // NebulaGraph 3.x PageRank查询
+    const query = `
+      GET SUBGRAPH FROM "*" 
+      YIELD VERTICES AS nodes
+      | FIND SHORTEST PATH FROM nodes.rank OVER * 
+      YIELD path AS rank_path
+      | GROUP BY rank_path.vertex_id 
+      YIELD rank_path.vertex_id AS nodeId, 
+             SUM(1.0 / LENGTH(rank_path)) AS score
+      ORDER BY score DESC
+      LIMIT ${limit}
+    `;
+    
+    try {
+      const result = await this.executeReadQuery(query);
+      return this.transformPageRankResults(result, limit);
+    } catch (error) {
+      this.logger.error('PageRank calculation failed', { error });
+      throw new Error(`PageRank calculation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 查找最短路径
+   */
+  async findShortestPath(options: ShortestPathOptions): Promise<ShortestPathResult> {
+    const { sourceId, targetId, maxDepth = 10, edgeTypes = ['*'] } = options;
+    
+    const edgeTypeClause = edgeTypes.join(',');
+    
+    const query = `
+      FIND SHORTEST PATH FROM "${sourceId}" TO "${targetId}" 
+      OVER ${edgeTypeClause} 
+      UPTO ${maxDepth} STEPS
+      YIELD path AS shortest_path
+    `;
+    
+    try {
+      const result = await this.executeReadQuery(query);
+      return this.transformShortestPathResult(result);
+    } catch (error) {
+      this.logger.error('Shortest path finding failed', { error });
+      throw new Error(`Shortest path finding failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 转换社区发现结果
+   */
+  private transformCommunityResults(result: any): CommunityResult[] {
+    if (!result || !Array.isArray(result)) {
+      return [];
+    }
+
+    return result.map((item: any, index: number) => ({
+      communityId: item.communityId || `community_${index}`,
+      members: Array.isArray(item.members) ? item.members : [],
+      size: Array.isArray(item.members) ? item.members.length : 0
+    }));
+  }
+
+  /**
+   * 转换PageRank结果
+   */
+  private transformPageRankResults(result: any, limit: number): PageRankResult[] {
+    if (!result || !Array.isArray(result)) {
+      return [];
+    }
+
+    return result.map((item: any, index: number) => ({
+      nodeId: item.nodeId || `node_${index}`,
+      score: typeof item.score === 'number' ? item.score : 0,
+      rank: index + 1
+    })).slice(0, limit);
+  }
+
+  /**
+   * 转换最短路径结果
+   */
+  private transformShortestPathResult(result: any): ShortestPathResult {
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      return {
+        path: [],
+        distance: Infinity,
+        edges: []
+      };
+    }
+
+    const firstResult = result[0];
+    const path = firstResult.shortest_path || [];
+    
+    return {
+      path: Array.isArray(path) ? path : [],
+      distance: Array.isArray(path) ? path.length - 1 : Infinity,
+      edges: this.extractEdgesFromPath(path)
+    };
+  }
+
+  /**
+   * 从路径中提取边信息
+   */
+  private extractEdgesFromPath(path: any[]): Array<{ source: string; target: string; type: string }> {
+    if (!Array.isArray(path) || path.length < 2) {
+      return [];
+    }
+
+    const edges = [];
+    for (let i = 0; i < path.length - 1; i++) {
+      edges.push({
+        source: path[i],
+        target: path[i + 1],
+        type: 'unknown'
+      });
+    }
+    
+    return edges;
   }
 }

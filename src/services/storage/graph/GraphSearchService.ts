@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../../types';
 import { LoggerService } from '../../../core/LoggerService';
-import { NebulaService } from '../../../database/NebulaService';
+import { NebulaService, CommunityDetectionOptions, CommunityResult, PageRankOptions, PageRankResult, ShortestPathOptions, ShortestPathResult } from '../../../database/NebulaService';
 import { GraphCacheService } from './GraphCacheService';
 import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
 import { GraphQueryBuilder } from './GraphQueryBuilder';
@@ -348,14 +348,17 @@ export class GraphSearchService {
         result.type = vertex.tags?.[0]?.name || 'unknown';
         result.name = vertex.tags?.[0]?.props?.name || '';
         result.properties = vertex.tags?.[0]?.props || {};
+        result.score = this.calculateRelevanceScore(vertex, queryType);
       } else if (record.v) {
         result.id = record.v.vid || '';
         result.type = record.v.tags?.[0]?.name || 'unknown';
         result.name = record.v.tags?.[0]?.props?.name || '';
         result.properties = record.v.tags?.[0]?.props || {};
+        result.score = this.calculateRelevanceScore(record.v, queryType);
       } else if (record.path) {
         result.path = record.path;
         result.type = 'path';
+        result.score = this.calculatePathRelevanceScore(record.path);
       } else {
         Object.assign(result, record);
       }
@@ -364,11 +367,259 @@ export class GraphSearchService {
     return result;
   }
 
+  private calculateRelevanceScore(node: any, queryType: string): number {
+    // 基础分数基于查询类型
+    let score = 0.5;
+    
+    // 根据节点属性调整分数
+    if (node.tags?.[0]?.props) {
+      const props = node.tags[0].props;
+      
+      // 代码文件节点通常有更高相关性
+      if (props.filePath) {
+        score += 0.2;
+      }
+      
+      // 函数/方法节点
+      if (props.kind === 'function' || props.kind === 'method') {
+        score += 0.1;
+      }
+      
+      // 类/接口节点
+      if (props.kind === 'class' || props.kind === 'interface') {
+        score += 0.15;
+      }
+      
+      // 语义搜索通常有更高相关性
+      if (queryType === 'semantic') {
+        score += 0.1;
+      }
+    }
+    
+    return Math.min(score, 1.0); // 确保分数在0-1之间
+  }
+
+  private calculatePathRelevanceScore(path: any): number {
+    // 路径相关性基于路径长度和节点类型
+    let score = 0.6;
+    
+    if (path && path.length) {
+      // 较短的路径通常更相关
+      const lengthFactor = Math.max(0, 1 - (path.length / 20));
+      score += lengthFactor * 0.2;
+    }
+    
+    return Math.min(score, 1.0);
+  }
+
+  /**
+   * 将SearchResult转换为QueryResult格式
+   */
+  public transformToQueryResult(searchResult: SearchResult): any {
+    const queryResult: any = {
+      id: searchResult.id,
+      score: searchResult.score,
+      filePath: searchResult.properties.filePath || '',
+      content: searchResult.properties.content || searchResult.name || '',
+      startLine: searchResult.properties.startLine || 0,
+      endLine: searchResult.properties.endLine || 0,
+      language: searchResult.properties.language || '',
+      chunkType: searchResult.type,
+      metadata: {
+        ...searchResult.properties,
+        graphNodeType: searchResult.type,
+        queryType: searchResult.queryType,
+      },
+    };
+
+    // 添加图上下文信息
+    if (searchResult.type !== 'path') {
+      queryResult.graphContext = {
+        dependencies: searchResult.properties.dependencies || [],
+        relationships: searchResult.properties.relationships || [],
+      };
+    }
+
+    return queryResult;
+  }
+
   async getSearchMetrics(): Promise<any> {
     return this.performanceMonitor.getMetrics();
   }
 
   async clearSearchCache(): Promise<void> {
     this.cacheService.clearAllCache();
+  }
+
+  /**
+   * 创建优化索引
+   * 调用NebulaService的索引创建功能
+   */
+  async createOptimizedIndexes(): Promise<void> {
+    try {
+      await this.nebulaService.createOptimizedIndexes();
+      this.logger.info('Optimized indexes created successfully');
+    } catch (error) {
+      this.logger.error('Failed to create optimized indexes', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(`Failed to create optimized indexes: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 优化数据分区
+   * 调用NebulaService的数据分区优化功能
+   */
+  async optimizeDataPartitioning(): Promise<void> {
+    try {
+      await this.nebulaService.optimizeDataPartitioning();
+      this.logger.info('Data partitioning optimized successfully');
+    } catch (error) {
+      this.logger.error('Failed to optimize data partitioning', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(`Failed to optimize data partitioning: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 执行社区发现算法
+   */
+  async communityDetection(options: CommunityDetectionOptions = {}): Promise<CommunityResult[]> {
+    try {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
+      const results = await this.nebulaService.communityDetection(options);
+      this.logger.info('Community detection completed', {
+        communityCount: results.length,
+        totalMembers: results.reduce((sum, community) => sum + community.size, 0),
+      });
+      
+      return results;
+    } catch (error) {
+      this.logger.error('Community detection failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(`Community detection failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 执行PageRank算法
+   */
+  async pageRank(options: PageRankOptions = {}): Promise<PageRankResult[]> {
+    try {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
+      const results = await this.nebulaService.pageRank(options);
+      this.logger.info('PageRank calculation completed', {
+        resultCount: results.length,
+        topScore: results.length > 0 ? results[0].score : 0,
+      });
+      
+      return results;
+    } catch (error) {
+      this.logger.error('PageRank calculation failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(`PageRank calculation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 查找最短路径
+   */
+  async findShortestPath(options: ShortestPathOptions): Promise<ShortestPathResult> {
+    try {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
+      const result = await this.nebulaService.findShortestPath(options);
+      this.logger.info('Shortest path found', {
+        sourceId: options.sourceId,
+        targetId: options.targetId,
+        distance: result.distance,
+        pathLength: result.path.length,
+      });
+      
+      return result;
+    } catch (error) {
+      this.logger.error('Shortest path finding failed', {
+        error: error instanceof Error ? error.message : String(error),
+        sourceId: options.sourceId,
+        targetId: options.targetId,
+      });
+      throw new Error(`Shortest path finding failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 执行图算法分析
+   * 综合多种图算法进行深度分析
+   */
+  async analyzeGraph(options: {
+    communityDetection?: CommunityDetectionOptions;
+    pageRank?: PageRankOptions;
+    includeShortestPaths?: boolean;
+    nodeIds?: string[];
+  } = {}): Promise<{
+    communities: CommunityResult[];
+    pageRankResults: PageRankResult[];
+    shortestPaths?: ShortestPathResult[];
+  }> {
+    try {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+
+      const [communities, pageRankResults] = await Promise.all([
+        this.communityDetection(options.communityDetection || {}),
+        this.pageRank(options.pageRank || {}),
+      ]);
+
+      let shortestPaths: ShortestPathResult[] = [];
+      
+      if (options.includeShortestPaths && options.nodeIds && options.nodeIds.length >= 2) {
+        const pathPromises: Promise<ShortestPathResult>[] = [];
+        
+        // 在选定的节点之间查找最短路径
+        for (let i = 0; i < options.nodeIds.length - 1; i++) {
+          for (let j = i + 1; j < options.nodeIds.length; j++) {
+            pathPromises.push(
+              this.findShortestPath({
+                sourceId: options.nodeIds[i],
+                targetId: options.nodeIds[j],
+                maxDepth: 10,
+              })
+            );
+          }
+        }
+        
+        shortestPaths = await Promise.all(pathPromises);
+      }
+
+      this.logger.info('Graph analysis completed', {
+        communityCount: communities.length,
+        pageRankCount: pageRankResults.length,
+        shortestPathCount: shortestPaths.length,
+      });
+
+      return {
+        communities,
+        pageRankResults,
+        shortestPaths: options.includeShortestPaths ? shortestPaths : undefined,
+      };
+    } catch (error) {
+      this.logger.error('Graph analysis failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(`Graph analysis failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
