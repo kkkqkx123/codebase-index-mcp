@@ -1,28 +1,28 @@
-import { SearchCoordinator, SearchOptions, SearchResult, SearchQuery } from './SearchCoordinator';
+import { SearchCoordinator, SearchOptions, SearchResult, SearchQuery } from '../SearchCoordinator';
 import {
   HybridSearchService,
   HybridSearchParams,
   HybridSearchResult,
   HybridSearchMetrics,
-} from './HybridSearchService';
+} from '../HybridSearchService';
 import {
   SemanticSearchService,
   SemanticSearchParams,
   SemanticSearchResult,
   SemanticSearchMetrics,
-} from './SemanticSearchService';
-import { RerankingService } from '../reranking/RerankingService';
+} from '../SemanticSearchService';
+import { RerankingService } from '../../reranking/RerankingService';
 import {
   IRerankingService,
   RerankingOptions,
   RerankedResult,
-} from '../reranking/IRerankingService';
-import { QueryResult } from '../query/QueryCoordinationService';
-import { StorageCoordinator } from '../storage/StorageCoordinator';
-import { ErrorHandlerService } from '../../core/ErrorHandlerService';
-import { ConfigFactory } from '../../config/ConfigFactory';
-import { LoggerService } from '../../core/LoggerService';
-import { ConfigService } from '../../config/ConfigService';
+} from '../../reranking/IRerankingService';
+import { QueryResult } from '../../query/QueryCoordinationService';
+import { StorageCoordinator } from '../../storage/StorageCoordinator';
+import { ErrorHandlerService } from '../../../core/ErrorHandlerService';
+import { ConfigFactory } from '../../../config/ConfigFactory';
+import { LoggerService } from '../../../core/LoggerService';
+import { ConfigService } from '../../../config/ConfigService';
 
 describe('SearchCoordinator', () => {
   let searchCoordinator: SearchCoordinator;

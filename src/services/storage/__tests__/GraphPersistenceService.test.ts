@@ -4,7 +4,7 @@ import {
   GraphPersistenceResult,
   CodeGraphNode,
   CodeGraphRelationship,
-} from './GraphPersistenceService';
+} from '../graph/GraphPersistenceService';
 import { NebulaService } from '../../../database/NebulaService';
 import { LoggerService } from '../../../core/LoggerService';
 import { ConfigService } from '../../../config/ConfigService';
@@ -13,13 +13,13 @@ import { BatchProcessingMetrics } from '../../monitoring/BatchProcessingMetrics'
 import { NebulaQueryBuilder } from '../../../database/nebula/NebulaQueryBuilder';
 import { GraphDatabaseErrorHandler } from '../../../core/GraphDatabaseErrorHandler';
 import { NebulaSpaceManager } from '../../../database/nebula/NebulaSpaceManager';
-import { GraphPersistenceUtils } from './GraphPersistenceUtils';
+import { GraphPersistenceUtils } from '../graph/GraphPersistenceUtils';
 import { TYPES } from '../../../core/DIContainer';
-import { GraphCacheService } from './GraphCacheService';
-import { GraphPerformanceMonitor } from './GraphPerformanceMonitor';
-import { GraphBatchOptimizer } from './GraphBatchOptimizer';
-import { GraphQueryBuilder } from './GraphQueryBuilder';
-import { GraphSearchService } from './GraphSearchService';
+import { GraphCacheService } from '../graph/GraphCacheService';
+import { GraphPerformanceMonitor } from '../graph/GraphPerformanceMonitor';
+import { GraphBatchOptimizer } from '../graph/GraphBatchOptimizer';
+import { GraphQueryBuilder } from '../graph/GraphQueryBuilder';
+import { GraphSearchService } from '../graph/GraphSearchService';
 
 describe('GraphPersistenceService', () => {
   let graphPersistenceService: GraphPersistenceService;
@@ -128,6 +128,30 @@ describe('GraphPersistenceService', () => {
     mockGraphPersistenceUtils = {
       calculateOptimalBatchSize: jest.fn().mockReturnValue(50),
       waitForSpaceDeletion: jest.fn().mockResolvedValue(undefined),
+      initializeConnectionPoolMonitoring: jest.fn().mockResolvedValue(undefined),
+      generateSpaceName: jest.fn().mockReturnValue('test_space'),
+      extractProjectIdFromCurrentSpace: jest.fn().mockReturnValue('test-project'),
+      ensureConstraints: jest.fn().mockResolvedValue(undefined),
+      recordToGraphNode: jest.fn().mockReturnValue({
+        id: 'test-node',
+        type: 'Function',
+        name: 'testFunction',
+        properties: {},
+      }),
+      recordToGraphRelationship: jest.fn().mockReturnValue({
+        id: 'test-rel',
+        type: 'CALLS',
+        sourceId: 'source',
+        targetId: 'target',
+        properties: {},
+      }),
+      processWithTimeout: jest.fn().mockImplementation((operation) => operation()),
+      getEnhancedGraphStats: jest.fn().mockResolvedValue({
+        nodeCount: 100,
+        relationshipCount: 200,
+        nodeTypes: { Function: 50, Class: 30 },
+        relationshipTypes: { CALLS: 100, EXTENDS: 50 },
+      }),
     };
 
     mockGraphCacheService = {

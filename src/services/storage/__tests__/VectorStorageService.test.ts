@@ -1,4 +1,4 @@
-import { VectorStorageService } from './VectorStorageService';
+import { VectorStorageService } from '../vector/VectorStorageService';
 import { QdrantClientWrapper } from '../../../database/qdrant/QdrantClientWrapper';
 import { LoggerService } from '../../../core/LoggerService';
 import { ConfigService } from '../../../config/ConfigService';
@@ -70,7 +70,7 @@ describe('VectorStorageService', () => {
     mockBatchProcessingService = {
       checkMemoryUsage: jest.fn().mockReturnValue(true),
       processWithTimeout: jest.fn(),
-      retryOperation: jest.fn(),
+      retryOperation: jest.fn().mockImplementation((operation) => operation()),
       calculateOptimalBatchSize: jest.fn().mockReturnValue(100),
       getMaxConcurrentOperations: jest.fn().mockReturnValue(5),
       getDefaultBatchSize: jest.fn().mockReturnValue(100),
@@ -82,7 +82,23 @@ describe('VectorStorageService', () => {
     mockEmbeddingService = {
       convertChunksToVectorPoints: jest.fn().mockResolvedValue([]),
       generateEmbedding: jest.fn().mockResolvedValue(Array(1536).fill(0.1)),
-      convertChunksToVectorPointsOptimized: jest.fn().mockResolvedValue([]),
+      convertChunksToVectorPointsOptimized: jest.fn().mockImplementation((chunks: any[]) => {
+        // 返回模拟的vector points，模拟实际转换逻辑
+        return Promise.resolve(chunks.map(chunk => ({
+          id: chunk.id,
+          vector: Array(1536).fill(0.1),
+          payload: {
+            content: chunk.content,
+            filePath: chunk.metadata.filePath,
+            language: chunk.metadata.language,
+            chunkType: chunk.type,
+            startLine: chunk.startLine,
+            endLine: chunk.endLine,
+            metadata: chunk.metadata,
+            timestamp: new Date()
+          }
+        })));
+      }),
     } as any;
 
     // 移除了对generateEmbedding的mock，因为现在使用的是EmbedderFactory
@@ -399,6 +415,9 @@ describe('VectorStorageService', () => {
 
       mockQdrantClient.upsertPoints.mockResolvedValue(true);
       mockQdrantClient.getExistingChunkIds.mockResolvedValue(['existing-1']);
+      
+      // Mock batch processing service methods used in updateChunks
+      mockBatchProcessingService.retryOperation.mockImplementation((operation) => operation());
 
       // Reset initialized flag and initialize
       (vectorStorageService as any).isInitialized = false;
