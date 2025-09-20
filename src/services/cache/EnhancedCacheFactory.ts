@@ -48,16 +48,25 @@ export class EnhancedCacheFactory {
   /**
    * 创建Redis缓存
    */
-  createRedisCache(name: string, redisConfig: RedisConfig): CacheInterface {
-    const Redis = require('ioredis');
-    const redis = new Redis(redisConfig.url, {
-      maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
-      enableReadyCheck: true,
-      lazyConnect: true,
-      connectTimeout: 10000,
-      commandTimeout: 5000,
-    });
+  createRedisCache(name: string, redisConfig: RedisConfig, redisInstance?: any): CacheInterface {
+    let redis: any;
+    
+    if (redisInstance) {
+      // 使用传入的Redis实例（用于测试环境）
+      redis = redisInstance;
+    } else {
+      // 创建新的Redis实例（生产环境）
+      const Redis = require('ioredis');
+      redis = new Redis(redisConfig.url, {
+        maxRetriesPerRequest: 3,
+        retryDelayOnFailover: 100,
+        enableReadyCheck: true,
+        lazyConnect: true,
+        connectTimeout: 10000,
+        commandTimeout: 5000,
+      });
+    }
+    
     return new EnhancedRedisCacheAdapter(name, redis, 3600, this.monitor);
   }
 
@@ -67,7 +76,8 @@ export class EnhancedCacheFactory {
   createMultiLevelCache(
     name: string,
     redisConfig: RedisConfig,
-    config?: CacheFactoryConfig
+    config?: CacheFactoryConfig,
+    redisInstance?: any
   ): EnhancedMultiLevelCache {
     // 检查是否已存在相同名称的缓存
     if (this.cacheInstances.has(name)) {
@@ -82,7 +92,7 @@ export class EnhancedCacheFactory {
     const l1Cache = this.createMemoryCache(`${name}:l1`, config?.memory);
 
     // 创建L2 Redis缓存
-    const l2Cache = this.createRedisCache(`${name}:l2`, redisConfig);
+    const l2Cache = this.createRedisCache(`${name}:l2`, redisConfig, redisInstance);
 
     // 创建多级缓存
     const multiLevelCache = new EnhancedMultiLevelCache(name, l1Cache, l2Cache, this.monitor);
