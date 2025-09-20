@@ -36,7 +36,7 @@ const configSchema = Joi.object({
       )
       .default('openai'),
     openai: Joi.object({
-      apiKey: Joi.string().when('$..provider', { is: 'openai', then: Joi.required() }),
+      apiKey: Joi.string().when(Joi.ref('...provider'), { is: 'openai', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('text-embedding-ada-002'),
       dimensions: Joi.number().positive().default(1536),
@@ -47,19 +47,19 @@ const configSchema = Joi.object({
       dimensions: Joi.number().positive().default(768),
     }),
     gemini: Joi.object({
-      apiKey: Joi.string().when('$..provider', { is: 'gemini', then: Joi.required() }),
+      apiKey: Joi.string().when(Joi.ref('...provider'), { is: 'gemini', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('embedding-001'),
       dimensions: Joi.number().positive().default(768),
     }),
     mistral: Joi.object({
-      apiKey: Joi.string().when('$..provider', { is: 'mistral', then: Joi.required() }),
+      apiKey: Joi.string().when(Joi.ref('...provider'), { is: 'mistral', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('mistral-embed'),
       dimensions: Joi.number().positive().default(1024),
     }),
     siliconflow: Joi.object({
-      apiKey: Joi.string().when('$..provider', { is: 'siliconflow', then: Joi.required() }),
+      apiKey: Joi.string().when(Joi.ref('...provider'), { is: 'siliconflow', then: Joi.required() }),
       baseUrl: Joi.string().uri().optional(),
       model: Joi.string().default('BAAI/bge-large-en-v1.5'),
       dimensions: Joi.number().positive().default(1024),

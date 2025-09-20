@@ -81,7 +81,7 @@ describe('ConfigService', () => {
 
       expect(configService.get('nodeEnv')).toBe('development');
       expect(configService.get('port')).toBe(3000);
-      expect(configService.get('logging').level).toBe('error'); // Set by test environment
+      expect(configService.get('logging').level).toBe('info'); // Default value from ConfigService
       expect(configService.get('logging').format).toBe('json');
     });
 

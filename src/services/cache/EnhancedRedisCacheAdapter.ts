@@ -402,10 +402,9 @@ export class EnhancedRedisCacheAdapter implements CacheInterface {
                          typeof this.redis.quit === 'function' && 
                          (this.redis.quit as any)._isMockFunction === true;
       
-      console.debug('检测结果:', isMockRedis);
-      
       if (isMockRedis) {
-        // 在测试环境中，只标记为已断开连接，不实际调用quit
+        // 在测试环境中，调用mock的quit函数并标记为已断开连接
+        await this.redis.quit();
         this.isConnected = false;
         this.logger.info(`Redis缓存关闭完成（测试环境）: ${this.name}`, {
           cache: this.name,
