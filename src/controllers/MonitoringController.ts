@@ -32,7 +32,12 @@ export class MonitoringController {
     this.prometheusMetricsService = prometheusMetricsService;
     this.healthCheckService = healthCheckService;
     this.performanceAnalysisService = performanceAnalysisService;
+  }
 
+  /**
+   * 初始化控制器（在依赖注入完成后调用）
+   */
+  initialize(): void {
     this.logger.info('Monitoring controller initialized');
   }
 

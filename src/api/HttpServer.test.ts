@@ -276,7 +276,11 @@ describe('HttpServer', () => {
     // Override the singleton instance with our mock container
     (DIContainer as any).instance = container;
 
-    httpServer = new HttpServer();
+    httpServer = new HttpServer(
+      mockLoggerService,
+      mockErrorHandlerService,
+      mockConfigService
+    );
     await httpServer.initialize(); // 初始化HttpServer实例
     app = httpServer.getApp();
   });
@@ -649,7 +653,11 @@ codebase_index_requests_total{method="GET",route="/search"} 100`
   describe('Server Lifecycle', () => {
     it('should start server on specified port', async () => {
       // Create a new HttpServer instance for this test to avoid port conflicts
-      const testServer = new HttpServer();
+      const testServer = new HttpServer(
+        mockLoggerService,
+        mockErrorHandlerService,
+        mockConfigService
+      );
       await testServer.initialize();
       
       const server = await testServer.start();
@@ -672,7 +680,11 @@ codebase_index_requests_total{method="GET",route="/search"} 100`
       const originalPort = process.env.PORT;
       process.env.PORT = '3002';
       
-      const testServer = new HttpServer();
+      const testServer = new HttpServer(
+        mockLoggerService,
+        mockErrorHandlerService,
+        mockConfigService
+      );
       await testServer.initialize(); // Initialize first
       const server = await testServer.start();
       expect(server).toBeDefined();
@@ -693,7 +705,11 @@ codebase_index_requests_total{method="GET",route="/search"} 100`
 
     it('should handle server start errors', async () => {
       // Create a new HttpServer instance for this test
-      const testServer = new HttpServer();
+      const testServer = new HttpServer(
+        mockLoggerService,
+        mockErrorHandlerService,
+        mockConfigService
+      );
       await testServer.initialize(); // Initialize first
       
       // Mock server start failure - 避免循环引用，使用外部变量存储error handler

@@ -34,27 +34,41 @@ async function main(): Promise<void> {
       port: config.get('port'),
     });
 
-    // Concurrently start servers and initialize storage services
-    startupMonitor.startPhase('concurrent-initialization');
-    
-    // Get services through DI container (lazy loading)
-    const httpServer = await DIContainer.get<any>(TYPES.HttpServer);
-    const mcpServer = await DIContainer.get<any>(TYPES.MCPServer);
+    // Then load other services in a specific order
+    startupMonitor.startPhase('storage-services-loading');
     const vectorStorage = await DIContainer.get<any>(TYPES.VectorStorageService);
     const graphStorage = await DIContainer.get<any>(TYPES.GraphPersistenceService);
+    startupMonitor.endPhase('storage-services-loading');
+
+    // Finally load server services
+    startupMonitor.startPhase('server-services-loading');
+    const httpServer = await DIContainer.get<any>(TYPES.HttpServer);
+    const mcpServer = await DIContainer.get<any>(TYPES.MCPServer);
+    startupMonitor.endPhase('server-services-loading');
     
     // Initialize HttpServer
+    startupMonitor.startPhase('http-server-initialization');
+    logger.info('Initializing HTTP server...');
     await httpServer.initialize();
+    startupMonitor.endPhase('http-server-initialization');
     
-    // Concurrently start servers and initialize storage services with timeout
-    const [_, __, vectorInitialized, graphInitialized] = await Promise.all([
-      httpServer.start(),
-      mcpServer.start(),
-      withTimeout(vectorStorage.initialize(), 10000, 'Vector storage initialization'),
-      withTimeout(graphStorage.initialize(), 10000, 'Graph storage initialization')
+    // Initialize storage services
+    startupMonitor.startPhase('storage-initialization');
+    logger.info('Initializing storage services...');
+    await Promise.all([
+      vectorStorage.initialize(),
+      graphStorage.initialize()
     ]);
-    
-    startupMonitor.endPhase('concurrent-initialization');
+    startupMonitor.endPhase('storage-initialization');
+
+    // Start servers
+    startupMonitor.startPhase('server-startup');
+    logger.info('Starting servers...');
+    await Promise.all([
+      httpServer.start(),
+      mcpServer.start()
+    ]);
+    startupMonitor.endPhase('server-startup');
 
     logger.info('Codebase Index Service started successfully');
 
@@ -111,7 +125,6 @@ async function main(): Promise<void> {
       });
     });
   } catch (error) {
-    startupMonitor.endPhase('main', error instanceof Error ? error : new Error(String(error)));
     const startupReport = startupMonitor.getReport();
     console.error('Failed to start Codebase Index Service:', error);
     console.log('Startup performance report:', startupReport);

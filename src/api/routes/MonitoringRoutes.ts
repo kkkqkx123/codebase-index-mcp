@@ -5,13 +5,19 @@ import { MonitoringController } from '../../controllers/MonitoringController';
 
 export class MonitoringRoutes {
   private router: Router;
-  private monitoringController: MonitoringController;
+  private monitoringController: MonitoringController | null = null;
 
   constructor() {
-    const container = DIContainer.getInstance();
-    this.monitoringController = container.get<MonitoringController>(TYPES.MonitoringController);
     this.router = Router();
     this.setupRoutes();
+  }
+
+  private getMonitoringController(): MonitoringController {
+    if (!this.monitoringController) {
+      const container = DIContainer.getInstance();
+      this.monitoringController = container.get<MonitoringController>(TYPES.MonitoringController);
+    }
+    return this.monitoringController;
   }
 
   private setupRoutes(): void {
@@ -76,7 +82,7 @@ export class MonitoringRoutes {
 
   private async getHealthStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getHealthStatus();
+      const result = await this.getMonitoringController().getHealthStatus();
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -85,7 +91,7 @@ export class MonitoringRoutes {
 
   private async getMetrics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getMetrics();
+      const result = await this.getMonitoringController().getMetrics();
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -100,7 +106,7 @@ export class MonitoringRoutes {
     try {
       const { start, end } = req.query;
       const period = start && end ? { start: start as string, end: end as string } : undefined;
-      const result = await this.monitoringController.getPerformanceReport(period);
+      const result = await this.getMonitoringController().getPerformanceReport(period);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -109,7 +115,7 @@ export class MonitoringRoutes {
 
   private async getBottlenecks(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getBottlenecks();
+      const result = await this.getMonitoringController().getBottlenecks();
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -118,7 +124,7 @@ export class MonitoringRoutes {
 
   private async getCapacityPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getCapacityPlan();
+      const result = await this.getMonitoringController().getCapacityPlan();
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -127,7 +133,7 @@ export class MonitoringRoutes {
 
   private async getDependencies(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getDependencies();
+      const result = await this.getMonitoringController().getDependencies();
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -136,7 +142,7 @@ export class MonitoringRoutes {
 
   private async getBenchmark(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getBenchmark();
+      const result = await this.getMonitoringController().getBenchmark();
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -145,7 +151,7 @@ export class MonitoringRoutes {
 
   private async getProjectStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.monitoringController.getProjectStats();
+      const result = await this.getMonitoringController().getProjectStats();
       res.status(200).json(result);
     } catch (error) {
       next(error);

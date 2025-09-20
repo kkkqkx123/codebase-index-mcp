@@ -2,6 +2,7 @@ import { Container } from 'inversify';
 import { Newable } from '@inversifyjs/common';
 import { TYPES } from '../types';
 import { LazyServiceLoader } from './LazyServiceLoader';
+import { DIContainer } from './DIContainer';
 
 // 导入所有需要的服务类型
 import type { QdrantClientWrapper } from '../database/qdrant/QdrantClientWrapper';
@@ -26,41 +27,101 @@ import type { NebulaConnectionManager } from '../database/nebula/NebulaConnectio
 import type { IndexService } from '../services/indexing/IndexService';
 import type { GraphService } from '../services/graph/GraphService';
 import type { MCPServer } from '../mcp/MCPServer';
+import type { MonitoringController } from '../controllers/MonitoringController';
 
 /**
  * 具体服务加载器实现类
  * 包含所有具体的服务加载方法
  */
 export class IndividualServiceLoaders {
-  constructor(private lazyLoader: LazyServiceLoader) {}
+  private lazyLoader: LazyServiceLoader;
+  private loadingLocks: Map<string | symbol, Promise<any>> = new Map();
+
+  constructor(lazyLoader: LazyServiceLoader) {
+    this.lazyLoader = lazyLoader;
+  }
 
   /**
    * 加载向量存储服务
    */
   async loadVectorStorageService(container: Container) {
+    // 首先检查服务是否已经绑定，避免不必要的锁竞争
+    if (container.isBound(TYPES.VectorStorageService)) {
+      return container.get(TYPES.VectorStorageService);
+    }
+
+    // 检查是否已有加载中的锁
+    const existingLock = this.loadingLocks.get(TYPES.VectorStorageService);
+    if (existingLock) {
+      return existingLock;
+    }
+
+    // 获取锁后再次检查绑定状态（双重检查模式）
+    if (container.isBound(TYPES.VectorStorageService)) {
+      return container.get(TYPES.VectorStorageService);
+    }
+
+    // 创建新的加载锁
+    const loadPromise = this.loadVectorStorageServiceInternal(container);
+    this.loadingLocks.set(TYPES.VectorStorageService, loadPromise);
+
+    try {
+      const result = await loadPromise;
+      return result;
+    } finally {
+      // 延迟清理锁，防止竞争条件
+      setTimeout(() => {
+        this.loadingLocks.delete(TYPES.VectorStorageService);
+      }, 100);
+    }
+  }
+
+  private async loadVectorStorageServiceInternal(container: Container) {
+    // 双重检查模式：在锁内再次检查绑定状态
     if (!container.isBound(TYPES.VectorStorageService)) {
       const VectorStorageService = await this.lazyLoader.loadService('../services/storage/vector/VectorStorageService', 'VectorStorageService');
       const qdrantClient = container.get<QdrantClientWrapper>(TYPES.QdrantClientWrapper);
       const loggerService = container.get<LoggerService>(TYPES.LoggerService);
       const errorHandlerService = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
       const configService = container.get<ConfigService>(TYPES.ConfigService);
+      
+      // 确保监控组已加载（包含 BatchProcessingMetrics）
+      console.log('Checking if BatchProcessingMetrics is bound before loading VectorStorageService:', container.isBound(TYPES.BatchProcessingMetrics));
+      if (!container.isBound(TYPES.BatchProcessingMetrics)) {
+        console.log('BatchProcessingMetrics not bound, loading monitoring group...');
+        await this.lazyLoader.loadServiceGroup('monitoring');
+        console.log('After loading monitoring group, BatchProcessingMetrics bound:', container.isBound(TYPES.BatchProcessingMetrics));
+      } else {
+        console.log('BatchProcessingMetrics already bound, skipping monitoring group load');
+      }
+      
+      // 确保存储组已加载（包含 BatchProcessingService）
+      await this.lazyLoader.loadServiceGroup('storage');
+      
+      // 确保基础设施组已加载（包含其他依赖服务）
+      await this.lazyLoader.loadServiceGroup('infrastructure');
+      
+      // 现在可以安全地从容器中获取依赖服务
       const batchMetrics = container.get<BatchProcessingMetrics>(TYPES.BatchProcessingMetrics);
       const embedderFactory = container.get<EmbedderFactory>(TYPES.EmbedderFactory);
       const batchProcessingService = container.get<BatchProcessingService>(TYPES.BatchProcessingService);
       const embeddingService = container.get<EmbeddingService>(TYPES.EmbeddingService);
       
-      container.bind(TYPES.VectorStorageService).toDynamicValue(() => {
-        return new (VectorStorageService as unknown as Newable<any>)(
-          qdrantClient,
-          loggerService,
-          errorHandlerService,
-          configService,
-          batchMetrics,
-          embedderFactory,
-          batchProcessingService,
-          embeddingService
-        );
-      }).inSingletonScope();
+      // 在绑定前再次检查，防止并发绑定
+      if (!container.isBound(TYPES.VectorStorageService)) {
+        container.bind(TYPES.VectorStorageService).toDynamicValue(() => {
+          return new (VectorStorageService as unknown as Newable<any>) (
+            qdrantClient,
+            loggerService,
+            errorHandlerService,
+            configService,
+            batchMetrics,
+            embedderFactory,
+            batchProcessingService,
+            embeddingService
+          );
+        }).inSingletonScope();
+      }
     }
     this.lazyLoader.recordServiceLoad(TYPES.VectorStorageService);
     return container.get(TYPES.VectorStorageService);
@@ -70,6 +131,38 @@ export class IndividualServiceLoaders {
    * 加载图持久化服务
    */
   async loadGraphPersistenceService(container: Container) {
+    // 首先检查服务是否已经绑定，避免不必要的锁竞争
+    if (container.isBound(TYPES.GraphPersistenceService)) {
+      return container.get(TYPES.GraphPersistenceService);
+    }
+
+    // 检查是否已有加载中的锁
+    const existingLock = this.loadingLocks.get(TYPES.GraphPersistenceService);
+    if (existingLock) {
+      return existingLock;
+    }
+
+    // 获取锁后再次检查绑定状态（双重检查模式）
+    if (container.isBound(TYPES.GraphPersistenceService)) {
+      return container.get(TYPES.GraphPersistenceService);
+    }
+
+    // 创建新的加载锁
+    const loadPromise = this.loadGraphPersistenceServiceInternal(container);
+    this.loadingLocks.set(TYPES.GraphPersistenceService, loadPromise);
+
+    try {
+      const result = await loadPromise;
+      return result;
+    } finally {
+      // 延迟清理锁，防止竞争条件
+      setTimeout(() => {
+        this.loadingLocks.delete(TYPES.GraphPersistenceService);
+      }, 100);
+    }
+  }
+
+  private async loadGraphPersistenceServiceInternal(container: Container) {
     if (!container.isBound(TYPES.GraphPersistenceService)) {
       const GraphPersistenceService = await this.lazyLoader.loadService('../services/storage/graph/GraphPersistenceService', 'GraphPersistenceService');
       const nebulaService = container.get<NebulaService>(TYPES.NebulaService);
@@ -77,6 +170,19 @@ export class IndividualServiceLoaders {
       const loggerService = container.get<LoggerService>(TYPES.LoggerService);
       const errorHandlerService = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
       const configService = container.get<ConfigService>(TYPES.ConfigService);
+      
+      // 确保监控组已加载（包含 BatchProcessingMetrics）
+      if (!container.isBound(TYPES.BatchProcessingMetrics)) {
+        await this.lazyLoader.loadServiceGroup('monitoring');
+      }
+      
+      // 确保核心组已加载（包含其他依赖服务）
+      await this.lazyLoader.loadServiceGroup('core');
+      
+      // 确保存储组已加载（包含其他依赖服务）
+      await this.lazyLoader.loadServiceGroup('storage');
+      
+      // 现在可以安全地从容器中获取依赖服务
       const batchMetrics = container.get<BatchProcessingMetrics>(TYPES.BatchProcessingMetrics);
       const queryBuilder = container.get<NebulaQueryBuilder>(TYPES.NebulaQueryBuilder);
       const graphErrorHandler = container.get<GraphDatabaseErrorHandler>(TYPES.GraphDatabaseErrorHandler);
@@ -87,24 +193,27 @@ export class IndividualServiceLoaders {
       const enhancedQueryBuilder = container.get<GraphQueryBuilder>(TYPES.GraphQueryBuilder);
       const searchService = container.get<GraphSearchService>(TYPES.GraphSearchService);
       
-      container.bind(TYPES.GraphPersistenceService).toDynamicValue(() => {
-        return new (GraphPersistenceService as unknown as Newable<any>)(
-          nebulaService,
-          nebulaSpaceManager,
-          loggerService,
-          errorHandlerService,
-          configService,
-          batchMetrics,
-          queryBuilder,
-          graphErrorHandler,
-          persistenceUtils,
-          cacheService,
-          performanceMonitor,
-          batchOptimizer,
-          enhancedQueryBuilder,
-          searchService
-        );
-      }).inSingletonScope();
+      // 在绑定前再次检查，防止并发绑定
+      if (!container.isBound(TYPES.GraphPersistenceService)) {
+        container.bind(TYPES.GraphPersistenceService).toDynamicValue(() => {
+          return new (GraphPersistenceService as unknown as Newable<any>)(
+            nebulaService,
+            nebulaSpaceManager,
+            loggerService,
+            errorHandlerService,
+            configService,
+            batchMetrics,
+            queryBuilder,
+            graphErrorHandler,
+            persistenceUtils,
+            cacheService,
+            performanceMonitor,
+            batchOptimizer,
+            enhancedQueryBuilder,
+            searchService
+          );
+        }).inSingletonScope();
+      }
     }
     this.lazyLoader.recordServiceLoad(TYPES.GraphPersistenceService);
     return container.get(TYPES.GraphPersistenceService);
@@ -160,29 +269,171 @@ export class IndividualServiceLoaders {
    * 加载HTTP服务器
    */
   async loadHttpServer(container: Container) {
+    // 检查是否已有加载中的锁
+    const existingLock = this.loadingLocks.get(TYPES.HttpServer);
+    if (existingLock) {
+      return existingLock;
+    }
+
+    // 创建新的加载锁
+    const loadPromise = this.loadHttpServerInternal(container);
+    this.loadingLocks.set(TYPES.HttpServer, loadPromise);
+
+    try {
+      const result = await loadPromise;
+      return result;
+    } finally {
+      // 清理锁
+      this.loadingLocks.delete(TYPES.HttpServer);
+    }
+  }
+
+  private async loadHttpServerInternal(container: Container) {
     if (!container.isBound(TYPES.HttpServer)) {
       const HttpServer = await this.lazyLoader.loadService('../api/HttpServer', 'HttpServer');
       
-      container.bind(TYPES.HttpServer).toDynamicValue(() => {
-        return new (HttpServer as unknown as Newable<any>)();
-      }).inSingletonScope();
+      // 确保依赖服务已加载
+      if (!container.isBound(TYPES.LoggerService)) {
+        await this.lazyLoader.loadServiceGroup('core');
+      }
+      
+      // 双重检查，确保在加载依赖服务后仍然没有绑定
+      if (!container.isBound(TYPES.HttpServer)) {
+        container.bind(TYPES.HttpServer).toDynamicValue(() => {
+          const loggerService = container.get<LoggerService>(TYPES.LoggerService);
+          const errorHandlerService = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+          const configService = container.get<ConfigService>(TYPES.ConfigService);
+          
+          const instance = new (HttpServer as unknown as Newable<any>) (
+            loggerService,
+            errorHandlerService,
+            configService
+          );
+          // 延迟初始化以避免循环依赖
+          // 初始化将在外部调用，不在此工厂函数中执行
+          return instance;
+        }).inSingletonScope();
+      }
     }
     this.lazyLoader.recordServiceLoad(TYPES.HttpServer);
     return container.get(TYPES.HttpServer);
   }
 
   /**
+   * 加载索引服务
+   */
+  async loadIndexService(container: Container) {
+    if (!container.isBound(TYPES.IndexService)) {
+      const IndexService = await this.lazyLoader.loadService('../services/indexing/IndexService', 'IndexService');
+      const loggerService = container.get<LoggerService>(TYPES.LoggerService);
+      const configService = container.get<ConfigService>(TYPES.ConfigService);
+      const errorHandlerService = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+      
+      container.bind(TYPES.IndexService).toDynamicValue(() => {
+        return new (IndexService as unknown as Newable<any>)(
+          loggerService,
+          configService,
+          errorHandlerService
+        );
+      }).inSingletonScope();
+    }
+    this.lazyLoader.recordServiceLoad(TYPES.IndexService);
+    return container.get(TYPES.IndexService);
+  }
+
+  /**
+   * 加载图服务
+   */
+  async loadGraphService(container: Container) {
+    if (!container.isBound(TYPES.GraphService)) {
+      const GraphService = await this.lazyLoader.loadService('../services/graph/GraphService', 'GraphService');
+      const loggerService = container.get<LoggerService>(TYPES.LoggerService);
+      const configService = container.get<ConfigService>(TYPES.ConfigService);
+      const errorHandlerService = container.get<ErrorHandlerService>(TYPES.ErrorHandlerService);
+      
+      container.bind(TYPES.GraphService).toDynamicValue(() => {
+        return new (GraphService as unknown as Newable<any>)(
+          loggerService,
+          configService,
+          errorHandlerService
+        );
+      }).inSingletonScope();
+    }
+    this.lazyLoader.recordServiceLoad(TYPES.GraphService);
+    return container.get(TYPES.GraphService);
+  }
+
+  /**
+   * 加载监控控制器
+   */
+  async loadMonitoringController(container: Container) {
+    if (!container.isBound(TYPES.MonitoringController)) {
+      const MonitoringController = await this.lazyLoader.loadService('../controllers/MonitoringController', 'MonitoringController');
+      
+      // 确保监控组已加载
+      await this.lazyLoader.loadServiceGroup('monitoring');
+      
+      // 确保核心服务已加载（控制器依赖这些服务）
+      if (!container.isBound(TYPES.ConfigService)) {
+        await this.lazyLoader.loadServiceGroup('core');
+      }
+      
+      container.bind(TYPES.MonitoringController).toDynamicValue(() => {
+        return new (MonitoringController as unknown as Newable<any>)();
+      }).inSingletonScope();
+      
+      // 初始化监控控制器 - 延迟初始化以确保所有依赖都已注入
+      setTimeout(() => {
+        try {
+          const controllerInstance = container.get<MonitoringController>(TYPES.MonitoringController);
+          controllerInstance.initialize();
+        } catch (error) {
+          console.error('Failed to initialize MonitoringController:', error);
+        }
+      }, 0);
+    }
+    this.lazyLoader.recordServiceLoad(TYPES.MonitoringController);
+    return container.get(TYPES.MonitoringController);
+  }
+
+  /**
    * 加载MCP服务器
    */
   async loadMCPServer(container: Container) {
+    // 检查是否已有加载中的锁
+    const existingLock = this.loadingLocks.get(TYPES.MCPServer);
+    if (existingLock) {
+      return existingLock;
+    }
+
+    // 创建新的加载锁
+    const loadPromise = this.loadMCPServerInternal(container);
+    this.loadingLocks.set(TYPES.MCPServer, loadPromise);
+
+    try {
+      const result = await loadPromise;
+      return result;
+    } finally {
+      // 清理锁
+      this.loadingLocks.delete(TYPES.MCPServer);
+    }
+  }
+
+  private async loadMCPServerInternal(container: Container) {
     if (!container.isBound(TYPES.MCPServer)) {
       const MCPServer = await this.lazyLoader.loadService('../mcp/MCPServer', 'MCPServer');
-      const loggerService = container.get<LoggerService>(TYPES.LoggerService);
-      const indexService = container.get<IndexService>(TYPES.IndexService);
-      const graphService = container.get<GraphService>(TYPES.GraphService);
+      
+      // Pre-load required services to ensure they're available
+      const lazyLoader = this.lazyLoader;
+      await lazyLoader.loadIndexService();
+      await lazyLoader.loadGraphService();
       
       container.bind(TYPES.MCPServer).toDynamicValue(() => {
-        return new (MCPServer as unknown as Newable<any>)(
+        const loggerService = container.get<LoggerService>(TYPES.LoggerService);
+        const indexService = container.get<IndexService>(TYPES.IndexService);
+        const graphService = container.get<GraphService>(TYPES.GraphService);
+        
+        return new (MCPServer as unknown as Newable<any>) (
           loggerService,
           indexService,
           graphService

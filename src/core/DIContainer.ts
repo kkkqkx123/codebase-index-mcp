@@ -112,8 +112,6 @@ const coreModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
 });
 
 const databaseModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
-  bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
-  bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
   bind(TYPES.NebulaConnectionManager).to(NebulaConnectionManager).inSingletonScope();
   bind(TYPES.NebulaSpaceManager).to(NebulaSpaceManager).inSingletonScope();
   bind(TYPES.QdrantClientWrapper).to(QdrantClientWrapper).inSingletonScope();
@@ -160,16 +158,12 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.FileWatcherService).to(FileWatcherService).inSingletonScope();
   bind(TYPES.ChangeDetectionService).to(ChangeDetectionService).inSingletonScope();
   bind(TYPES.HashBasedDeduplicator).to(HashBasedDeduplicator).inSingletonScope();
-  bind(TYPES.VectorStorageService).to(VectorStorageService).inSingletonScope();
-  bind(TYPES.GraphPersistenceService).to(GraphPersistenceService).inSingletonScope();
   bind(TYPES.GraphPersistenceUtils).to(GraphPersistenceUtils).inSingletonScope();
   bind(TYPES.GraphCacheService).to(GraphCacheService).inSingletonScope();
   bind(TYPES.GraphPerformanceMonitor).to(GraphPerformanceMonitor).inSingletonScope();
   bind(TYPES.GraphBatchOptimizer).to(GraphBatchOptimizer).inSingletonScope();
   bind(TYPES.GraphQueryBuilder).to(GraphQueryBuilder).inSingletonScope();
   bind(TYPES.GraphSearchService).to(GraphSearchService).inSingletonScope();
-  bind(TYPES.BatchProcessingService).to(BatchProcessingService).inSingletonScope();
-  bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
 
   // Infrastructure services
   bind(TYPES.AsyncPipeline).to(AsyncPipeline).inSingletonScope();
@@ -211,6 +205,10 @@ const serviceModule = new ContainerModule(({ bind, unbind, isBound, rebind }) =>
   bind(TYPES.DataFlowAnalyzer).to(DataFlowAnalyzer).inSingletonScope();
   bind(TYPES.IncrementalAnalyzer).to(IncrementalAnalyzer).inSingletonScope();
   bind(TYPES.SecurityAnalyzer).to(SecurityAnalyzer).inSingletonScope();
+  bind(TYPES.BatchProcessingService).to(BatchProcessingService).inSingletonScope();
+  bind(TYPES.EmbeddingService).to(EmbeddingService).inSingletonScope();
+  bind(TYPES.NebulaService).to(NebulaService).inSingletonScope();
+  bind(TYPES.QdrantService).to(QdrantService).inSingletonScope();
 });
 
 const queueModule = new ContainerModule(({ bind, unbind, isBound, rebind }) => {
@@ -247,7 +245,7 @@ const controllerModule = new ContainerModule(({ bind, unbind, isBound, rebind })
   // Processing services already bound above
 });
 
-export { TYPES };
+export { TYPES, databaseModule, embedderModule, serviceModule, monitoringModule, controllerModule, queueModule, syncModule };
 export class DIContainer {
   private static instance: Container | null = null;
   private static lazyLoader: LazyServiceLoader | null = null;
@@ -260,32 +258,32 @@ export class DIContainer {
   static getInstance(): Container {
     if (!DIContainer.instance) {
       DIContainer.instance = new Container();
-      void DIContainer.instance.load(
+      
+      // 加载所有模块
+      DIContainer.instance.load(
         coreModule,
         databaseModule,
-        embedderModule
-        // 其他模块将通过懒加载方式加载
+        embedderModule,
+        monitoringModule,
+        controllerModule,
+        queueModule,
+        syncModule
       );
-
-      // 初始化懒加载器（如果还没有设置）
-      if (!DIContainer.lazyLoader) {
-        DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
-      }
+      
+      // 初始化懒加载器
+      DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
+      
+      // 验证monitoringModule是否正确加载
+      console.log('DIContainer: BatchProcessingMetrics bound after loading all modules:', DIContainer.instance.isBound(TYPES.BatchProcessingMetrics));
     }
+    
     return DIContainer.instance;
   }
 
   static async get<T>(serviceIdentifier: string | symbol): Promise<T> {
     if (!DIContainer.instance) {
-      DIContainer.instance = new Container();
-      void DIContainer.instance.load(
-        coreModule,
-        databaseModule,
-        embedderModule
-      );
-
-      // 初始化懒加载器
-      DIContainer.lazyLoader = new LazyServiceLoader(DIContainer.instance);
+      // 如果实例不存在，先调用getInstance()确保正确初始化
+      DIContainer.getInstance();
     }
 
     // 检查是否为核心服务
@@ -313,7 +311,7 @@ export class DIContainer {
     ];
 
     if (coreServices.includes(serviceIdentifier as symbol)) {
-      return DIContainer.instance.get<T>(serviceIdentifier);
+      return DIContainer.instance!.get<T>(serviceIdentifier);
     }
 
     // 非核心服务通过懒加载器加载
@@ -323,10 +321,10 @@ export class DIContainer {
 
     // 设置日志服务（在核心服务加载后）
     if (serviceIdentifier === TYPES.LoggerService) {
-      DIContainer.lazyLoader.setLogger(DIContainer.instance.get(TYPES.LoggerService));
+      DIContainer.lazyLoader.setLogger(DIContainer.instance!.get(TYPES.LoggerService));
     }
 
-    // 根据服务类型加载对应的服务
+    // 根据服务类型加载对应的服务，使用并发安全的加载机制
     switch (serviceIdentifier) {
       case TYPES.VectorStorageService:
         return DIContainer.lazyLoader.loadVectorStorageService() as T;
@@ -337,14 +335,16 @@ export class DIContainer {
       case TYPES.NebulaService:
         return DIContainer.lazyLoader.loadNebulaService() as T;
       case TYPES.HttpServer:
-        return DIContainer.lazyLoader.loadHttpServer() as T;
+        return DIContainer.lazyLoader.loadHttpServer(DIContainer.instance!) as T;
       case TYPES.MCPServer:
-        return DIContainer.lazyLoader.loadMCPServer() as T;
+        return DIContainer.lazyLoader.loadMCPServer(DIContainer.instance!) as T;
+      case TYPES.MonitoringController:
+        return DIContainer.lazyLoader.loadMonitoringController() as T;
       default:
         // 对于其他服务，尝试直接从容器获取
         // 如果不存在则抛出错误
-        if (DIContainer.instance.isBound(serviceIdentifier)) {
-          return DIContainer.instance.get<T>(serviceIdentifier);
+        if (DIContainer.instance!.isBound(serviceIdentifier)) {
+          return DIContainer.instance!.get<T>(serviceIdentifier);
         }
         throw new Error(`Service ${String(serviceIdentifier)} not found`);
     }
@@ -367,5 +367,9 @@ export class DIContainer {
       return [];
     }
     return DIContainer.lazyLoader.getLoadedServices();
+  }
+
+  static getLazyLoader(): LazyServiceLoader | null {
+    return DIContainer.lazyLoader;
   }
 }

@@ -50,6 +50,10 @@ export class LazyServiceLoader {
   private loadedGroups: Set<string> = new Set();
   private serviceLoadTimes: Map<string | symbol, number> = new Map();
   private serviceDependencies: Map<string | symbol, Set<string | symbol>> = new Map();
+  
+  // 新增：并发控制机制
+  private loadingServices: Map<string | symbol, Promise<any>> = new Map();
+  private loadingGroups: Map<string, Promise<void>> = new Map();
 
   constructor(container: Container) {
     this.container = container;
@@ -85,14 +89,14 @@ export class LazyServiceLoader {
   /**
    * 加载控制器模块（按需加载）
    */
-  private async ensureControllerModuleLoaded(): Promise<void> {
+  async ensureControllerModuleLoaded(): Promise<void> {
     await this.moduleLoaders.ensureControllerModuleLoaded(this.container);
   }
 
   /**
    * 加载监控模块（按需加载）
    */
-  private async ensureMonitoringModuleLoaded(): Promise<void> {
+  async ensureMonitoringModuleLoaded(): Promise<void> {
     await this.moduleLoaders.ensureMonitoringModuleLoaded(this.container);
   }
 
@@ -102,42 +106,90 @@ export class LazyServiceLoader {
    * 加载向量存储服务
    */
   async loadVectorStorageService() {
-    return this.individualLoaders.loadVectorStorageService(this.container);
+    return this.loadServiceConcurrentSafe(
+      TYPES.VectorStorageService,
+      () => this.individualLoaders.loadVectorStorageService(this.container)
+    );
   }
 
   /**
    * 加载图持久化服务
    */
   async loadGraphPersistenceService() {
-    return this.individualLoaders.loadGraphPersistenceService(this.container);
+    return this.loadServiceConcurrentSafe(
+      TYPES.GraphPersistenceService,
+      () => this.individualLoaders.loadGraphPersistenceService(this.container)
+    );
   }
 
   /**
    * 加载Qdrant服务
    */
   async loadQdrantService() {
-    return this.individualLoaders.loadQdrantService(this.container);
+    return this.loadServiceConcurrentSafe(
+      TYPES.QdrantService,
+      () => this.individualLoaders.loadQdrantService(this.container)
+    );
   }
 
   /**
    * 加载Nebula服务
    */
   async loadNebulaService() {
-    return this.individualLoaders.loadNebulaService(this.container);
+    return this.loadServiceConcurrentSafe(
+      TYPES.NebulaService,
+      () => this.individualLoaders.loadNebulaService(this.container)
+    );
   }
 
   /**
    * 加载HTTP服务器
    */
-  async loadHttpServer() {
-    return this.individualLoaders.loadHttpServer(this.container);
+  async loadHttpServer(container?: Container) {
+    return this.loadServiceConcurrentSafe(
+      TYPES.HttpServer,
+      () => this.individualLoaders.loadHttpServer(container || this.container)
+    );
   }
 
   /**
    * 加载MCP服务器
    */
-  async loadMCPServer() {
-    return this.individualLoaders.loadMCPServer(this.container);
+  async loadMCPServer(container?: Container) {
+    return this.loadServiceConcurrentSafe(
+      TYPES.MCPServer,
+      () => this.individualLoaders.loadMCPServer(container || this.container)
+    );
+  }
+
+  /**
+   * 加载索引服务
+   */
+  async loadIndexService() {
+    return this.loadServiceConcurrentSafe(
+      TYPES.IndexService,
+      () => this.individualLoaders.loadIndexService(this.container)
+    );
+  }
+
+  /**
+   * 加载图服务
+   */
+  async loadGraphService() {
+    return this.loadServiceConcurrentSafe(
+      TYPES.GraphService,
+      () => this.individualLoaders.loadGraphService(this.container)
+    );
+  }
+
+  /**
+   * 加载监控控制器
+   */
+  async loadMonitoringController() {
+    return this.loadServiceConcurrentSafe(
+      TYPES.MonitoringController,
+      () => this.individualLoaders.loadMonitoringController(this.container)
+    );
   }
 
   /**
@@ -159,6 +211,59 @@ export class LazyServiceLoader {
   }
 
   /**
+   * 并发安全的服务加载方法
+   * 确保同一个服务不会被重复加载
+   */
+  private async loadServiceConcurrentSafe<T>(
+    serviceId: string | symbol, 
+    loadFunction: () => Promise<T>
+  ): Promise<T> {
+    // 如果服务已经在加载中，返回正在进行的加载Promise
+    if (this.loadingServices.has(serviceId)) {
+      if (this.logger) {
+        this.logger.debug(`Service ${String(serviceId)} is already being loaded, waiting for completion`);
+      }
+      return this.loadingServices.get(serviceId) as Promise<T>;
+    }
+
+    // 如果服务已经绑定到容器，直接返回
+    if (this.container.isBound(serviceId)) {
+      if (this.logger) {
+        this.logger.debug(`Service ${String(serviceId)} is already bound to container`);
+      }
+      return this.container.get<T>(serviceId);
+    }
+
+    // 创建新的加载Promise并缓存
+    const loadingPromise = loadFunction()
+      .then(result => {
+        // 记录服务加载，但不清理加载中的状态
+        // 这样可以防止在Promise完成和清理之间出现竞争条件
+        this.recordServiceLoad(serviceId);
+        
+        // 延迟清理加载中的状态，确保竞争条件窗口期已过
+        setTimeout(() => {
+          this.loadingServices.delete(serviceId);
+        }, 100); // 100ms后清理
+        
+        return result;
+      })
+      .catch(error => {
+        // 加载失败时清理状态
+        this.loadingServices.delete(serviceId);
+        if (this.logger) {
+          this.logger.error(`Failed to load service ${String(serviceId)}:`, error);
+        }
+        throw error;
+      });
+
+    // 缓存加载中的Promise
+    this.loadingServices.set(serviceId, loadingPromise);
+    
+    return loadingPromise;
+  }
+
+  /**
    * 检查分组是否已加载
    */
   isGroupLoaded(group: string): boolean {
@@ -169,7 +274,32 @@ export class LazyServiceLoader {
    * 获取服务所属分组
    */
   getServiceGroup(serviceIdentifier: string | symbol): string | undefined {
-    return SERVICE_GROUP_MAPPING[String(serviceIdentifier)];
+    // Try to get the group from the mapping first
+    const group = SERVICE_GROUP_MAPPING[String(serviceIdentifier)];
+    
+    // If mapping is empty or service not found, use fallback logic
+    if (!group) {
+      const serviceName = String(serviceIdentifier);
+      
+      // Fallback mappings based on service name patterns
+      if (serviceName.includes('Metrics') || serviceName.includes('Health') || serviceName.includes('Monitoring')) {
+        return SERVICE_GROUPS.MONITORING;
+      }
+      if (serviceName.includes('BatchProcessing') || serviceName.includes('Storage') || serviceName.includes('Graph') || serviceName.includes('Embedding')) {
+        return SERVICE_GROUPS.STORAGE;
+      }
+      if (serviceName.includes('Controller') || serviceName.includes('Routes')) {
+        return SERVICE_GROUPS.CONTROLLERS;
+      }
+      if (serviceName.includes('Server') || serviceName.includes('Http')) {
+        return SERVICE_GROUPS.SERVER;
+      }
+      if (serviceName.includes('Config') || serviceName.includes('Logger') || serviceName.includes('Error')) {
+        return SERVICE_GROUPS.CORE;
+      }
+    }
+    
+    return group;
   }
 
   /**
@@ -239,24 +369,66 @@ export class LazyServiceLoader {
    * 加载服务分组
    */
   async loadServiceGroup(group: string): Promise<void> {
+    console.log(`[loadServiceGroup] Starting load for group: ${group}`);
+    
+    // 首先检查是否已经有加载中的组
+    const existingGroupLoad = this.loadingGroups.get(group);
+    if (existingGroupLoad) {
+      console.log(`[loadServiceGroup] Found existing promise for group: ${group}, waiting...`);
+      return existingGroupLoad;
+    }
+    
+    // 检查是否已经加载
     if (this.loadedGroups.has(group)) {
+      console.log(`[loadServiceGroup] Group ${group} already loaded, skipping`);
       if (this.logger) {
         this.logger.info(`Service group ${group} is already loaded`);
       }
       return;
     }
 
+    console.log(`[loadServiceGroup] Creating new promise for group: ${group}`);
+    // 创建新的组加载Promise
+    const groupLoadPromise = this.loadServiceGroupInternal(group);
+    this.loadingGroups.set(group, groupLoadPromise);
+    
+    try {
+      await groupLoadPromise;
+      console.log(`[loadServiceGroup] Successfully loaded group: ${group}`);
+    } finally {
+      // 延迟清理组加载状态，防止竞争条件
+      setTimeout(() => {
+        this.loadingGroups.delete(group);
+        console.log(`[loadServiceGroup] Cleaned up promise for group: ${group}`);
+      }, 100);
+    }
+  }
+  
+  /**
+   * 内部组加载方法
+   */
+  private async loadServiceGroupInternal(group: string): Promise<void> {
+    // 再次检查是否已经加载（双重检查模式）
+    if (this.loadedGroups.has(group)) {
+      return;
+    }
+
     // 检查并加载依赖分组
     const dependencies = SERVICE_DEPENDENCIES[group] || [];
+    console.log(`Dependencies for ${group}:`, dependencies);
+    
     for (const depGroup of dependencies) {
       if (!this.isGroupLoaded(depGroup)) {
+        console.log(`Loading dependency group: ${depGroup}`);
         await this.loadServiceGroup(depGroup);
       }
     }
 
     // 加载当前分组
+    console.log(`Loading group services for: ${group}`);
     await this.loadGroupServices(group);
     
+    console.log(`Service group ${group} loaded successfully`);
     if (this.logger) {
       this.logger.info(`Service group ${group} loaded successfully`);
     }
@@ -266,11 +438,48 @@ export class LazyServiceLoader {
    * 加载特定分组的服务
    */
   private async loadGroupServices(group: string): Promise<void> {
-    const servicesToLoad = Object.entries(SERVICE_GROUP_MAPPING)
-      .filter(([_, serviceGroup]) => serviceGroup === group)
+    console.log(`loadGroupServices called for group: ${group}`);
+    
+    console.log('SERVICE_GROUP_MAPPING entries:', Object.entries(SERVICE_GROUP_MAPPING));
+    console.log('Looking for services with group:', group);
+    
+    let servicesToLoad = Object.entries(SERVICE_GROUP_MAPPING)
+      .filter(([_, serviceGroup]) => {
+        console.log(`Checking serviceGroup: ${serviceGroup} === ${group}: ${serviceGroup === group}`);
+        return serviceGroup === group;
+      })
       .map(([serviceIdentifier]) => serviceIdentifier);
 
+    // If SERVICE_GROUP_MAPPING is empty, use fallback logic to determine services for this group
+    if (servicesToLoad.length === 0 && Object.keys(SERVICE_GROUP_MAPPING).length === 0) {
+      console.log(`SERVICE_GROUP_MAPPING is empty, using fallback logic for group: ${group}`);
+      
+      // Get all TYPES symbols and filter by group using fallback logic
+      const allTypes = Object.values(TYPES);
+      servicesToLoad = allTypes.filter(serviceId => {
+        const fallbackGroup = this.getServiceGroup(serviceId);
+        return fallbackGroup === group;
+      }).map(serviceId => String(serviceId));
+    }
+
+    console.log(`Services to load for group ${group}:`, servicesToLoad);
+
     if (servicesToLoad.length === 0) {
+      console.log(`No services found for group: ${group}`);
+      // Force load modules for groups that have module loaders, even if no services are mapped
+      if (group === SERVICE_GROUPS.MONITORING) {
+        console.log(`Force loading monitoring module for group: ${group}`);
+        await this.ensureMonitoringModuleLoaded();
+        console.log(`Force loaded monitoring module for group: ${group}`);
+      } else if (group === SERVICE_GROUPS.STORAGE) {
+        console.log(`Force loading service module for group: ${group}`);
+        await this.ensureServiceModuleLoaded();
+        console.log(`Force loaded service module for group: ${group}`);
+      } else if (group === SERVICE_GROUPS.CONTROLLERS) {
+        console.log(`Force loading controller module for group: ${group}`);
+        await this.ensureControllerModuleLoaded();
+        console.log(`Force loaded controller module for group: ${group}`);
+      }
       if (this.logger) {
         this.logger.warn(`No services found for group: ${group}`);
       }
@@ -278,37 +487,51 @@ export class LazyServiceLoader {
     }
 
     // 根据分组类型选择不同的加载策略
+    console.log(`Processing group: ${group}`);
     switch (group) {
       case SERVICE_GROUPS.CORE:
         // 核心服务应该在启动时已加载
+        console.log('CORE group - no action needed');
+        break;
+      case SERVICE_GROUPS.MONITORING:
+        // 监控服务需要特殊处理
+        console.log('MONITORING group - calling ensureMonitoringModuleLoaded');
+        await this.ensureMonitoringModuleLoaded();
+        console.log('MONITORING group - ensureMonitoringModuleLoaded completed');
+        break;
+      case SERVICE_GROUPS.CONTROLLERS:
+        // 控制器服务需要特殊处理
+        console.log('CONTROLLERS group - calling ensureControllerModuleLoaded');
+        await this.ensureControllerModuleLoaded();
         break;
       case SERVICE_GROUPS.PARSER:
       case SERVICE_GROUPS.STATIC_ANALYSIS:
       case SERVICE_GROUPS.STORAGE:
       case SERVICE_GROUPS.SEARCH:
       case SERVICE_GROUPS.LSP:
-      case SERVICE_GROUPS.MONITORING:
       case SERVICE_GROUPS.INFRASTRUCTURE:
       case SERVICE_GROUPS.ADVANCED_PARSER:
       case SERVICE_GROUPS.SYNC:
+        console.log(`${group} group - calling ensureServiceModuleLoaded`);
         await this.ensureServiceModuleLoaded();
-        break;
-      case SERVICE_GROUPS.CONTROLLERS:
-        await this.ensureControllerModuleLoaded();
         break;
       case SERVICE_GROUPS.SERVER:
         // 服务器服务需要特殊处理
+        console.log('SERVER group - calling loadServerServices');
         await this.loadServerServices();
         break;
       default:
+        console.log(`Unknown service group: ${group}`);
         if (this.logger) {
           this.logger.warn(`Unknown service group: ${group}`);
         }
         break;
     }
 
+    console.log(`Marking group ${group} as loaded`);
     // 标记分组为已加载
     this.loadedGroups.add(group);
+    console.log(`Group ${group} marked as loaded`);
   }
 
   /**
@@ -318,15 +541,11 @@ export class LazyServiceLoader {
     // 确保基础服务已加载
     await this.ensureServiceModuleLoaded();
     
-    // 加载HTTP服务器
-    if (!this.container.isBound(TYPES.HttpServer)) {
-      await this.loadHttpServer();
-    }
+    // 使用并发安全的方式加载HTTP服务器
+    await this.loadHttpServer(this.container);
     
-    // 加载MCP服务器
-    if (!this.container.isBound(TYPES.MCPServer)) {
-      await this.loadMCPServer();
-    }
+    // 使用并发安全的方式加载MCP服务器
+    await this.loadMCPServer();
   }
 
   /**
