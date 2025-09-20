@@ -33,6 +33,9 @@ describe('IndividualServiceLoaders', () => {
       getLoadedServices: jest.fn().mockReturnValue([]),
       recordServiceLoad: jest.fn(),
       loadService: jest.fn(),
+      loadServiceGroup: jest.fn().mockResolvedValue(undefined),
+      loadIndexService: jest.fn().mockResolvedValue(undefined),
+      loadGraphService: jest.fn().mockResolvedValue(undefined),
     } as any;
     
     MockedLazyServiceLoader.mockImplementation(() => mockLazyLoader);
@@ -210,6 +213,11 @@ describe('IndividualServiceLoaders', () => {
       const mockService = jest.fn();
       mockLazyLoader.loadService.mockResolvedValue(mockService);
       
+      // Mock container dependencies that HttpServer needs
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
+      
       await serviceLoaders.loadHttpServer(container);
       
       expect(mockLazyLoader.loadService).toHaveBeenCalledWith('../api/HttpServer', 'HttpServer');
@@ -219,6 +227,11 @@ describe('IndividualServiceLoaders', () => {
     it('should record service load', async () => {
       const mockService = jest.fn();
       mockLazyLoader.loadService.mockResolvedValue(mockService);
+      
+      // Mock container dependencies that HttpServer needs
+      container.bind(TYPES.LoggerService).toConstantValue({});
+      container.bind(TYPES.ErrorHandlerService).toConstantValue({});
+      container.bind(TYPES.ConfigService).toConstantValue({});
       
       await serviceLoaders.loadHttpServer(container);
       

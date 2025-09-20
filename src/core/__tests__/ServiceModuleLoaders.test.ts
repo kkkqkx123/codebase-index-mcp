@@ -80,6 +80,12 @@ describe('ServiceModuleLoaders', () => {
     it('should load all service modules', async () => {
       mockLazyLoader.loadService.mockResolvedValue({} as any);
       
+      // Pre-bind the services that would be bound by the actual module
+      container.bind(TYPES.IndexService).toConstantValue({});
+      container.bind(TYPES.GraphService).toConstantValue({});
+      container.bind(TYPES.ParserService).toConstantValue({});
+      container.bind(TYPES.VectorStorageService).toConstantValue({});
+      
       await serviceModuleLoaders.ensureServiceModuleLoaded(container);
       
       // Check that core services from serviceModule are bound
@@ -93,6 +99,11 @@ describe('ServiceModuleLoaders', () => {
       // With ContainerModule loading, services are bound through the module
       // Mock successful loading
       mockLazyLoader.loadService.mockResolvedValue({} as any);
+      
+      // Pre-bind the services that would be bound by the actual module
+      container.bind(TYPES.IndexService).toConstantValue({});
+      container.bind(TYPES.VectorStorageService).toConstantValue({});
+      container.bind(TYPES.GraphPersistenceService).toConstantValue({});
       
       await serviceModuleLoaders.ensureServiceModuleLoaded(container);
       

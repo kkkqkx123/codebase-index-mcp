@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+import { injectable, inject } from 'inversify';
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { DIContainer } from '../core/DIContainer';
 import { TYPES } from '../types';
@@ -14,6 +16,7 @@ import { FileSystemRoutes } from './routes/FileSystemRoutes';
 import { CacheRoutes } from './routes/CacheRoutes';
 import { ParserRoutes } from './routes/ParserRoutes';
 
+@injectable()
 export class HttpServer {
   private app: Application;
   private server: any; // Store the server instance
@@ -25,9 +28,9 @@ export class HttpServer {
   private rateLimitMap: Map<string, { count: number; resetTime: number }>;
 
   constructor(
-    logger: LoggerService,
-    errorHandler: ErrorHandlerService,
-    configService: ConfigService
+    @inject(TYPES.LoggerService) logger: LoggerService,
+    @inject(TYPES.ErrorHandlerService) errorHandler: ErrorHandlerService,
+    @inject(TYPES.ConfigService) configService: ConfigService
   ) {
     this.logger = logger;
     this.errorHandler = errorHandler;
