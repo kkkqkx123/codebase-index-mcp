@@ -131,7 +131,7 @@ export class SnippetValidationService {
     } else {
       // 在测试环境中，使用更宽松的验证
       // 只进行最基本的逻辑验证，允许简单的测试片段
-      const hasBasicLogic = /(if|for|while|function|class|try|catch|finally|throw|return|=>)/.test(
+      const hasBasicLogic = /(if|for|while|function|class|try|catch|finally|throw|return|=>|await|Promise\.)/.test(
         content
       );
       if (!hasBasicLogic) {

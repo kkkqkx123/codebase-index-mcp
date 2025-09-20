@@ -464,8 +464,8 @@ export const createTestContainer = () => {
   container.bind<PoolOptions<any>>('PoolOptions').toConstantValue(defaultPoolOptions);
 
   // Bind TreeSitter services for parser integration tests
-  container.bind(TreeSitterCoreService).toSelf().inSingletonScope();
-  container.bind(SnippetExtractionService).toSelf().inSingletonScope();
+  container.bind(TYPES.TreeSitterCoreService).to(TreeSitterCoreService).inSingletonScope();
+  container.bind(TYPES.SnippetExtractionService).to(SnippetExtractionService).inSingletonScope();
 
   // Bind FileWatcherService for integration tests
   container.bind<FileWatcherService>(FileWatcherService).toSelf().inSingletonScope();

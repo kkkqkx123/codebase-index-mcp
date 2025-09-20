@@ -15,6 +15,7 @@ export class AsyncPatternRule extends AbstractSnippetRule {
     'arrow_function',
     'await_expression',
     'promise_expression',
+    'call_expression', // For Promise chains like fetch().then().catch()
     // Python
     'async_function_definition',
     'async_with_statement',
@@ -33,6 +34,25 @@ export class AsyncPatternRule extends AbstractSnippetRule {
 
     // Check for async patterns in the content
     return this.containsAsyncPattern(content) && this.hasSufficientComplexity(content);
+  }
+
+  protected isValidNodeType(node: Parser.SyntaxNode, sourceCode: string): boolean {
+    const content = this.getNodeText(node, sourceCode);
+    
+    // For Promise chains and concurrent execution patterns, we need to be more permissive
+    // Check if it's a valid async pattern even without await keywords
+    if (this.containsAsyncPattern(content)) {
+      // For Promise chains (.then/.catch) or Promise.all/race patterns, 
+      // we don't require await keywords
+      if (/\.then\(|\.catch\(|Promise\.(all|race|allSettled)/.test(content)) {
+        return true;
+      }
+      
+      // For other patterns, use the standard complexity check
+      return this.hasSufficientComplexity(content);
+    }
+    
+    return true; // Default to true to let shouldProcessNode handle the rest
   }
 
   protected createSnippet(
@@ -101,9 +121,13 @@ export class AsyncPatternRule extends AbstractSnippetRule {
   private hasSufficientComplexity(content: string): boolean {
     const lines = content.split('\n').filter(line => line.trim().length > 0);
     const awaitCount = (content.match(/\bawait\s+/g) || []).length;
+    const promiseChainCount = (content.match(/\.then\(|\.catch\(/g) || []).length;
+    const promiseAllCount = (content.match(/Promise\.(all|race|allSettled)/g) || []).length;
 
     // Should have multiple lines and actual async operations
-    return lines.length > 1 && awaitCount > 0;
+    // For Promise chains or concurrent patterns, we don't require await keywords
+    const hasAsyncOperations = awaitCount > 0 || promiseChainCount > 0 || promiseAllCount > 0;
+    return lines.length > 1 && hasAsyncOperations;
   }
 
   private analyzeAsyncFeatures(content: string): {
@@ -114,7 +138,7 @@ export class AsyncPatternRule extends AbstractSnippetRule {
     asyncPattern?: string;
   } {
     return {
-      usesAsync: /\basync\s+/.test(content),
+      usesAsync: /\basync\s+/.test(content) || /\.then\(|\.catch\(|Promise\./.test(content),
       usesAwait: /\bawait\s+/.test(content),
       usesPromises: /Promise\.|\.then\(|\.catch\(/.test(content),
       usesGenerators: /function\s*\*|yield\b/.test(content),

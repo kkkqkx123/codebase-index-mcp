@@ -398,12 +398,6 @@ export class EnhancedRedisCacheAdapter implements CacheInterface {
     const startTime = Date.now();
 
     try {
-      // 检查是否是测试环境中的mock Redis
-      console.debug('=== EnhancedRedisCacheAdapter调试信息 ===');
-      console.debug('this.redis.quit:', this.redis.quit);
-      console.debug('typeof this.redis.quit:', typeof this.redis.quit);
-      console.debug('this.redis.quit._isMockFunction:', (this.redis.quit as any)._isMockFunction);
-      
       const isMockRedis = this.redis.quit && 
                          typeof this.redis.quit === 'function' && 
                          (this.redis.quit as any)._isMockFunction === true;

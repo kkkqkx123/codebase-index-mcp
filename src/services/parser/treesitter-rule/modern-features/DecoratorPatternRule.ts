@@ -147,7 +147,8 @@ export class DecoratorPatternRule extends AbstractSnippetRule {
     hasParameterizedDecorators: boolean;
     decoratorPurpose?: string;
   } {
-    const decoratorRegex = /^@(\w+(?:\.\w+)*(?:\(.*\))?)$/gm;
+    // Use a regex that matches decorators at the beginning of any line (with optional leading whitespace)
+    const decoratorRegex = /^\s*@(\w+(?:\.\w+)*(?:\(.*\))?)/gm;
     const decorators: string[] = [];
     const annotationTypes: string[] = [];
     let hasParameterizedDecorators = false;

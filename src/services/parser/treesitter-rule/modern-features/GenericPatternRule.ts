@@ -167,6 +167,12 @@ export class GenericPatternRule extends AbstractSnippetRule {
       // Calculate nesting level
       const nestedParams = match[1].match(/<[^>]*>/g) || [];
       nestingLevel = Math.max(nestingLevel, nestedParams.length);
+      
+      // Also check for nested generics in the entire content
+      const allNestedGenerics = content.match(/<[^<>]*<[^<>]*>[^<>]*>/g) || [];
+      if (allNestedGenerics.length > 0) {
+        nestingLevel = Math.max(nestingLevel, 1);
+      }
     }
 
     // Extract constraints
