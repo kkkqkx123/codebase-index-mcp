@@ -538,7 +538,11 @@ export const createTestContainer = () => {
   container.bind(SnippetRoutes).toSelf().inSingletonScope();
   container.bind(MonitoringController).toSelf().inSingletonScope();
   container.bind(SnippetController).toSelf().inSingletonScope();
-  container.bind(MCPServer).toSelf().inSingletonScope();
+  // Mock MCPServer - it requires 3 constructor parameters
+  container.bind(TYPES.MCPServer).toConstantValue({
+    start: jest.fn().mockResolvedValue(undefined),
+    stop: jest.fn().mockResolvedValue(undefined),
+  } as any);
   container.bind(DIContainer).toSelf().inSingletonScope();
   container.bind(DimensionAdapterService).toSelf().inSingletonScope();
 

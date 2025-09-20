@@ -134,12 +134,19 @@ describe('HealthCheckService', () => {
         rss: 150 * 1024 * 1024, // 150MB
       });
 
+      // Mock Math.random to return a low value for CPU usage
+      const originalMathRandom = Math.random;
+      Math.random = jest.fn().mockReturnValue(0.1); // 10% CPU usage
+
       const health = healthCheckService.checkSystemHealth();
 
       expect(health.status).toBe('healthy');
       expect(health.memoryUsage).toBeGreaterThanOrEqual(0);
       expect(health.cpuUsage).toBeGreaterThanOrEqual(0);
+      
+      // Restore original functions
       (process as any).memoryUsage = originalMemoryUsage;
+      Math.random = originalMathRandom;
     });
 
     it('should return degraded status when system resources are elevated', () => {
@@ -152,10 +159,17 @@ describe('HealthCheckService', () => {
         rss: 950 * 1024 * 1024, // 950MB
       });
 
+      // Mock Math.random to return a high value for CPU usage
+      const originalMathRandom = Math.random;
+      Math.random = jest.fn().mockReturnValue(0.85); // 85% CPU usage
+
       const health = healthCheckService.checkSystemHealth();
 
       expect(health.status).toBe('degraded');
+      
+      // Restore original functions
       (process as any).memoryUsage = originalMemoryUsage;
+      Math.random = originalMathRandom;
     });
 
     it('should return unhealthy status when system resources are critically high', () => {
@@ -168,10 +182,17 @@ describe('HealthCheckService', () => {
         rss: 1100 * 1024 * 1024, // 1100MB
       });
 
+      // Mock Math.random to return a very high value for CPU usage
+      const originalMathRandom = Math.random;
+      Math.random = jest.fn().mockReturnValue(0.95); // 95% CPU usage
+
       const health = healthCheckService.checkSystemHealth();
 
       expect(health.status).toBe('unhealthy');
+      
+      // Restore original functions
       (process as any).memoryUsage = originalMemoryUsage;
+      Math.random = originalMathRandom;
     });
 
     it('should handle errors when checking system health', () => {
@@ -208,6 +229,10 @@ describe('HealthCheckService', () => {
         rss: 150 * 1024 * 1024, // 150MB
       });
 
+      // Mock Math.random to return a low value for CPU usage
+      const originalMathRandom = Math.random;
+      Math.random = jest.fn().mockReturnValue(0.1); // 10% CPU usage
+
       const health = await healthCheckService.performHealthCheck();
 
       expect(health.status).toBe('healthy');
@@ -216,7 +241,10 @@ describe('HealthCheckService', () => {
       expect(health.checks.system.status).toBe('healthy');
       expect(health.timestamp).toBeDefined();
       expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('low');
+      
+      // Restore original functions
       (process as any).memoryUsage = originalMemoryUsage;
+      Math.random = originalMathRandom;
     });
 
     it('should return degraded status when one check is degraded', async () => {
@@ -236,11 +264,18 @@ describe('HealthCheckService', () => {
         rss: 950 * 1024 * 1024, // 950MB
       });
 
+      // Mock Math.random to return a high value for CPU usage
+      const originalMathRandom = Math.random;
+      Math.random = jest.fn().mockReturnValue(0.85); // 85% CPU usage
+
       const health = await healthCheckService.performHealthCheck();
 
       expect(health.status).toBe('degraded');
       expect(mockPrometheusMetricsService.recordAlert).toHaveBeenCalledWith('high');
+      
+      // Restore original functions
       (process as any).memoryUsage = originalMemoryUsage;
+      Math.random = originalMathRandom;
     });
 
     it('should return unhealthy status when one check fails', async () => {

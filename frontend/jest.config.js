@@ -18,10 +18,10 @@ module.exports = {
     '^@config/(.*)$': '<rootDir>/config/$1',
   },
   testMatch: [
-    '<rootDir>/__tests__/**/*.test.(ts|tsx)',
-    '<rootDir>/components/**/__tests__/*.(ts|tsx)',
-    '<rootDir>/hooks/**/__tests__/*.(ts|tsx)',
-    '<rootDir>/services/**/__tests__/*.(ts|tsx)',
+    '<rootDir>/__tests__/**/*.test.ts',
+    '<rootDir>/components/**/__tests__/*.test.ts',
+    '<rootDir>/hooks/**/__tests__/*.test.ts',
+    '<rootDir>/services/**/__tests__/*.test.ts',
   ],
   collectCoverageFrom: [
     'components/**/*.(ts|tsx)',

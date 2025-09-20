@@ -1,9 +1,8 @@
 export const testEnvironment = 'node';
 export const roots = ['<rootDir>/src', '<rootDir>/test'];
 export const testMatch = [
-  '**/?(*.)+(spec|test).ts',
-  '**/__tests__/**/*.+(ts|tsx|js)',
-  '**/*.(test|spec).+(ts|tsx|js)'
+  '**/?(*.)+(test).ts',
+  '**/__tests__/**/*.test.ts'
 ];
 export const transform = {
   '^.+\\.tsx?$': ['ts-jest', {

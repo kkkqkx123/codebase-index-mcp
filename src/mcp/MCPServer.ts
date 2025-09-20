@@ -114,13 +114,18 @@ export class MCPServer {
 
     this.logger.info(`Creating index for project: ${projectPath}`);
 
-    await this.indexService.createIndex(projectPath, options);
+    try {
+      await this.indexService.createIndex(projectPath, options);
 
-    return {
-      success: true,
-      message: `Index created successfully for ${projectPath}`,
-      timestamp: new Date().toISOString(),
-    };
+      return {
+        success: true,
+        message: `Index created successfully for ${projectPath}`,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create index for project: ${projectPath}`, error);
+      throw error;
+    }
   }
 
   private async handleSearch(args: any): Promise<any> {
@@ -131,14 +136,20 @@ export class MCPServer {
     // For now, we'll use a default projectId
     // In a real implementation, this should be derived from context or passed as a parameter
     const projectId = 'default';
-    const results = await this.indexService.search(query, projectId, options);
+    
+    try {
+      const results = await this.indexService.search(query, projectId, options);
 
-    return {
-      results,
-      total: results.length,
-      query,
-      timestamp: new Date().toISOString(),
-    };
+      return {
+        results,
+        total: results.length,
+        query,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to search for query: ${query}`, error);
+      throw error;
+    }
   }
 
   private async handleGraphAnalyze(args: any): Promise<any> {
@@ -146,27 +157,37 @@ export class MCPServer {
 
     this.logger.info(`Analyzing graph for project: ${projectPath}`);
 
-    const analysis = await this.graphService.analyzeCodebase(projectPath, options);
+    try {
+      const analysis = await this.graphService.analyzeCodebase(projectPath, options);
 
-    return {
-      success: true,
-      nodes: analysis.result.nodes,
-      relationships: analysis.result.edges,
-      metrics: analysis.result.metrics,
-      formattedResult: analysis.formattedResult,
-      timestamp: new Date().toISOString(),
-    };
+      return {
+        success: true,
+        nodes: analysis.result.nodes,
+        relationships: analysis.result.edges,
+        metrics: analysis.result.metrics,
+        formattedResult: analysis.formattedResult,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to analyze graph for project: ${projectPath}`, error);
+      throw error;
+    }
   }
 
   private async handleGetStatus(args: any): Promise<any> {
     const { projectPath } = args;
 
-    const status = await this.indexService.getStatus(projectPath);
+    try {
+      const status = await this.indexService.getStatus(projectPath);
 
-    return {
-      status,
-      timestamp: new Date().toISOString(),
-    };
+      return {
+        status,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get status for project: ${projectPath}`, error);
+      throw error;
+    }
   }
 
   async start(): Promise<void> {

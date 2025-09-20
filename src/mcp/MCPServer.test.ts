@@ -105,7 +105,7 @@ describe('MCPServer', () => {
 
       expect(response.results).toEqual(searchResults);
       expect(response.total).toBe(1);
-      expect(mockIndexService.search).toHaveBeenCalledWith('authentication function', {
+      expect(mockIndexService.search).toHaveBeenCalledWith('authentication function', 'default', {
         limit: 10,
         threshold: 0.7,
         includeGraph: true,

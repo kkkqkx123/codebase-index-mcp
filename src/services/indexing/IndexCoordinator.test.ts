@@ -643,53 +643,77 @@ describe('IndexCoordinator', () => {
       const mockProjectId = 'test_project';
       const mockReferences = ['ref_1', 'ref_2'];
 
-      storageCoordinator.findSnippetReferences.mockResolvedValue(mockReferences);
+      storageCoordinator.getCrossReferences = jest.fn().mockResolvedValue(mockReferences);
 
       const result = await indexCoordinator.detectCrossReferences(mockProjectId);
 
-      expect(result).toEqual(mockReferences);
-      expect(storageCoordinator.findSnippetReferences).toHaveBeenCalledWith(mockProjectId);
+      expect(result).toEqual({
+        references: mockReferences,
+        totalReferences: 2,
+      });
+      expect(storageCoordinator.getCrossReferences).toHaveBeenCalledWith(mockProjectId);
     });
 
     it('should analyze dependencies', async () => {
       const mockSnippetId = 'snippet_1';
       const mockProjectId = 'test_project';
-      const mockDependencies = {
-        dependsOn: ['dep_1', 'dep_2'],
-        usedBy: ['user_1'],
-        complexity: 5,
-      };
+      const mockDependencies = [
+        { file: 'file1.ts', imports: ['dep_1', 'dep_2'], exports: [], externalDependencies: [] },
+        { file: 'file2.ts', imports: ['dep_3'], exports: ['func1'], externalDependencies: ['lodash'] }
+      ];
 
-      storageCoordinator.analyzeDependencies.mockResolvedValue(mockDependencies.dependsOn);
+      storageCoordinator.getDependencies = jest.fn().mockResolvedValue(mockDependencies);
 
       const result = await indexCoordinator.analyzeDependencies(mockProjectId);
 
-      expect(result).toEqual(mockDependencies);
-      expect(storageCoordinator.analyzeDependencies).toHaveBeenCalledWith(mockProjectId);
+      expect(result).toEqual({
+        dependencies: mockDependencies,
+        dependencyGraph: new Map([
+          ['file1.ts', ['dep_1', 'dep_2']],
+          ['file2.ts', ['dep_3']]
+        ]),
+      });
+      expect(storageCoordinator.getDependencies).toHaveBeenCalledWith(mockProjectId);
     });
 
     it('should detect overlaps', async () => {
       const mockSnippetId = 'snippet_1';
       const mockProjectId = 'test_project';
-      const mockOverlaps = ['overlap_1'];
+      const mockOverlaps = ['overlap_1', 'overlap_2'];
 
-      storageCoordinator.findSnippetOverlaps.mockResolvedValue(mockOverlaps);
+      storageCoordinator.getOverlaps = jest.fn().mockResolvedValue(mockOverlaps);
 
       const result = await indexCoordinator.detectOverlaps(mockProjectId);
 
-      expect(result).toEqual(mockOverlaps);
-      expect(storageCoordinator.findSnippetOverlaps).toHaveBeenCalledWith(mockProjectId);
+      expect(result).toEqual({
+        overlaps: mockOverlaps,
+        totalOverlaps: 2,
+      });
+      expect(storageCoordinator.getOverlaps).toHaveBeenCalledWith(mockProjectId);
     });
 
     it('should get index status', async () => {
       const mockProjectId = 'test_project';
+      
+      // Mock the storage coordinator to return a proper status
+      storageCoordinator.getProjectStatus = jest.fn().mockResolvedValue({
+        exists: true,
+        lastUpdated: new Date(),
+        totalFiles: 150,
+        totalChunks: 450,
+        totalSize: 1024000,
+        languages: ['typescript', 'javascript'],
+      });
+      
       const status = await indexCoordinator.getIndexStatus(mockProjectId);
 
       expect(status).toEqual({
-        lastIndexed: expect.any(Date),
-        fileCount: 150,
-        chunkCount: 450,
-        status: 'completed',
+        exists: true,
+        lastUpdated: expect.any(Date),
+        totalFiles: 150,
+        totalChunks: 450,
+        totalSize: 1024000,
+        languages: ['typescript', 'javascript'],
       });
     });
   });
@@ -701,7 +725,7 @@ describe('IndexCoordinator', () => {
 
       // Verify pipeline was set up
       expect(asyncPipeline.clearSteps).toHaveBeenCalled();
-      expect(asyncPipeline.addStep).toHaveBeenCalledTimes(4); // memory-check, file-traversal, batch-parsing, storage-coordination
+      expect(asyncPipeline.addStep).toHaveBeenCalledTimes(5); // memory-check, file-traversal, batch-parsing, lsp-enhancement, storage-coordination
     });
 
     it('should create file pool with correct configuration', () => {
